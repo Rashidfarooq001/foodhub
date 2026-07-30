@@ -9,12 +9,14 @@ import * as path from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
 
-  // Pino Logger
+  // Logger
   app.useLogger(app.get(Logger));
 
-  // Security Headers (Helmet)
+  // Security
   app.use(
     helmet({
       contentSecurityPolicy: process.env.NODE_ENV === 'production',
@@ -22,56 +24,85 @@ async function bootstrap() {
     }),
   );
 
-  // Gzip / Brotli Compression
+  // Compression
   app.use(compression());
 
-  // Serve uploaded media files statically
+  // Uploads
   const uploadsPath = path.join(process.cwd(), 'uploads');
   app.use('/uploads', express.static(uploadsPath));
 
-  // Request Body Size Limit for Media Uploads
+  // Body Size
   app.use(express.json({ limit: '120mb' }));
   app.use(express.urlencoded({ limit: '120mb', extended: true }));
 
   // Global Prefix
   app.setGlobalPrefix('api/v1');
 
-  // Hardened CORS Configuration
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'];
-app.enableCors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: '*',
-});
+  // Allowed Origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    ...(process.env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ];
 
-  // Strict Request Validation Pipe
+  // CORS
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Request-ID',
+    ],
+  });
+
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
-      transformOptions: { enableImplicitConversion: true },
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  // Swagger Documentation Setup
-  const config = new DocumentBuilder()
-    .setTitle('FoodHub Enterprise Core API')
-    .setDescription('Multi-restaurant food delivery platform REST & WebSockets API specification')
-    .setVersion('1.0.0-PROD')
+  // Swagger
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('FoodHub Enterprise API')
+    .setDescription('FoodHub Backend API')
+    .setVersion('1.0.0')
     .addBearerAuth()
     .build();
 
-  const document = SwaggerModule.setup('api/v1/docs', app, () =>
-    SwaggerModule.createDocument(app, config),
-  );
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  const port = process.env.PORT || 4000;
+  SwaggerModule.setup('api/v1/docs', app, document);
+
+  // Start
+  const port = Number(process.env.PORT) || 4000;
+
   await app.listen(port);
-  console.log(`FoodHub Backend Core API running on port ${port}`);
+
+  console.log(`🚀 FoodHub Backend running on port ${port}`);
 }
 
 bootstrap();
