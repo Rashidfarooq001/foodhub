@@ -97,7 +97,7 @@ export default function DriverRegisterPage() {
           <span className="text-blue-700">Admin-onboarded drivers do not need to register. You can log in directly using your assigned credentials.</span>
         </div>
         <a
-          href="http://localhost:3002/login"
+          href={`${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL || 'http://localhost:3002'}/login`}
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700"

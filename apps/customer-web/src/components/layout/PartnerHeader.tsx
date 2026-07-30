@@ -54,7 +54,7 @@ export const PartnerHeader: React.FC = () => {
                 </div>
                 <div className="py-1 space-y-1">
                   <a
-                    href="http://localhost:3001/login"
+                    href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'http://localhost:3001'}/login`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 hover:bg-orange-50 hover:text-orange-600"
@@ -66,7 +66,7 @@ export const PartnerHeader: React.FC = () => {
                     </div>
                   </a>
                   <a
-                    href="http://localhost:3002/login"
+                    href={`${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL || 'http://localhost:3002'}/login`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 hover:bg-emerald-50 hover:text-emerald-600"
