@@ -20,6 +20,12 @@ interface HotelAuthState {
   logout: () => void;
 }
 
+const dummyStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
 export const useHotelAuthStore = create<HotelAuthState>()(
   persist(
     (set) => ({
@@ -40,7 +46,7 @@ export const useHotelAuthStore = create<HotelAuthState>()(
     }),
     {
       name: 'foodhub-hotel-auth',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
     },
   ),
 );

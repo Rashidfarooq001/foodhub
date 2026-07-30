@@ -20,6 +20,12 @@ interface DeliveryAuthState {
   logout: () => void;
 }
 
+const dummyStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
 export const useDeliveryAuthStore = create<DeliveryAuthState>()(
   persist(
     (set) => ({
@@ -40,7 +46,7 @@ export const useDeliveryAuthStore = create<DeliveryAuthState>()(
     }),
     {
       name: 'foodhub-delivery-auth',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
     },
   ),
 );
