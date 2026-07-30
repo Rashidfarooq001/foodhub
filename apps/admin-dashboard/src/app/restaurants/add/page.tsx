@@ -6,7 +6,7 @@ import { ArrowLeft, Building2, MapPin, Store, CreditCard, CheckCircle2, DollarSi
 import { MediaUploader } from '../../../components/common/MediaUploader';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function AddRestaurantPage() {
   const router = useRouter();
@@ -94,7 +94,7 @@ export default function AddRestaurantPage() {
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
 
-      const res = await fetch(`${API_BASE}/restaurants`, {
+      const res = await fetch(`${getApiBase()}/restaurants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
