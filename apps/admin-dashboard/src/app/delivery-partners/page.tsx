@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 interface DriverPartner {
   id: string;
@@ -30,7 +30,7 @@ export default function AdminDeliveryPartnersPage() {
 
   const fetchDrivers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/drivers`);
+      const res = await fetch(`${getApiBase()}/drivers`);
       if (res.ok) {
         const data = await res.json();
         setDrivers(Array.isArray(data) ? data : []);
@@ -49,7 +49,7 @@ export default function AdminDeliveryPartnersPage() {
   const handleToggleApproval = async (driverId: string, currentApproved: boolean) => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/drivers/${driverId}/approval`, {
+      const res = await fetch(`${getApiBase()}/drivers/${driverId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

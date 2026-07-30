@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 interface PendingApplication {
   id: string;
@@ -24,7 +24,7 @@ export default function AdminRestaurantApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${API_BASE}/restaurants`);
+      const res = await fetch(`${getApiBase()}/restaurants`);
       if (res.ok) {
         const data = await res.json();
         const all: PendingApplication[] = Array.isArray(data) ? data : [];
@@ -42,7 +42,7 @@ export default function AdminRestaurantApprovalPage() {
   const handleAction = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/restaurants/${id}/approval`, {
+      const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

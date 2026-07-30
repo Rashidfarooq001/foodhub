@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bike, User, FileText, CreditCard, CheckCircle2 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function AddDriverPage() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function AddDriverPage() {
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/drivers`, {
+      const res = await fetch(`${getApiBase()}/drivers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

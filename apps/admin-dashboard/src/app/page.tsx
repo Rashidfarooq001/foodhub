@@ -7,7 +7,7 @@ import { DollarSign, ShoppingBag, Store, Bike, ArrowUpRight, CheckSquare } from 
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -16,7 +16,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API_BASE}/analytics/admin`);
+        const res = await fetch(`${getApiBase()}/analytics/admin`);
         if (res.ok) {
           const data = await res.json();
           setStats(data);

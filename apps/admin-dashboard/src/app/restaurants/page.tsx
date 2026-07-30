@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 interface Restaurant {
   id: string;
@@ -30,7 +30,7 @@ export default function AdminRestaurantsPage() {
 
   const fetchRestaurants = async () => {
     try {
-      const res = await fetch(`${API_BASE}/restaurants`);
+      const res = await fetch(`${getApiBase()}/restaurants`);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (Array.isArray(data?.restaurants) ? data.restaurants : []);
@@ -50,7 +50,7 @@ export default function AdminRestaurantsPage() {
   const handleUpdateStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/restaurants/${id}/approval`, {
+      const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

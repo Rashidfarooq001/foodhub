@@ -6,7 +6,7 @@ import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${getApiBase()}/auth/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
