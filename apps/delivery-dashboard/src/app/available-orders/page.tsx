@@ -19,7 +19,7 @@ export default function AvailableOrdersPage() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/delivery/available`);
+        const res = await fetch(`${API_BASE}/delivery/available`);
         if (res.ok) {
           const data = await res.json();
           setAvailableJobs(Array.isArray(data) ? data : data.jobs ?? []);

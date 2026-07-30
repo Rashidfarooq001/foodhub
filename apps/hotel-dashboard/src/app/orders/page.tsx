@@ -17,7 +17,7 @@ export default function HotelOrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/orders`);
+        const res = await fetch(`${API_BASE}/orders`);
         if (res.ok) {
           const data = await res.json();
           setQueue(Array.isArray(data) ? data : data.orders ?? []);

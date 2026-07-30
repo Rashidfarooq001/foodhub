@@ -26,7 +26,7 @@ export default function CustomerHomePage() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/restaurants`);
+        const res = await fetch(`${API_BASE}/restaurants`);
         if (res.ok) {
           const data = await res.json();
           setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
@@ -44,7 +44,7 @@ export default function CustomerHomePage() {
     if (!isAuthenticated) return;
     const fetchActiveOrder = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/orders/active`);
+        const res = await fetch(`${API_BASE}/orders/active`);
         if (res.ok) {
           const data = await res.json();
           setActiveOrder(data ?? null);

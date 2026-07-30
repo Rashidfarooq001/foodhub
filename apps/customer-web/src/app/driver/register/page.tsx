@@ -37,7 +37,7 @@ export default function DriverRegisterPage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/drivers/apply`, {
+      const res = await fetch(`${API_BASE}/drivers/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

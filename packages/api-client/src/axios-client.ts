@@ -3,7 +3,7 @@ import { setupInterceptors } from './interceptors';
 import { getApiBaseUrl } from '@foodhub/config';
 
 export function createApiClient(baseURL?: string): AxiosInstance {
-  const base = baseURL || `${getApiBaseUrl()}/api/v1`;
+  const base = baseURL ? baseURL.replace(/\/+$/, '') : getApiBaseUrl();
   const client = axios.create({
     baseURL: base,
     timeout: 15000,

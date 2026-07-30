@@ -19,7 +19,7 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/restaurants`);
+        const res = await fetch(`${API_BASE}/restaurants`);
         if (res.ok) {
           const data = await res.json();
           setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);

@@ -24,7 +24,7 @@ export default function AdminRestaurantApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/restaurants`);
+      const res = await fetch(`${API_BASE}/restaurants`);
       if (res.ok) {
         const data = await res.json();
         const all: PendingApplication[] = Array.isArray(data) ? data : [];
@@ -42,7 +42,7 @@ export default function AdminRestaurantApprovalPage() {
   const handleAction = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/api/v1/restaurants/${id}/approval`, {
+      const res = await fetch(`${API_BASE}/restaurants/${id}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

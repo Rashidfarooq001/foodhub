@@ -15,7 +15,7 @@ export default function WishlistPage() {
   useEffect(() => {
     const fetchWishlist = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/wishlist`);
+        const res = await fetch(`${API_BASE}/wishlist`);
         if (res.ok) {
           const data = await res.json();
           setWishlistedItems(Array.isArray(data) ? data : data.items ?? []);

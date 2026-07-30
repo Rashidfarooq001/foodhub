@@ -39,7 +39,7 @@ export default function AddDriverPage() {
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/api/v1/drivers`, {
+      const res = await fetch(`${API_BASE}/drivers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

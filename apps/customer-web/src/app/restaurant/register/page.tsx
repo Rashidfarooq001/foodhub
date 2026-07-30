@@ -47,7 +47,7 @@ export default function RestaurantRegisterPage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/restaurants`, {
+      const res = await fetch(`${API_BASE}/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -19,8 +19,8 @@ export default function HotelDashboardPage() {
     const fetchAll = async () => {
       try {
         const [statsRes, ordersRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/analytics/restaurant`),
-          fetch(`${API_BASE}/api/v1/orders?status=PENDING,PREPARING`),
+          fetch(`${API_BASE}/analytics/restaurant`),
+          fetch(`${API_BASE}/orders?status=PENDING,PREPARING`),
         ]);
         if (statsRes.ok) {
           const data = await statsRes.json();

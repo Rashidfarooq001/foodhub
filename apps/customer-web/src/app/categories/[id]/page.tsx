@@ -20,8 +20,8 @@ export default function CategoryDetailPage() {
     const fetchData = async () => {
       try {
         const [catRes, restRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/categories/${categoryId}`),
-          fetch(`${API_BASE}/api/v1/restaurants?categoryId=${categoryId}`),
+          fetch(`${API_BASE}/categories/${categoryId}`),
+          fetch(`${API_BASE}/restaurants?categoryId=${categoryId}`),
         ]);
         if (catRes.ok) setCategory(await catRes.json());
         if (restRes.ok) {

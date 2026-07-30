@@ -17,8 +17,8 @@ export default function DeliveryDashboardPage() {
     const fetchAll = async () => {
       try {
         const [statsRes, deliveryRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/delivery/stats`),
-          fetch(`${API_BASE}/api/v1/delivery/current`),
+          fetch(`${API_BASE}/delivery/stats`),
+          fetch(`${API_BASE}/delivery/current`),
         ]);
         if (statsRes.ok) {
           const data = await statsRes.json();

@@ -13,7 +13,7 @@ export default function DeliveryRatingsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/delivery/stats`);
+        const res = await fetch(`${API_BASE}/delivery/stats`);
         if (res.ok) setStats(await res.json());
       } catch { /* backend offline */ }
     };

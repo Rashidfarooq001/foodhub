@@ -58,7 +58,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${API_BASE}/api/v1/storage/upload?type=${acceptType}`, {
+      const res = await fetch(`${API_BASE}/storage/upload?type=${acceptType}`, {
         method: 'POST',
         body: formData,
       });

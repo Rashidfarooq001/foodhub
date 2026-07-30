@@ -1,12 +1,13 @@
 /**
  * Shared API & WebSocket Configuration Module for FoodHub
  * Reads NEXT_PUBLIC_API_URL and NEXT_PUBLIC_WS_URL from environment variables.
- * Fails with a clear, descriptive error if required environment variables are missing at client runtime.
+ * Guarantees that getApiBaseUrl() includes the '/api/v1' path prefix exactly once.
  */
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
 
+  let url: string;
   if (!envUrl) {
     if (typeof window !== 'undefined') {
       console.error(
@@ -16,18 +17,24 @@ export function getApiBaseUrl(): string {
         'CRITICAL CONFIGURATION ERROR: NEXT_PUBLIC_API_URL environment variable is missing. Please configure NEXT_PUBLIC_API_URL in your environment settings.',
       );
     }
-    // Return standard fallback during Next.js SSG / static prerendering build phase
-    return 'http://localhost:4000';
+    url = 'http://localhost:4000/api/v1';
+  } else {
+    url = envUrl.trim().replace(/\/+$/, '');
   }
 
-  return envUrl.replace(/\/+$/, '');
+  // Ensure base URL ends with /api/v1 exactly once
+  if (!url.endsWith('/api/v1')) {
+    url = `${url}/api/v1`;
+  }
+
+  return url;
 }
 
 export function getWsBaseUrl(): string {
   const envWsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.PUBLIC_WS_URL;
 
   if (envWsUrl) {
-    return envWsUrl.replace(/\/+$/, '');
+    return envWsUrl.trim().replace(/\/+$/, '');
   }
 
   const apiBase = getApiBaseUrl();

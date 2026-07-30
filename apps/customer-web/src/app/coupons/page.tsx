@@ -15,7 +15,7 @@ export default function CouponsPage() {
   useEffect(() => {
     const fetchCoupons = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/coupons`);
+        const res = await fetch(`${API_BASE}/coupons`);
         if (res.ok) {
           const data = await res.json();
           setCoupons(Array.isArray(data) ? data : data.coupons ?? []);

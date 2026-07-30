@@ -28,8 +28,8 @@ export default function OrderHistoryPage() {
     const fetchOrders = async () => {
       try {
         const [activeRes, historyRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/orders/active`),
-          fetch(`${API_BASE}/api/v1/orders/history`),
+          fetch(`${API_BASE}/orders/active`),
+          fetch(`${API_BASE}/orders/history`),
         ]);
         if (activeRes.ok) {
           setActiveOrder(await activeRes.json());

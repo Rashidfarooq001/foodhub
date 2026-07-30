@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, Navigation, Search, X } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
 
 interface AddressResult {
   lat:         number;
@@ -76,7 +79,7 @@ export default function AddressPickerMap({
         const pos = marker.getLatLng();
         setMarkerLat(pos.lat);
         setMarkerLng(pos.lng);
-        const res     = await fetch(`/api/v1/geo/reverse?lat=${pos.lat}&lng=${pos.lng}`);
+        const res     = await fetch(`${API_BASE}/geo/reverse?lat=${pos.lat}&lng=${pos.lng}`);
         const data    = await res.json();
         const address = data.address ?? '';
         setSelectedAddr(address);
@@ -89,7 +92,7 @@ export default function AddressPickerMap({
         marker.setLatLng([lat, lng]);
         setMarkerLat(lat);
         setMarkerLng(lng);
-        const res     = await fetch(`/api/v1/geo/reverse?lat=${lat}&lng=${lng}`);
+        const res     = await fetch(`${API_BASE}/geo/reverse?lat=${lat}&lng=${lng}`);
         const data    = await res.json();
         const address = data.address ?? '';
         setSelectedAddr(address);
@@ -105,7 +108,7 @@ export default function AddressPickerMap({
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const res  = await fetch(`/api/v1/geo/search?q=${encodeURIComponent(query)}`);
+      const res  = await fetch(`${API_BASE}/geo/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       setSuggestions(data);
     } finally {
@@ -136,7 +139,7 @@ export default function AddressPickerMap({
         mapRef.current.setView([lat, lng], 16);
         markerRef.current.setLatLng([lat, lng]);
       }
-      const res     = await fetch(`/api/v1/geo/reverse?lat=${lat}&lng=${lng}`);
+      const res     = await fetch(`${API_BASE}/geo/reverse?lat=${lat}&lng=${lng}`);
       const data    = await res.json();
       const address = data.address ?? '';
       setSelectedAddr(address);

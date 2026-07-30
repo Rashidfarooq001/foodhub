@@ -25,7 +25,7 @@ export default function LiveOrderTrackingPage() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/orders/${orderId}`);
+        const res = await fetch(`${API_BASE}/orders/${orderId}`);
         if (res.ok) {
           setOrder(await res.json());
         }

@@ -26,7 +26,7 @@ export default function AdminDriverApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/drivers/applications`);
+      const res = await fetch(`${API_BASE}/drivers/applications`);
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
@@ -43,7 +43,7 @@ export default function AdminDriverApprovalPage() {
   const handleAction = async (id: string, isApproved: boolean) => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${API_BASE}/api/v1/drivers/${id}/approval`, {
+      const res = await fetch(`${API_BASE}/drivers/${id}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

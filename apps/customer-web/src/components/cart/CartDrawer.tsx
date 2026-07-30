@@ -44,7 +44,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchCoupons = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/coupons`);
+        const res = await fetch(`${API_BASE}/coupons`);
         if (res.ok) {
           const data = await res.json();
           setAvailableCoupons(Array.isArray(data) ? data : data.coupons ?? []);

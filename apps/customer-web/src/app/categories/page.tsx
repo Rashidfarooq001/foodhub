@@ -14,7 +14,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/categories`);
+        const res = await fetch(`${API_BASE}/categories`);
         if (res.ok) {
           const data = await res.json();
           setCategories(Array.isArray(data) ? data : data.categories ?? []);

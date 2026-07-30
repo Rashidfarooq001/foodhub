@@ -26,7 +26,7 @@ export default function RestaurantDetailPage() {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/restaurants/${slug}`);
+        const res = await fetch(`${API_BASE}/restaurants/${slug}`);
         if (res.status === 404) {
           setNotFound(true);
         } else if (res.ok) {

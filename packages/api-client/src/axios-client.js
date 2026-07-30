@@ -9,7 +9,7 @@ const axios_1 = __importDefault(require("axios"));
 const interceptors_1 = require("./interceptors");
 const config_1 = require("@foodhub/config");
 function createApiClient(baseURL) {
-    const base = baseURL || `${(0, config_1.getApiBaseUrl)()}/api/v1`;
+    const base = baseURL ? baseURL.replace(/\/+$/, '') : (0, config_1.getApiBaseUrl)();
     const client = axios_1.default.create({
         baseURL: base,
         timeout: 15000,

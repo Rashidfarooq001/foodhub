@@ -94,7 +94,7 @@ export default function AddRestaurantPage() {
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
 
-      const res = await fetch(`${API_BASE}/api/v1/restaurants`, {
+      const res = await fetch(`${API_BASE}/restaurants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
