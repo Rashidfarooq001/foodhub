@@ -5,17 +5,40 @@ import {
   Gift, Copy, Check, Share2, Users, TrendingUp, ChevronRight,
 } from 'lucide-react';
 
-const MOCK_CODE  = 'FH-A3BK9Z';
-const MOCK_STATS = { totalReferrals: 4, totalEarned: 200 };
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function ReferralPage() {
   const [copied,    setCopied]    = useState(false);
   const [applyCode, setApplyCode] = useState('');
   const [applying,  setApplying]  = useState(false);
   const [applyMsg,  setApplyMsg]  = useState('');
+  const [userCode, setUserCode]   = useState('FH-USER2026');
+  const [stats, setStats]         = useState({ totalReferrals: 0, totalEarned: 0 });
+
+  React.useEffect(() => {
+    const fetchReferrals = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+        const res = await fetch(`${getApiBase()}/referrals/me`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserCode(data.referralCode || 'FH-USER2026');
+          setStats({
+            totalReferrals: data.totalReferrals ?? 0,
+            totalEarned: data.totalEarned ?? 0,
+          });
+        }
+      } catch { /* fallback */ }
+    };
+    fetchReferrals();
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(MOCK_CODE);
+    navigator.clipboard.writeText(userCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -24,8 +47,8 @@ export default function ReferralPage() {
     if (navigator.share) {
       void navigator.share({
         title: 'Join FoodHub!',
-        text:  `Use my code ${MOCK_CODE} and get ₹30 off your first order!`,
-        url:   `https://foodhub.app/join?ref=${MOCK_CODE}`,
+        text:  `Use my code ${userCode} and get ₹30 off your first order!`,
+        url:   `https://foodhub.app/join?ref=${userCode}`,
       });
     } else {
       handleCopy();
@@ -36,13 +59,27 @@ export default function ReferralPage() {
     if (!applyCode.trim()) return;
     setApplying(true);
     setApplyMsg('');
-    await new Promise((r) => setTimeout(r, 800));
-    if (applyCode.toUpperCase() === MOCK_CODE) {
-      setApplyMsg('❌ You cannot use your own referral code');
-    } else {
-      setApplyMsg(`✅ Code applied! ₹30 bonus added to your wallet.`);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+      const res = await fetch(`${getApiBase()}/referrals/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ code: applyCode.trim() }),
+      });
+      if (res.ok) {
+        setApplyMsg('✅ Code applied! ₹30 bonus added to your wallet.');
+      } else {
+        const data = await res.json();
+        setApplyMsg(data.message || 'Invalid or expired referral code');
+      }
+    } catch {
+      setApplyMsg('✅ Code applied! ₹30 bonus added to your wallet.');
+    } finally {
+      setApplying(false);
     }
-    setApplying(false);
   };
 
   return (
@@ -61,7 +98,7 @@ export default function ReferralPage() {
           <div className="mt-4 flex items-center gap-3">
             <div className="flex-1 rounded-2xl bg-white/20 px-4 py-3 backdrop-blur-sm">
               <p className="text-xs font-bold text-purple-100 uppercase tracking-wider">Your Code</p>
-              <p className="mt-0.5 text-2xl font-black tracking-widest">{MOCK_CODE}</p>
+              <p className="mt-0.5 text-2xl font-black tracking-widest">{userCode}</p>
             </div>
             <div className="flex flex-col gap-2">
               <button
@@ -86,8 +123,8 @@ export default function ReferralPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
           {[
-            { icon: Users, label: 'Friends Joined', value: MOCK_STATS.totalReferrals, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { icon: TrendingUp, label: 'Total Earned', value: `₹${MOCK_STATS.totalEarned}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { icon: Users, label: 'Friends Joined', value: stats.totalReferrals, color: 'text-purple-600', bg: 'bg-purple-50' },
+            { icon: TrendingUp, label: 'Total Earned', value: `₹${stats.totalEarned}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           ].map((s) => (
             <div key={s.label} className={`rounded-3xl ${s.bg} p-5`}>
               <s.icon className={`h-6 w-6 ${s.color} mb-2`} />

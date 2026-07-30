@@ -9,7 +9,11 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
 
-const MOCK_ANALYTICS = {
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+
+const DEFAULT_ANALYTICS = {
   kpis: {
     todayRevenue: 48250,
     todayRevenueGrowth: 12.5,
@@ -22,7 +26,7 @@ const MOCK_ANALYTICS = {
     activeRestaurants: 142,
     activeDrivers: 88,
     avgOrderValue: 425,
-    avgDeliveryTime: 28, // mins
+    avgDeliveryTime: 28,
     pendingSettlements: 12,
     refundAmount: 4500,
   },
@@ -55,6 +59,22 @@ const MOCK_ANALYTICS = {
 
 export default function AdminAnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'7D' | '30D' | '90D' | '1Y'>('7D');
+  const [analytics, setAnalytics] = useState(DEFAULT_ANALYTICS);
+
+  React.useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/analytics/admin`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.kpis) {
+            setAnalytics(data);
+          }
+        }
+      } catch { /* fallback */ }
+    };
+    fetchAnalytics();
+  }, [timeRange]);
 
   return (
     <div className="space-y-8">
@@ -89,9 +109,9 @@ export default function AdminAnalyticsPage() {
             <div className="p-2 bg-purple-50 rounded-2xl text-purple-600"><DollarSign className="h-5 w-5" /></div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-gray-900">₹{MOCK_ANALYTICS.kpis.todayRevenue.toLocaleString()}</span>
+            <span className="text-2xl font-black text-gray-900">₹{analytics.kpis.todayRevenue.toLocaleString()}</span>
             <span className="flex items-center text-xs font-bold text-emerald-600">
-              <ArrowUpRight className="h-3.5 w-3.5" /> +{MOCK_ANALYTICS.kpis.todayRevenueGrowth}%
+              <ArrowUpRight className="h-3.5 w-3.5" /> +{analytics.kpis.todayRevenueGrowth}%
             </span>
           </div>
           <p className="text-xs text-gray-400">vs yesterday</p>
@@ -103,12 +123,12 @@ export default function AdminAnalyticsPage() {
             <div className="p-2 bg-blue-50 rounded-2xl text-blue-600"><ShoppingBag className="h-5 w-5" /></div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-gray-900">{MOCK_ANALYTICS.kpis.todayOrders}</span>
+            <span className="text-2xl font-black text-gray-900">{analytics.kpis.todayOrders}</span>
             <span className="flex items-center text-xs font-bold text-emerald-600">
-              <ArrowUpRight className="h-3.5 w-3.5" /> +{MOCK_ANALYTICS.kpis.todayOrdersGrowth}%
+              <ArrowUpRight className="h-3.5 w-3.5" /> +{analytics.kpis.todayOrdersGrowth}%
             </span>
           </div>
-          <p className="text-xs text-gray-400">avg delivery {MOCK_ANALYTICS.kpis.avgDeliveryTime}m</p>
+          <p className="text-xs text-gray-400">avg delivery {analytics.kpis.avgDeliveryTime}m</p>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-2">
@@ -117,7 +137,7 @@ export default function AdminAnalyticsPage() {
             <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-600"><TrendingUp className="h-5 w-5" /></div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-gray-900">₹{MOCK_ANALYTICS.kpis.platformCommission.toLocaleString()}</span>
+            <span className="text-2xl font-black text-gray-900">₹{analytics.kpis.platformCommission.toLocaleString()}</span>
           </div>
           <p className="text-xs text-gray-400">Monthly yield</p>
         </div>
@@ -128,9 +148,9 @@ export default function AdminAnalyticsPage() {
             <div className="p-2 bg-amber-50 rounded-2xl text-amber-600"><Users className="h-5 w-5" /></div>
           </div>
           <div className="flex items-center justify-between text-xs font-bold pt-1">
-            <span className="text-purple-600">{MOCK_ANALYTICS.kpis.activeCustomers} Cust</span>
-            <span className="text-emerald-600">{MOCK_ANALYTICS.kpis.activeRestaurants} Rest</span>
-            <span className="text-blue-600">{MOCK_ANALYTICS.kpis.activeDrivers} Driv</span>
+            <span className="text-purple-600">{analytics.kpis.activeCustomers} Cust</span>
+            <span className="text-emerald-600">{analytics.kpis.activeRestaurants} Rest</span>
+            <span className="text-blue-600">{analytics.kpis.activeDrivers} Driv</span>
           </div>
           <p className="text-xs text-gray-400">Platform active users</p>
         </div>
@@ -148,7 +168,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_ANALYTICS.revenueTrend}>
+              <AreaChart data={analytics.revenueTrend}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#9333ea" stopOpacity={0.4}/>
@@ -173,8 +193,8 @@ export default function AdminAnalyticsPage() {
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={MOCK_ANALYTICS.categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4}>
-                  {MOCK_ANALYTICS.categoryDistribution.map((entry, index) => (
+                <Pie data={analytics.categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4}>
+                  {analytics.categoryDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -183,7 +203,7 @@ export default function AdminAnalyticsPage() {
             </ResponsiveContainer>
           </div>
           <div className="space-y-1.5">
-            {MOCK_ANALYTICS.categoryDistribution.map((cat) => (
+            {analytics.categoryDistribution.map((cat) => (
               <div key={cat.name} className="flex items-center justify-between text-xs font-semibold">
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
@@ -208,7 +228,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={MOCK_ANALYTICS.peakHours}>
+              <BarChart data={analytics.peakHours}>
                 <XAxis dataKey="hour" stroke="#9ca3af" fontSize={12} />
                 <YAxis stroke="#9ca3af" fontSize={12} />
                 <Tooltip />
@@ -223,25 +243,25 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-2xl bg-amber-50 p-4 border border-amber-100">
               <span className="text-xs font-bold text-amber-700 uppercase">Pending Settlements</span>
-              <p className="text-2xl font-black text-amber-900 mt-1">{MOCK_ANALYTICS.kpis.pendingSettlements}</p>
+              <p className="text-2xl font-black text-amber-900 mt-1">{analytics.kpis.pendingSettlements}</p>
               <p className="text-xs text-amber-600 mt-1">Requires admin approval</p>
             </div>
 
             <div className="rounded-2xl bg-rose-50 p-4 border border-rose-100">
               <span className="text-xs font-bold text-rose-700 uppercase">Refunds Issued</span>
-              <p className="text-2xl font-black text-rose-900 mt-1">₹{MOCK_ANALYTICS.kpis.refundAmount}</p>
+              <p className="text-2xl font-black text-rose-900 mt-1">₹{analytics.kpis.refundAmount}</p>
               <p className="text-xs text-rose-600 mt-1">Last 30 days total</p>
             </div>
 
             <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-100">
               <span className="text-xs font-bold text-emerald-700 uppercase">Avg Order Value</span>
-              <p className="text-2xl font-black text-emerald-900 mt-1">₹{MOCK_ANALYTICS.kpis.avgOrderValue}</p>
+              <p className="text-2xl font-black text-emerald-900 mt-1">₹{analytics.kpis.avgOrderValue}</p>
               <p className="text-xs text-emerald-600 mt-1">Per transaction average</p>
             </div>
 
             <div className="rounded-2xl bg-purple-50 p-4 border border-purple-100">
               <span className="text-xs font-bold text-purple-700 uppercase">Avg Delivery Time</span>
-              <p className="text-2xl font-black text-purple-900 mt-1">{MOCK_ANALYTICS.kpis.avgDeliveryTime} min</p>
+              <p className="text-2xl font-black text-purple-900 mt-1">{analytics.kpis.avgDeliveryTime} min</p>
               <p className="text-xs text-purple-600 mt-1">Order to door duration</p>
             </div>
           </div>

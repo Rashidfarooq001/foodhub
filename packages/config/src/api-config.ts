@@ -14,6 +14,9 @@ export function getApiBaseUrl(): string {
     url = envUrl.trim().replace(/\/+$/, '');
   }
 
+  // Collapse any repeated /api/v1 suffixes in env var settings down to a single /api/v1
+  url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
+
   // Ensure base URL ends with /api/v1 exactly once
   if (!url.endsWith('/api/v1')) {
     url = `${url}/api/v1`;

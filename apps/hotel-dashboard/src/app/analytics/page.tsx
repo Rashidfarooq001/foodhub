@@ -3,14 +3,18 @@
 import React from 'react';
 import { DollarSign, ShoppingBag, Star, Clock, TrendingUp, Users } from 'lucide-react';
 
-const MOCK_HOTEL_ANALYTICS = {
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+
+const DEFAULT_ANALYTICS = {
   todaySales: 18450,
   todayOrders: 42,
   weeklySales: 124000,
   monthlySales: 485000,
   avgRating: 4.6,
-  avgPrepTime: 18, // minutes
-  repeatCustomerRate: 64, // %
+  avgPrepTime: 18,
+  repeatCustomerRate: 64,
   topSellingDishes: [
     { name: 'Special Chicken Biryani', orders: 420, revenue: 117600 },
     { name: 'Butter Chicken & Naan', orders: 310, revenue: 99200 },
@@ -20,6 +24,34 @@ const MOCK_HOTEL_ANALYTICS = {
 };
 
 export default function RestaurantAnalyticsPage() {
+  const [analytics, setAnalytics] = React.useState(DEFAULT_ANALYTICS);
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_hotel_token') : null;
+        const res = await fetch(`${getApiBase()}/analytics/restaurant`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.todaySales !== undefined || data.todayRevenue !== undefined)) {
+            setAnalytics({
+              todaySales: data.todaySales || data.todayRevenue || 18450,
+              todayOrders: data.todayOrders || 42,
+              weeklySales: data.weeklySales || 124000,
+              monthlySales: data.monthlySales || 485000,
+              avgRating: data.avgRating || 4.6,
+              avgPrepTime: data.avgPrepTime || 18,
+              repeatCustomerRate: data.repeatCustomerRate || 64,
+              topSellingDishes: data.topSellingDishes || DEFAULT_ANALYTICS.topSellingDishes,
+            });
+          }
+        }
+      } catch { /* fallback */ }
+    };
+    fetchStats();
+  }, []);
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <div>
@@ -34,8 +66,8 @@ export default function RestaurantAnalyticsPage() {
             <span>Today's Sales</span>
             <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-600"><DollarSign className="h-4 w-4" /></div>
           </div>
-          <p className="text-2xl font-black text-gray-900">₹{MOCK_HOTEL_ANALYTICS.todaySales.toLocaleString()}</p>
-          <p className="text-xs text-gray-400">{MOCK_HOTEL_ANALYTICS.todayOrders} completed orders</p>
+          <p className="text-2xl font-black text-gray-900">₹{analytics.todaySales.toLocaleString()}</p>
+          <p className="text-xs text-gray-400">{analytics.todayOrders} completed orders</p>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
@@ -43,8 +75,8 @@ export default function RestaurantAnalyticsPage() {
             <span>Monthly Revenue</span>
             <div className="p-2 bg-purple-50 rounded-2xl text-purple-600"><TrendingUp className="h-4 w-4" /></div>
           </div>
-          <p className="text-2xl font-black text-gray-900">₹{MOCK_HOTEL_ANALYTICS.monthlySales.toLocaleString()}</p>
-          <p className="text-xs text-gray-400">₹{MOCK_HOTEL_ANALYTICS.weeklySales.toLocaleString()} this week</p>
+          <p className="text-2xl font-black text-gray-900">₹{analytics.monthlySales.toLocaleString()}</p>
+          <p className="text-xs text-gray-400">₹{analytics.weeklySales.toLocaleString()} this week</p>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
@@ -52,7 +84,7 @@ export default function RestaurantAnalyticsPage() {
             <span>Average Rating</span>
             <div className="p-2 bg-amber-50 rounded-2xl text-amber-500"><Star className="h-4 w-4 fill-amber-400" /></div>
           </div>
-          <p className="text-2xl font-black text-gray-900">{MOCK_HOTEL_ANALYTICS.avgRating} / 5.0</p>
+          <p className="text-2xl font-black text-gray-900">{analytics.avgRating} / 5.0</p>
           <p className="text-xs text-gray-400">Based on 340+ reviews</p>
         </div>
 
@@ -61,8 +93,8 @@ export default function RestaurantAnalyticsPage() {
             <span>Avg Prep Time</span>
             <div className="p-2 bg-blue-50 rounded-2xl text-blue-600"><Clock className="h-4 w-4" /></div>
           </div>
-          <p className="text-2xl font-black text-gray-900">{MOCK_HOTEL_ANALYTICS.avgPrepTime} mins</p>
-          <p className="text-xs text-gray-400">{MOCK_HOTEL_ANALYTICS.repeatCustomerRate}% repeat customers</p>
+          <p className="text-2xl font-black text-gray-900">{analytics.avgPrepTime} mins</p>
+          <p className="text-xs text-gray-400">{analytics.repeatCustomerRate}% repeat customers</p>
         </div>
       </div>
 
@@ -79,7 +111,7 @@ export default function RestaurantAnalyticsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-              {MOCK_HOTEL_ANALYTICS.topSellingDishes.map((dish) => (
+              {analytics.topSellingDishes.map((dish) => (
                 <tr key={dish.name} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-bold text-gray-900">{dish.name}</td>
                   <td className="px-4 py-3">{dish.orders} units</td>

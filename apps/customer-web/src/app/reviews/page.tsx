@@ -4,7 +4,11 @@ import React, { useState } from 'react';
 import { Star, MessageSquare, ThumbsUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const MOCK_REVIEWS = [
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+
+const DEFAULT_REVIEWS = [
   {
     id: 'rv-1',
     restaurantName: 'Spice Garden',
@@ -39,6 +43,25 @@ function StarRow({ rating }: { rating: number }) {
 export default function ReviewsPage() {
   const router = useRouter();
   const [helpedIds, setHelpedIds] = useState<string[]>([]);
+  const [reviews, setReviews] = useState(DEFAULT_REVIEWS);
+
+  React.useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+        const res = await fetch(`${getApiBase()}/reviews/me`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setReviews(data);
+          }
+        }
+      } catch { /* fallback */ }
+    };
+    fetchReviews();
+  }, []);
 
   const markHelpful = (id: string) => {
     setHelpedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
@@ -51,17 +74,17 @@ export default function ReviewsPage() {
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900">My Reviews</h1>
-            <p className="text-xs text-gray-400">{MOCK_REVIEWS.length} reviews submitted</p>
+            <p className="text-xs text-gray-400">{reviews.length} reviews submitted</p>
           </div>
         </div>
 
-        {MOCK_REVIEWS.length === 0 ? (
+        {reviews.length === 0 ? (
           <div className="py-16 text-center">
             <MessageSquare className="mx-auto mb-3 h-12 w-12 text-gray-200" />
             <p className="text-gray-400">No reviews yet. Order something delicious!</p>
           </div>
         ) : (
-          MOCK_REVIEWS.map((review) => (
+          reviews.map((review) => (
             <div key={review.id} className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
               <div className="flex items-start justify-between">
                 <div>

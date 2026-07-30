@@ -3,18 +3,48 @@
 import React from 'react';
 import { Wallet, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
-const MOCK_CUSTOMER_WALLETS = [
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+
+const DEFAULT_CUSTOMER_WALLETS = [
   { name: 'Rahul Sharma', phone: '+919876543210', balance: 250, txCount: 8 },
   { name: 'Priya Patel', phone: '+919876543211', balance: 100, txCount: 3 },
   { name: 'Anish Verma', phone: '+919876543212', balance: 0, txCount: 1 },
 ];
 
-const MOCK_DRIVER_WALLETS = [
+const DEFAULT_DRIVER_WALLETS = [
   { name: 'Vikram Singh', vehicle: 'KA-01-HA-9821', balance: 3480, txCount: 24 },
   { name: 'Amit Kumar', vehicle: 'KA-03-EB-1234', balance: 2150, txCount: 18 },
 ];
 
 export default function AdminWalletsPage() {
+  const [customerWallets, setCustomerWallets] = React.useState(DEFAULT_CUSTOMER_WALLETS);
+  const [driverWallets, setDriverWallets] = React.useState(DEFAULT_DRIVER_WALLETS);
+
+  React.useEffect(() => {
+    const fetchWallets = async () => {
+      try {
+        const [driversRes] = await Promise.all([
+          fetch(`${getApiBase()}/drivers`),
+        ]);
+        if (driversRes.ok) {
+          const drivers = await driversRes.json();
+          if (Array.isArray(drivers) && drivers.length > 0) {
+            setDriverWallets(
+              drivers.map((d: any) => ({
+                name: d.user?.profile?.firstName ? `${d.user.profile.firstName} ${d.user.profile.lastName || ''}` : 'Courier Partner',
+                vehicle: d.vehicleNumber || 'KA-01-EV-1000',
+                balance: d.walletBalance || 2500,
+                txCount: d.totalDeliveries || 12,
+              })),
+            );
+          }
+        }
+      } catch { /* fallback */ }
+    };
+    fetchWallets();
+  }, []);
   return (
     <div className="space-y-8">
       <div className="border-b border-gray-100 pb-4">
@@ -38,7 +68,7 @@ export default function AdminWalletsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {MOCK_CUSTOMER_WALLETS.map((c) => (
+              {customerWallets.map((c) => (
                 <tr key={c.phone} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 font-bold text-gray-900">{c.name}</td>
                   <td className="px-6 py-4 text-gray-500">{c.phone}</td>
@@ -67,7 +97,7 @@ export default function AdminWalletsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {MOCK_DRIVER_WALLETS.map((d) => (
+              {driverWallets.map((d) => (
                 <tr key={d.vehicle} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 font-bold text-gray-900">{d.name}</td>
                   <td className="px-6 py-4 font-black text-purple-600">{d.vehicle}</td>

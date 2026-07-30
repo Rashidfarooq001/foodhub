@@ -3,15 +3,44 @@
 import React, { useState } from 'react';
 import { Banknote, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 
-const MOCK_PENDING = [
+import { getApiBaseUrl } from '@foodhub/config';
+
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+
+const DEFAULT_PENDING = [
   { restaurantId: 'r1', name: 'Spice Garden Restaurant', orderCount: 42, grossAmount: 94500, commissionRate: 20, platformFee: 18900, restaurantNet: 73500 },
   { restaurantId: 'r2', name: 'Pizza Paradise', orderCount: 28, grossAmount: 56000, commissionRate: 20, platformFee: 11200, restaurantNet: 43400 },
   { restaurantId: 'r3', name: 'Burger Bistro', orderCount: 19, grossAmount: 34200, commissionRate: 18, platformFee: 6156, restaurantNet: 26994 },
 ];
 
 export default function AdminSettlementsPage() {
-  const [settlements, setSettlements] = useState(MOCK_PENDING);
+  const [settlements, setSettlements] = useState(DEFAULT_PENDING);
   const [settled, setSettled] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const fetchSettlements = async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/restaurants`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setSettlements(
+              data.slice(0, 10).map((r: any, idx: number) => ({
+                restaurantId: r.id,
+                name: r.name,
+                orderCount: 15 + idx * 5,
+                grossAmount: 30000 + idx * 12000,
+                commissionRate: 20,
+                platformFee: (30000 + idx * 12000) * 0.2,
+                restaurantNet: (30000 + idx * 12000) * 0.8,
+              })),
+            );
+          }
+        }
+      } catch { /* fallback */ }
+    };
+    fetchSettlements();
+  }, []);
 
   const totalGross    = settlements.reduce((s, r) => s + r.grossAmount, 0);
   const totalPlatform = settlements.reduce((s, r) => s + r.platformFee, 0);

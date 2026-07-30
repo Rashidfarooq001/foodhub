@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Download, Calendar, Filter, FileText, Search } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = getApiBaseUrl();
+const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 const REPORT_TYPES = [
   { id: 'sales', label: 'Sales & Revenue' },
@@ -16,7 +16,7 @@ const REPORT_TYPES = [
   { id: 'coupons', label: 'Coupon Usages' },
 ];
 
-const MOCK_REPORTS_DATA = [
+const DEFAULT_REPORTS = [
   { id: 'REP-101', date: '2026-07-29', category: 'Sales', title: 'Daily Revenue Breakdown', records: 312, totalAmount: '₹1,32,600', status: 'Generated' },
   { id: 'REP-102', date: '2026-07-28', category: 'Orders', title: 'Completed Orders Audit', records: 298, totalAmount: '₹1,21,400', status: 'Generated' },
   { id: 'REP-103', date: '2026-07-27', category: 'Settlements', title: 'Weekly Restaurant Payouts', records: 45, totalAmount: '₹4,85,000', status: 'Generated' },
@@ -29,11 +29,12 @@ export default function AdminReportsPage() {
   const [dateRange, setDateRange] = useState('30d');
   const [searchQuery, setSearchQuery] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [reportsData, setReportsData] = useState(DEFAULT_REPORTS);
 
   const handleDownload = async (id: string, type: string) => {
     setDownloading(id);
     try {
-      const response = await fetch(`${API_BASE}/analytics/export?type=${type}`);
+      const response = await fetch(`${getApiBase()}/analytics/export?type=${type}`);
       if (!response.ok) {
         // Fallback CSV download for UI demo if backend offline
         const csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Title,Records,TotalAmount\n"
@@ -146,7 +147,7 @@ export default function AdminReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-              {MOCK_REPORTS_DATA.map((item) => (
+              {reportsData.map((item) => (
                 <tr key={item.id} className="hover:bg-purple-50/50 transition-colors">
                   <td className="px-6 py-4 font-black text-purple-600">{item.id}</td>
                   <td className="px-6 py-4">{item.date}</td>
