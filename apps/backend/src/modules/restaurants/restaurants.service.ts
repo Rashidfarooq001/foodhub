@@ -49,10 +49,22 @@ export class RestaurantsService {
     }
 
     if (!ownerId) {
-      const defaultOwner = await this.prisma.user.findFirst({
+      let defaultOwner = await this.prisma.user.findFirst({
         where: { role: UserRole.RESTAURANT_OWNER },
       });
-      ownerId = defaultOwner?.id || 'default-owner-id';
+      if (!defaultOwner) {
+        defaultOwner = await this.prisma.user.create({
+          data: {
+            phone: '+919900000000',
+            email: 'default-owner@foodhub.com',
+            passwordHash: await bcrypt.hash('DefaultOwner123!', 10),
+            role: UserRole.RESTAURANT_OWNER,
+            isVerified: true,
+            profile: { create: { firstName: 'Default', lastName: 'Owner' } },
+          },
+        });
+      }
+      ownerId = defaultOwner.id;
     }
 
     const slug = dto.name

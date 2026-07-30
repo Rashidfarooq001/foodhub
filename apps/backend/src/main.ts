@@ -53,15 +53,8 @@ async function bootstrap() {
   // CORS
   app.enableCors({
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        process.env.NODE_ENV !== 'production'
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} is not allowed by CORS.`));
-      }
+      // Allow cross-origin requests from Vercel, localhost, and all client origins
+      callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
