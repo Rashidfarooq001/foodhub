@@ -67,8 +67,8 @@ export default function AdminRestaurantsPage() {
 
   const filtered = restaurants.filter(
     (r) =>
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.phone.toLowerCase().includes(search.toLowerCase()),
+      (r?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (r?.phone || '').toLowerCase().includes(search.toLowerCase()),
   );
 
   return (

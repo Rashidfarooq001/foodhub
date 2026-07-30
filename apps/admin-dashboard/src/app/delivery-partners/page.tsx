@@ -70,7 +70,7 @@ export default function AdminDeliveryPartnersPage() {
     (d) =>
       (d.user?.profile?.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
       (d.user?.phone || '').includes(search) ||
-      d.licenseNumber.toLowerCase().includes(search.toLowerCase()),
+      (d.licenseNumber || '').toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
