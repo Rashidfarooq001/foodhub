@@ -1,0 +1,13 @@
+export declare const APP_CONSTANTS: {
+    APP_NAME: string;
+    DEFAULT_CURRENCY: string;
+    CURRENCY_SYMBOL: string;
+    DEFAULT_TAX_PERCENT: number;
+    DEFAULT_PACKAGING_FEE: number;
+    BASE_DELIVERY_FEE: number;
+    PER_KM_DELIVERY_FEE: number;
+    GEOFENCE_RADIUS_KM: number;
+    DRIVER_AUTO_DISPATCH_RADIUS_KM: number;
+    KITCHEN_ACCEPTANCE_TIMEOUT_SEC: number;
+    DRIVER_ACCEPTANCE_TIMEOUT_SEC: number;
+};

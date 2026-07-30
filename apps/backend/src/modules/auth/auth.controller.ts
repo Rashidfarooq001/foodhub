@@ -1,0 +1,161 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
+import { SessionService } from '../sessions/session.service';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { Public } from './decorators/public.decorator';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Request } from 'express';
+
+@ApiTags('Authentication & Authorization')
+@Controller('auth')
+@UseGuards(JwtAuthGuard)
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionService: SessionService,
+  ) {}
+
+  @Public()
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Dispatch SMS OTP (Customer & Admin 2FA)' })
+  @ApiResponse({ status: 200, description: 'OTP dispatched successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid phone or active cooldown period' })
+  async sendOtp(@Body() dto: SendOtpDto) {
+    return this.authService.sendOtp(dto.phone);
+  }
+
+  @Public()
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify SMS OTP & authenticate customer session' })
+  @ApiResponse({ status: 200, description: 'OTP verified, returns JWT tokens' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired OTP' })
+  async verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.verifyOtp(dto.phone, dto.otp, ip, ua);
+  }
+
+  @Public()
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Password login for Merchant, Courier, Finance & Admin (2FA required for Admins)' })
+  @ApiResponse({ status: 200, description: 'Authenticated successfully or 2FA required' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.login(dto, ip, ua);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout current device session' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  async logout(@CurrentUser() user: any) {
+    return this.authService.logout(user.id, user.sessionId);
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout all active device sessions' })
+  @ApiResponse({ status: 200, description: 'All sessions terminated' })
+  async logoutAll(@CurrentUser('id') userId: string) {
+    return this.authService.logoutAll(userId);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate Refresh Token and issue new Access Token' })
+  @ApiResponse({ status: 200, description: 'Token pair rotated successfully' })
+  @ApiResponse({ status: 401, description: 'Revoked or expired refresh token' })
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset OTP' })
+  @ApiResponse({ status: 200, description: 'Reset OTP dispatched' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.phone);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify reset OTP & set new password' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Password policy violation or invalid OTP' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password for authenticated user' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  async changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(userId, dto);
+  }
+
+  @Get('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Fetch profile of authenticated user' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved' })
+  async getProfile(@CurrentUser('id') userId: string) {
+    return this.authService.getProfile(userId);
+  }
+
+  @Patch('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update profile of authenticated user' })
+  @ApiResponse({ status: 200, description: 'User profile updated' })
+  async updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(userId, dto);
+  }
+
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all active login sessions for user' })
+  @ApiResponse({ status: 200, description: 'Active session list retrieved' })
+  async getSessions(@CurrentUser('id') userId: string) {
+    return this.sessionService.getUserSessions(userId);
+  }
+
+  @Delete('session/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific active session by ID' })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'Session revoked' })
+  async terminateSession(@Param('id') sessionId: string, @CurrentUser('id') userId: string) {
+    return this.sessionService.terminateSession(sessionId, userId);
+  }
+}

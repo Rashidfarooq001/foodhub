@@ -1,0 +1,62 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { Sparkles, Building2, ShieldCheck, PhoneCall, Mail } from 'lucide-react';
+
+export const PartnerFooter: React.FC = () => {
+  return (
+    <footer className="border-t border-gray-200 bg-gray-950 text-gray-400">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="space-y-3">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <span className="text-xl font-black text-white">
+                Food<span className="text-orange-500">Hub</span> Partner
+              </span>
+            </Link>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Empowering local restaurants and gig delivery couriers with hyper-fast dispatch, zero-hassle settlements, and real-time operations tools.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-white">Partner Portals</h4>
+            <ul className="space-y-2 text-xs">
+              <li><Link href="/restaurant/register" className="hover:text-orange-400">Restaurant Registration</Link></li>
+              <li><Link href="/driver/register" className="hover:text-orange-400">Courier Fleet Registration</Link></li>
+              <li><a href="http://localhost:3001/login" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Merchant Login</a></li>
+              <li><a href="http://localhost:3002/login" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Courier Login</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-white">Verification &amp; Compliance</h4>
+            <ul className="space-y-2 text-xs text-gray-400">
+              <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-500" /> FSSAI License Mandatory</li>
+              <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-500" /> GST Registration Supported</li>
+              <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-500" /> Valid DL &amp; RC Verification</li>
+              <li className="flex items-center gap-1.5"><Building2 className="h-4 w-4 text-orange-500" /> Direct Bank Payouts</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-white">Partner Desk Support</h4>
+            <div className="space-y-2 text-xs text-gray-300">
+              <p className="flex items-center gap-2"><PhoneCall className="h-4 w-4 text-orange-500" /> +91-1800-FOOD-HUB (Toll Free)</p>
+              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-orange-500" /> partner-support@foodhub.com</p>
+              <p className="text-[10px] text-gray-500 pt-2">Mon - Sun: 8:00 AM - 11:00 PM IST</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
+          © 2026 FoodHub Technologies Inc. All Merchant &amp; Delivery Partner Rights Reserved.
+        </div>
+      </div>
+    </footer>
+  );
+};

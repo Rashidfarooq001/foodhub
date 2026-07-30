@@ -1,0 +1,1365 @@
+// FOODHUB MULTI-RESTAURANT PLATFORM - PRISMA PRODUCTION DATABASE SCHEMA
+// Phase 2: Complete Data Architecture & Relational Specs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  CUSTOMER
+  RESTAURANT_OWNER
+  RESTAURANT_MANAGER
+  RESTAURANT_STAFF
+  DELIVERY_PARTNER
+  SUPPORT
+  FINANCE
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY_FOR_PICKUP
+  DRIVER_ASSIGNED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  NET_BANKING
+  WALLET
+  COD
+}
+
+enum DeliveryStatus {
+  UNASSIGNED
+  OFFERED
+  ACCEPTED
+  ARRIVED_AT_STORE
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum CouponType {
+  PERCENTAGE
+  FLAT
+}
+
+enum CouponStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum NotificationType {
+  ORDER_STATUS
+  PROMOTIONAL
+  SYSTEM
+  PAYMENT
+  DISPATCH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum RestaurantStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+  SUSPENDED
+}
+
+enum VehicleType {
+  BICYCLE
+  SCOOTER
+  MOTORCYCLE
+  EV_SCOOTER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  STATUS_CHANGE
+}
+
+// ==========================================
+// MODULE 1: AUTHENTICATION & USERS
+// ==========================================
+
+model User {
+  id             String    @id @default(uuid()) @db.Uuid
+  phone          String    @unique
+  email          String?   @unique
+  passwordHash   String    @map("password_hash")
+  role           UserRole  @default(CUSTOMER)
+  isVerified     Boolean   @default(false) @map("is_verified")
+  isActive       Boolean   @default(true) @map("is_active")
+  referralCode   String?   @unique @map("referral_code")  // Phase 15
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+
+  profile         Profile?
+  refreshTokens   RefreshToken[]
+  otps            Otp[]
+  loginHistories  LoginHistory[]
+  sessions        Session[]
+  customer        Customer?
+  driver          Driver?
+  restaurantStaff RestaurantStaff[]
+  wallet          Wallet?
+  auditLogs       AuditLog[]
+  supportTickets  SupportTicket[]
+  notifications   Notification[]
+  reviewVotes     ReviewVote[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([role])
+  @@index([referralCode])
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  gender    Gender?  @default(PREFER_NOT_TO_SAY)
+  avatarUrl String?  @map("avatar_url")
+  fcmToken  String?  @map("fcm_token")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        UserRole @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  action      String   @unique // e.g. "users:read", "restaurants:manage"
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Otp {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  phone     String
+  otpHash   String   @map("otp_hash")
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@map("otps")
+}
+
+model LoginHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("login_histories")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ==========================================
+// MODULE 2: CUSTOMER DOMAIN
+// ==========================================
+
+model Customer {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @unique @map("user_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses       CustomerAddress[]
+  wishlists       Wishlist[]
+  savedStores     SavedRestaurant[]
+  preferences     CustomerPreference?
+  orders          Order[]
+  reviews         RestaurantReview[]
+  foodReviews     FoodReview[]
+  driverReviews   DriverReview[]
+  couponUsages    CouponUsage[]
+  loyaltyPoints   CustomerPoints?      // Phase 15
+
+  @@map("customers")
+}
+
+
+model CustomerAddress {
+  id           String   @id @default(uuid()) @db.Uuid
+  customerId   String   @map("customer_id") @db.Uuid
+  addressLabel String   @map("address_label") // Home, Work, Other
+  addressLine1 String   @map("address_line1")
+  addressLine2 String?  @map("address_line2")
+  city         String
+  state        String
+  postalCode   String   @map("postal_code")
+  latitude     Float
+  longitude    Float
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_addresses")
+}
+
+model Wishlist {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  foodItemId String   @map("food_item_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, foodItemId])
+  @@map("wishlists")
+}
+
+model SavedRestaurant {
+  id           String   @id @default(uuid()) @db.Uuid
+  customerId   String   @map("customer_id") @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, restaurantId])
+  @@map("saved_restaurants")
+}
+
+model CustomerPreference {
+  id             String   @id @default(uuid()) @db.Uuid
+  customerId     String   @unique @map("customer_id") @db.Uuid
+  isVegOnly      Boolean  @default(false) @map("is_veg_only")
+  allowPushAlert Boolean  @default(true) @map("allow_push_alert")
+  allowSmsAlert  Boolean  @default(true) @map("allow_sms_alert")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("customer_preferences")
+}
+
+// ==========================================
+// MODULE 3: RESTAURANT DOMAIN
+// ==========================================
+
+model Restaurant {
+  id             String           @id @default(uuid()) @db.Uuid
+  ownerId        String           @map("owner_id") @db.Uuid
+  name           String
+  slug           String           @unique
+  phone          String
+  email          String?
+  licenseFssai   String           @unique @map("license_fssai")
+  gstin          String?          @unique
+  addressLine    String           @map("address_line")
+  latitude       Float
+  longitude      Float
+  deliveryRadius Float            @default(5.0) @map("delivery_radius") // km — Phase 14
+  status         RestaurantStatus @default(PENDING_APPROVAL)
+  isOpen         Boolean          @default(true) @map("is_open")
+  avgRating      Decimal          @default(0.0) @map("avg_rating") @db.Decimal(3, 2)
+  commissionRate Decimal          @default(20.00) @map("commission_rate") @db.Decimal(5, 2)
+  bannerUrl      String?          @map("banner_url")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  deletedAt      DateTime?        @map("deleted_at")
+  createdBy      String?          @map("created_by") @db.Uuid
+  updatedBy      String?          @map("updated_by") @db.Uuid
+  version        Int              @default(1)
+
+  branches        RestaurantBranch[]
+  timings         RestaurantTiming[]
+  galleries       RestaurantGallery[]
+  documents       RestaurantDocument[]
+  staff           RestaurantStaff[]
+  bankAccount     RestaurantBankAccount?
+  settings        RestaurantSetting?
+  categories      Category[]
+  foodItems       FoodItem[]
+  orders          Order[]
+  reviews         RestaurantReview[]
+  savedByCustomers SavedRestaurant[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([latitude, longitude])
+  @@map("restaurants")
+}
+
+model RestaurantBranch {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  branchName   String   @map("branch_name")
+  phone        String
+  addressLine  String   @map("address_line")
+  latitude     Float
+  longitude    Float
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_branches")
+}
+
+model RestaurantTiming {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  dayOfWeek    Int      @map("day_of_week") // 0 = Sunday, 1 = Monday ...
+  openTime     String   @map("open_time")   // e.g. "09:00"
+  closeTime    String   @map("close_time")  // e.g. "23:00"
+  isClosed     Boolean  @default(false) @map("is_closed")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_timings")
+}
+
+model RestaurantGallery {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  imageUrl     String   @map("image_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_galleries")
+}
+
+model RestaurantDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  documentType String   @map("document_type") // FSSAI, GST, CANCELLED_CHEQUE
+  documentUrl  String   @map("document_url")
+  isVerified   Boolean  @default(false) @map("is_verified")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_documents")
+}
+
+model RestaurantStaff {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  designation  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, userId])
+  @@map("restaurant_staff")
+}
+
+model RestaurantBankAccount {
+  id            String   @id @default(uuid()) @db.Uuid
+  restaurantId  String   @unique @map("restaurant_id") @db.Uuid
+  accountHolder String   @map("account_holder")
+  accountNumber String   @map("account_number")
+  ifscCode      String   @map("ifsc_code")
+  bankName      String   @map("bank_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_bank_accounts")
+}
+
+model RestaurantSetting {
+  id            String   @id @default(uuid()) @db.Uuid
+  restaurantId  String   @unique @map("restaurant_id") @db.Uuid
+  autoAccept    Boolean  @default(false) @map("auto_accept")
+  prepTimeMins  Int      @default(20) @map("prep_time_mins")
+  packagingFee  Decimal  @default(15.00) @map("packaging_fee") @db.Decimal(8, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_settings")
+}
+
+// ==========================================
+// MODULE 4: MENU & CATALOG DOMAIN
+// ==========================================
+
+model Category {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  name         String
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  subCategories SubCategory[]
+  foodItems     FoodItem[]
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  name       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  foodItems FoodItem[]
+
+  @@map("sub_categories")
+}
+
+model FoodItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  restaurantId  String    @map("restaurant_id") @db.Uuid
+  categoryId    String    @map("category_id") @db.Uuid
+  subCategoryId String?   @map("sub_category_id") @db.Uuid
+  name          String
+  description   String?
+  price         Decimal   @db.Decimal(10, 2)
+  imageUrl      String?   @map("image_url")
+  isVeg         Boolean   @default(true) @map("is_veg")
+  isAvailable   Boolean   @default(true) @map("is_available")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  restaurant  Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory SubCategory?  @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
+  variants    FoodVariant[]
+  addonGroups AddonGroup[]
+  images      FoodImage[]
+  inventory   Inventory?
+  orderItems  OrderItem[]
+  wishlists   Wishlist[]
+  reviews     FoodReview[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+  @@map("food_items")
+}
+
+model FoodVariant {
+  id            String  @id @default(uuid()) @db.Uuid
+  foodItemId    String  @map("food_item_id") @db.Uuid
+  variantName   String  @map("variant_name") // e.g. "Small", "Large"
+  priceModifier Decimal @map("price_modifier") @db.Decimal(10, 2)
+
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@map("food_variants")
+}
+
+model AddonGroup {
+  id         String   @id @default(uuid()) @db.Uuid
+  foodItemId String   @map("food_item_id") @db.Uuid
+  groupName  String   @map("group_name") // e.g. "Choice of Sauce"
+  minSelect  Int      @default(0) @map("min_select")
+  maxSelect  Int      @default(1) @map("max_select")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  foodItem FoodItem    @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  addons   FoodAddon[]
+
+  @@map("addon_groups")
+}
+
+model FoodAddon {
+  id           String  @id @default(uuid()) @db.Uuid
+  addonGroupId String  @map("addon_group_id") @db.Uuid
+  name         String
+  price        Decimal @db.Decimal(10, 2)
+
+  addonGroup AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+
+  @@map("food_addons")
+}
+
+model FoodImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  foodItemId String   @map("food_item_id") @db.Uuid
+  imageUrl   String   @map("image_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@map("food_images")
+}
+
+model Inventory {
+  id         String   @id @default(uuid()) @db.Uuid
+  foodItemId String   @unique @map("food_item_id") @db.Uuid
+  stockCount Int      @default(100) @map("stock_count")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@map("inventories")
+}
+
+model Tax {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  taxPercent  Decimal  @map("tax_percent") @db.Decimal(5, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("taxes")
+}
+
+// ==========================================
+// MODULE 5: ORDERS DOMAIN
+// ==========================================
+
+model Order {
+  id               String        @id @default(uuid()) @db.Uuid
+  orderNumber      String        @unique @map("order_number")
+  customerId       String        @map("customer_id") @db.Uuid
+  restaurantId     String        @map("restaurant_id") @db.Uuid
+  status           OrderStatus   @default(PENDING)
+  subtotal         Decimal       @db.Decimal(10, 2)
+  packagingFee     Decimal       @default(0.00) @map("packaging_fee") @db.Decimal(10, 2)
+  deliveryFee      Decimal       @default(0.00) @map("delivery_fee") @db.Decimal(10, 2)
+  taxAmount        Decimal       @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
+  discountAmount   Decimal       @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount      Decimal       @map("total_amount") @db.Decimal(10, 2)
+  paymentStatus    PaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod    PaymentMethod @default(UPI) @map("payment_method")
+  deliveryAddress  Json          @map("delivery_address")
+  deliveryOtp      String        @map("delivery_otp") // 4-digit OTP
+  specialInstruction String?     @map("special_instruction")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+  version          Int           @default(1)
+
+  customer            Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  restaurant          Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  orderItems          OrderItem[]
+  orderTimelines      OrderTimeline[]
+  statusHistories     OrderStatusHistory[]
+  tracking            OrderTracking?
+  cancellation        OrderCancellation?
+  refund              OrderRefund?
+  payments            Payment[]
+  deliveryAssignments DeliveryAssignment[]
+  restaurantReviews   RestaurantReview[]
+  foodReviews         FoodReview[]
+  driverReviews       DriverReview[]
+  couponUsages        CouponUsage[]
+
+  @@index([orderNumber])
+  @@index([customerId, status])
+  @@index([restaurantId, status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  orderId    String  @map("order_id") @db.Uuid
+  foodItemId String  @map("food_item_id") @db.Uuid
+  quantity   Int
+  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+  addonsJson Json?   @map("addons_json")
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+
+  @@map("order_items")
+}
+
+model OrderTimeline {
+  id        String      @id @default(uuid()) @db.Uuid
+  orderId   String      @map("order_id") @db.Uuid
+  status    OrderStatus
+  message   String?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_timelines")
+}
+
+model OrderStatusHistory {
+  id         String      @id @default(uuid()) @db.Uuid
+  orderId    String      @map("order_id") @db.Uuid
+  fromStatus OrderStatus @map("from_status")
+  toStatus   OrderStatus @map("to_status")
+  changedBy  String?     @map("changed_by") @db.Uuid
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status_histories")
+}
+
+model OrderTracking {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @unique @map("order_id") @db.Uuid
+  currentLat Float    @map("current_lat")
+  currentLng Float    @map("current_lng")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_trackings")
+}
+
+model OrderCancellation {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @unique @map("order_id") @db.Uuid
+  reason    String
+  cancelledBy String @map("cancelled_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_cancellations")
+}
+
+model OrderRefund {
+  id           String   @id @default(uuid()) @db.Uuid
+  orderId      String   @unique @map("order_id") @db.Uuid
+  amount       Decimal  @db.Decimal(10, 2)
+  reason       String
+  isProcessed  Boolean  @default(false) @map("is_processed")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_refunds")
+}
+
+// ==========================================
+// MODULE 6: PAYMENTS & WALLET DOMAIN
+// ==========================================
+
+model Payment {
+  id               String        @id @default(uuid()) @db.Uuid
+  orderId          String        @map("order_id") @db.Uuid
+  razorpayOrderId  String        @unique @map("razorpay_order_id")
+  razorpayPaymentId String?      @unique @map("razorpay_payment_id")
+  razorpaySignature String?      @map("razorpay_signature")
+  amount           Decimal       @db.Decimal(10, 2)
+  status           PaymentStatus @default(PENDING)
+  method           PaymentMethod @default(UPI)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  attempts PaymentAttempt[]
+  refunds  PaymentRefund[]
+
+  @@index([razorpayOrderId])
+  @@map("payments")
+}
+
+model PaymentAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @map("payment_id") @db.Uuid
+  status    String
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_attempts")
+}
+
+model PaymentRefund {
+  id               String   @id @default(uuid()) @db.Uuid
+  paymentId        String   @map("payment_id") @db.Uuid
+  razorpayRefundId String   @unique @map("razorpay_refund_id")
+  amount           Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_refunds")
+}
+
+model Settlement {
+  id           String   @id @default(uuid()) @db.Uuid
+  restaurantId String   @map("restaurant_id") @db.Uuid
+  amount       Decimal  @db.Decimal(10, 2)
+  utrNumber    String   @unique @map("utr_number")
+  settledAt    DateTime @default(now()) @map("settled_at")
+
+  @@map("settlements")
+}
+
+model Invoice {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String   @unique @map("invoice_number")
+  orderId       String   @unique @map("order_id") @db.Uuid
+  pdfUrl        String   @map("pdf_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("invoices")
+}
+
+model Wallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  balance   Decimal  @default(0.00) @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id          String                @id @default(uuid()) @db.Uuid
+  walletId    String                @map("wallet_id") @db.Uuid
+  type        WalletTransactionType
+  amount      Decimal               @db.Decimal(10, 2)
+  description String
+  referenceId String?               @map("reference_id")
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+// ==========================================
+// MODULE 7: DELIVERY DOMAIN
+// ==========================================
+
+model Driver {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String       @unique @map("user_id") @db.Uuid
+  status        DriverStatus @default(OFFLINE)
+  isApproved    Boolean      @default(false) @map("is_approved")
+  licenseNumber String       @unique @map("license_number")
+  currentLat    Float?       @map("current_lat")
+  currentLng    Float?       @map("current_lng")
+  avgRating     Decimal      @default(0.0) @map("avg_rating") @db.Decimal(3, 2)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents    DriverDocument[]
+  vehicles     DriverVehicle[]
+  locations    DriverLocation[]
+  shifts       DriverShift[]
+  assignments  DeliveryAssignment[]
+  histories    DeliveryHistory[]
+  driverWallet DriverWallet?
+  reviews      DriverReview[]
+
+  @@index([status])
+  @@index([currentLat, currentLng])
+  @@map("drivers")
+}
+
+model DriverDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  driverId     String   @map("driver_id") @db.Uuid
+  documentType String   @map("document_type") // DL, RC, AADHAAR
+  documentUrl  String   @map("document_url")
+  isVerified   Boolean  @default(false) @map("is_verified")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("driver_documents")
+}
+
+model DriverVehicle {
+  id            String      @id @default(uuid()) @db.Uuid
+  driverId      String      @map("driver_id") @db.Uuid
+  vehicleType   VehicleType @map("vehicle_type")
+  vehicleNumber String      @unique @map("vehicle_number")
+  model         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("driver_vehicles")
+}
+
+model DriverLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  latitude  Float
+  longitude Float
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@map("driver_locations")
+}
+
+model DriverShift {
+  id        String    @id @default(uuid()) @db.Uuid
+  driverId  String    @map("driver_id") @db.Uuid
+  startTime DateTime  @default(now()) @map("start_time")
+  endTime   DateTime? @map("end_time")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("driver_shifts")
+}
+
+model DeliveryAssignment {
+  id           String         @id @default(uuid()) @db.Uuid
+  orderId      String         @map("order_id") @db.Uuid
+  driverId     String         @map("driver_id") @db.Uuid
+  status       DeliveryStatus @default(OFFERED)
+  offeredAt    DateTime       @default(now()) @map("offered_at")
+  acceptedAt   DateTime?      @map("accepted_at")
+  pickedAt     DateTime?      @map("picked_at")
+  deliveredAt  DateTime?      @map("delivered_at")
+  payoutAmount Decimal        @db.Decimal(8, 2) @map("payout_amount")
+
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([driverId])
+  @@map("delivery_assignments")
+}
+
+model DeliveryHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  driverId   String   @map("driver_id") @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  distanceKm Float    @map("distance_km")
+  earning    Decimal  @db.Decimal(8, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_histories")
+}
+
+model DriverWallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  driverId  String   @unique @map("driver_id") @db.Uuid
+  balance   Decimal  @default(0.00) @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("driver_wallets")
+}
+
+// ==========================================
+// MODULE 8: REVIEWS & RATINGS DOMAIN
+// ==========================================
+
+model RestaurantReview {
+  id          String   @id @default(uuid()) @db.Uuid
+  restaurantId String  @map("restaurant_id") @db.Uuid
+  customerId  String   @map("customer_id") @db.Uuid
+  orderId     String   @map("order_id") @db.Uuid
+  rating      Int
+  comment     String?
+  isAnonymous Boolean  @default(false) @map("is_anonymous")  // Phase 16
+  isHidden    Boolean  @default(false) @map("is_hidden")     // Phase 16 moderation
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customer   Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  images     ReviewImage[]
+  votes      ReviewVote[]
+  reports    ReviewReport[]
+  replies    ReviewReply[]
+
+  @@unique([orderId, customerId])  // one review per order
+  @@map("restaurant_reviews")
+}
+
+model FoodReview {
+  id         String   @id @default(uuid()) @db.Uuid
+  foodItemId String   @map("food_item_id") @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("food_reviews")
+}
+
+model DriverReview {
+  id         String   @id @default(uuid()) @db.Uuid
+  driverId   String   @map("driver_id") @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  driver   Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("driver_reviews")
+}
+
+model ReviewImage {
+  id                 String   @id @default(uuid()) @db.Uuid
+  restaurantReviewId String   @map("restaurant_review_id") @db.Uuid
+  imageUrl           String   @map("image_url")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  restaurantReview RestaurantReview @relation(fields: [restaurantReviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_images")
+}
+
+// Phase 16 — Review moderation & social
+
+model ReviewVote {
+  id       String @id @default(uuid()) @db.Uuid
+  reviewId String @map("review_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  isHelpful Boolean @map("is_helpful")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review RestaurantReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@map("review_votes")
+}
+
+model ReviewReport {
+  id        String   @id @default(uuid()) @db.Uuid
+  reviewId  String   @map("review_id") @db.Uuid
+  reporterId String  @map("reporter_id") @db.Uuid
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review RestaurantReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_reports")
+}
+
+model ReviewReply {
+  id        String   @id @default(uuid()) @db.Uuid
+  reviewId  String   @map("review_id") @db.Uuid
+  replierId String   @map("replier_id") @db.Uuid
+  role      String   // OWNER | ADMIN
+  replyText String   @map("reply_text")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review RestaurantReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_replies")
+}
+
+// Phase 15 — Loyalty points
+model CustomerPoints {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @unique @map("customer_id") @db.Uuid
+  points     Int      @default(0)
+  tier       String   @default("SILVER")  // SILVER | GOLD | PLATINUM
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("customer_points")
+}
+
+// ==========================================
+// MODULE 9: PROMOTIONS & MARKETING DOMAIN
+// ==========================================
+
+model Coupon {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique
+  couponType  CouponType   @map("coupon_type")
+  discountVal Decimal      @map("discount_val") @db.Decimal(10, 2)
+  minOrderVal Decimal      @default(0.00) @map("min_order_val") @db.Decimal(10, 2)
+  maxDiscount Decimal?     @map("max_discount") @db.Decimal(10, 2)
+  status      CouponStatus @default(ACTIVE)
+  validFrom   DateTime     @map("valid_from")
+  validTill   DateTime     @map("valid_till")
+  usageLimit  Int          @default(1000) @map("usage_limit")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  usages CouponUsage[]
+
+  @@index([code])
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id         String   @id @default(uuid()) @db.Uuid
+  couponId   String   @map("coupon_id") @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  usedAt     DateTime @default(now()) @map("used_at")
+
+  coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("coupon_usages")
+}
+
+model Referral {
+  id          String   @id @default(uuid()) @db.Uuid
+  referrerId  String   @map("referrer_id") @db.Uuid
+  refereeId   String   @unique @map("referee_id") @db.Uuid
+  rewardAmount Decimal @map("reward_amount") @db.Decimal(8, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("referrals")
+}
+
+model Campaign {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("campaigns")
+}
+
+model Banner {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  imageUrl  String   @map("image_url")
+  targetUrl String?  @map("target_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("banners")
+}
+
+// ==========================================
+// MODULE 10: NOTIFICATIONS DOMAIN
+// ==========================================
+
+model Notification {
+  id        String             @id @default(uuid()) @db.Uuid
+  userId    String             @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  status    NotificationStatus @default(PENDING)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model PushNotification {
+  id        String   @id @default(uuid()) @db.Uuid
+  fcmToken  String   @map("fcm_token")
+  payload   Json
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  @@map("push_notifications")
+}
+
+model SMSLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String
+  message   String
+  status    String
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  @@map("sms_logs")
+}
+
+model EmailLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  subject   String
+  body      String
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  @@map("email_logs")
+}
+
+model InAppNotification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  body      String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("in_app_notifications")
+}
+
+// ==========================================
+// MODULE 11: SUPPORT DOMAIN
+// ==========================================
+
+model SupportTicket {
+  id        String         @id @default(uuid()) @db.Uuid
+  ticketNo  String         @unique @map("ticket_no")
+  userId    String         @map("user_id") @db.Uuid
+  subject   String
+  status    TicketStatus   @default(OPEN)
+  priority  TicketPriority @default(MEDIUM)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages SupportMessage[]
+
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  senderId   String   @map("sender_id") @db.Uuid
+  message    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket      SupportTicket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments TicketAttachment[]
+
+  @@map("support_messages")
+}
+
+model TicketAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  fileUrl   String   @map("file_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_attachments")
+}
+
+// ==========================================
+// MODULE 12: SYSTEM & AUDIT DOMAIN
+// ==========================================
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String?     @map("user_id") @db.Uuid
+  action     AuditAction
+  entityName String      @map("entity_name")
+  entityId   String      @map("entity_id")
+  oldValue   Json?       @map("old_value")
+  newValue   Json?       @map("new_value")
+  ipAddress  String?     @map("ip_address")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityName, entityId])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+model APIKey {
+  id        String    @id @default(uuid()) @db.Uuid
+  keyHash   String    @unique @map("key_hash")
+  client    String
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("api_keys")
+}
+
+model Webhook {
+  id        String   @id @default(uuid()) @db.Uuid
+  event     String
+  url       String
+  secret    String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("webhooks")
+}

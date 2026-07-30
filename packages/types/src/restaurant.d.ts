@@ -1,0 +1,77 @@
+import { z } from 'zod';
+export declare const RestaurantSchema: z.ZodObject<{
+    id: z.ZodString;
+    ownerId: z.ZodString;
+    name: z.ZodString;
+    slug: z.ZodString;
+    phone: z.ZodString;
+    licenseFssai: z.ZodString;
+    addressLine: z.ZodString;
+    latitude: z.ZodNumber;
+    longitude: z.ZodNumber;
+    isActive: z.ZodBoolean;
+    isOpen: z.ZodBoolean;
+    avgRating: z.ZodNumber;
+    commissionRate: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    phone: string;
+    ownerId: string;
+    name: string;
+    slug: string;
+    licenseFssai: string;
+    addressLine: string;
+    latitude: number;
+    longitude: number;
+    isActive: boolean;
+    isOpen: boolean;
+    avgRating: number;
+    commissionRate: number;
+}, {
+    id: string;
+    phone: string;
+    ownerId: string;
+    name: string;
+    slug: string;
+    licenseFssai: string;
+    addressLine: string;
+    latitude: number;
+    longitude: number;
+    isActive: boolean;
+    isOpen: boolean;
+    avgRating: number;
+    commissionRate: number;
+}>;
+export type IRestaurant = z.infer<typeof RestaurantSchema>;
+export declare const MenuItemSchema: z.ZodObject<{
+    id: z.ZodString;
+    restaurantId: z.ZodString;
+    categoryId: z.ZodString;
+    name: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    price: z.ZodNumber;
+    imageUrl: z.ZodOptional<z.ZodString>;
+    isVeg: z.ZodBoolean;
+    isAvailable: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    name: string;
+    restaurantId: string;
+    categoryId: string;
+    price: number;
+    isVeg: boolean;
+    isAvailable: boolean;
+    description?: string | undefined;
+    imageUrl?: string | undefined;
+}, {
+    id: string;
+    name: string;
+    restaurantId: string;
+    categoryId: string;
+    price: number;
+    isVeg: boolean;
+    isAvailable: boolean;
+    description?: string | undefined;
+    imageUrl?: string | undefined;
+}>;
+export type IMenuItem = z.infer<typeof MenuItemSchema>;

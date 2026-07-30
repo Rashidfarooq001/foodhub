@@ -1,0 +1,23 @@
+# Multi-Stage Production Dockerfile for Hotel Dashboard (Next.js Standalone)
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages ./packages
+COPY apps/hotel-dashboard ./apps/hotel-dashboard
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter hotel-dashboard build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/apps/hotel-dashboard/.next/standalone ./
+COPY --from=builder /app/apps/hotel-dashboard/.next/static ./apps/hotel-dashboard/.next/static
+COPY --from=builder /app/apps/hotel-dashboard/public ./apps/hotel-dashboard/public
+
+EXPOSE 3001
+HEALTHCHECK --interval=20s --timeout=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1
+CMD ["node", "apps/hotel-dashboard/server.js"]

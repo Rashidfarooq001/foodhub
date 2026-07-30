@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: foodhub-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-foodhub_prod_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_prod_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-foodhub_prod_db}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodhub_prod_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: foodhub-redis-prod
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: foodhub-backend-prod
+    restart: always
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-foodhub_prod_user}:${POSTGRES_PASSWORD:-secure_prod_pass_2026}@postgres:5432/${POSTGRES_DB:-foodhub_prod_db}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  customer-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.customer
+    container_name: foodhub-customer-prod
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+  hotel-dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.hotel
+    container_name: foodhub-hotel-prod
+    restart: always
+    ports:
+      - '3001:3001'
+    depends_on:
+      - backend
+
+  delivery-dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.delivery
+    container_name: foodhub-delivery-prod
+    restart: always
+    ports:
+      - '3002:3002'
+    depends_on:
+      - backend
+
+  admin-dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.admin
+    container_name: foodhub-admin-prod
+    restart: always
+    ports:
+      - '3003:3003'
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: foodhub-nginx-prod
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/nginx.conf:ro
+      - certbot_certs:/etc/letsencrypt
+    depends_on:
+      - customer-web
+      - hotel-dashboard
+      - delivery-dashboard
+      - admin-dashboard
+      - backend
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  certbot_certs:

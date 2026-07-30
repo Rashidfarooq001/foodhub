@@ -1,0 +1,23 @@
+# Multi-Stage Production Dockerfile for Delivery Dashboard (Next.js Standalone)
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages ./packages
+COPY apps/delivery-dashboard ./apps/delivery-dashboard
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter delivery-dashboard build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/apps/delivery-dashboard/.next/standalone ./
+COPY --from=builder /app/apps/delivery-dashboard/.next/static ./apps/delivery-dashboard/.next/static
+COPY --from=builder /app/apps/delivery-dashboard/public ./apps/delivery-dashboard/public
+
+EXPOSE 3002
+HEALTHCHECK --interval=20s --timeout=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3002 || exit 1
+CMD ["node", "apps/delivery-dashboard/server.js"]

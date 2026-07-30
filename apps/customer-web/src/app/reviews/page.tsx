@@ -1,0 +1,94 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Star, MessageSquare, ThumbsUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+const MOCK_REVIEWS = [
+  {
+    id: 'rv-1',
+    restaurantName: 'Spice Garden',
+    rating: 5,
+    comment: 'Amazing food! Super fast delivery and great packaging.',
+    date: '24 Jul 2026',
+    helpful: 12,
+  },
+  {
+    id: 'rv-2',
+    restaurantName: 'Pizza Paradise',
+    rating: 4,
+    comment: 'Loved the pizza, will order again.',
+    date: '18 Jul 2026',
+    helpful: 5,
+  },
+];
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1,2,3,4,5].map((n) => (
+        <Star
+          key={n}
+          className={`h-4 w-4 ${n <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function ReviewsPage() {
+  const router = useRouter();
+  const [helpedIds, setHelpedIds] = useState<string[]>([]);
+
+  const markHelpful = (id: string) => {
+    setHelpedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="mx-auto max-w-lg space-y-5">
+
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900">My Reviews</h1>
+            <p className="text-xs text-gray-400">{MOCK_REVIEWS.length} reviews submitted</p>
+          </div>
+        </div>
+
+        {MOCK_REVIEWS.length === 0 ? (
+          <div className="py-16 text-center">
+            <MessageSquare className="mx-auto mb-3 h-12 w-12 text-gray-200" />
+            <p className="text-gray-400">No reviews yet. Order something delicious!</p>
+          </div>
+        ) : (
+          MOCK_REVIEWS.map((review) => (
+            <div key={review.id} className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-black text-gray-900">{review.restaurantName}</p>
+                  <p className="text-xs text-gray-400">{review.date}</p>
+                </div>
+                <StarRow rating={review.rating} />
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  id={`helpful-btn-${review.id}`}
+                  onClick={() => markHelpful(review.id)}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors ${
+                    helpedIds.includes(review.id)
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <ThumbsUp className="h-3.5 w-3.5" />
+                  Helpful ({review.helpful + (helpedIds.includes(review.id) ? 1 : 0)})
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

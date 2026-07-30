@@ -1,0 +1,54 @@
+import {
+  Controller, Post, Body, Param,
+  UseGuards, Headers, RawBodyRequest, Req,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { PaymentsService } from './payments.service';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { Request } from 'express';
+
+@ApiTags('Payments (Phase 11)')
+@Controller('api/v1/payments')
+export class PaymentsController {
+  constructor(private readonly paymentsService: PaymentsService) {}
+
+  @Post('create')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create Razorpay order before checkout' })
+  async createOrder(@Body() dto: CreatePaymentDto) {
+    return this.paymentsService.createPaymentOrder(dto);
+  }
+
+  @Post('verify')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Verify Razorpay payment signature after checkout' })
+  async verify(@Body() dto: VerifyPaymentDto) {
+    return this.paymentsService.verifyPayment(dto);
+  }
+
+  @Post('webhook')
+  @ApiOperation({ summary: 'Razorpay webhook receiver (raw body required)' })
+  async webhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-razorpay-signature') signature: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const rawBody = req.rawBody?.toString('utf-8') ?? JSON.stringify(body);
+    return this.paymentsService.handleWebhook(body, signature, rawBody);
+  }
+
+  @Post('refund/:orderId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Initiate refund for an order (Admin/System)' })
+  async refund(
+    @Param('orderId') orderId: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.paymentsService.initiateRefund(orderId, reason);
+  }
+}

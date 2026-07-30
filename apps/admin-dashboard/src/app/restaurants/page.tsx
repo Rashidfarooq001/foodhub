@@ -1,0 +1,176 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Plus, Store, Search, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  avgRating: number;
+  owner?: {
+    profile?: {
+      firstName?: string;
+      lastName?: string;
+    };
+    phone?: string;
+  };
+}
+
+export default function AdminRestaurantsPage() {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  const fetchRestaurants = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/restaurants`);
+      if (res.ok) {
+        const data = await res.json();
+        setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
+      }
+    } catch { /* offline */ } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRestaurants();
+  }, []);
+
+  const handleUpdateStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
+      const res = await fetch(`${API_BASE}/api/v1/restaurants/${id}/approval`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        fetchRestaurants();
+      }
+    } catch { /* offline */ }
+  };
+
+  const filtered = restaurants.filter((r) =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.phone.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900">
+            Registered Restaurants {isLoading ? '' : `(${filtered.length})`}
+          </h1>
+          <p className="text-xs text-gray-500">Live merchant catalog, onboarding &amp; status controls</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative w-64">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search restaurant or phone..."
+              className="w-full rounded-2xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+            />
+          </div>
+
+          <Link
+            href="/restaurants/add"
+            className="flex items-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-500/20 hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4" /> Add Restaurant
+          </Link>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
+            <tr>
+              <th className="px-6 py-4">Restaurant</th>
+              <th className="px-6 py-4">Owner</th>
+              <th className="px-6 py-4">Rating</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading restaurants...</td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">No restaurants registered yet. Click &quot;Add Restaurant&quot; above to onboard one.</td>
+              </tr>
+            ) : (
+              filtered.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50/50">
+                  <td className="px-6 py-4 font-bold text-gray-900">{r.name}</td>
+                  <td className="px-6 py-4 font-medium text-gray-700">
+                    {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Owner'} ({r.phone})
+                  </td>
+                  <td className="px-6 py-4 font-black text-amber-600">★ {r.avgRating || 4.8}/5</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[10px] font-black ${
+                        r.status === 'APPROVED'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : r.status === 'SUSPENDED'
+                          ? 'bg-rose-100 text-rose-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      {r.status !== 'APPROVED' && (
+                        <button
+                          onClick={() => handleUpdateStatus(r.id, 'APPROVED')}
+                          className="rounded-xl border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50"
+                        >
+                          Approve / Reactivate
+                        </button>
+                      )}
+                      {r.status === 'APPROVED' && (
+                        <button
+                          onClick={() => handleUpdateStatus(r.id, 'SUSPENDED')}
+                          className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                        >
+                          Suspend Store
+                        </button>
+                      )}
+                      {r.status === 'PENDING_APPROVAL' && (
+                        <button
+                          onClick={() => handleUpdateStatus(r.id, 'REJECTED')}
+                          className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100"
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
