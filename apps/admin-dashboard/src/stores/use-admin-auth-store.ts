@@ -19,6 +19,12 @@ interface AdminAuthState {
   logout: () => void;
 }
 
+const dummyStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
 export const useAdminAuthStore = create<AdminAuthState>()(
   persist(
     (set) => ({
@@ -39,7 +45,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     }),
     {
       name: 'foodhub-admin-auth',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
     },
   ),
 );
