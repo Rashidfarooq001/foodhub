@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { AdminStats } from '../data/admin-mock-data';
 import { DollarSign, ShoppingBag, Store, Bike, ArrowUpRight, CheckSquare } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);

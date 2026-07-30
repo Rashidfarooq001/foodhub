@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CategoryData } from '../../data/mock-data';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryData[]>([]);

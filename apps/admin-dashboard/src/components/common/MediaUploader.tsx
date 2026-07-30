@@ -2,8 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Image as ImageIcon, Video, Trash2, RefreshCw, Loader2, Eye } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 interface MediaUploaderProps {
   value?: string;

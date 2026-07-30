@@ -14,7 +14,7 @@ import * as path from 'path';
 import { StorageService } from './storage.service';
 
 @ApiTags('Media Storage & Uploads')
-@Controller('api/v1/storage')
+@Controller('storage')
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 

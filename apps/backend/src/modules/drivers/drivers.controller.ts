@@ -7,7 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Delivery Drivers & Onboarding')
-@Controller('api/v1/drivers')
+@Controller('drivers')
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
 

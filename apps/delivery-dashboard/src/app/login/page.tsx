@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bike, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function DeliveryLoginPage() {
   const router = useRouter();

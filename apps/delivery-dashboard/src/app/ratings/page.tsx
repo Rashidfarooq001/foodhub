@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp } from 'lucide-react';
 import { DriverStats } from '../../data/delivery-mock-data';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function DeliveryRatingsPage() {
   const [stats, setStats] = useState<DriverStats | null>(null);

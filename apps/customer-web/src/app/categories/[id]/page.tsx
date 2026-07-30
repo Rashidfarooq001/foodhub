@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { CategoryData, RestaurantData } from '../../../data/mock-data';
 import { RestaurantCard } from '../../../components/restaurant/RestaurantCard';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function CategoryDetailPage() {
   const params = useParams();

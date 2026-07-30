@@ -8,7 +8,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiTags('Settlements (Phase 11)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/settlements')
+@Controller('settlements')
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 

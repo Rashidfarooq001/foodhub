@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 interface PendingDriverApplication {
   id: string;

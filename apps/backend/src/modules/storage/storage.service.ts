@@ -60,7 +60,7 @@ export class StorageService {
   }
 
   getPublicUrl(filename: string): string {
-    const host = process.env.PUBLIC_API_URL || 'http://localhost:4000';
+    const host = (process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
     return `${host}/uploads/${filename}`;
   }
 

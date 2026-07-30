@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UtensilsCrossed, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function HotelLoginPage() {
   const router = useRouter();

@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DeliveryJob, DriverStats } from '../data/delivery-mock-data';
 import { DollarSign, Bike, CheckCircle2, Star, ArrowRight, Navigation } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function DeliveryDashboardPage() {
   const [stats, setStats] = useState<DriverStats | null>(null);

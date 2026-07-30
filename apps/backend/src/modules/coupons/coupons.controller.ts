@@ -11,7 +11,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Coupons (Phase 15)')
-@Controller('api/v1/coupons')
+@Controller('coupons')
 export class CouponsController {
   constructor(private readonly couponsService: CouponsService) {}
 

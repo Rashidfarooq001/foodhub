@@ -19,7 +19,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiTags('Reviews (Phase 16)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/reviews')
+@Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 

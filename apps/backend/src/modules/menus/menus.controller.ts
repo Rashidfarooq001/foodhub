@@ -5,7 +5,7 @@ import { CreateFoodItemDto } from './dto/create-food-item.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Menu & Catalog (Phase 9)')
-@Controller('api/v1/menus')
+@Controller('menus')
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 

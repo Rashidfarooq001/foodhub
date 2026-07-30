@@ -5,8 +5,9 @@ import { DeliveryJob } from '../../data/delivery-mock-data';
 import { useActiveDeliveryStore } from '../../stores/use-active-delivery-store';
 import { useRouter } from 'next/navigation';
 import { DollarSign, MapPin } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function AvailableOrdersPage() {
   const router = useRouter();

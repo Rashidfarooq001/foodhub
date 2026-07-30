@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { DriverStats } from '../../data/delivery-mock-data';
 import { DollarSign, Award, Gift, ArrowUpRight } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function DeliveryEarningsPage() {
   const [stats, setStats] = useState<DriverStats | null>(null);

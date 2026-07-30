@@ -7,8 +7,9 @@ import { FoodCard } from '../../../components/food/FoodCard';
 import { Star, Clock, MapPin, Search, ShieldCheck, Tag, X, ArrowLeft } from 'lucide-react';
 import { useCartStore } from '../../../stores/use-cart-store';
 import Link from 'next/link';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function RestaurantDetailPage() {
   const params = useParams();

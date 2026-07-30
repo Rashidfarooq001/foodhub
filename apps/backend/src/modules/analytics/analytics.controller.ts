@@ -12,7 +12,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiTags('Analytics (Phase 17)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/analytics')
+@Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

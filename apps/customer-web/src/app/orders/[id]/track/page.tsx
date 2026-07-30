@@ -6,8 +6,9 @@ import { useParams } from 'next/navigation';
 import { ActiveOrderTrackingData } from '../../../../data/mock-data';
 import { OrderTimeline } from '../../../../components/tracking/OrderTimeline';
 import { Phone, ShieldCheck, Clock, MapPin, Store, Bike, Sparkles } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 const DynamicLiveTrackingMap = dynamic(
   () => import('../../../../components/tracking/LiveTrackingMap').then((m) => m.LiveTrackingMap),

@@ -7,7 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('Referrals (Phase 15)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/referrals')
+@Controller('referrals')
 export class ReferralsController {
   constructor(private readonly referralsService: ReferralsService) {}
 

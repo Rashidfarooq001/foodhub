@@ -15,7 +15,7 @@ import { OrderStatus } from '@prisma/client';
 @ApiTags('Orders (Phase 10)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/orders')
+@Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

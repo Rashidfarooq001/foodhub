@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function RestaurantRegisterPage() {
   const [form, setForm] = useState({

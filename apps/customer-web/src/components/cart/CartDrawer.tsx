@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { X, ShoppingBag, Plus, Minus, Tag, Wallet, ArrowRight, Trash2 } from 'lucide-react';
 import { useCartStore } from '../../stores/use-cart-store';
 import { CouponData } from '../../data/mock-data';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 interface Props {
   isOpen: boolean;

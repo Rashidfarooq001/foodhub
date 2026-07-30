@@ -7,9 +7,11 @@ exports.apiClient = void 0;
 exports.createApiClient = createApiClient;
 const axios_1 = __importDefault(require("axios"));
 const interceptors_1 = require("./interceptors");
+const config_1 = require("@foodhub/config");
 function createApiClient(baseURL) {
+    const base = baseURL || `${(0, config_1.getApiBaseUrl)()}/api/v1`;
     const client = axios_1.default.create({
-        baseURL: baseURL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1',
+        baseURL: base,
         timeout: 15000,
         headers: {
             'Content-Type': 'application/json',

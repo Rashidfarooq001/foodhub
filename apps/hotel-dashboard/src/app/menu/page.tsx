@@ -190,10 +190,10 @@ export default function HotelMenuPage() {
         ))}
       </div>
 
-      {/* Add / Edit Item Modal */}
+      {/* Add / Edit Food Item Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-4 sm:p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-gray-900">
                 {editingItem ? 'Edit Food Item' : 'Add New Food Item'}

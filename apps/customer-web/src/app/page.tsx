@@ -10,8 +10,9 @@ import { RestaurantData, FoodItemData, ActiveOrderTrackingData } from '../data/m
 import { useSettingsStore } from '../stores/use-settings-store';
 import { useAuthStore } from '../stores/use-auth-store';
 import { Sparkles, Clock, ArrowRight, Flame } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function CustomerHomePage() {
   const { isVegOnly } = useSettingsStore();

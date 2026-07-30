@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { ActiveOrderTrackingData } from '../../data/mock-data';
 import { Clock, ArrowRight, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 interface PastOrder {
   id: string;

@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowDownLeft, Plus, ShieldCheck, X } from 'lucide-react';
 import { DriverStats } from '../../data/delivery-mock-data';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function DeliveryWalletPage() {
   const [_driverStats, setDriverStats] = useState<DriverStats | null>(null);

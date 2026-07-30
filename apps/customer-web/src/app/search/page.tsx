@@ -6,8 +6,9 @@ import { RestaurantData, FoodItemData } from '../../data/mock-data';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { FoodCard } from '../../components/food/FoodCard';
 import { EmptyState } from '../../components/common/LoadingSkeleton';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');

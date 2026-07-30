@@ -14,7 +14,7 @@ class ValidateRadiusDto {
 }
 
 @ApiTags('Geolocation (Phase 14)')
-@Controller('api/v1/geo')
+@Controller('geo')
 export class GeolocationController {
   constructor(private readonly geo: GeolocationService) {}
 

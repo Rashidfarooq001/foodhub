@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { CouponData } from '../../data/mock-data';
 import { Tag, Copy, Check } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<CouponData[]>([]);

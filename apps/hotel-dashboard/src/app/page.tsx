@@ -6,8 +6,9 @@ import { KitchenOrderItem, RestaurantStats } from '../data/hotel-mock-data';
 import { useKitchenStore } from '../stores/use-kitchen-store';
 import { DollarSign, ShoppingBag, Clock, Star, ArrowUpRight, UtensilsCrossed } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { getApiBaseUrl } from '@foodhub/config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = getApiBaseUrl();
 
 export default function HotelDashboardPage() {
   const { queue, setQueue } = useKitchenStore();

@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('Wallet (Phase 11)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/wallet')
+@Controller('wallet')
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
