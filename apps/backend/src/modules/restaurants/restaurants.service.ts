@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { validate as isUUID } from 'uuid';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
@@ -213,17 +214,25 @@ export class RestaurantsService {
   }
 
   async findRestaurantById(idOrSlug: string) {
-    const restaurant = await this.prisma.restaurant.findFirst({
-      where: {
-        OR: [
-          { id: idOrSlug },
-          { slug: idOrSlug },
-        ],
-      },
+   const whereCondition = isUUID(idOrSlug)
+  ? { id: idOrSlug }
+  : { slug: idOrSlug };
+
+const restaurant = await this.prisma.restaurant.findFirst({
+  where: whereCondition,
       include: {
         categories: {
           include: {
-            foodItems: true,
+            foodItems: {
+              where: { deletedAt: null },
+            },
+          },
+        },
+        foodItems: {
+          where: { deletedAt: null },
+          include: {
+            variants: true,
+            addonGroups: { include: { addons: true } },
           },
         },
         staff: {

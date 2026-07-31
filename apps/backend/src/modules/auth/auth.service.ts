@@ -127,28 +127,30 @@ export class AuthService {
     return this.tokenService.rotateRefreshToken(refreshToken);
   }
 
-  async forgotPassword(phone: string) {
-    const user = await this.usersService.findUserByPhone(phone);
+  async forgotPassword(input: string) {
+    const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
-      // Security standard: generic success response to prevent phone enumeration
+      // Security standard: generic success response to prevent enumeration
       return { message: 'If registered, reset OTP has been sent' };
     }
-    return this.otpService.sendOtp(phone);
+    return this.otpService.sendOtp(user.phone);
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    await this.otpService.verifyOtp(dto.phone, dto.otp);
-
-    const user = await this.usersService.findUserByPhone(dto.phone);
+    const input = (dto.phone || dto.email || '').trim();
+    const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
       throw new BadRequestException('User record not found');
     }
 
+    await this.otpService.verifyOtp(user.phone, dto.otp);
+
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.updatePassword(user.id, newPasswordHash);
 
-    // Invalidate old refresh tokens for security
+    // Invalidate old refresh tokens and sessions for security
     await this.tokenService.revokeAllUserTokens(user.id);
+    await this.sessionService.terminateAllUserSessions(user.id);
 
     return { message: 'Password reset successfully. Please login with your new password' };
   }

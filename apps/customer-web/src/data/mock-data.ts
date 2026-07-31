@@ -109,25 +109,42 @@ export function normalizeRestaurantData(r: any): RestaurantData {
   if (!r) return {} as RestaurantData;
 
   const categories = Array.isArray(r.categories) ? r.categories : [];
-  const foodItems: FoodItemData[] = Array.isArray(r.foodItems)
-    ? r.foodItems
-    : categories.flatMap((cat: any) =>
-        (Array.isArray(cat.foodItems) ? cat.foodItems : []).map((item: any) => ({
-          id: item.id || `item-${Math.random()}`,
-          restaurantId: r.id,
-          restaurantName: r.name || 'Restaurant',
-          name: item.name || 'Food Item',
-          description: item.description ?? '',
-          price: Number(item.price ?? 0),
-          originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
-          imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-          isVeg: item.isVeg ?? true,
-          isBestseller: item.isBestseller ?? false,
-          rating: item.rating ? Number(item.rating) : 4.5,
-          ratingCount: item.ratingCount ?? 50,
-          category: cat.name ?? item.category ?? 'Main Course',
-        }))
-      );
+  let foodItems: FoodItemData[] = [];
+  if (Array.isArray(r.foodItems) && r.foodItems.length > 0) {
+    foodItems = r.foodItems.map((item: any) => ({
+      id: String(item.id || `item-${Math.random()}`),
+      restaurantId: String(r.id),
+      restaurantName: String(r.name || 'Restaurant'),
+      name: String(item.name || 'Food Item'),
+      description: item.description ?? '',
+      price: Number(item.price ?? 0),
+      originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+      imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      isVeg: item.isVeg ?? true,
+      isBestseller: item.isBestseller ?? false,
+      rating: item.rating ? Number(item.rating) : 4.5,
+      ratingCount: item.ratingCount ?? 50,
+      category: item.category?.name || item.category || 'Main Course',
+    }));
+  } else if (categories.length > 0) {
+    foodItems = categories.flatMap((cat: any) =>
+      (Array.isArray(cat.foodItems) ? cat.foodItems : []).map((item: any) => ({
+        id: String(item.id || `item-${Math.random()}`),
+        restaurantId: String(r.id),
+        restaurantName: String(r.name || 'Restaurant'),
+        name: String(item.name || 'Food Item'),
+        description: item.description ?? '',
+        price: Number(item.price ?? 0),
+        originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        isVeg: item.isVeg ?? true,
+        isBestseller: item.isBestseller ?? false,
+        rating: item.rating ? Number(item.rating) : 4.5,
+        ratingCount: item.ratingCount ?? 50,
+        category: cat.name ?? item.category ?? 'Main Course',
+      }))
+    );
+  }
 
   let cuisines: string[] = ['North Indian', 'Fast Food'];
   if (Array.isArray(r.cuisines) && r.cuisines.length > 0) {

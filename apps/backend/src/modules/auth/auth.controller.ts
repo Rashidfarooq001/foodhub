@@ -104,7 +104,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset OTP' })
   @ApiResponse({ status: 200, description: 'Reset OTP dispatched' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto.phone);
+    const input = (dto.phone || dto.email || '').trim();
+    return this.authService.forgotPassword(input);
   }
 
   @Public()
