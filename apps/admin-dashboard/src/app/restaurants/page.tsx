@@ -48,6 +48,15 @@ export default function AdminRestaurantsPage() {
   }, []);
 
   const handleUpdateStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
+    // Immediate optimistic state update
+    if (status === 'REJECTED') {
+      setRestaurants((prev) => prev.filter((r) => r.id !== id));
+    } else {
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: status as any } : r)),
+      );
+    }
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
       const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
@@ -58,11 +67,11 @@ export default function AdminRestaurantsPage() {
         },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) {
+      if (!res.ok) {
         fetchRestaurants();
       }
     } catch {
-      /* offline */
+      fetchRestaurants();
     }
   };
 

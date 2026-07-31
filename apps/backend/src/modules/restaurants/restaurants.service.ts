@@ -129,7 +129,7 @@ export class RestaurantsService {
         latitude: dto.latitude || 12.9716,
         longitude: dto.longitude || 77.5946,
         bannerUrl: dto.bannerUrl,
-        status: RestaurantStatus.APPROVED,
+        status: RestaurantStatus.PENDING_APPROVAL,
       },
     });
 
@@ -144,8 +144,35 @@ export class RestaurantsService {
     };
   }
 
+  async findPendingApprovalRestaurants() {
+    const restaurants = await this.prisma.restaurant.findMany({
+      where: {
+        status: RestaurantStatus.PENDING_APPROVAL,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 100,
+    });
+
+    return restaurants.map((restaurant) => ({
+      ...restaurant,
+      avgRating: restaurant.avgRating
+        ? Number(restaurant.avgRating)
+        : 0,
+      commissionRate: restaurant.commissionRate
+        ? Number(restaurant.commissionRate)
+        : 0,
+    }));
+  }
+
   async findAllRestaurants() {
     const restaurants = await this.prisma.restaurant.findMany({
+      where: {
+        status: {
+          in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED],
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },

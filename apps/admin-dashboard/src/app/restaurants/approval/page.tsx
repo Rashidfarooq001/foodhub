@@ -24,11 +24,13 @@ export default function AdminRestaurantApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/restaurants`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
+      const res = await fetch(`${getApiBase()}/restaurants/approval`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
-        const all: PendingApplication[] = Array.isArray(data) ? data : [];
-        setApplications(all.filter((a) => a.status === 'PENDING_APPROVAL' || a.status === 'PENDING'));
+        setApplications(Array.isArray(data) ? data : []);
       }
     } catch { /* offline */ } finally {
       setIsLoading(false);
@@ -40,6 +42,9 @@ export default function AdminRestaurantApprovalPage() {
   }, []);
 
   const handleAction = async (id: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => {
+    // Immediate optimistic state update
+    setApplications((prev) => prev.filter((app) => app.id !== id));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
       const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
@@ -50,10 +55,12 @@ export default function AdminRestaurantApprovalPage() {
         },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) {
+      if (!res.ok) {
         fetchApplications();
       }
-    } catch { /* offline */ }
+    } catch {
+      fetchApplications();
+    }
   };
 
   return (

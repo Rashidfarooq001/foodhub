@@ -18,8 +18,17 @@ export class RestaurantsController {
     return this.restaurantsService.createRestaurant(dto);
   }
 
+  @Get('approval')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List pending restaurant applications requiring approval (Admin Only)' })
+  async findPendingApproval() {
+    return this.restaurantsService.findPendingApprovalRestaurants();
+  }
+
   @Get()
-  @ApiOperation({ summary: 'List registered restaurants' })
+  @ApiOperation({ summary: 'List registered restaurants (Approved & Suspended)' })
   async findAll() {
     return this.restaurantsService.findAllRestaurants();
   }
