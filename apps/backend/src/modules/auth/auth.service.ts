@@ -65,10 +65,11 @@ export class AuthService {
     if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
       if (!dto.otp) {
         // Trigger 2FA OTP send
-        await this.otpService.sendOtp(user.phone);
+        const otpRes = await this.otpService.sendOtp(user.phone);
         return {
           requires2FA: true,
           message: '2FA OTP code dispatched to registered mobile number',
+          ...(otpRes.otp ? { otp: otpRes.otp } : {}),
         };
       }
       await this.otpService.verifyOtp(user.phone, dto.otp);

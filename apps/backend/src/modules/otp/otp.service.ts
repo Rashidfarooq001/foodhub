@@ -10,7 +10,7 @@ export class OtpService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number }> {
+  async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
     // Check cooldown
     const existingOtp = await this.prisma.otp.findFirst({
       where: { phone, isUsed: false },
@@ -25,8 +25,10 @@ export class OtpService {
       }
     }
 
+    const isDevOrTest = process.env.NODE_ENV !== 'production';
+
     // Generate 4-digit OTP
-    const rawOtp = process.env.NODE_ENV === 'development' ? '4819' : Math.floor(1000 + Math.random() * 9000).toString();
+    const rawOtp = isDevOrTest ? '4819' : Math.floor(1000 + Math.random() * 9000).toString();
     const otpHash = await bcrypt.hash(rawOtp, 10);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINS * 60 * 1000);
 
@@ -39,23 +41,26 @@ export class OtpService {
       },
     });
 
-    // Dispatch SMS via MSG91 Gateway (Mocked output in dev logs)
-    this.logger.log(`[MSG91 Gateway] Sent SMS OTP to ${phone}: ${rawOtp}`);
+    // In development/testing, do not send SMS
+    if (!isDevOrTest) {
+      this.logger.log(`[MSG91 Gateway] Sent SMS OTP to ${phone}`);
+    } else {
+      this.logger.log(`[Dev SMS Suppressed] Generated OTP for ${phone}: ${rawOtp}`);
+    }
 
-   async sendOtp(
-  phone: string,
-): Promise<{
-  message: string;
-  cooldownSec: number;
-  otp: string;
-}> 
-}
+    return {
+      message: 'OTP sent successfully',
+      cooldownSec: this.OTP_COOLDOWN_SEC,
+      ...(isDevOrTest ? { otp: rawOtp } : {}),
+    };
+  }
+
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const otpRecord = await this.prisma.otp.findFirst({
       where: { phone, isUsed: false },
       orderBy: { createdAt: 'desc' },
     });
-  
+
     if (!otpRecord) {
       throw new BadRequestException('No active OTP request found for this phone number');
     }
