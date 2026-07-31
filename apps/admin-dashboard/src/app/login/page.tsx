@@ -79,18 +79,22 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Admin Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-              />
-            </div>
-          </div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">
+    Admin Phone
+  </label>
+
+  <div className="relative">
+    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+    <input
+      type="text"
+      required
+      value={phone}
+      readOnly
+      className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+    />
+  </div>
+</div>
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
