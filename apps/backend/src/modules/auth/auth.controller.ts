@@ -61,8 +61,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Password login for Merchant, Courier, Finance & Admin (2FA required for Admins)' })
-  @ApiResponse({ status: 200, description: 'Authenticated successfully or 2FA required' })
+  @ApiOperation({ summary: 'Password login for Merchant, Courier, Finance & Admin' })
+  @ApiResponse({ status: 200, description: 'Authenticated successfully' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ip = req.ip || req.socket.remoteAddress;

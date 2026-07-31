@@ -61,20 +61,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials entered');
     }
 
-    // Require 2FA OTP for Admin / SuperAdmin roles
-    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
-      if (!dto.otp) {
-        // Trigger 2FA OTP send
-        const otpRes = await this.otpService.sendOtp(user.phone);
-        return {
-          requires2FA: true,
-          message: '2FA OTP code dispatched to registered mobile number',
-          ...(otpRes.otp ? { otp: otpRes.otp } : {}),
-        };
-      }
-      await this.otpService.verifyOtp(user.phone, dto.otp);
-    }
-
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(user, session.id);
 
