@@ -25,10 +25,8 @@ export class MenusController {
   // ==========================================
 
   @Post('categories')
-@Public()
-async createCategory(...) {
-   ...
-}
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create new menu category' })
   async createCategory(
     @Body('restaurantId') restaurantId: string,
@@ -45,8 +43,7 @@ async createCategory(...) {
     return this.menusService.findCategoriesByRestaurant(restaurantId);
   }
 
-  @Patch('categories/:id')
-  @ApiBearerAuth()
+  @Public()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Edit category details' })
   async updateCategory(
