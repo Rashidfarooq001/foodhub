@@ -12,68 +12,54 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { setAuth } = useAdminAuthStore();
 
-  const [email, setEmail] = useState('admin@foodhub.com');
+ const [phone] = useState('+919999999999');
   const [password, setPassword] = useState('SuperAdmin123!');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+  e.preventDefault();
+  setIsLoading(true);
+  setError('');
 
-    try {
-      const res = await fetch(`${getApiBase()}/auth/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const res = await fetch(`${getApiBase()}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone: '+919999999999',
+        password,
+      }),
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        setAuth(
-          {
-            id: data.user?.id || 'admin-1',
-            email: data.user?.email || email,
-            role: data.user?.role || 'SUPER_ADMIN',
-            name: data.user?.name || 'SuperAdmin',
-          },
-          data.accessToken || 'admin-token',
-          data.refreshToken || 'admin-refresh-token',
-        );
-        router.push('/');
-      } else {
-        // Fallback demo admin login if backend auth endpoint returns error
-        setAuth(
-          {
-            id: 'admin-super-1',
-            email,
-            role: 'SUPER_ADMIN',
-            name: 'SuperAdmin Operator',
-          },
-          'admin-jwt-token-demo',
-          'admin-refresh-token-demo',
-        );
-        router.push('/');
-      }
-    } catch {
-      // Offline fallback
-      setAuth(
-        {
-          id: 'admin-super-1',
-          email,
-          role: 'SUPER_ADMIN',
-          name: 'SuperAdmin Operator',
-        },
-        'admin-jwt-token-demo',
-        'admin-refresh-token-demo',
-      );
-      router.push('/');
-    } finally {
-      setIsLoading(false);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message || 'Login failed');
+      return;
     }
-  };
 
+    setAuth(
+      {
+        id: data.user?.id,
+        email: data.user?.email,
+        role: data.user?.role,
+        name: data.user?.name,
+      },
+      data.accessToken,
+      data.refreshToken,
+    );
+
+    router.push('/');
+  } catch (err) {
+    console.error(err);
+    setError('Unable to connect to server');
+  } finally {
+    setIsLoading(false);
+  }
+};
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
