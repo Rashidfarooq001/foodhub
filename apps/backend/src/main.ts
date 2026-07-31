@@ -7,6 +7,7 @@ import * as compression from 'compression';
 import * as express from 'express';
 import * as path from 'path';
 import { AppModule } from './app.module';
+import { PrismaService } from './modules/database/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -89,6 +90,34 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
   SwaggerModule.setup('api/v1/docs', app, document);
+
+  // Auto-verify DB schema & apply delivery_mode if missing
+  try {
+    const prisma = app.get(PrismaService);
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeliveryMode') THEN
+              CREATE TYPE "DeliveryMode" AS ENUM ('FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY');
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RestaurantDriverStatus') THEN
+              CREATE TYPE "RestaurantDriverStatus" AS ENUM ('AVAILABLE', 'BUSY', 'OFFLINE');
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'delivery_mode') THEN
+              ALTER TABLE "restaurants" ADD COLUMN "delivery_mode" "DeliveryMode" NOT NULL DEFAULT 'FOODHUB_DELIVERY';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_foodhub_driver_id') THEN
+              ALTER TABLE "orders" ADD COLUMN "assigned_foodhub_driver_id" UUID;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_restaurant_driver_id') THEN
+              ALTER TABLE "orders" ADD COLUMN "assigned_restaurant_driver_id" UUID;
+          END IF;
+      END $$;
+    `);
+    console.log('✅ Production Neon DB schema verified & updated successfully.');
+  } catch (err: any) {
+    console.warn('⚠️ Auto-schema verification notice:', err?.message || err);
+  }
 
   // Start
   const port = Number(process.env.PORT) || 4000;
