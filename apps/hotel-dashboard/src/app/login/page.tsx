@@ -12,7 +12,7 @@ export default function HotelLoginPage() {
   const router = useRouter();
   const { setAuth } = useHotelAuthStore();
 
-  const [email, setEmail] = useState('owner@spicegarden.com');
+  const [identity, setIdentity] = useState('owner@spicegarden.com');
   const [password, setPassword] = useState('RestaurantPass123!');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,11 +22,15 @@ export default function HotelLoginPage() {
     setIsLoading(true);
     setError('');
 
+    const payload = identity.includes('@')
+      ? { email: identity.trim(), password }
+      : { phone: identity.trim(), password };
+
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -34,7 +38,7 @@ export default function HotelLoginPage() {
         setAuth(
           {
             id: data.user?.id || 'owner-1',
-            email: data.user?.email || email,
+            email: data.user?.email || (identity.includes('@') ? identity : ''),
             role: data.user?.role || 'RESTAURANT_OWNER',
             name: data.user?.name || 'Restaurant Owner',
             restaurantId: data.user?.restaurantId || 'rest-1',
@@ -73,14 +77,15 @@ export default function HotelLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Merchant Email</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Merchant Phone or Email</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identity}
+                onChange={(e) => setIdentity(e.target.value)}
+                placeholder="Enter registered phone (+91...) or email"
                 className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>

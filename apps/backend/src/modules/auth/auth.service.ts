@@ -51,7 +51,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const input = dto.phone || (dto as any).email || '';
+    const input = (dto.phone || dto.email || '').trim();
+    if (!input) {
+      throw new BadRequestException('Phone or email is required for login');
+    }
     const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials or account disabled');
