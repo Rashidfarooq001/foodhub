@@ -166,10 +166,10 @@ export class RestaurantsService {
     }));
   }
 
-  async findAllRestaurants(approvedOnly = false) {
-    const whereCondition = approvedOnly
-      ? { status: RestaurantStatus.APPROVED, isOpen: true }
-      : { status: { in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED] } };
+  async findAllRestaurants(adminView = false) {
+    const whereCondition = adminView
+      ? { status: { in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED] } }
+      : { status: RestaurantStatus.APPROVED };
 
     const restaurants = await this.prisma.restaurant.findMany({
       where: whereCondition,

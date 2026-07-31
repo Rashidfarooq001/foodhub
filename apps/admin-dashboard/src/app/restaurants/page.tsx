@@ -29,7 +29,7 @@ export default function AdminRestaurantsPage() {
 
   const fetchRestaurants = async () => {
     try {
-      const res = await adminFetch('/restaurants');
+      const res = await adminFetch('/restaurants?admin=true');
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (Array.isArray(data?.restaurants) ? data.restaurants : []);

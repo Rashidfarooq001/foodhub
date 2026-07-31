@@ -21,7 +21,7 @@ export default function CategoryDetailPage() {
       try {
         const [catRes, restRes] = await Promise.all([
           fetch(`${API_BASE}/categories/${categoryId}`),
-          fetch(`${API_BASE}/restaurants?approvedOnly=true&categoryId=${categoryId}`),
+          fetch(`${API_BASE}/restaurants`),
         ]);
         if (catRes.ok) setCategory(await catRes.json());
         if (restRes.ok) {
@@ -34,7 +34,7 @@ export default function CategoryDetailPage() {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 8000);
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [categoryId]);
 

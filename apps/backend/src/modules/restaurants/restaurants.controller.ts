@@ -28,9 +28,9 @@ export class RestaurantsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List registered restaurants' })
-  async findAll(@Query('approvedOnly') approvedOnly?: string) {
-    return this.restaurantsService.findAllRestaurants(approvedOnly === 'true');
+  @ApiOperation({ summary: 'List registered restaurants (Approved only for public)' })
+  async findAll(@Query('admin') admin?: string) {
+    return this.restaurantsService.findAllRestaurants(admin === 'true');
   }
 
   @Get(':id')
