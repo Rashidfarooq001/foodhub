@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../../utils/admin-fetch';
 
 interface PendingDriverApplication {
   id: string;
@@ -26,7 +24,7 @@ export default function AdminDriverApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/drivers/applications`);
+      const res = await adminFetch('/drivers/applications');
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
@@ -42,13 +40,8 @@ export default function AdminDriverApprovalPage() {
 
   const handleAction = async (id: string, isApproved: boolean) => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/drivers/${id}/approval`, {
+      const res = await adminFetch(`/drivers/${id}/approval`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ isApproved }),
       });
       if (res.ok) {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { adminFetch } from '../../utils/admin-fetch';
 import {
   DollarSign, ShoppingBag, Users, Store, Bike, AlertTriangle,
   TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Clock
@@ -64,7 +65,7 @@ export default function AdminAnalyticsPage() {
   React.useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`${getApiBase()}/analytics/admin`);
+        const res = await adminFetch('/analytics/admin');
         if (res.ok) {
           const data = await res.json();
           if (data && data.kpis) {

@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 interface DriverPartner {
   id: string;
@@ -30,7 +28,7 @@ export default function AdminDeliveryPartnersPage() {
 
   const fetchDrivers = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/drivers`);
+      const res = await adminFetch('/drivers');
       if (res.ok) {
         const data = await res.json();
         setDrivers(Array.isArray(data) ? data : []);
@@ -48,13 +46,8 @@ export default function AdminDeliveryPartnersPage() {
 
   const handleToggleApproval = async (driverId: string, currentApproved: boolean) => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/drivers/${driverId}/approval`, {
+      const res = await adminFetch(`/drivers/${driverId}/approval`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ isApproved: !currentApproved }),
       });
 

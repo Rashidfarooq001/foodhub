@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import { Banknote, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 const DEFAULT_PENDING = [
   { restaurantId: 'r1', name: 'Spice Garden Restaurant', orderCount: 42, grossAmount: 94500, commissionRate: 20, platformFee: 18900, restaurantNet: 73500 },
@@ -20,7 +18,7 @@ export default function AdminSettlementsPage() {
   React.useEffect(() => {
     const fetchSettlements = async () => {
       try {
-        const res = await fetch(`${getApiBase()}/restaurants`);
+        const res = await adminFetch('/restaurants');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {

@@ -3,9 +3,7 @@
 import React from 'react';
 import { Wallet, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 const DEFAULT_CUSTOMER_WALLETS = [
   { name: 'Rahul Sharma', phone: '+919876543210', balance: 250, txCount: 8 },
@@ -26,7 +24,7 @@ export default function AdminWalletsPage() {
     const fetchWallets = async () => {
       try {
         const [driversRes] = await Promise.all([
-          fetch(`${getApiBase()}/drivers`),
+          adminFetch('/drivers'),
         ]);
         if (driversRes.ok) {
           const drivers = await driversRes.json();

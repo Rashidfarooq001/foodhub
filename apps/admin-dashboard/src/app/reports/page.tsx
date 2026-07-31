@@ -2,9 +2,7 @@
 
 import React, { useState } from 'react';
 import { Download, Calendar, Filter, FileText, Search } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 const REPORT_TYPES = [
   { id: 'sales', label: 'Sales & Revenue' },
@@ -34,7 +32,7 @@ export default function AdminReportsPage() {
   const handleDownload = async (id: string, type: string) => {
     setDownloading(id);
     try {
-      const response = await fetch(`${getApiBase()}/analytics/export?type=${type}`);
+      const response = await adminFetch(`/analytics/export?type=${type}`);
       if (!response.ok) {
         // Fallback CSV download for UI demo if backend offline
         const csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Title,Records,TotalAmount\n"

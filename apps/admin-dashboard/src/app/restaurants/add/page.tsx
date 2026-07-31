@@ -4,9 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, MapPin, Store, CreditCard, CheckCircle2, DollarSign, User, Image as ImageIcon } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../../utils/admin-fetch';
 
 export default function AddRestaurantPage() {
   const router = useRouter();
@@ -92,14 +90,8 @@ export default function AddRestaurantPage() {
         upiId: form.upiId,
       };
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-
-      const res = await fetch(`${getApiBase()}/restaurants`, {
+      const res = await adminFetch('/restaurants', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(payload),
       });
 

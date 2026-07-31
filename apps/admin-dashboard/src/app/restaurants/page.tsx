@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 interface Restaurant {
   id: string;
@@ -30,7 +28,7 @@ export default function AdminRestaurantsPage() {
 
   const fetchRestaurants = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/restaurants`);
+      const res = await adminFetch('/restaurants');
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (Array.isArray(data?.restaurants) ? data.restaurants : []);
@@ -58,13 +56,8 @@ export default function AdminRestaurantsPage() {
     }
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
+      const res = await adminFetch(`/restaurants/${id}/approval`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) {

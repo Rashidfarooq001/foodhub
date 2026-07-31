@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../../utils/admin-fetch';
 
 interface PendingApplication {
   id: string;
@@ -24,10 +22,7 @@ export default function AdminRestaurantApprovalPage() {
 
   const fetchApplications = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/restaurants/approval`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await adminFetch('/restaurants/approval');
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
@@ -46,13 +41,8 @@ export default function AdminRestaurantApprovalPage() {
     setApplications((prev) => prev.filter((app) => app.id !== id));
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/restaurants/${id}/approval`, {
+      const res = await adminFetch(`/restaurants/${id}/approval`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) {

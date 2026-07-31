@@ -2,9 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Image as ImageIcon, Video, Trash2, RefreshCw, Loader2, Eye } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../utils/admin-fetch';
 
 interface MediaUploaderProps {
   value?: string;
@@ -58,7 +56,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${getApiBase()}/storage/upload?type=${acceptType}`, {
+      const res = await adminFetch(`/storage/upload?type=${acceptType}`, {
         method: 'POST',
         body: formData,
       });

@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bike, User, FileText, CreditCard, CheckCircle2 } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+import { adminFetch } from '../../../utils/admin-fetch';
 
 export default function AddDriverPage() {
   const router = useRouter();
@@ -38,13 +36,8 @@ export default function AddDriverPage() {
     setError(null);
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_admin_token') : null;
-      const res = await fetch(`${getApiBase()}/drivers`, {
+      const res = await adminFetch('/drivers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(form),
       });
 
