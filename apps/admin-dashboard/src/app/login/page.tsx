@@ -35,7 +35,10 @@ export default function AdminLoginPage() {
     });
 
     const data = await res.json();
-
+if (data.requires2FA) {
+  alert(data.message);
+  return;
+}
     if (!res.ok) {
       setError(data.message || 'Login failed');
       return;
@@ -48,8 +51,8 @@ export default function AdminLoginPage() {
         role: data.user?.role,
         name: data.user?.name,
       },
-      data.accessToken,
-      data.refreshToken,
+       data.tokens.accessToken,
+      data.tokens.refreshToken
     );
 
     router.push('/');
