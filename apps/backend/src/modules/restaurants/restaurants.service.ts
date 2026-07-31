@@ -9,137 +9,146 @@ export class RestaurantsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createRestaurant(dto: CreateRestaurantDto) {
-    let ownerId = dto.ownerId;
+    const rawPassword = dto.password || 'RestaurantPass123!';
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+    const phone =
+      dto.phone ||
+      `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+    const email = dto.email || `owner_${Date.now()}@foodhub.com`;
+    const ownerName = dto.ownerName || dto.name + ' Owner';
 
-    // Create or link restaurant owner account
-    if (!ownerId && (dto.email || dto.phone)) {
-      const phone =
-        dto.phone ||
-        `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+    // Execute atomic transaction for User, Profile, Restaurant, and Staff linkage
+    const result = await this.prisma.$transaction(async (tx) => {
+      let ownerId = dto.ownerId;
 
-      const existingUser = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { phone },
-            { email: dto.email || '' },
-          ],
-        },
-      });
-
-      if (existingUser) {
-        ownerId = existingUser.id;
-
-        await this.prisma.user.update({
-          where: { id: existingUser.id },
+      if (ownerId) {
+        // Update existing user role to RESTAURANT_OWNER
+        await tx.user.update({
+          where: { id: ownerId },
           data: {
             role: UserRole.RESTAURANT_OWNER,
+            isVerified: true,
+            isActive: true,
           },
         });
       } else {
-        const password = dto.password || 'RestaurantPass123!';
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const nameParts = (dto.ownerName || 'Restaurant Owner').split(' ');
-
-        const newUser = await this.prisma.user.create({
-          data: {
-            phone,
-            email: dto.email,
-            passwordHash,
-            role: UserRole.RESTAURANT_OWNER,
-            isVerified: true,
-            profile: {
-              create: {
-                firstName: nameParts[0] || 'Owner',
-                lastName: nameParts.slice(1).join(' ') || '',
-              },
-            },
+        const existingUser = await tx.user.findFirst({
+          where: {
+            OR: [{ phone }, { email }],
           },
         });
 
-        ownerId = newUser.id;
+        if (existingUser) {
+          ownerId = existingUser.id;
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: {
+              role: UserRole.RESTAURANT_OWNER,
+              isVerified: true,
+              isActive: true,
+            },
+          });
+        } else {
+          const nameParts = ownerName.split(' ');
+          const newUser = await tx.user.create({
+            data: {
+              phone,
+              email,
+              passwordHash,
+              role: UserRole.RESTAURANT_OWNER,
+              isVerified: true,
+              isActive: true,
+              profile: {
+                create: {
+                  firstName: nameParts[0] || 'Owner',
+                  lastName: nameParts.slice(1).join(' ') || '',
+                },
+              },
+            },
+          });
+          ownerId = newUser.id;
+        }
       }
-    }
 
-    // Create default owner if none exists
-    if (!ownerId) {
-      let defaultOwner = await this.prisma.user.findFirst({
-        where: {
-          role: UserRole.RESTAURANT_OWNER,
+      const slug =
+        dto.name
+          .toLowerCase()
+          .replace(/ /g, '-')
+          .replace(/[^\w-]+/g, '') +
+        '-' +
+        Math.floor(Math.random() * 1000);
+
+      const fullAddress = [
+        dto.address,
+        dto.city,
+        dto.state,
+        dto.pin,
+        dto.country,
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      const restaurant = await tx.restaurant.create({
+        data: {
+          ownerId,
+          name: dto.name,
+          slug,
+          phone: dto.phone || phone,
+          email: dto.email || email,
+          licenseFssai:
+            dto.fssaiLicense ||
+            `FSSAI-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          gstin:
+            dto.gstin ||
+            `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          addressLine:
+            fullAddress || dto.address || 'Bengaluru, India',
+          latitude: dto.latitude || 12.9716,
+          longitude: dto.longitude || 77.5946,
+          bannerUrl: dto.bannerUrl,
+          status: RestaurantStatus.PENDING_APPROVAL,
+          isOpen: false,
         },
       });
 
-      if (!defaultOwner) {
-        defaultOwner = await this.prisma.user.create({
-          data: {
-            phone: '+919900000000',
-            email: 'default-owner@foodhub.com',
-            passwordHash: await bcrypt.hash(
-              'DefaultOwner123!',
-              10,
-            ),
-            role: UserRole.RESTAURANT_OWNER,
-            isVerified: true,
-            profile: {
-              create: {
-                firstName: 'Default',
-                lastName: 'Owner',
-              },
-            },
+      // Link owner in RestaurantStaff table
+      await tx.restaurantStaff.upsert({
+        where: {
+          restaurantId_userId: {
+            restaurantId: restaurant.id,
+            userId: ownerId,
           },
-        });
-      }
+        },
+        update: { designation: 'Owner' },
+        create: {
+          restaurantId: restaurant.id,
+          userId: ownerId,
+          designation: 'Owner',
+        },
+      });
 
-      ownerId = defaultOwner.id;
-    }
-
-    const slug =
-      dto.name
-        .toLowerCase()
-        .replace(/ /g, '-')
-        .replace(/[^\w-]+/g, '') +
-      '-' +
-      Math.floor(Math.random() * 1000);
-
-    const fullAddress = [
-      dto.address,
-      dto.city,
-      dto.state,
-      dto.pin,
-      dto.country,
-    ]
-      .filter(Boolean)
-      .join(', ');
-
-    const restaurant = await this.prisma.restaurant.create({
-      data: {
+      return {
+        restaurant,
         ownerId,
-        name: dto.name,
-        slug,
-        phone: dto.phone,
-        email: dto.email,
-        licenseFssai:
-          dto.fssaiLicense ||
-          `FSSAI-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        gstin:
-          dto.gstin ||
-          `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        addressLine:
-          fullAddress || dto.address || 'Bengaluru, India',
-        latitude: dto.latitude || 12.9716,
-        longitude: dto.longitude || 77.5946,
-        bannerUrl: dto.bannerUrl,
-        status: RestaurantStatus.PENDING_APPROVAL,
-      },
+        phone,
+        email,
+        generatedPassword: rawPassword,
+      };
     });
 
     return {
-      ...restaurant,
-      avgRating: restaurant.avgRating
-        ? Number(restaurant.avgRating)
+      ...result.restaurant,
+      ownerCredentials: {
+        phone: result.phone,
+        email: result.email,
+        password: result.generatedPassword,
+        ownerId: result.ownerId,
+      },
+      avgRating: result.restaurant.avgRating
+        ? Number(result.restaurant.avgRating)
         : 0,
-      commissionRate: restaurant.commissionRate
-        ? Number(restaurant.commissionRate)
+      commissionRate: result.restaurant.commissionRate
+        ? Number(result.restaurant.commissionRate)
         : 0,
     };
   }
@@ -149,10 +158,16 @@ export class RestaurantsService {
       where: {
         status: RestaurantStatus.PENDING_APPROVAL,
       },
+      include: {
+        categories: {
+          include: {
+            foodItems: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
-      take: 100,
     });
 
     return restaurants.map((restaurant) => ({
@@ -211,7 +226,13 @@ export class RestaurantsService {
             foodItems: true,
           },
         },
-        deliveryStaff: true,
+        staff: {
+          include: {
+            user: {
+              include: { profile: true },
+            },
+          },
+        },
       },
     });
 
@@ -259,7 +280,32 @@ export class RestaurantsService {
       },
     });
 
-    // Auto-activate associated merchant owner/staff accounts
+    // Auto-activate and verify owner User account directly
+    await this.prisma.user.update({
+      where: { id: restaurant.ownerId },
+      data: {
+        isVerified: prismaStatus === RestaurantStatus.APPROVED,
+        isActive: prismaStatus !== RestaurantStatus.REJECTED,
+      },
+    });
+
+    // Ensure RestaurantStaff record exists
+    await this.prisma.restaurantStaff.upsert({
+      where: {
+        restaurantId_userId: {
+          restaurantId: id,
+          userId: restaurant.ownerId,
+        },
+      },
+      update: { designation: 'Owner' },
+      create: {
+        restaurantId: id,
+        userId: restaurant.ownerId,
+        designation: 'Owner',
+      },
+    });
+
+    // Update any additional staff records
     const staffRecords = await this.prisma.restaurantStaff.findMany({
       where: { restaurantId: id },
     });

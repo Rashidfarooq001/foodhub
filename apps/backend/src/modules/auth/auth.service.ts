@@ -68,20 +68,26 @@ export class AuthService {
       user.role === UserRole.RESTAURANT_MANAGER ||
       user.role === UserRole.RESTAURANT_STAFF
     ) {
-      const staffRecord = (user as any).restaurantStaff?.[0];
-      if (staffRecord?.restaurant) {
-        if (staffRecord.restaurant.status === 'PENDING_APPROVAL') {
+      let rObj = (user as any).restaurantStaff?.[0]?.restaurant;
+      if (!rObj && user.role === UserRole.RESTAURANT_OWNER) {
+        rObj = await (this.usersService as any).prisma.restaurant.findFirst({
+          where: { ownerId: user.id },
+        });
+      }
+
+      if (rObj) {
+        if (rObj.status === 'PENDING_APPROVAL') {
           throw new UnauthorizedException('Your restaurant application is currently pending admin approval.');
         }
-        if (staffRecord.restaurant.status === 'REJECTED') {
+        if (rObj.status === 'REJECTED') {
           throw new UnauthorizedException('Your restaurant application has been rejected by FoodHub admin.');
         }
         restaurant = {
-          id: staffRecord.restaurant.id,
-          name: staffRecord.restaurant.name,
-          slug: staffRecord.restaurant.slug,
-          status: staffRecord.restaurant.status,
-          deliveryMode: staffRecord.restaurant.deliveryMode,
+          id: rObj.id,
+          name: rObj.name,
+          slug: rObj.slug,
+          status: rObj.status,
+          deliveryMode: rObj.deliveryMode,
         };
       }
     }
