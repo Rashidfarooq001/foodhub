@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { RestaurantData, FoodItemData, normalizeRestaurantData } from '../../../data/mock-data';
 import { FoodCard } from '../../../components/food/FoodCard';
-import { Star, Clock, MapPin, Search, ShieldCheck, Tag, X, ArrowLeft } from 'lucide-react';
+import { Star, Clock, MapPin, Search, ShieldCheck, Tag, X, ArrowLeft, UtensilsCrossed } from 'lucide-react';
 import { useCartStore } from '../../../stores/use-cart-store';
 import Link from 'next/link';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -154,15 +154,23 @@ export default function RestaurantDetailPage() {
       </div>
 
       {/* Menu Dishes Grid */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {filteredItems.map((food) => (
-          <FoodCard
-            key={food.id}
-            food={food}
-            onCustomize={(f) => setSelectedFoodForCustomization(f)}
-          />
-        ))}
-      </div>
+      {filteredItems.length === 0 ? (
+        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
+          <UtensilsCrossed className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+          <p className="font-bold text-gray-700">No menu items available yet</p>
+          <p className="text-xs text-gray-400 mt-1">This restaurant hasn&apos;t published any menu items yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {filteredItems.map((food) => (
+            <FoodCard
+              key={food.id}
+              food={food}
+              onCustomize={(f) => setSelectedFoodForCustomization(f)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Food Customization Modal */}
       {selectedFoodForCustomization && (

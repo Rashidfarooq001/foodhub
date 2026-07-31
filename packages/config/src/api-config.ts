@@ -8,10 +8,15 @@ export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
 
   let url: string;
-  if (!envUrl) {
-    url = 'https://foodhub-backend-enq2.onrender.com/api/v1';
-  } else {
+  if (envUrl) {
     url = envUrl.trim().replace(/\/+$/, '');
+  } else if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    url = 'http://localhost:4000/api/v1';
+  } else {
+    url = 'https://foodhub-backend-enq2.onrender.com/api/v1';
   }
 
   // Collapse any repeated /api/v1 suffixes in env var settings down to a single /api/v1
