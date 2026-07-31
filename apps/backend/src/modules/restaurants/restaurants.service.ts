@@ -11,22 +11,34 @@ export class RestaurantsService {
   async createRestaurant(dto: CreateRestaurantDto) {
     let ownerId = dto.ownerId;
 
-    // Create or link restaurant owner account if ownerId not provided directly
+    // Create or link restaurant owner account
     if (!ownerId && (dto.email || dto.phone)) {
-      const phone = dto.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+      const phone =
+        dto.phone ||
+        `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+
       const existingUser = await this.prisma.user.findFirst({
-        where: { OR: [{ phone }, { email: dto.email || '' }] },
+        where: {
+          OR: [
+            { phone },
+            { email: dto.email || '' },
+          ],
+        },
       });
 
       if (existingUser) {
         ownerId = existingUser.id;
+
         await this.prisma.user.update({
           where: { id: existingUser.id },
-          data: { role: UserRole.RESTAURANT_OWNER },
+          data: {
+            role: UserRole.RESTAURANT_OWNER,
+          },
         });
       } else {
         const password = dto.password || 'RestaurantPass123!';
         const passwordHash = await bcrypt.hash(password, 10);
+
         const nameParts = (dto.ownerName || 'Restaurant Owner').split(' ');
 
         const newUser = await this.prisma.user.create({
@@ -44,76 +56,152 @@ export class RestaurantsService {
             },
           },
         });
+
         ownerId = newUser.id;
       }
     }
 
+    // Create default owner if none exists
     if (!ownerId) {
       let defaultOwner = await this.prisma.user.findFirst({
-        where: { role: UserRole.RESTAURANT_OWNER },
+        where: {
+          role: UserRole.RESTAURANT_OWNER,
+        },
       });
+
       if (!defaultOwner) {
         defaultOwner = await this.prisma.user.create({
           data: {
             phone: '+919900000000',
             email: 'default-owner@foodhub.com',
-            passwordHash: await bcrypt.hash('DefaultOwner123!', 10),
+            passwordHash: await bcrypt.hash(
+              'DefaultOwner123!',
+              10,
+            ),
             role: UserRole.RESTAURANT_OWNER,
             isVerified: true,
-            profile: { create: { firstName: 'Default', lastName: 'Owner' } },
+            profile: {
+              create: {
+                firstName: 'Default',
+                lastName: 'Owner',
+              },
+            },
           },
         });
       }
+
       ownerId = defaultOwner.id;
     }
 
-    const slug = dto.name
-      .toLowerCase()
-      .replace(/ /g, '-')
-      .replace(/[^\w-]+/g, '') + '-' + Math.floor(Math.random() * 1000);
+    const slug =
+      dto.name
+        .toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '') +
+      '-' +
+      Math.floor(Math.random() * 1000);
 
-    const fullAddress = [dto.address, dto.city, dto.state, dto.pin, dto.country]
+    const fullAddress = [
+      dto.address,
+      dto.city,
+      dto.state,
+      dto.pin,
+      dto.country,
+    ]
       .filter(Boolean)
       .join(', ');
 
-    return this.prisma.restaurant.create({
+    const restaurant = await this.prisma.restaurant.create({
       data: {
         ownerId,
-        name:         dto.name,
+        name: dto.name,
         slug,
-        phone:        dto.phone,
-        email:        dto.email,
-        licenseFssai: dto.fssaiLicense || `FSSAI-${Math.floor(Math.random() * 1000000000)}`,
-        gstin:        dto.gstin || `29GSTIN${Math.floor(Math.random() * 10000)}`,
-        addressLine:  fullAddress || dto.address || 'Bengaluru, India',
-        latitude:     dto.latitude || 12.9716,
-        longitude:    dto.longitude || 77.5946,
-        bannerUrl:    dto.bannerUrl,
-        status:       RestaurantStatus.APPROVED,
+        phone: dto.phone,
+        email: dto.email,
+        licenseFssai:
+          dto.fssaiLicense ||
+          `FSSAI-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        gstin:
+          dto.gstin ||
+          `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        addressLine:
+          fullAddress || dto.address || 'Bengaluru, India',
+        latitude: dto.latitude || 12.9716,
+        longitude: dto.longitude || 77.5946,
+        bannerUrl: dto.bannerUrl,
+        status: RestaurantStatus.APPROVED,
       },
     });
+
+    return {
+      ...restaurant,
+      avgRating: restaurant.avgRating
+        ? Number(restaurant.avgRating)
+        : 0,
+      commissionRate: restaurant.commissionRate
+        ? Number(restaurant.commissionRate)
+        : 0,
+    };
   }
 
   async findAllRestaurants() {
-    return this.prisma.restaurant.findMany({
+    const restaurants = await this.prisma.restaurant.findMany({
+      include: {
+        owner: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
       take: 100,
-      orderBy: { createdAt: 'desc' },
     });
+
+    return restaurants.map((restaurant) => ({
+      ...restaurant,
+      avgRating: restaurant.avgRating
+        ? Number(restaurant.avgRating)
+        : 0,
+      commissionRate: restaurant.commissionRate
+        ? Number(restaurant.commissionRate)
+        : 0,
+    }));
   }
 
   async findRestaurantById(id: string) {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id },
       include: {
+        owner: {
+          include: {
+            profile: true,
+          },
+        },
         categories: {
-          include: { foodItems: true },
+          include: {
+            foodItems: true,
+          },
         },
       },
     });
+
     if (!restaurant) {
-      throw new NotFoundException(`Restaurant with ID ${id} not found`);
+      throw new NotFoundException(
+        `Restaurant with ID ${id} not found`,
+      );
     }
-    return restaurant;
+
+    return {
+      ...restaurant,
+      avgRating: restaurant.avgRating
+        ? Number(restaurant.avgRating)
+        : 0,
+      commissionRate: restaurant.commissionRate
+        ? Number(restaurant.commissionRate)
+        : 0,
+    };
   }
 
   async updateVerificationStatus(
@@ -131,9 +219,23 @@ export class RestaurantsService {
         ? RestaurantStatus.REJECTED
         : RestaurantStatus.PENDING_APPROVAL;
 
-    return this.prisma.restaurant.update({
-      where: { id },
-      data:  { status: prismaStatus },
+    const restaurant = await this.prisma.restaurant.update({
+      where: {
+        id,
+      },
+      data: {
+        status: prismaStatus,
+      },
     });
+
+    return {
+      ...restaurant,
+      avgRating: restaurant.avgRating
+        ? Number(restaurant.avgRating)
+        : 0,
+      commissionRate: restaurant.commissionRate
+        ? Number(restaurant.commissionRate)
+        : 0,
+    };
   }
 }
