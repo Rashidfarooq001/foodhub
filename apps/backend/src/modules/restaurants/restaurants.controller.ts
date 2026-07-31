@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -28,9 +28,9 @@ export class RestaurantsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List registered restaurants (Approved & Suspended)' })
-  async findAll() {
-    return this.restaurantsService.findAllRestaurants();
+  @ApiOperation({ summary: 'List registered restaurants' })
+  async findAll(@Query('approvedOnly') approvedOnly?: string) {
+    return this.restaurantsService.findAllRestaurants(approvedOnly === 'true');
   }
 
   @Get(':id')

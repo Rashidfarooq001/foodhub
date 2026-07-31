@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { RestaurantData, FoodItemData } from '../../../data/mock-data';
+import { RestaurantData, FoodItemData, normalizeRestaurantData } from '../../../data/mock-data';
 import { FoodCard } from '../../../components/food/FoodCard';
 import { Star, Clock, MapPin, Search, ShieldCheck, Tag, X, ArrowLeft } from 'lucide-react';
 import { useCartStore } from '../../../stores/use-cart-store';
@@ -31,7 +31,7 @@ export default function RestaurantDetailPage() {
           setNotFound(true);
         } else if (res.ok) {
           const data = await res.json();
-          setRestaurant(data);
+          setRestaurant(normalizeRestaurantData(data));
         }
       } catch {
         setNotFound(true);

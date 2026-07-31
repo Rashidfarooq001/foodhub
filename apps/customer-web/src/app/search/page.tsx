@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, X, Sparkles } from 'lucide-react';
-import { RestaurantData, FoodItemData } from '../../data/mock-data';
+import { RestaurantData, FoodItemData, normalizeRestaurantData } from '../../data/mock-data';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { FoodCard } from '../../components/food/FoodCard';
 import { EmptyState } from '../../components/common/LoadingSkeleton';
@@ -19,14 +19,17 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const res = await fetch(`${API_BASE}/restaurants`);
+        const res = await fetch(`${API_BASE}/restaurants?approvedOnly=true`);
         if (res.ok) {
           const data = await res.json();
-          setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
+          const list = Array.isArray(data) ? data : data.restaurants ?? [];
+          setRestaurants(list.map(normalizeRestaurantData));
         }
       } catch { /* offline */ }
     };
     fetchRestaurants();
+    const interval = setInterval(fetchRestaurants, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const allFoodItems: FoodItemData[] = restaurants.flatMap((r: RestaurantData) => r.foodItems ?? []);

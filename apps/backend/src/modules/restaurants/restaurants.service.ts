@@ -166,11 +166,18 @@ export class RestaurantsService {
     }));
   }
 
-  async findAllRestaurants() {
+  async findAllRestaurants(approvedOnly = false) {
+    const whereCondition = approvedOnly
+      ? { status: RestaurantStatus.APPROVED, isOpen: true }
+      : { status: { in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED] } };
+
     const restaurants = await this.prisma.restaurant.findMany({
-      where: {
-        status: {
-          in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED],
+      where: whereCondition,
+      include: {
+        categories: {
+          include: {
+            foodItems: true,
+          },
         },
       },
       orderBy: {
@@ -190,22 +197,27 @@ export class RestaurantsService {
     }));
   }
 
-  async findRestaurantById(id: string) {
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id },
+  async findRestaurantById(idOrSlug: string) {
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: {
+        OR: [
+          { id: idOrSlug },
+          { slug: idOrSlug },
+        ],
+      },
       include: {
-       
         categories: {
           include: {
             foodItems: true,
           },
         },
+        deliveryStaff: true,
       },
     });
 
     if (!restaurant) {
       throw new NotFoundException(
-        `Restaurant with ID ${id} not found`,
+        `Restaurant ${idOrSlug} not found`,
       );
     }
 

@@ -6,7 +6,7 @@ import { HeroBanner } from '../components/home/HeroBanner';
 import { CategorySlider } from '../components/home/CategorySlider';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { FoodCard } from '../components/food/FoodCard';
-import { RestaurantData, FoodItemData, ActiveOrderTrackingData } from '../data/mock-data';
+import { RestaurantData, FoodItemData, ActiveOrderTrackingData, normalizeRestaurantData } from '../data/mock-data';
 import { useSettingsStore } from '../stores/use-settings-store';
 import { useAuthStore } from '../stores/use-auth-store';
 import { Sparkles, Clock, ArrowRight, Flame } from 'lucide-react';
@@ -29,7 +29,8 @@ export default function CustomerHomePage() {
         const res = await fetch(`${API_BASE}/restaurants?approvedOnly=true`);
         if (res.ok) {
           const data = await res.json();
-          setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
+          const list = Array.isArray(data) ? data : data.restaurants ?? [];
+          setRestaurants(list.map(normalizeRestaurantData));
         }
       } catch {
         // Backend offline — show empty state

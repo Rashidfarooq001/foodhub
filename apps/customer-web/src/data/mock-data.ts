@@ -104,3 +104,48 @@ export interface ActiveOrderTrackingData {
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
 }
+
+export function normalizeRestaurantData(r: any): RestaurantData {
+  const categories = r.categories ?? [];
+  const foodItems: FoodItemData[] = r.foodItems ?? categories.flatMap((cat: any) =>
+    (cat.foodItems ?? []).map((item: any) => ({
+      id: item.id,
+      restaurantId: r.id,
+      restaurantName: r.name,
+      name: item.name,
+      description: item.description ?? '',
+      price: Number(item.price ?? 0),
+      originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+      imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      isVeg: item.isVeg ?? true,
+      isBestseller: item.isBestseller ?? false,
+      rating: item.rating ? Number(item.rating) : 4.5,
+      ratingCount: item.ratingCount ?? 50,
+      category: cat.name ?? item.category ?? 'Main Course',
+    }))
+  );
+
+  return {
+    id: r.id,
+    slug: r.slug || r.id,
+    name: r.name || 'Unnamed Restaurant',
+    phone: r.phone || '',
+    address: r.addressLine || r.address || 'Bengaluru, India',
+    cuisines: Array.isArray(r.cuisines)
+      ? r.cuisines
+      : (r.cuisine ? [r.cuisine] : ['North Indian', 'Fast Food']),
+    avgRating: r.avgRating ? Number(r.avgRating) : 4.5,
+    ratingCount: r.ratingCount ?? 120,
+    deliveryTimeMins: r.deliveryTimeMins ?? 30,
+    distanceKm: r.distanceKm ?? 2.5,
+    priceForTwo: r.priceForTwo ?? 350,
+    bannerUrl: r.bannerUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+    logoUrl: r.logoUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
+    isOpen: r.isOpen ?? true,
+    fssaiLicense: r.licenseFssai || r.fssaiLicense || 'FSSAI-12345678901234',
+    discountBadge: r.discountBadge || '20% OFF',
+    latitude: r.latitude ? Number(r.latitude) : 12.9716,
+    longitude: r.longitude ? Number(r.longitude) : 77.5946,
+    foodItems,
+  };
+}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { CategoryData, RestaurantData } from '../../../data/mock-data';
+import { CategoryData, RestaurantData, normalizeRestaurantData } from '../../../data/mock-data';
 import { RestaurantCard } from '../../../components/restaurant/RestaurantCard';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -21,18 +21,21 @@ export default function CategoryDetailPage() {
       try {
         const [catRes, restRes] = await Promise.all([
           fetch(`${API_BASE}/categories/${categoryId}`),
-          fetch(`${API_BASE}/restaurants?categoryId=${categoryId}`),
+          fetch(`${API_BASE}/restaurants?approvedOnly=true&categoryId=${categoryId}`),
         ]);
         if (catRes.ok) setCategory(await catRes.json());
         if (restRes.ok) {
           const data = await restRes.json();
-          setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
+          const list = Array.isArray(data) ? data : data.restaurants ?? [];
+          setRestaurants(list.map(normalizeRestaurantData));
         }
       } catch { /* backend offline */ } finally {
         setIsLoading(false);
       }
     };
     fetchData();
+    const interval = setInterval(fetchData, 8000);
+    return () => clearInterval(interval);
   }, [categoryId]);
 
   const displayName = category?.name ?? categoryId;
