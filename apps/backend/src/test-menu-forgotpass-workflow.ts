@@ -37,7 +37,7 @@ async function runWorkflowTest() {
       email,
       licenseFssai: `FSSAI-${timestamp}`,
       gstin: `GST-${timestamp}`,
-      addressLine: '42 Chef's Lane, Bengaluru',
+      addressLine: "42 Chef's Lane, Bengaluru",
       latitude: 12.97,
       longitude: 77.64,
       status: RestaurantStatus.APPROVED,
@@ -83,7 +83,7 @@ async function runWorkflowTest() {
             minSelect: 0,
             maxSelect: 1,
             addons: {
-              create: [{ addonName: 'Parmesan Shavings', price: 60 }],
+              create: [{ name: 'Parmesan Shavings ', price: 60 }],
             },
           },
         ],

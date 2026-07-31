@@ -110,7 +110,7 @@ export class MenusService {
               maxSelect: g.maxSelect || 1,
               addons: {
                 create: (g.addons || []).map((a: any) => ({
-                  addonName: a.addonName || a.name,
+                 name: a.name || a.addonName,
                   price: a.price || 0,
                 })),
               },
@@ -210,7 +210,7 @@ export class MenusService {
               maxSelect: g.maxSelect,
               addons: {
                 create: g.addons.map((a) => ({
-                  addonName: a.addonName,
+                 name: a.name,
                   price: a.price,
                 })),
               },
