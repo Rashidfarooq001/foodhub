@@ -30,10 +30,13 @@ export default function CustomerHomePage() {
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.restaurants ?? [];
-          setRestaurants(list.map(normalizeRestaurantData));
+          const normalized = list.map(normalizeRestaurantData);
+          console.log('[TRACE CustomerApp] 1. API Raw Response count:', list.length);
+          console.log('[TRACE CustomerApp] 2. Normalized Restaurants count:', normalized.length);
+          setRestaurants(normalized);
         }
-      } catch {
-        // Backend offline — show empty state
+      } catch (err) {
+        console.error('[TRACE CustomerApp] Fetch error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -62,9 +65,10 @@ export default function CustomerHomePage() {
   // Filter and sort restaurants
   let filteredRestaurants = [...restaurants];
   if (isVegOnly) {
-    filteredRestaurants = filteredRestaurants.filter((r) =>
-      r.foodItems?.some((f) => f.isVeg),
-    );
+    filteredRestaurants = filteredRestaurants.filter((r) => {
+      if (!r.foodItems || r.foodItems.length === 0) return true;
+      return r.foodItems.some((f) => f.isVeg);
+    });
   }
   if (activeFilter === 'rating') {
     filteredRestaurants.sort((a, b) => b.avgRating - a.avgRating);
@@ -73,6 +77,7 @@ export default function CustomerHomePage() {
   } else if (activeFilter === 'price') {
     filteredRestaurants.sort((a, b) => a.priceForTwo - b.priceForTwo);
   }
+  console.log('[TRACE CustomerApp] 3. Filtered Restaurants count:', filteredRestaurants.length);
 
   const allFoodItems: FoodItemData[] = restaurants.flatMap((r) => r.foodItems ?? []);
 

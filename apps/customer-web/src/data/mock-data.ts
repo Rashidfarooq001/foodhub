@@ -106,39 +106,50 @@ export interface ActiveOrderTrackingData {
 }
 
 export function normalizeRestaurantData(r: any): RestaurantData {
-  const categories = r.categories ?? [];
-  const foodItems: FoodItemData[] = r.foodItems ?? categories.flatMap((cat: any) =>
-    (cat.foodItems ?? []).map((item: any) => ({
-      id: item.id,
-      restaurantId: r.id,
-      restaurantName: r.name,
-      name: item.name,
-      description: item.description ?? '',
-      price: Number(item.price ?? 0),
-      originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
-      imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-      isVeg: item.isVeg ?? true,
-      isBestseller: item.isBestseller ?? false,
-      rating: item.rating ? Number(item.rating) : 4.5,
-      ratingCount: item.ratingCount ?? 50,
-      category: cat.name ?? item.category ?? 'Main Course',
-    }))
-  );
+  if (!r) return {} as RestaurantData;
+
+  const categories = Array.isArray(r.categories) ? r.categories : [];
+  const foodItems: FoodItemData[] = Array.isArray(r.foodItems)
+    ? r.foodItems
+    : categories.flatMap((cat: any) =>
+        (Array.isArray(cat.foodItems) ? cat.foodItems : []).map((item: any) => ({
+          id: item.id || `item-${Math.random()}`,
+          restaurantId: r.id,
+          restaurantName: r.name || 'Restaurant',
+          name: item.name || 'Food Item',
+          description: item.description ?? '',
+          price: Number(item.price ?? 0),
+          originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+          imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+          isVeg: item.isVeg ?? true,
+          isBestseller: item.isBestseller ?? false,
+          rating: item.rating ? Number(item.rating) : 4.5,
+          ratingCount: item.ratingCount ?? 50,
+          category: cat.name ?? item.category ?? 'Main Course',
+        }))
+      );
+
+  let cuisines: string[] = ['North Indian', 'Fast Food'];
+  if (Array.isArray(r.cuisines) && r.cuisines.length > 0) {
+    cuisines = r.cuisines;
+  } else if (typeof r.cuisines === 'string' && r.cuisines.trim()) {
+    cuisines = r.cuisines.split(',').map((c: string) => c.trim()).filter(Boolean);
+  } else if (typeof r.cuisine === 'string' && r.cuisine.trim()) {
+    cuisines = r.cuisine.split(',').map((c: string) => c.trim()).filter(Boolean);
+  }
 
   return {
-    id: r.id,
-    slug: r.slug || r.id,
-    name: r.name || 'Unnamed Restaurant',
-    phone: r.phone || '',
-    address: r.addressLine || r.address || 'Bengaluru, India',
-    cuisines: Array.isArray(r.cuisines)
-      ? r.cuisines
-      : (r.cuisine ? [r.cuisine] : ['North Indian', 'Fast Food']),
-    avgRating: r.avgRating ? Number(r.avgRating) : 4.5,
-    ratingCount: r.ratingCount ?? 120,
-    deliveryTimeMins: r.deliveryTimeMins ?? 30,
-    distanceKm: r.distanceKm ?? 2.5,
-    priceForTwo: r.priceForTwo ?? 350,
+    id: String(r.id || `rest-${Math.random()}`),
+    slug: String(r.slug || r.id || 'restaurant'),
+    name: String(r.name || 'Unnamed Restaurant'),
+    phone: String(r.phone || ''),
+    address: String(r.addressLine || r.address || 'Bengaluru, India'),
+    cuisines,
+    avgRating: r.avgRating !== undefined && r.avgRating !== null ? Number(r.avgRating) : 4.5,
+    ratingCount: r.ratingCount ? Number(r.ratingCount) : 120,
+    deliveryTimeMins: r.deliveryTimeMins ? Number(r.deliveryTimeMins) : 30,
+    distanceKm: r.distanceKm ? Number(r.distanceKm) : 2.5,
+    priceForTwo: r.priceForTwo ? Number(r.priceForTwo) : 350,
     bannerUrl: r.bannerUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     logoUrl: r.logoUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
     isOpen: r.isOpen ?? true,

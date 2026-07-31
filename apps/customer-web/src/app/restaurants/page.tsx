@@ -43,7 +43,7 @@ export default function AllRestaurantsPage() {
     const matchesSearch =
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.cuisines.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCuisine = selectedCuisine === 'All' || r.cuisines.includes(selectedCuisine);
+    const matchesCuisine = selectedCuisine === 'All' || (Array.isArray(r.cuisines) && r.cuisines.includes(selectedCuisine));
     return matchesSearch && matchesCuisine;
   }).sort((a, b) => {
     if (sortBy === 'rating') return b.avgRating - a.avgRating;

@@ -40,7 +40,7 @@ export default function SearchPage() {
           r.name.toLowerCase().includes(query.toLowerCase()) ||
           r.cuisines?.some((c: string) => c.toLowerCase().includes(query.toLowerCase())),
       )
-    : [];
+    : restaurants;
 
   const filteredFood = query.trim()
     ? allFoodItems.filter((f: FoodItemData) => f.name.toLowerCase().includes(query.toLowerCase()))
