@@ -235,14 +235,32 @@ export class RestaurantsService {
         ? RestaurantStatus.REJECTED
         : RestaurantStatus.PENDING_APPROVAL;
 
+    const isOpen = prismaStatus === RestaurantStatus.APPROVED;
+
     const restaurant = await this.prisma.restaurant.update({
       where: {
         id,
       },
       data: {
         status: prismaStatus,
+        isOpen,
       },
     });
+
+    // Auto-activate associated merchant owner/staff accounts
+    const staffRecords = await this.prisma.restaurantStaff.findMany({
+      where: { restaurantId: id },
+    });
+
+    for (const staff of staffRecords) {
+      await this.prisma.user.update({
+        where: { id: staff.userId },
+        data: {
+          isVerified: prismaStatus === RestaurantStatus.APPROVED,
+          isActive: prismaStatus !== RestaurantStatus.REJECTED,
+        },
+      });
+    }
 
     return {
       ...restaurant,

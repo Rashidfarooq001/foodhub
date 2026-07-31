@@ -40,6 +40,8 @@ export default function RestaurantDetailPage() {
       }
     };
     fetchRestaurant();
+    const interval = setInterval(fetchRestaurant, 8000);
+    return () => clearInterval(interval);
   }, [slug]);
 
   if (isLoading) {

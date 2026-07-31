@@ -8,9 +8,16 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findUserByPhone(phone: string) {
-    return this.prisma.user.findUnique({
-      where: { phone },
-      include: { profile: true },
+    return this.prisma.user.findFirst({
+      where: { OR: [{ phone }, { email: phone }] },
+      include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
+    });
+  }
+
+  async findUserByPhoneOrEmail(input: string) {
+    return this.prisma.user.findFirst({
+      where: { OR: [{ phone: input }, { email: input }] },
+      include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
     });
   }
 
@@ -41,7 +48,7 @@ export class UsersService {
           },
         },
       },
-      include: { profile: true },
+      include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
     });
   }
 

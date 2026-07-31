@@ -39,38 +39,16 @@ export default function HotelLoginPage() {
             name: data.user?.name || 'Restaurant Owner',
             restaurantId: data.user?.restaurantId || 'rest-1',
           },
-          data.accessToken || 'owner-token',
-          data.refreshToken || 'owner-refresh-token',
+          data.tokens?.accessToken || data.accessToken || 'owner-token',
+          data.tokens?.refreshToken || data.refreshToken || 'owner-refresh-token',
         );
         router.push('/');
       } else {
-        // Fallback login
-        setAuth(
-          {
-            id: 'owner-spice-1',
-            email,
-            role: 'RESTAURANT_OWNER',
-            name: 'Spice Garden Owner',
-            restaurantId: 'spice-garden-restaurant',
-          },
-          'owner-jwt-demo',
-          'owner-refresh-demo',
-        );
-        router.push('/');
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || 'Login failed. Please check credentials or approval status.');
       }
     } catch {
-      setAuth(
-        {
-          id: 'owner-spice-1',
-          email,
-          role: 'RESTAURANT_OWNER',
-          name: 'Spice Garden Owner',
-          restaurantId: 'spice-garden-restaurant',
-        },
-        'owner-jwt-demo',
-        'owner-refresh-demo',
-      );
-      router.push('/');
+      setError('Connection error. Please check backend server.');
     } finally {
       setIsLoading(false);
     }

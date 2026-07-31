@@ -51,14 +51,39 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const user = await this.usersService.findUserByPhone(dto.phone);
+    const input = dto.phone || (dto as any).email || '';
+    const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid phone number or account disabled');
+      throw new UnauthorizedException('Invalid credentials or account disabled');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials entered');
+    }
+
+    let restaurant: any = null;
+    if (
+      user.role === UserRole.RESTAURANT_OWNER ||
+      user.role === UserRole.RESTAURANT_MANAGER ||
+      user.role === UserRole.RESTAURANT_STAFF
+    ) {
+      const staffRecord = (user as any).restaurantStaff?.[0];
+      if (staffRecord?.restaurant) {
+        if (staffRecord.restaurant.status === 'PENDING_APPROVAL') {
+          throw new UnauthorizedException('Your restaurant application is currently pending admin approval.');
+        }
+        if (staffRecord.restaurant.status === 'REJECTED') {
+          throw new UnauthorizedException('Your restaurant application has been rejected by FoodHub admin.');
+        }
+        restaurant = {
+          id: staffRecord.restaurant.id,
+          name: staffRecord.restaurant.name,
+          slug: staffRecord.restaurant.slug,
+          status: staffRecord.restaurant.status,
+          deliveryMode: staffRecord.restaurant.deliveryMode,
+        };
+      }
     }
 
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
@@ -71,6 +96,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         profile: user.profile,
+        restaurant,
+        restaurantId: restaurant?.id,
       },
       tokens,
     };

@@ -26,7 +26,7 @@ export default function CustomerHomePage() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const res = await fetch(`${API_BASE}/restaurants`);
+        const res = await fetch(`${API_BASE}/restaurants?approvedOnly=true`);
         if (res.ok) {
           const data = await res.json();
           setRestaurants(Array.isArray(data) ? data : data.restaurants ?? []);
@@ -38,6 +38,8 @@ export default function CustomerHomePage() {
       }
     };
     fetchRestaurants();
+    const interval = setInterval(fetchRestaurants, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
