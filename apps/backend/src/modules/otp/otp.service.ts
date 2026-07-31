@@ -47,13 +47,13 @@ export class OtpService {
   cooldownSec: this.OTP_COOLDOWN_SEC,
   otp: rawOtp, // Development only
 };
-
+}
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const otpRecord = await this.prisma.otp.findFirst({
       where: { phone, isUsed: false },
       orderBy: { createdAt: 'desc' },
     });
-
+  
     if (!otpRecord) {
       throw new BadRequestException('No active OTP request found for this phone number');
     }
