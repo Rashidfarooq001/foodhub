@@ -43,10 +43,10 @@ export class OtpService {
     this.logger.log(`[MSG91 Gateway] Sent SMS OTP to ${phone}: ${rawOtp}`);
 
     return {
-      message: `OTP sent successfully to ${phone}`,
-      cooldownSec: this.OTP_COOLDOWN_SEC,
-    };
-  }
+  message: `OTP sent successfully to ${phone}`,
+  cooldownSec: this.OTP_COOLDOWN_SEC,
+  otp: rawOtp, // Development only
+};
 
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const otpRecord = await this.prisma.otp.findFirst({

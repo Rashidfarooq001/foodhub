@@ -60,11 +60,10 @@ export default function AdminLoginPage() {
       }
 
       if (data.requires2FA) {
-        setRequires2FA(true);
-        setMessage(data.message);
-        return;
-      }
-
+  setRequires2FA(true);
+  setMessage(`${data.message} (OTP: ${data.otp})`);
+  return;
+}
       setAuth(
         {
           id: data.user.id,
