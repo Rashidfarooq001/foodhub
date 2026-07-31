@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { validate as isUUID } from 'uuid';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-
+const isUUID = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 @Injectable()
 export class RestaurantsService {
   constructor(private readonly prisma: PrismaService) {}
