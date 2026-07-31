@@ -146,13 +146,6 @@ export class RestaurantsService {
 
   async findAllRestaurants() {
     const restaurants = await this.prisma.restaurant.findMany({
-      include: {
-        owner: {
-          include: {
-            profile: true,
-          },
-        },
-      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -174,11 +167,7 @@ export class RestaurantsService {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id },
       include: {
-        owner: {
-          include: {
-            profile: true,
-          },
-        },
+       
         categories: {
           include: {
             foodItems: true,
