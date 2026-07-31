@@ -25,8 +25,10 @@ export class MenusController {
   // ==========================================
 
   @Post('categories')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+@Public()
+async createCategory(...) {
+   ...
+}
   @ApiOperation({ summary: 'Create new menu category' })
   async createCategory(
     @Body('restaurantId') restaurantId: string,
