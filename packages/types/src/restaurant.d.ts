@@ -13,6 +13,7 @@ export declare const RestaurantSchema: z.ZodObject<{
     isOpen: z.ZodBoolean;
     avgRating: z.ZodNumber;
     commissionRate: z.ZodNumber;
+    deliveryMode: z.ZodOptional<z.ZodEnum<["FOODHUB_DELIVERY", "RESTAURANT_SELF_DELIVERY"]>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     phone: string;
@@ -27,6 +28,7 @@ export declare const RestaurantSchema: z.ZodObject<{
     isOpen: boolean;
     avgRating: number;
     commissionRate: number;
+    deliveryMode?: "FOODHUB_DELIVERY" | "RESTAURANT_SELF_DELIVERY" | undefined;
 }, {
     id: string;
     phone: string;
@@ -41,8 +43,53 @@ export declare const RestaurantSchema: z.ZodObject<{
     isOpen: boolean;
     avgRating: number;
     commissionRate: number;
+    deliveryMode?: "FOODHUB_DELIVERY" | "RESTAURANT_SELF_DELIVERY" | undefined;
 }>;
 export type IRestaurant = z.infer<typeof RestaurantSchema>;
+export declare const RestaurantDeliveryStaffSchema: z.ZodObject<{
+    id: z.ZodString;
+    restaurantId: z.ZodString;
+    firstName: z.ZodString;
+    lastName: z.ZodOptional<z.ZodString>;
+    phone: z.ZodString;
+    email: z.ZodOptional<z.ZodString>;
+    avatar: z.ZodOptional<z.ZodString>;
+    vehicleType: z.ZodOptional<z.ZodString>;
+    vehicleNumber: z.ZodOptional<z.ZodString>;
+    status: z.ZodEnum<["AVAILABLE", "BUSY", "OFFLINE"]>;
+    isActive: z.ZodBoolean;
+    createdAt: z.ZodOptional<z.ZodString>;
+    updatedAt: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    status: "AVAILABLE" | "BUSY" | "OFFLINE";
+    phone: string;
+    isActive: boolean;
+    restaurantId: string;
+    firstName: string;
+    vehicleType?: string | undefined;
+    vehicleNumber?: string | undefined;
+    email?: string | undefined;
+    createdAt?: string | undefined;
+    updatedAt?: string | undefined;
+    lastName?: string | undefined;
+    avatar?: string | undefined;
+}, {
+    id: string;
+    status: "AVAILABLE" | "BUSY" | "OFFLINE";
+    phone: string;
+    isActive: boolean;
+    restaurantId: string;
+    firstName: string;
+    vehicleType?: string | undefined;
+    vehicleNumber?: string | undefined;
+    email?: string | undefined;
+    createdAt?: string | undefined;
+    updatedAt?: string | undefined;
+    lastName?: string | undefined;
+    avatar?: string | undefined;
+}>;
+export type IRestaurantDeliveryStaff = z.infer<typeof RestaurantDeliveryStaffSchema>;
 export declare const MenuItemSchema: z.ZodObject<{
     id: z.ZodString;
     restaurantId: z.ZodString;

@@ -110,6 +110,17 @@ enum RestaurantStatus {
   SUSPENDED
 }
 
+enum DeliveryMode {
+  FOODHUB_DELIVERY
+  RESTAURANT_SELF_DELIVERY
+}
+
+enum RestaurantDriverStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
 enum DriverStatus {
   OFFLINE
   ONLINE
@@ -399,6 +410,7 @@ model Restaurant {
   latitude       Float
   longitude      Float
   deliveryRadius Float            @default(5.0) @map("delivery_radius") // km — Phase 14
+  deliveryMode   DeliveryMode     @default(FOODHUB_DELIVERY) @map("delivery_mode")
   status         RestaurantStatus @default(PENDING_APPROVAL)
   isOpen         Boolean          @default(true) @map("is_open")
   avgRating      Decimal          @default(0.0) @map("avg_rating") @db.Decimal(3, 2)
@@ -416,6 +428,7 @@ model Restaurant {
   galleries       RestaurantGallery[]
   documents       RestaurantDocument[]
   staff           RestaurantStaff[]
+  deliveryStaff   RestaurantDeliveryStaff[]
   bankAccount     RestaurantBankAccount?
   settings        RestaurantSetting?
   categories      Category[]
@@ -495,6 +508,27 @@ model RestaurantStaff {
 
   @@unique([restaurantId, userId])
   @@map("restaurant_staff")
+}
+
+model RestaurantDeliveryStaff {
+  id            String                 @id @default(uuid()) @db.Uuid
+  restaurantId  String                 @map("restaurant_id") @db.Uuid
+  firstName     String                 @map("first_name")
+  lastName      String?                @map("last_name")
+  phone         String
+  email         String?
+  avatar        String?
+  vehicleType   String?                @map("vehicle_type")
+  vehicleNumber String?                @map("vehicle_number")
+  status        RestaurantDriverStatus @default(AVAILABLE)
+  isActive      Boolean                @default(true) @map("is_active")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@map("restaurant_delivery_staff")
 }
 
 model RestaurantBankAccount {
@@ -679,13 +713,16 @@ model Order {
   deliveryAddress  Json          @map("delivery_address")
   deliveryOtp      String        @map("delivery_otp") // 4-digit OTP
   specialInstruction String?     @map("special_instruction")
+  assignedFoodHubDriverId    String?                  @map("assigned_foodhub_driver_id") @db.Uuid
+  assignedRestaurantDriverId String?                  @map("assigned_restaurant_driver_id") @db.Uuid
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
   deletedAt        DateTime?     @map("deleted_at")
   version          Int           @default(1)
 
-  customer            Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  restaurant          Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  customer            Customer                 @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  restaurant          Restaurant               @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  assignedRestaurantDriver RestaurantDeliveryStaff? @relation(fields: [assignedRestaurantDriverId], references: [id], onDelete: SetNull)
   orderItems          OrderItem[]
   orderTimelines      OrderTimeline[]
   statusHistories     OrderStatusHistory[]

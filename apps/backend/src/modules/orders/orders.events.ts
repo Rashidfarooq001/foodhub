@@ -9,6 +9,7 @@ export const ORDER_EVENTS = {
   ORDER_PICKED_UP:        'order.picked_up',
   ORDER_DELIVERED:        'order.delivered',
   ORDER_CANCELLED:        'order.cancelled',
+  STATUS_UPDATED:         'status.updated',
   REFUND_INITIATED:       'refund.initiated',
 } as const;
 

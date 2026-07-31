@@ -103,8 +103,16 @@ export default function LiveOrderTrackingPage() {
                 className="h-16 w-16 rounded-2xl object-cover ring-2 ring-orange-500"
               />
               <div>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                  FOODHUB VERIFIED RIDER
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                    (order as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {(order as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
+                    ? 'RESTAURANT SELF-DELIVERY PARTNER'
+                    : 'FOODHUB VERIFIED RIDER'}
                 </span>
                 <h3 className="text-lg font-black text-gray-900">{order.driverName}</h3>
                 <p className="text-xs text-gray-500">{order.vehicleNumber}</p>

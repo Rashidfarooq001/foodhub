@@ -40,3 +40,14 @@ export enum VehicleType {
   MOTORCYCLE = 'MOTORCYCLE',
   EV_SCOOTER = 'EV_SCOOTER',
 }
+
+export enum DeliveryMode {
+  FOODHUB_DELIVERY = 'FOODHUB_DELIVERY',
+  RESTAURANT_SELF_DELIVERY = 'RESTAURANT_SELF_DELIVERY',
+}
+
+export enum RestaurantDriverStatus {
+  AVAILABLE = 'AVAILABLE',
+  BUSY = 'BUSY',
+  OFFLINE = 'OFFLINE',
+}

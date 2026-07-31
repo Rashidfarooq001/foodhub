@@ -103,4 +103,29 @@ export class OrdersController {
   ) {
     return this.ordersService.getDriverOrders(driverId, +page, +limit);
   }
+
+  @Post(':id/assign-self-rider')
+  @ApiOperation({ summary: 'Assign a restaurant self-delivery rider to order' })
+  async assignSelfRider(
+    @Param('id') id: string,
+    @Body('riderId') riderId: string,
+  ) {
+    return this.ordersService.assignSelfDeliveryRider(id, riderId);
+  }
+
+  @Get('self-rider/:riderId')
+  @ApiOperation({ summary: 'Get orders assigned to a self-delivery rider' })
+  async getSelfRiderOrders(@Param('riderId') riderId: string) {
+    return this.ordersService.getSelfRiderOrders(riderId);
+  }
+
+  @Patch(':id/self-delivery-status')
+  @ApiOperation({ summary: 'Self-delivery rider status update (with optional OTP verification)' })
+  async updateSelfDeliveryStatus(
+    @Param('id') id: string,
+    @Body('status') status: string,
+    @Body('otp') otp?: string,
+  ) {
+    return this.ordersService.updateSelfDeliveryStatus(id, status, otp);
+  }
 }

@@ -14,9 +14,28 @@ export const RestaurantSchema = z.object({
   isOpen: z.boolean(),
   avgRating: z.number(),
   commissionRate: z.number(),
+  deliveryMode: z.enum(['FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY']).optional(),
 });
 
 export type IRestaurant = z.infer<typeof RestaurantSchema>;
+
+export const RestaurantDeliveryStaffSchema = z.object({
+  id: z.string().uuid(),
+  restaurantId: z.string().uuid(),
+  firstName: z.string(),
+  lastName: z.string().optional(),
+  phone: z.string(),
+  email: z.string().optional(),
+  avatar: z.string().optional(),
+  vehicleType: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  status: z.enum(['AVAILABLE', 'BUSY', 'OFFLINE']),
+  isActive: z.boolean(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type IRestaurantDeliveryStaff = z.infer<typeof RestaurantDeliveryStaffSchema>;
 
 export const MenuItemSchema = z.object({
   id: z.string().uuid(),

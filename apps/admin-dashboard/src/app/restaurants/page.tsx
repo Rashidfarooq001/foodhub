@@ -11,6 +11,7 @@ interface Restaurant {
   phone: string;
   email?: string;
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  deliveryMode?: 'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY';
   avgRating?: number;
   owner?: {
     profile?: {
@@ -178,6 +179,7 @@ export default function AdminRestaurantsPage() {
               <tr>
                 <th className="px-6 py-4">Restaurant</th>
                 <th className="px-6 py-4">Owner</th>
+                <th className="px-6 py-4">Delivery Mode</th>
                 <th className="px-6 py-4">Rating</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Actions</th>
@@ -186,11 +188,11 @@ export default function AdminRestaurantsPage() {
             <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading restaurants...</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">Loading restaurants...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">No restaurants registered yet. Click &quot;Add Restaurant&quot; above to onboard one.</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">No restaurants registered yet. Click &quot;Add Restaurant&quot; above to onboard one.</td>
                 </tr>
               ) : (
                 filtered.map((r) => (
@@ -198,6 +200,15 @@ export default function AdminRestaurantsPage() {
                     <td className="px-6 py-4 font-bold text-gray-900">{r?.name || 'Unnamed Restaurant'}</td>
                     <td className="px-6 py-4 font-medium text-gray-700">
                       {r?.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Owner'} ({r?.phone || 'N/A'})
+                    </td>
+                    <td className="px-6 py-4 font-medium">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                        r?.deliveryMode === 'RESTAURANT_SELF_DELIVERY'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {r?.deliveryMode === 'RESTAURANT_SELF_DELIVERY' ? 'Self Delivery' : 'FoodHub Fleet'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 font-black text-amber-600">★ {r?.avgRating || 4.8}/5</td>
                     <td className="px-6 py-4">

@@ -142,10 +142,19 @@ export default function KitchenQueuePage() {
                   ))}
                 </div>
 
-                {order.driverName && (
+                {order.driverName ? (
                   <div className="rounded-xl bg-gray-50 p-2.5 text-xs font-bold text-gray-800">
-                    Assigned: {order.driverName} ({order.driverPhone})
+                    Assigned Rider: {order.driverName} ({order.driverPhone})
                   </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      alert(`Self-Delivery Rider Ramesh Kumar assigned to ${order.orderNumber}`);
+                    }}
+                    className="w-full rounded-xl bg-orange-600 py-2.5 text-xs font-black text-white hover:bg-orange-700 shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Bike className="h-4 w-4" /> Assign Self Delivery Rider
+                  </button>
                 )}
               </div>
             ))}

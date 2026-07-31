@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MenuItemSchema = exports.RestaurantSchema = void 0;
+exports.MenuItemSchema = exports.RestaurantDeliveryStaffSchema = exports.RestaurantSchema = void 0;
 const zod_1 = require("zod");
 exports.RestaurantSchema = zod_1.z.object({
     id: zod_1.z.string().uuid(),
@@ -16,6 +16,22 @@ exports.RestaurantSchema = zod_1.z.object({
     isOpen: zod_1.z.boolean(),
     avgRating: zod_1.z.number(),
     commissionRate: zod_1.z.number(),
+    deliveryMode: zod_1.z.enum(['FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY']).optional(),
+});
+exports.RestaurantDeliveryStaffSchema = zod_1.z.object({
+    id: zod_1.z.string().uuid(),
+    restaurantId: zod_1.z.string().uuid(),
+    firstName: zod_1.z.string(),
+    lastName: zod_1.z.string().optional(),
+    phone: zod_1.z.string(),
+    email: zod_1.z.string().optional(),
+    avatar: zod_1.z.string().optional(),
+    vehicleType: zod_1.z.string().optional(),
+    vehicleNumber: zod_1.z.string().optional(),
+    status: zod_1.z.enum(['AVAILABLE', 'BUSY', 'OFFLINE']),
+    isActive: zod_1.z.boolean(),
+    createdAt: zod_1.z.string().optional(),
+    updatedAt: zod_1.z.string().optional(),
 });
 exports.MenuItemSchema = zod_1.z.object({
     id: zod_1.z.string().uuid(),

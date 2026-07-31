@@ -297,4 +297,97 @@ export class OrdersService {
       })),
     };
   }
+
+  async assignSelfDeliveryRider(orderId: string, riderId: string) {
+    const order = await this.prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+      include: { restaurant: true },
+    });
+
+    const rider = await this.prisma.restaurantDeliveryStaff.findUniqueOrThrow({
+      where: { id: riderId },
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          assignedRestaurantDriverId: riderId,
+          assignedFoodHubDriverId: null,
+          status: OrderStatus.DRIVER_ASSIGNED,
+        },
+      }),
+      this.prisma.restaurantDeliveryStaff.update({
+        where: { id: riderId },
+        data: { status: 'BUSY' },
+      }),
+      this.prisma.orderTimeline.create({
+        data: {
+          orderId,
+          status: OrderStatus.DRIVER_ASSIGNED,
+          message: `Assigned self delivery rider ${rider.firstName} ${rider.lastName || ''}`.trim(),
+        },
+      }),
+    ]);
+
+    this.gateway.emitToOrder(orderId, ORDER_EVENTS.DRIVER_ASSIGNED, {
+      orderId,
+      riderName: `${rider.firstName} ${rider.lastName || ''}`.trim(),
+      phone: rider.phone,
+      vehicle: rider.vehicleNumber,
+    });
+
+    return { message: 'Self delivery rider assigned successfully', rider };
+  }
+
+  async getSelfRiderOrders(riderId: string) {
+    return this.prisma.order.findMany({
+      where: { assignedRestaurantDriverId: riderId },
+      include: {
+        customer: { include: { user: { include: { profile: true } } } },
+        restaurant: true,
+        orderItems: { include: { foodItem: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateSelfDeliveryStatus(orderId: string, status: string, otp?: string) {
+    const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+
+    if (status === 'DELIVERED' && otp && order.deliveryOtp !== otp) {
+      throw new BadRequestException('Invalid Delivery OTP');
+    }
+
+    const nextStatus = status as OrderStatus;
+
+    await this.prisma.$transaction([
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: { status: nextStatus },
+      }),
+      this.prisma.orderTimeline.create({
+        data: {
+          orderId,
+          status: nextStatus,
+          message: `Self delivery status updated to ${nextStatus}`,
+        },
+      }),
+      ...(status === 'DELIVERED' && order.assignedRestaurantDriverId
+        ? [
+            this.prisma.restaurantDeliveryStaff.update({
+              where: { id: order.assignedRestaurantDriverId },
+              data: { status: 'AVAILABLE' },
+            }),
+          ]
+        : []),
+    ]);
+
+    this.gateway.emitToOrder(orderId, ORDER_EVENTS.STATUS_UPDATED, {
+      orderId,
+      status: nextStatus,
+    });
+
+    return { message: `Order status updated to ${nextStatus}` };
+  }
 }

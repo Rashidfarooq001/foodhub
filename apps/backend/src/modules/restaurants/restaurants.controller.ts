@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -49,5 +49,54 @@ export class RestaurantsController {
     @Body('status') status: 'APPROVED' | 'REJECTED' | 'SUSPENDED',
   ) {
     return this.restaurantsService.updateVerificationStatus(id, status);
+  }
+
+  @Patch(':id/delivery-mode')
+  @ApiOperation({ summary: 'Update restaurant delivery mode (FoodHub vs Self Delivery)' })
+  async updateDeliveryMode(
+    @Param('id') id: string,
+    @Body('deliveryMode') deliveryMode: any,
+  ) {
+    return this.restaurantsService.updateDeliveryMode(id, deliveryMode);
+  }
+
+  @Get(':id/delivery-staff')
+  @ApiOperation({ summary: 'List delivery staff for restaurant self delivery' })
+  async getDeliveryStaff(@Param('id') id: string) {
+    return this.restaurantsService.getDeliveryStaff(id);
+  }
+
+  @Post(':id/delivery-staff')
+  @ApiOperation({ summary: 'Add a new self-delivery rider' })
+  async createDeliveryStaff(
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.restaurantsService.createDeliveryStaff(id, dto);
+  }
+
+  @Patch(':id/delivery-staff/:staffId')
+  @ApiOperation({ summary: 'Update self-delivery rider details/status' })
+  async updateDeliveryStaff(
+    @Param('id') id: string,
+    @Param('staffId') staffId: string,
+    @Body() dto: any,
+  ) {
+    return this.restaurantsService.updateDeliveryStaff(id, staffId, dto);
+  }
+
+  @Delete(':id/delivery-staff/:staffId')
+  @ApiOperation({ summary: 'Delete a self-delivery rider' })
+  async deleteDeliveryStaff(
+    @Param('id') id: string,
+    @Param('staffId') staffId: string,
+  ) {
+    return this.restaurantsService.deleteDeliveryStaff(id, staffId);
+  }
+
+  @Get(':id/delivery-analytics')
+  @ApiOperation({ summary: 'Get self-delivery performance metrics' })
+  async getDeliveryAnalytics(@Param('id') id: string) {
+    return this.restaurantsService.getDeliveryAnalytics(id);
   }
 }

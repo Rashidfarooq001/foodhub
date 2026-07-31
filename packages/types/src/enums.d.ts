@@ -36,3 +36,12 @@ export declare enum VehicleType {
     MOTORCYCLE = "MOTORCYCLE",
     EV_SCOOTER = "EV_SCOOTER"
 }
+export declare enum DeliveryMode {
+    FOODHUB_DELIVERY = "FOODHUB_DELIVERY",
+    RESTAURANT_SELF_DELIVERY = "RESTAURANT_SELF_DELIVERY"
+}
+export declare enum RestaurantDriverStatus {
+    AVAILABLE = "AVAILABLE",
+    BUSY = "BUSY",
+    OFFLINE = "OFFLINE"
+}

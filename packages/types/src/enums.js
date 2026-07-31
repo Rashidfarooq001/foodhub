@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VehicleType = exports.PaymentMethod = exports.PaymentStatus = exports.OrderStatus = exports.UserRole = void 0;
+exports.RestaurantDriverStatus = exports.DeliveryMode = exports.VehicleType = exports.PaymentMethod = exports.PaymentStatus = exports.OrderStatus = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["CUSTOMER"] = "CUSTOMER";
@@ -44,3 +44,14 @@ var VehicleType;
     VehicleType["MOTORCYCLE"] = "MOTORCYCLE";
     VehicleType["EV_SCOOTER"] = "EV_SCOOTER";
 })(VehicleType || (exports.VehicleType = VehicleType = {}));
+var DeliveryMode;
+(function (DeliveryMode) {
+    DeliveryMode["FOODHUB_DELIVERY"] = "FOODHUB_DELIVERY";
+    DeliveryMode["RESTAURANT_SELF_DELIVERY"] = "RESTAURANT_SELF_DELIVERY";
+})(DeliveryMode || (exports.DeliveryMode = DeliveryMode = {}));
+var RestaurantDriverStatus;
+(function (RestaurantDriverStatus) {
+    RestaurantDriverStatus["AVAILABLE"] = "AVAILABLE";
+    RestaurantDriverStatus["BUSY"] = "BUSY";
+    RestaurantDriverStatus["OFFLINE"] = "OFFLINE";
+})(RestaurantDriverStatus || (exports.RestaurantDriverStatus = RestaurantDriverStatus = {}));
