@@ -19,13 +19,36 @@ import { OrderStatus } from '@prisma/client';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Get list of orders (filterable by restaurantId & status)' })
+  @ApiQuery({ name: 'restaurantId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async findAll(
+    @Request() req: any,
+    @Query('restaurantId') restaurantId?: string,
+    @Query('status') status?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ) {
+    const targetRestId = restaurantId || req.user?.restaurantId;
+    if (targetRestId) {
+      return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
+    }
+    if (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN') {
+      return this.ordersService.getAllOrders(status as any, +page, +limit);
+    }
+    return this.ordersService.getCustomerOrders(req.user.id || req.user.sub, +page, +limit);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Place a new order' })
   async create(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { id?: string; sub: string } },
     @Body() dto: CreateOrderDto,
   ) {
-    return this.ordersService.createOrder(req.user.sub, dto);
+    return this.ordersService.createOrder(req.user.id || req.user.sub, dto);
   }
 
   @Get(':id')
@@ -51,9 +74,9 @@ export class OrdersController {
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { id?: string; sub: string } },
   ) {
-    return this.ordersService.updateStatus(id, dto, req.user.sub);
+    return this.ordersService.updateStatus(id, dto, req.user.id || req.user.sub);
   }
 
   @Post(':id/cancel')
@@ -61,9 +84,9 @@ export class OrdersController {
   async cancel(
     @Param('id') id: string,
     @Body() dto: CancelOrderDto,
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { id?: string; sub: string } },
   ) {
-    return this.ordersService.cancelOrder(id, dto, req.user.sub);
+    return this.ordersService.cancelOrder(id, dto, req.user.id || req.user.sub);
   }
 
   @Get('customer/:customerId')
@@ -80,17 +103,17 @@ export class OrdersController {
 
   @Get('restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get restaurant order history (filterable by status)' })
-  @ApiQuery({ name: 'status', enum: OrderStatus, required: false })
+  @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   async restaurantOrders(
     @Param('restaurantId') restaurantId: string,
-    @Query('status') status?: OrderStatus,
+    @Query('status') status?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
     return this.ordersService.getRestaurantOrders(
-      restaurantId, status, +page, +limit,
+      restaurantId, status as any, +page, +limit,
     );
   }
 

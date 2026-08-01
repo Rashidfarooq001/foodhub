@@ -168,7 +168,16 @@ export class AnalyticsService {
     const week  = daysAgo(7);
     const month = daysAgo(30);
 
-    const [todaySales, weekSales, monthSales, topItems, reviews] = await Promise.all([
+    const [
+      todaySales,
+      weekSales,
+      monthSales,
+      completedOrdersCount,
+      cancelledOrdersCount,
+      pendingOrdersCount,
+      topItems,
+      reviews,
+    ] = await Promise.all([
       this.prisma.order.aggregate({
         where:   { restaurantId, createdAt: { gte: today }, paymentStatus: PaymentStatus.COMPLETED },
         _sum:    { totalAmount: true },
@@ -184,6 +193,9 @@ export class AnalyticsService {
         _sum:    { totalAmount: true },
         _count:  { id: true },
       }),
+      this.prisma.order.count({ where: { restaurantId, status: OrderStatus.DELIVERED } }),
+      this.prisma.order.count({ where: { restaurantId, status: OrderStatus.CANCELLED } }),
+      this.prisma.order.count({ where: { restaurantId, status: { in: [OrderStatus.PENDING, OrderStatus.PREPARING] } } }),
       this.prisma.orderItem.groupBy({
         by:      ['foodItemId'],
         where:   { order: { restaurantId, createdAt: { gte: month } } },
@@ -199,22 +211,33 @@ export class AnalyticsService {
     ]);
 
     const weeklyBreakdown = await this.getRevenueBreakdown(7);
+    const todayRev = Number(todaySales._sum.totalAmount ?? 0);
+    const todayOrds = todaySales._count.id;
+    const avgRat = Math.round(Number(reviews._avg.rating ?? 4.5) * 100) / 100;
 
     return {
+      todayRevenue: todayRev,
+      todayOrders: todayOrds,
+      completedOrders: completedOrdersCount,
+      cancelledOrders: cancelledOrdersCount,
+      pendingOrders: pendingOrdersCount,
+      avgRating: avgRat,
+      weeklyRevenueData: weeklyBreakdown.map((b) => ({ day: b.date, revenue: b.revenue, orders: b.orders })),
+      todaySales: todayRev,
       today: {
-        sales:  Number(todaySales._sum.totalAmount ?? 0),
-        orders: todaySales._count.id,
+        sales: todayRev,
+        revenue: todayRev,
+        orders: todayOrds,
       },
       week: {
-        sales:  Number(weekSales._sum.totalAmount ?? 0),
+        sales: Number(weekSales._sum.totalAmount ?? 0),
         orders: weekSales._count.id,
       },
       month: {
-        sales:  Number(monthSales._sum.totalAmount ?? 0),
+        sales: Number(monthSales._sum.totalAmount ?? 0),
         orders: monthSales._count.id,
       },
       topItems:       topItems.map((i) => ({ foodItemId: i.foodItemId, qty: i._sum.quantity })),
-      avgRating:      Math.round(Number(reviews._avg.rating ?? 0) * 100) / 100,
       reviewCount:    reviews._count.id,
       weeklyBreakdown,
     };

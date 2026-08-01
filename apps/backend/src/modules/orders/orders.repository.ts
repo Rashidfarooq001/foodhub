@@ -43,13 +43,38 @@ export class OrdersRepository {
 
   async findByRestaurant(
     restaurantId: string,
-    status?: OrderStatus,
+    status?: any,
     page = 1,
     limit = 20,
   ) {
     const skip = (page - 1) * limit;
+    let statusFilter: any = undefined;
+    if (typeof status === 'string' && status.includes(',')) {
+      statusFilter = { in: status.split(',').map((s) => s.trim()) };
+    } else if (status) {
+      statusFilter = status;
+    }
+
     return this.prisma.order.findMany({
-      where:   { restaurantId, ...(status ? { status } : {}), deletedAt: null },
+      where:   { restaurantId, ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
+      include: { orderItems: { include: { foodItem: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take:    limit,
+    });
+  }
+
+  async findAll(status?: any, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    let statusFilter: any = undefined;
+    if (typeof status === 'string' && status.includes(',')) {
+      statusFilter = { in: status.split(',').map((s) => s.trim()) };
+    } else if (status) {
+      statusFilter = status;
+    }
+
+    return this.prisma.order.findMany({
+      where:   { ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
       include: { orderItems: { include: { foodItem: true } } },
       orderBy: { createdAt: 'desc' },
       skip,

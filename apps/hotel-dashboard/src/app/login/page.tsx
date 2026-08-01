@@ -33,20 +33,28 @@ export default function HotelLoginPage() {
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setAuth(
-          {
-            id: data.user?.id || 'owner-1',
-            email: data.user?.email || (identity.includes('@') ? identity : ''),
-            role: data.user?.role || 'RESTAURANT_OWNER',
-            name: data.user?.name || 'Restaurant Owner',
-            restaurantId: data.user?.restaurantId || 'rest-1',
-          },
-          data.tokens?.accessToken || data.accessToken || 'owner-token',
-          data.tokens?.refreshToken || data.refreshToken || 'owner-refresh-token',
-        );
-        router.push('/');
+     if (res.ok) {
+  const data = await res.json();
+
+  console.log('LOGIN RESPONSE', data);
+
+  setAuth(
+    {
+      id: data.user.id,
+      email: data.user.email,
+      role: data.user.role,
+      name:
+        data.user.profile?.firstName ||
+        data.user.name ||
+        'Restaurant Owner',
+      restaurantId: data.user.restaurantId,
+    },
+    data.tokens.accessToken,
+    data.tokens.refreshToken,
+  );
+
+  router.push('/');
+
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.message || 'Login failed. Please check credentials or approval status.');

@@ -29,11 +29,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { profile: true },
+      include: {
+        profile: true,
+        restaurantStaff: {
+          include: { restaurant: true },
+        },
+      },
     });
 
     if (!user || !user.isActive || user.deletedAt) {
       throw new UnauthorizedException('User account is inactive or disabled');
+    }
+
+    let restaurantId: string | undefined = undefined;
+    if (user.restaurantStaff?.[0]?.restaurantId) {
+      restaurantId = user.restaurantStaff[0].restaurantId;
+    } else if (user.role === 'RESTAURANT_OWNER') {
+      const rest = await this.prisma.restaurant.findFirst({
+        where: { ownerId: user.id },
+        select: { id: true },
+      });
+      if (rest) restaurantId = rest.id;
     }
 
     return {
@@ -43,6 +59,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       sessionId: payload.sessionId,
       profile: user.profile,
+      restaurantId,
     };
   }
 }

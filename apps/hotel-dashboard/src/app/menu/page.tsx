@@ -30,8 +30,13 @@ interface Category {
 }
 
 export default function HotelMenuPage() {
-  const { user, accessToken } = useHotelAuthStore();
-  const restaurantId = user?.restaurantId || 'rest-1';
+ const { user, accessToken } = useHotelAuthStore();
+
+if (!user?.restaurantId) {
+  return <div>Restaurant not found. Please login again.</div>;
+}
+
+const restaurantId = user.restaurantId;
 
   const [items, setItems] = useState<FoodItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

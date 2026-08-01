@@ -255,6 +255,10 @@ export class OrdersService {
     return this.repo.findByRestaurant(restaurantId, status, page, limit);
   }
 
+  async getAllOrders(status?: any, page = 1, limit = 20) {
+    return this.repo.findAll(status, page, limit);
+  }
+
   async getDriverOrders(driverId: string, page: number, limit: number) {
     return this.repo.findByDriver(driverId, page, limit);
   }

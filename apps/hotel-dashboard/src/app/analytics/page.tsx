@@ -2,56 +2,59 @@
 
 import React from 'react';
 import { DollarSign, ShoppingBag, Star, Clock, TrendingUp, Users } from 'lucide-react';
-
 import { getApiBaseUrl } from '@foodhub/config';
+import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+const API_BASE = getApiBaseUrl();
 
 const DEFAULT_ANALYTICS = {
-  todaySales: 18450,
-  todayOrders: 42,
-  weeklySales: 124000,
-  monthlySales: 485000,
-  avgRating: 4.6,
-  avgPrepTime: 18,
+  todaySales: 0,
+  todayOrders: 0,
+  weeklySales: 0,
+  monthlySales: 0,
+  avgRating: 4.5,
+  avgPrepTime: 20,
   repeatCustomerRate: 64,
   topSellingDishes: [
     { name: 'Special Chicken Biryani', orders: 420, revenue: 117600 },
     { name: 'Butter Chicken & Naan', orders: 310, revenue: 99200 },
     { name: 'Paneer Tikka Masala', orders: 240, revenue: 64800 },
-    { name: 'Garlic Garlic Naan', orders: 580, revenue: 29000 },
   ],
 };
 
 export default function RestaurantAnalyticsPage() {
+  const { user, accessToken } = useHotelAuthStore();
+  const restaurantId = user?.restaurantId;
+
   const [analytics, setAnalytics] = React.useState(DEFAULT_ANALYTICS);
 
   React.useEffect(() => {
+    if (!restaurantId) return;
     const fetchStats = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_hotel_token') : null;
-        const res = await fetch(`${getApiBase()}/analytics/restaurant`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        const res = await fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         });
         if (res.ok) {
           const data = await res.json();
-          if (data && (data.todaySales !== undefined || data.todayRevenue !== undefined)) {
-            setAnalytics({
-              todaySales: data.todaySales || data.todayRevenue || 18450,
-              todayOrders: data.todayOrders || 42,
-              weeklySales: data.weeklySales || 124000,
-              monthlySales: data.monthlySales || 485000,
-              avgRating: data.avgRating || 4.6,
-              avgPrepTime: data.avgPrepTime || 18,
-              repeatCustomerRate: data.repeatCustomerRate || 64,
-              topSellingDishes: data.topSellingDishes || DEFAULT_ANALYTICS.topSellingDishes,
-            });
-          }
+          setAnalytics({
+            todaySales: data.todaySales ?? data.todayRevenue ?? 0,
+            todayOrders: data.todayOrders ?? 0,
+            weeklySales: data.week?.sales ?? 0,
+            monthlySales: data.month?.sales ?? 0,
+            avgRating: data.avgRating ?? 4.5,
+            avgPrepTime: 20,
+            repeatCustomerRate: 64,
+            topSellingDishes: data.topItems && data.topItems.length > 0
+              ? data.topItems.map((i: any) => ({ name: i.foodItemId || 'Dish', orders: i.qty || 1, revenue: (i.qty || 1) * 250 }))
+              : DEFAULT_ANALYTICS.topSellingDishes,
+          });
         }
       } catch { /* fallback */ }
     };
     fetchStats();
-  }, []);
+  }, [restaurantId, accessToken]);
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <div>
@@ -85,7 +88,7 @@ export default function RestaurantAnalyticsPage() {
             <div className="p-2 bg-amber-50 rounded-2xl text-amber-500"><Star className="h-4 w-4 fill-amber-400" /></div>
           </div>
           <p className="text-2xl font-black text-gray-900">{analytics.avgRating} / 5.0</p>
-          <p className="text-xs text-gray-400">Based on 340+ reviews</p>
+          <p className="text-xs text-gray-400">Based on customer reviews</p>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">

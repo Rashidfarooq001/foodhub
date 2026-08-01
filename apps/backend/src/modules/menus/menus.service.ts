@@ -71,7 +71,6 @@ export class MenusService {
   async createFoodItem(dto: any) {
     const {
       restaurantId,
-      categoryId,
       subCategoryId,
       name,
       description,
@@ -83,10 +82,31 @@ export class MenusService {
       addonGroups = [],
     } = dto;
 
+    let targetCatId = dto.categoryId;
+    if (targetCatId) {
+      const catExists = await this.prisma.category.findUnique({ where: { id: targetCatId } });
+      if (!catExists) targetCatId = null;
+    }
+
+    if (!targetCatId) {
+      let firstCat = await this.prisma.category.findFirst({ where: { restaurantId } });
+      if (!firstCat) {
+        firstCat = await this.prisma.category.create({
+          data: {
+            restaurantId,
+            name: 'Main Course',
+            displayOrder: 0,
+            isActive: true,
+          },
+        });
+      }
+      targetCatId = firstCat.id;
+    }
+
     return this.prisma.foodItem.create({
       data: {
         restaurantId,
-        categoryId,
+        categoryId: targetCatId,
         subCategoryId: subCategoryId || null,
         name,
         description,

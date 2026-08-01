@@ -22,6 +22,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 
 const getApiBase = () =>
   typeof window !== 'undefined'
@@ -100,11 +101,15 @@ export default function HotelDeliveryManagementPage() {
   const [deliveryOtpInput, setDeliveryOtpInput] = useState('');
   const [otpError, setOtpError] = useState(false);
 
-  const restaurantId = 'rest-1'; // Default active restaurant
+  const { user, accessToken } = useHotelAuthStore();
+  const restaurantId = user?.restaurantId;
 
   const fetchDeliveryData = async () => {
+    if (!restaurantId) return;
     try {
-      const res = await fetch(`${getApiBase()}/restaurants/${restaurantId}/delivery-staff`);
+      const res = await fetch(`${getApiBase()}/restaurants/${restaurantId}/delivery-staff`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.staff && Array.isArray(data.staff)) {
@@ -118,7 +123,7 @@ export default function HotelDeliveryManagementPage() {
 
   useEffect(() => {
     fetchDeliveryData();
-  }, []);
+  }, [restaurantId]);
 
   const handleSaveDeliveryMode = async (mode: 'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY') => {
     setDeliveryMode(mode);

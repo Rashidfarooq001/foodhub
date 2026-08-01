@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { KitchenOrderItem } from '../../data/hotel-mock-data';
 import { useKitchenStore } from '../../stores/use-kitchen-store';
+import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { Search, ShoppingBag, Clock } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
 export default function HotelOrdersPage() {
+  const { user, accessToken } = useHotelAuthStore();
   const { queue, setQueue } = useKitchenStore();
   const [filter, setFilter] = useState<'ALL' | 'PREPARING' | 'READY_FOR_PICKUP' | 'COMPLETED'>('ALL');
   const [search, setSearch] = useState('');
@@ -17,7 +19,9 @@ export default function HotelOrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`${API_BASE}/orders`);
+        const res = await fetch(`${API_BASE}/orders`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
           setQueue(Array.isArray(data) ? data : data.orders ?? []);
@@ -29,7 +33,7 @@ export default function HotelOrdersPage() {
       }
     };
     fetchOrders();
-  }, [setQueue]);
+  }, [accessToken, setQueue]);
 
   let orders: KitchenOrderItem[] = [...queue];
   if (filter !== 'ALL') {
@@ -38,8 +42,8 @@ export default function HotelOrdersPage() {
   if (search) {
     orders = orders.filter(
       (o) =>
-        o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-        o.customerName.toLowerCase().includes(search.toLowerCase()),
+        (o.orderNumber && o.orderNumber.toLowerCase().includes(search.toLowerCase())) ||
+        (o.customerName && o.customerName.toLowerCase().includes(search.toLowerCase())),
     );
   }
 
@@ -100,11 +104,11 @@ export default function HotelOrdersPage() {
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-900">{o.customerName}</p>
-                <p className="text-[10px] text-gray-400">{o.customerPhone}</p>
+                <p className="text-xs font-bold text-gray-900">{o.customerName || 'Customer'}</p>
+                <p className="text-[10px] text-gray-400">{o.customerPhone || ''}</p>
               </div>
               <div className="border-t border-b border-gray-100 py-2 space-y-1 text-xs text-gray-700">
-                {o.items.map((i, idx) => (
+                {(o.items || []).map((i, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>{i.quantity}x {i.name}</span>
                   </div>
@@ -112,7 +116,7 @@ export default function HotelOrdersPage() {
               </div>
               <div className="flex items-center justify-between text-xs font-black text-gray-900">
                 <span>Total: ₹{o.totalAmount}</span>
-                <span className="text-[10px] font-normal text-gray-500">{o.placedAt}</span>
+                <span className="text-[10px] font-normal text-gray-500">{o.placedAt || ''}</span>
               </div>
             </div>
           ))
@@ -147,11 +151,11 @@ export default function HotelOrdersPage() {
                   <tr key={o.id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4 font-black text-gray-900">{o.orderNumber}</td>
                     <td className="px-6 py-4">
-                      <p className="font-bold text-gray-900">{o.customerName}</p>
-                      <p className="text-[10px] text-gray-400">{o.customerPhone}</p>
+                      <p className="font-bold text-gray-900">{o.customerName || 'Customer'}</p>
+                      <p className="text-[10px] text-gray-400">{o.customerPhone || ''}</p>
                     </td>
                     <td className="px-6 py-4 max-w-xs truncate">
-                      {o.items.map((i: { name: string; quantity: number }) => `${i.quantity}x ${i.name}`).join(', ')}
+                      {(o.items || []).map((i: { name: string; quantity: number }) => `${i.quantity}x ${i.name}`).join(', ')}
                     </td>
                     <td className="px-6 py-4">
                       <span className="rounded-full bg-orange-100 px-3 py-1 text-[10px] font-black text-orange-800">
@@ -159,7 +163,7 @@ export default function HotelOrdersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-black text-gray-900">₹{o.totalAmount}</td>
-                    <td className="px-6 py-4 text-gray-500">{o.placedAt}</td>
+                    <td className="px-6 py-4 text-gray-500">{o.placedAt || ''}</td>
                   </tr>
                 ))
               )}
