@@ -8,6 +8,7 @@ import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrdersGateway } from './orders.gateway';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { serializePrisma } from '../../common/utils/serializer.util';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { ORDER_EVENTS } from './orders.events';
@@ -239,11 +240,13 @@ export class OrdersService {
   }
 
   async getOrderWithTimeline(orderId: string) {
-    return this.repo.findById(orderId);
+    const res = await this.repo.findById(orderId);
+    return serializePrisma(res);
   }
 
   async getCustomerOrders(customerId: string, page: number, limit: number) {
-    return this.repo.findByCustomer(customerId, page, limit);
+    const res = await this.repo.findByCustomer(customerId, page, limit);
+    return serializePrisma(res);
   }
 
   async getRestaurantOrders(
@@ -252,15 +255,18 @@ export class OrdersService {
     page?:        number,
     limit?:       number,
   ) {
-    return this.repo.findByRestaurant(restaurantId, status, page, limit);
+    const res = await this.repo.findByRestaurant(restaurantId, status, page, limit);
+    return serializePrisma(res);
   }
 
   async getAllOrders(status?: any, page = 1, limit = 20) {
-    return this.repo.findAll(status, page, limit);
+    const res = await this.repo.findAll(status, page, limit);
+    return serializePrisma(res);
   }
 
   async getDriverOrders(driverId: string, page: number, limit: number) {
-    return this.repo.findByDriver(driverId, page, limit);
+    const res = await this.repo.findByDriver(driverId, page, limit);
+    return serializePrisma(res);
   }
 
   async generateInvoice(orderId: string) {

@@ -18,3 +18,4 @@ __exportStar(require("./formatters"), exports);
 __exportStar(require("./validators"), exports);
 __exportStar(require("./geo"), exports);
 __exportStar(require("./helpers"), exports);
+__exportStar(require("./serializer"), exports);

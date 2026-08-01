@@ -105,25 +105,44 @@ export interface ActiveOrderTrackingData {
   totalAmount: number;
 }
 
-export function normalizeRestaurantData(r: any): RestaurantData {
-  if (!r) return {} as RestaurantData;
+export function safeNumber(val: any, defaultVal = 0): number {
+  if (val === null || val === undefined) return defaultVal;
+  if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? defaultVal : parsed;
+  }
+  if (typeof val === 'object') {
+    if (val.d && Array.isArray(val.d) && val.d[0] !== undefined) {
+      return Number(val.d[0]);
+    }
+    const num = Number(val);
+    return isNaN(num) ? defaultVal : num;
+  }
+  return defaultVal;
+}
 
-  const categories = Array.isArray(r.categories) ? r.categories : [];
+export function normalizeRestaurantData(raw: any): RestaurantData {
+  const r = raw || {};
   let foodItems: FoodItemData[] = [];
-  if (Array.isArray(r.foodItems) && r.foodItems.length > 0) {
-    foodItems = r.foodItems.map((item: any) => ({
+
+  const rawFoodItems = Array.isArray(r.foodItems) ? r.foodItems : [];
+  const categories = Array.isArray(r.categories) ? r.categories : [];
+
+  if (rawFoodItems.length > 0) {
+    foodItems = rawFoodItems.map((item: any) => ({
       id: String(item.id || `item-${Math.random()}`),
       restaurantId: String(r.id),
       restaurantName: String(r.name || 'Restaurant'),
       name: String(item.name || 'Food Item'),
       description: item.description ?? '',
-      price: Number(item.price ?? 0),
-      originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+      price: safeNumber(item.price, 0),
+      originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
       imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
       isVeg: item.isVeg ?? true,
       isBestseller: item.isBestseller ?? false,
-      rating: item.rating ? Number(item.rating) : 4.5,
-      ratingCount: item.ratingCount ?? 50,
+      rating: safeNumber(item.rating, 4.5),
+      ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 50,
       category: item.category?.name || item.category || 'Main Course',
     }));
   } else if (categories.length > 0) {
@@ -134,13 +153,13 @@ export function normalizeRestaurantData(r: any): RestaurantData {
         restaurantName: String(r.name || 'Restaurant'),
         name: String(item.name || 'Food Item'),
         description: item.description ?? '',
-        price: Number(item.price ?? 0),
-        originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+        price: safeNumber(item.price, 0),
+        originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
         imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
         isVeg: item.isVeg ?? true,
         isBestseller: item.isBestseller ?? false,
-        rating: item.rating ? Number(item.rating) : 4.5,
-        ratingCount: item.ratingCount ?? 50,
+        rating: safeNumber(item.rating, 4.5),
+        ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 50,
         category: cat.name ?? item.category ?? 'Main Course',
       }))
     );
@@ -162,18 +181,18 @@ export function normalizeRestaurantData(r: any): RestaurantData {
     phone: String(r.phone || ''),
     address: String(r.addressLine || r.address || 'Bengaluru, India'),
     cuisines,
-    avgRating: r.avgRating !== undefined && r.avgRating !== null ? Number(r.avgRating) : 4.5,
-    ratingCount: r.ratingCount ? Number(r.ratingCount) : 120,
-    deliveryTimeMins: r.deliveryTimeMins ? Number(r.deliveryTimeMins) : 30,
-    distanceKm: r.distanceKm ? Number(r.distanceKm) : 2.5,
-    priceForTwo: r.priceForTwo ? Number(r.priceForTwo) : 350,
+    avgRating: safeNumber(r.avgRating, 4.5),
+    ratingCount: r.ratingCount ? safeNumber(r.ratingCount) : 120,
+    deliveryTimeMins: r.deliveryTimeMins ? safeNumber(r.deliveryTimeMins) : 30,
+    distanceKm: r.distanceKm ? safeNumber(r.distanceKm) : 2.5,
+    priceForTwo: r.priceForTwo ? safeNumber(r.priceForTwo) : 350,
     bannerUrl: r.bannerUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     logoUrl: r.logoUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
     isOpen: r.isOpen ?? true,
     fssaiLicense: r.licenseFssai || r.fssaiLicense || 'FSSAI-12345678901234',
     discountBadge: r.discountBadge || '20% OFF',
-    latitude: r.latitude ? Number(r.latitude) : 12.9716,
-    longitude: r.longitude ? Number(r.longitude) : 77.5946,
+    latitude: r.latitude ? safeNumber(r.latitude) : 12.9716,
+    longitude: r.longitude ? safeNumber(r.longitude) : 77.5946,
     foodItems,
   };
 }

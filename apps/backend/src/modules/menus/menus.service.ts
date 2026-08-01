@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateFoodItemDto } from './dto/create-food-item.dto';
+import { serializePrisma } from '../../common/utils/serializer.util';
 
 @Injectable()
 export class MenusService {
@@ -11,7 +12,7 @@ export class MenusService {
   // ==========================================
 
   async createCategory(restaurantId: string, name: string, displayOrder = 0) {
-    return this.prisma.category.create({
+    const res = await this.prisma.category.create({
       data: {
         restaurantId,
         name,
@@ -19,25 +20,31 @@ export class MenusService {
         isActive: true,
       },
     });
+    return serializePrisma(res);
   }
 
   async findCategoriesByRestaurant(restaurantId: string) {
-    return this.prisma.category.findMany({
+    const res = await this.prisma.category.findMany({
       where: { restaurantId },
       include: {
         foodItems: {
           where: { deletedAt: null },
+          include: {
+            variants: true,
+            addonGroups: { include: { addons: true } },
+          },
         },
       },
       orderBy: { displayOrder: 'asc' },
     });
+    return serializePrisma(res);
   }
 
   async updateCategory(id: string, name?: string, displayOrder?: number, isActive?: boolean) {
     const cat = await this.prisma.category.findUnique({ where: { id } });
     if (!cat) throw new NotFoundException(`Category ${id} not found`);
 
-    return this.prisma.category.update({
+    const res = await this.prisma.category.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
@@ -45,13 +52,15 @@ export class MenusService {
         ...(isActive !== undefined && { isActive }),
       },
     });
+    return serializePrisma(res);
   }
 
   async deleteCategory(id: string) {
     const cat = await this.prisma.category.findUnique({ where: { id } });
     if (!cat) throw new NotFoundException(`Category ${id} not found`);
 
-    return this.prisma.category.delete({ where: { id } });
+    const res = await this.prisma.category.delete({ where: { id } });
+    return serializePrisma(res);
   }
 
   async reorderCategories(categoryIds: string[]) {
@@ -61,7 +70,8 @@ export class MenusService {
         data: { displayOrder: index },
       }),
     );
-    return this.prisma.$transaction(updates);
+    const res = await this.prisma.$transaction(updates);
+    return serializePrisma(res);
   }
 
   // ==========================================
@@ -103,7 +113,7 @@ export class MenusService {
       targetCatId = firstCat.id;
     }
 
-    return this.prisma.foodItem.create({
+    const res = await this.prisma.foodItem.create({
       data: {
         restaurantId,
         categoryId: targetCatId,
@@ -130,7 +140,7 @@ export class MenusService {
               maxSelect: g.maxSelect || 1,
               addons: {
                 create: (g.addons || []).map((a: any) => ({
-                 name: a.name || a.addonName,
+                  name: a.name || a.addonName,
                   price: a.price || 0,
                 })),
               },
@@ -144,6 +154,8 @@ export class MenusService {
         addonGroups: { include: { addons: true } },
       },
     });
+
+    return serializePrisma(res);
   }
 
   async updateFoodItem(id: string, dto: any) {
@@ -161,7 +173,7 @@ export class MenusService {
       subCategoryId,
     } = dto;
 
-    return this.prisma.foodItem.update({
+    const res = await this.prisma.foodItem.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
@@ -179,17 +191,19 @@ export class MenusService {
         addonGroups: { include: { addons: true } },
       },
     });
+
+    return serializePrisma(res);
   }
 
   async deleteFoodItem(id: string) {
     const item = await this.prisma.foodItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundException(`Food item ${id} not found`);
 
-    // Soft delete food item
-    return this.prisma.foodItem.update({
+    const res = await this.prisma.foodItem.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    return serializePrisma(res);
   }
 
   async duplicateFoodItem(id: string) {
@@ -203,7 +217,7 @@ export class MenusService {
 
     if (!original) throw new NotFoundException(`Food item ${id} not found`);
 
-    return this.prisma.foodItem.create({
+    const res = await this.prisma.foodItem.create({
       data: {
         restaurantId: original.restaurantId,
         categoryId: original.categoryId,
@@ -230,7 +244,7 @@ export class MenusService {
               maxSelect: g.maxSelect,
               addons: {
                 create: g.addons.map((a) => ({
-                 name: a.name,
+                  name: a.name,
                   price: a.price,
                 })),
               },
@@ -244,10 +258,12 @@ export class MenusService {
         addonGroups: { include: { addons: true } },
       },
     });
+
+    return serializePrisma(res);
   }
 
   async findMenuByRestaurant(restaurantId: string) {
-    return this.prisma.foodItem.findMany({
+    const res = await this.prisma.foodItem.findMany({
       where: { restaurantId, deletedAt: null },
       include: {
         category: true,
@@ -256,6 +272,8 @@ export class MenusService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return serializePrisma(res);
   }
 
   async toggleAvailability(foodItemId: string, isAvailable: boolean) {
@@ -266,9 +284,11 @@ export class MenusService {
       throw new NotFoundException(`Food item ${foodItemId} not found`);
     }
 
-    return this.prisma.foodItem.update({
+    const res = await this.prisma.foodItem.update({
       where: { id: foodItemId },
       data: { isAvailable },
     });
+
+    return serializePrisma(res);
   }
 }

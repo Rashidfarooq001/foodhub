@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { serializePrisma } from '../../common/utils/serializer.util';
 const isUUID = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 @Injectable()
@@ -202,7 +203,7 @@ export class RestaurantsService {
       take: 100,
     });
 
-    return restaurants.map((restaurant) => ({
+    return serializePrisma(restaurants.map((restaurant) => ({
       ...restaurant,
       avgRating: restaurant.avgRating
         ? Number(restaurant.avgRating)
@@ -210,7 +211,7 @@ export class RestaurantsService {
       commissionRate: restaurant.commissionRate
         ? Number(restaurant.commissionRate)
         : 0,
-    }));
+    })));
   }
 
   async findRestaurantById(idOrSlug: string) {
@@ -225,6 +226,10 @@ const restaurant = await this.prisma.restaurant.findFirst({
           include: {
             foodItems: {
               where: { deletedAt: null },
+              include: {
+                variants: true,
+                addonGroups: { include: { addons: true } },
+              },
             },
           },
         },
@@ -251,7 +256,7 @@ const restaurant = await this.prisma.restaurant.findFirst({
       );
     }
 
-    return {
+    return serializePrisma({
       ...restaurant,
       avgRating: restaurant.avgRating
         ? Number(restaurant.avgRating)
@@ -259,7 +264,7 @@ const restaurant = await this.prisma.restaurant.findFirst({
       commissionRate: restaurant.commissionRate
         ? Number(restaurant.commissionRate)
         : 0,
-    };
+    });
   }
 
   async updateVerificationStatus(
