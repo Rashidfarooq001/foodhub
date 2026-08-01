@@ -55,7 +55,7 @@ export class AuthController {
   async verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
     const ip = req.ip || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
-    return this.authService.verifyOtp(dto.phone, dto.otp, ip, ua);
+    return this.authService.verifyOtp(dto, ip, ua);
   }
 
   @Public()

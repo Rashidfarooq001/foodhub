@@ -1,3 +1,7 @@
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { InternalServerErrorException } from '@nestjs/common';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -8,7 +12,11 @@ export class OtpService {
   private readonly OTP_COOLDOWN_SEC = 60;
   private readonly OTP_EXPIRY_MINS = 10;
 
-  constructor(private readonly prisma: PrismaService) {}
+ constructor(
+  private readonly prisma: PrismaService,
+  private readonly http: HttpService,
+  private readonly config: ConfigService,
+) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
     // Check cooldown
@@ -78,8 +86,77 @@ export class OtpService {
     await this.prisma.otp.update({
       where: { id: otpRecord.id },
       data: { isUsed: true },
+  
     });
 
     return true;
+  
+}
+  async verifyMsg91WidgetToken(accessToken: string): Promise<string> {
+    const authKey = this.config.get<string>('MSG91_AUTH_KEY') || process.env.MSG91_AUTH_KEY;
+    const isDevOrTest = process.env.NODE_ENV !== 'production';
+
+    // Dev/Test Mode fallback for local testing
+    if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken.startsWith('dev_')) {
+      const devPhone = accessToken.replace('dev_widget_token_', '').replace('dev_', '');
+      const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
+      return formattedDevPhone || '+919876543210';
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post(
+          'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+          {
+            authkey: authKey,
+            'access-token': accessToken,
+            accessToken,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              authkey: authKey,
+            },
+          },
+        ),
+      );
+
+      const resData = response.data;
+      this.logger.log(`[MSG91 Widget Verification] Response: ${JSON.stringify(resData)}`);
+
+      if (resData.type === 'error' || resData.status === 'error') {
+        throw new BadRequestException(resData.message || 'Invalid or expired MSG91 OTP widget token');
+      }
+
+      // Extract mobile number from MSG91 response structure
+      const rawMobile = resData.data?.mobile || resData.mobile || resData.data?.mobileNumber || resData.mobileNumber || resData.data?.phone;
+
+      if (!rawMobile) {
+        throw new BadRequestException('Mobile number not found in MSG91 verification response');
+      }
+
+      let phoneStr = String(rawMobile).trim();
+      if (!phoneStr.startsWith('+')) {
+        if (phoneStr.startsWith('91') && phoneStr.length === 12) {
+          phoneStr = `+${phoneStr}`;
+        } else if (phoneStr.length === 10) {
+          phoneStr = `+91${phoneStr}`;
+        } else {
+          phoneStr = `+${phoneStr}`;
+        }
+      }
+
+      return phoneStr;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `MSG91 verification failed: ${error?.response?.data?.message || error.message}`,
+      );
+      throw new BadRequestException(
+        error?.response?.data?.message || 'MSG91 OTP token verification failed. Please try again.',
+      );
+    }
   }
 }

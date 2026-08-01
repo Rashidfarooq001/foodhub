@@ -10,6 +10,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
 
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -25,14 +27,25 @@ export class AuthService {
     return this.otpService.sendOtp(phone);
   }
 
-  async verifyOtp(phone: string, otp: string, ipAddress?: string, userAgent?: string) {
-    await this.otpService.verifyOtp(phone, otp);
+  async verifyOtp(dto: VerifyOtpDto, ipAddress?: string, userAgent?: string) {
+    let phoneToVerify: string;
 
-    let user = await this.usersService.findUserByPhone(phone);
+    if (dto.accessToken) {
+      // MSG91 Widget AccessToken verification flow
+      phoneToVerify = await this.otpService.verifyMsg91WidgetToken(dto.accessToken);
+    } else if (dto.phone && dto.otp) {
+      // Local / Dev OTP verification flow
+      await this.otpService.verifyOtp(dto.phone, dto.otp);
+      phoneToVerify = dto.phone;
+    } else {
+      throw new BadRequestException('Either accessToken (MSG91 Widget) or phone and otp must be provided');
+    }
+
+    let user = await this.usersService.findUserByPhone(phoneToVerify);
     if (!user) {
       // Auto-register Customer upon first successful OTP verification
       const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-      user = await this.usersService.createUser(phone, dummyPassword, UserRole.CUSTOMER);
+      user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
     }
 
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);

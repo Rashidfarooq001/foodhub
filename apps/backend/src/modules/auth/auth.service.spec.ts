@@ -63,7 +63,7 @@ describe('AuthService', () => {
   });
 
   it('should verify OTP and return tokens via verifyOtp()', async () => {
-    const result = await service.verifyOtp('+919876543210', '4819');
+    const result = await service.verifyOtp({ phone: '+919876543210', otp: '4819' });
     expect(result.tokens).toHaveProperty('accessToken');
     expect(result.user.phone).toBe('+919876543210');
   });

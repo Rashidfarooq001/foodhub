@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2, Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
+import { useMsg91Widget } from '../../hooks/use-msg91-widget';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -11,24 +12,17 @@ const API_BASE = getApiBaseUrl();
 export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
+  const { launchWidget, isWidgetLoading } = useMsg91Widget();
 
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [phone, setPhone] = useState('+919876543210');
-  const [otp, setOtp] = useState(['', '', '', '']);
-  const [cooldown, setCooldown] = useState(60);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [useLocalDevOtp, setUseLocalDevOtp] = useState(false);
+  const [devStep, setDevStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [otp, setOtp] = useState(['4', '8', '1', '9']);
   const [devOtp, setDevOtp] = useState<string | null>(null);
 
-  useEffect(() => {
-    let timer: any;
-    if (step === 'OTP' && cooldown > 0) {
-      timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [step, cooldown]);
-
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleContinueWithMsg91 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
       setError('Please enter a valid 10-digit mobile number');
@@ -37,6 +31,66 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    try {
+      // Launch MSG91 Widget Popup
+      let accessToken: string;
+      try {
+        accessToken = await launchWidget(phone);
+      } catch (widgetErr: any) {
+        // If MSG91 SDK is missing keys in dev mode, fallback to dev OTP flow automatically
+        if (
+          !process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ||
+          widgetErr.message?.includes('SDK') ||
+          widgetErr.message?.includes('not available')
+        ) {
+          console.warn('[MSG91 Dev Fallback] MSG91 Widget keys missing, executing local OTP flow...');
+          await handleSendLocalOtp();
+          setIsLoading(false);
+          return;
+        }
+        throw widgetErr;
+      }
+
+      // Send MSG91 accessToken to backend POST /api/v1/auth/verify-otp
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'OTP verification failed. Please try again.');
+      }
+
+      if (!data.tokens?.accessToken) {
+        throw new Error('Authentication token not received from server');
+      }
+
+      const userProfile = {
+        id: data.user.id,
+        phone: data.user.phone,
+        email: data.user.email,
+        role: data.user.role,
+        firstName: data.user.profile?.firstName || 'Customer',
+        lastName: data.user.profile?.lastName || '',
+      };
+
+      setAuth(
+        userProfile,
+        data.tokens.accessToken,
+        data.tokens.refreshToken || data.tokens.accessToken,
+      );
+
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendLocalOtp = async () => {
     try {
       const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
@@ -49,19 +103,17 @@ export default function LoginPage() {
         throw new Error(data.message || 'Failed to send OTP. Please try again.');
       }
 
-      setStep('OTP');
-      setCooldown(data.cooldownSec || 60);
+      setUseLocalDevOtp(true);
+      setDevStep('OTP');
       if (data.otp) {
         setDevOtp(data.otp);
       }
     } catch (err: any) {
-      setError(err.message || 'Error sending OTP');
-    } finally {
-      setIsLoading(false);
+      setError(err.message || 'Error sending local OTP');
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyLocalOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join('');
     if (enteredOtp.length !== 4) {
@@ -104,7 +156,7 @@ export default function LoginPage() {
 
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'OTP verification failed');
+      setError(err.message || 'Local OTP verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -118,14 +170,14 @@ export default function LoginPage() {
             <Sparkles className="h-7 w-7" />
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {step === 'PHONE' ? 'Welcome to FoodHub' : 'Verify Mobile Number'}
+            {useLocalDevOtp && devStep === 'OTP' ? 'Verify Local OTP' : 'Welcome to FoodHub'}
           </h2>
           <p className="text-xs text-gray-500">
-            {step === 'PHONE'
-              ? 'Enter your mobile number to receive a 4-digit login OTP'
-              : `Enter 4-digit OTP sent to ${phone}`}
+            {useLocalDevOtp && devStep === 'OTP'
+              ? `Enter 4-digit OTP sent to ${phone}`
+              : 'Enter your mobile number to sign in via MSG91 Instant OTP'}
           </p>
-          {devOtp && step === 'OTP' && (
+          {devOtp && useLocalDevOtp && (
             <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 py-1 px-3 rounded-lg inline-block">
               Demo OTP: {devOtp}
             </p>
@@ -138,8 +190,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        {step === 'PHONE' ? (
-          <form onSubmit={handleSendOtp} className="space-y-6">
+        {!useLocalDevOtp ? (
+          <form onSubmit={handleContinueWithMsg91} className="space-y-6">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-2">Mobile Number</label>
               <div className="relative flex items-center">
@@ -156,19 +208,29 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isWidgetLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <span>{isLoading ? 'Sending OTP...' : 'Get OTP'}</span>
+              <span>{isLoading || isWidgetLoading ? 'Launching MSG91 OTP...' : 'Continue with MSG91 OTP'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => handleSendLocalOtp()}
+                className="text-xs font-bold text-gray-400 hover:text-orange-600 underline transition"
+              >
+                Use Local Dev OTP Mode (Offline)
+              </button>
+            </div>
 
             <p className="text-center text-[10px] text-gray-400 leading-relaxed">
               By logging in, you agree to FoodHub's Terms of Service & Privacy Policy.
             </p>
           </form>
         ) : (
-          <form onSubmit={handleVerifyOtp} className="space-y-6">
+          <form onSubmit={handleVerifyLocalOtp} className="space-y-6">
             <div className="flex justify-center gap-3">
               {otp.map((digit, idx) => (
                 <input
@@ -192,25 +254,16 @@ export default function LoginPage() {
               disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <CheckCircle2 className="h-4 w-4" /> {isLoading ? 'Verifying...' : 'Verify & Login'}
+              <CheckCircle2 className="h-4 w-4" /> {isLoading ? 'Verifying...' : 'Verify Local OTP'}
             </button>
 
-            <div className="flex items-center justify-between text-xs">
+            <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={() => setStep('PHONE')}
-                className="font-bold text-gray-500 hover:underline"
+                onClick={() => setUseLocalDevOtp(false)}
+                className="text-xs font-bold text-gray-400 hover:text-orange-600 underline"
               >
-                Change Number
-              </button>
-
-              <button
-                type="button"
-                disabled={cooldown > 0}
-                onClick={() => setCooldown(60)}
-                className={`font-bold ${cooldown > 0 ? 'text-gray-400' : 'text-orange-600 hover:underline'}`}
-              >
-                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
+                Switch back to MSG91 Widget
               </button>
             </div>
           </form>
@@ -218,7 +271,7 @@ export default function LoginPage() {
 
         <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-6 text-[11px] text-gray-400">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>Protected by MSG91 SMS & 256-bit SSL Encryption</span>
+          <span>Protected by MSG91 Widget SDK & 256-bit SSL Encryption</span>
         </div>
       </div>
     </div>

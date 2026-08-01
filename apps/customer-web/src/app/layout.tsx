@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: 'Fastest food delivery from handpicked restaurants in your city. Order biryani, pizza, burgers, desserts & more on FoodHub.',
 };
 
+import Script from 'next/script';
+
 export default function RootLayout({
   children,
 }: {
@@ -25,6 +27,10 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </AppProviders>
+        <Script
+          src="https://control.msg91.com/app/assets/otp-provider/otp-provider.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
