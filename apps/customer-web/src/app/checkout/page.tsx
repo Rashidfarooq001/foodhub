@@ -215,7 +215,7 @@ export default function CheckoutPage() {
       const rzpOrderId = pmtData.razorpayOrderId;
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TJd8pmiEPE8AuF',
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TKWo9ZF0l2LUHq',
         amount: pmtData.amount || Math.round(parsedAmount * 100),
         currency: pmtData.currency || 'INR',
         name: 'FoodHub Enterprise',
