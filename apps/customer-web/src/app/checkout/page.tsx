@@ -159,54 +159,63 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Call backend to create Razorpay payment order
-      let rzpOrderId = `rzp_order_${Date.now()}`;
-      try {
-        const pmtRes = await fetch(`${API_BASE}/payments/create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-          },
-          body: JSON.stringify({
-            orderId: createdOrder.id,
-            amount: createdOrder.totalAmount || grandTotal,
-          }),
-        });
-        if (pmtRes.ok) {
-          const pmtData = await pmtRes.json();
-          if (pmtData.razorpayOrderId) {
-            rzpOrderId = pmtData.razorpayOrderId;
-          }
-        }
-      } catch {
-        /* fallback rzp id */
+      // Call backend to create real Razorpay payment order
+      const pmtRes = await fetch(`${API_BASE}/payments/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          orderId: createdOrder.id,
+          amount: Number(createdOrder.totalAmount || grandTotal),
+          method: validPaymentMethod,
+        }),
+      });
+
+      if (!pmtRes.ok) {
+        const pmtErrData = await pmtRes.json().catch(() => ({}));
+        const pmtErrMsg = Array.isArray(pmtErrData.message)
+          ? pmtErrData.message.join(', ')
+          : pmtErrData.message || 'Failed to initialize payment gateway order.';
+        throw new Error(pmtErrMsg);
       }
+
+      const pmtData = await pmtRes.json();
+      if (!pmtData.razorpayOrderId) {
+        throw new Error('Invalid order response from payment server.');
+      }
+
+      const rzpOrderId = pmtData.razorpayOrderId;
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TJd8pmiEPE8AuF',
-        amount: Math.round((createdOrder.totalAmount || grandTotal) * 100),
+        amount: Math.round(Number(createdOrder.totalAmount || grandTotal) * 100),
         currency: 'INR',
         name: 'FoodHub Enterprise',
         description: `Order #${createdOrder.orderNumber || orderId}`,
         order_id: rzpOrderId,
         handler: async function (response: any) {
           try {
-            await fetch(`${API_BASE}/payments/verify`, {
+            const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
               },
               body: JSON.stringify({
-                orderId: createdOrder.id,
-                razorpayOrderId: response.razorpay_order_id || rzpOrderId,
-                razorpayPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`,
-                razorpaySignature: response.razorpay_signature || 'mock_sig',
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
               }),
             });
-          } catch {
-            /* logged */
+
+            if (!verifyRes.ok) {
+              const verifyErr = await verifyRes.json().catch(() => ({}));
+              console.error('Payment verification failed:', verifyErr);
+            }
+          } catch (err: any) {
+            console.error('Payment verification exception:', err);
           } finally {
             clearCart();
             setIsPlacing(false);
