@@ -28,18 +28,18 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string, userAgent?: string) {
-    let phoneToVerify: string;
-
-    if (dto.accessToken) {
-      // MSG91 Widget AccessToken verification flow
-      phoneToVerify = await this.otpService.verifyMsg91WidgetToken(dto.accessToken);
-    } else if (dto.phone && dto.otp) {
-      // Local / Dev OTP verification flow
-      await this.otpService.verifyOtp(dto.phone, dto.otp);
-      phoneToVerify = dto.phone;
-    } else {
-      throw new BadRequestException('Either accessToken (MSG91 Widget) or phone and otp must be provided');
+    if (!dto.phone || !dto.otp) {
+      throw new BadRequestException('Phone number and OTP code are required');
     }
+
+    const formattedPhone = dto.phone.startsWith('+')
+      ? dto.phone
+      : dto.phone.length === 10
+      ? `+91${dto.phone}`
+      : `+${dto.phone}`;
+
+    await this.otpService.verifyOtp(formattedPhone, dto.otp);
+    const phoneToVerify = formattedPhone;
 
     let user = await this.usersService.findUserByPhone(phoneToVerify);
     if (!user) {

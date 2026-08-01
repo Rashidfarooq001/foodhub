@@ -4,7 +4,6 @@ import './globals.css';
 import { AppProviders } from '../providers/app-providers';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
-import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,19 +19,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full bg-gray-50/50">
-      <head>
-        <script src="https://control.msg91.com/app/assets/otp-provider/otp-provider.js" async />
-      </head>
       <body className={`${inter.className} flex min-h-full flex-col font-sans antialiased text-gray-900`}>
         <AppProviders>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
         </AppProviders>
-        <Script
-          src="https://control.msg91.com/app/assets/otp-provider/otp-provider.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );
