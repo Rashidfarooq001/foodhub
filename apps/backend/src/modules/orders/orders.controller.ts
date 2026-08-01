@@ -32,6 +32,7 @@ export class OrdersController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
+     console.log(req.user);
     const targetRestId = restaurantId || req.user?.restaurantId;
     if (targetRestId) {
       return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
