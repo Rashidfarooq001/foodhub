@@ -9,164 +9,236 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { PaymentStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Razorpay = require('razorpay');
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly razorpay: any;
 
-  private readonly razorpay = new Razorpay({
-    key_id:     process.env['RAZORPAY_KEY_ID'] || 'rzp_test_TJd8pmiEPE8AuF',
-    key_secret: process.env['RAZORPAY_KEY_SECRET'] || 'br0jEr7TSbiIFqGqIhdxagWB',
-  });
+  constructor(private readonly prisma: PrismaService) {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  constructor(private readonly prisma: PrismaService) {}
-
-  /** Create a Razorpay order and store a Payment record */
-  async createPaymentOrder(dto: CreatePaymentDto) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: dto.orderId },
-    });
-    if (!order) throw new NotFoundException('Order not found');
-
-    // Resolve valid amount (from DTO or Order totalAmount in DB)
-    let rawAmount = dto.amount;
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
-      rawAmount = Number(order.totalAmount);
+    if (!keyId || !keySecret) {
+      throw new Error(
+        'RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing.',
+      );
     }
 
-    const paymentAmount = Number(rawAmount);
-    if (!paymentAmount || isNaN(paymentAmount) || paymentAmount <= 0) {
+    this.razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+  }
+
+  /**
+   * Create Razorpay Order
+   */
+  async createPaymentOrder(dto: CreatePaymentDto) {
+    const order = await this.prisma.order.findUnique({
+      where: {
+        id: dto.orderId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    let paymentAmount = Number(dto.amount);
+
+    if (!paymentAmount || paymentAmount <= 0) {
+      paymentAmount = Number(order.totalAmount);
+    }
+
+    if (!paymentAmount || paymentAmount <= 0) {
       throw new BadRequestException('Invalid payment amount');
     }
 
-    // Amount in paise (Razorpay uses smallest currency unit)
     const amountPaise = Math.round(paymentAmount * 100);
 
-    // Idempotency: return existing payment if already initiated
-    const existing = await this.prisma.payment.findFirst({
-      where: { orderId: dto.orderId, status: PaymentStatus.PENDING },
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: {
+        orderId: dto.orderId,
+        status: PaymentStatus.PENDING,
+      },
     });
-    if (existing) {
+
+    if (existingPayment) {
       return {
-        dbOrderId:       dto.orderId,
-        razorpayOrderId: existing.razorpayOrderId,
-        amount:          Math.round(Number(existing.amount) * 100),
-        currency:        'INR',
-        paymentId:       existing.id,
+        dbOrderId: dto.orderId,
+        razorpayOrderId: existingPayment.razorpayOrderId,
+        amount: Math.round(Number(existingPayment.amount) * 100),
+        currency: 'INR',
+        paymentId: existingPayment.id,
       };
     }
 
-    let rzpOrder: any;
-    try {
-      this.logger.log(`Calling Razorpay orders.create with amount: ${amountPaise}, receipt: ${order.orderNumber}`);
-      rzpOrder = await this.razorpay.orders.create({
-        amount:   amountPaise,
-        currency: 'INR',
-        receipt:  order.orderNumber,
-      });
-    } catch (rzpErr: any) {
-      const errDetail = rzpErr?.error?.description || rzpErr?.message || JSON.stringify(rzpErr);
-      this.logger.error(`Razorpay SDK orders.create Exception: ${errDetail}`);
+    let razorpayOrder: any;
 
-      const isDev = process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true';
-      if (isDev && (errDetail.includes('Authentication failed') || errDetail.includes('placeholder'))) {
-        this.logger.warn(`[Razorpay Test Mode] Generating test order ID fallback due to test key auth notice: ${errDetail}`);
-        rzpOrder = {
-          id: `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-          amount: amountPaise,
-          currency: 'INR',
-          receipt: order.orderNumber,
-          status: 'created',
-        };
-      } else {
-        throw new BadRequestException(`Razorpay order creation failed: ${errDetail}`);
-      }
+    try {
+      this.logger.log(
+        `Creating Razorpay order for Order ${dto.orderId}`,
+      );
+
+      razorpayOrder = await this.razorpay.orders.create({
+        amount: amountPaise,
+        currency: 'INR',
+        receipt: order.orderNumber,
+      });
+
+      this.logger.log(
+        `Razorpay Order Created: ${razorpayOrder.id}`,
+      );
+    } catch (error: any) {
+      console.error('========== RAZORPAY ERROR ==========');
+      console.error(error);
+      console.error(error?.stack);
+      console.error(error?.response);
+      console.error(error?.error);
+
+      throw new BadRequestException(
+        error?.error?.description ??
+          error?.message ??
+          'Unable to create Razorpay order',
+      );
     }
 
     const payment = await this.prisma.payment.create({
       data: {
-        orderId:          dto.orderId,
-        razorpayOrderId:  rzpOrder.id,
-        amount:           paymentAmount,
-        status:           PaymentStatus.PENDING,
-        method:           dto.method,
+        orderId: dto.orderId,
+        razorpayOrderId: razorpayOrder.id,
+        amount: paymentAmount,
+        status: PaymentStatus.PENDING,
+        method: dto.method,
       },
     });
 
-    this.logger.log(`Payment order created: ${rzpOrder.id} for Order ${dto.orderId}`);
-    return {
-      dbOrderId:       dto.orderId,
-      razorpayOrderId: rzpOrder.id,
-      amount:          amountPaise,
-      currency:        'INR',
-      paymentId:       payment.id,
-    };
-  }
+    this.logger.log(
+      `Payment record created: ${payment.id}`,
+    );
 
-  /** Verify HMAC-SHA256 signature and mark payment complete */
+    return {
+      dbOrderId: dto.orderId,
+      razorpayOrderId: razorpayOrder.id,
+      amount: amountPaise,
+      currency: 'INR',
+      paymentId: payment.id,
+    };
+  }  /**
+   * Verify Razorpay payment signature
+   */
   async verifyPayment(dto: VerifyPaymentDto) {
-    const secret = process.env['RAZORPAY_KEY_SECRET'] || 'br0jEr7TSbiIFqGqIhdxagWB';
-    const body   = `${dto.razorpayOrderId}|${dto.razorpayPaymentId}`;
-    const expectedSig = crypto
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!secret) {
+      throw new BadRequestException(
+        'RAZORPAY_KEY_SECRET is missing',
+      );
+    }
+
+    const generatedSignature = crypto
       .createHmac('sha256', secret)
-      .update(body)
+      .update(
+        `${dto.razorpayOrderId}|${dto.razorpayPaymentId}`,
+      )
       .digest('hex');
 
-    const isDev = process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true';
+    const isDev =
+      process.env.NODE_ENV !== 'production' ||
+      process.env.GUEST_CHECKOUT === 'true';
 
-    if (expectedSig !== dto.razorpaySignature && !isDev) {
-      throw new BadRequestException('Payment signature verification failed');
+    if (
+      generatedSignature !== dto.razorpaySignature &&
+      !isDev
+    ) {
+      throw new BadRequestException(
+        'Payment signature verification failed',
+      );
     }
 
     const payment = await this.prisma.payment.findUnique({
-      where: { razorpayOrderId: dto.razorpayOrderId },
+      where: {
+        razorpayOrderId: dto.razorpayOrderId,
+      },
     });
-    if (!payment) throw new NotFoundException('Payment record not found');
 
-    // Idempotency: skip if already verified
+    if (!payment) {
+      throw new NotFoundException(
+        'Payment record not found',
+      );
+    }
+
     if (payment.status === PaymentStatus.COMPLETED) {
-      return { message: 'Payment already verified', orderId: payment.orderId };
+      return {
+        message: 'Payment already verified',
+        orderId: payment.orderId,
+      };
     }
 
     await this.prisma.$transaction([
       this.prisma.payment.update({
-        where: { id: payment.id },
-        data:  {
+        where: {
+          id: payment.id,
+        },
+        data: {
           razorpayPaymentId: dto.razorpayPaymentId,
           razorpaySignature: dto.razorpaySignature,
-          status:            PaymentStatus.COMPLETED,
+          status: PaymentStatus.COMPLETED,
         },
       }),
+
       this.prisma.order.update({
-        where: { id: payment.orderId },
-        data:  { paymentStatus: PaymentStatus.COMPLETED },
+        where: {
+          id: payment.orderId,
+        },
+        data: {
+          paymentStatus: PaymentStatus.COMPLETED,
+        },
       }),
     ]);
 
-    this.logger.log(`Payment verified: ${dto.razorpayPaymentId}`);
-    return { message: 'Payment verified successfully', orderId: payment.orderId };
+    this.logger.log(
+      `Payment verified: ${dto.razorpayPaymentId}`,
+    );
+
+    return {
+      message: 'Payment verified successfully',
+      orderId: payment.orderId,
+    };
   }
 
-  /** Handle Razorpay webhooks with signature verification */
+  /**
+   * Razorpay Webhook
+   */
   async handleWebhook(
-    body:      Record<string, unknown>,
+    body: Record<string, unknown>,
     signature: string,
-    rawBody:   string,
+    rawBody: string,
   ) {
-    const secret = process.env['RAZORPAY_WEBHOOK_SECRET'] ?? 'webhook_secret';
-    const expectedSig = crypto
+    const secret =
+      process.env.RAZORPAY_WEBHOOK_SECRET ??
+      'webhook_secret';
+
+    const generatedSignature = crypto
       .createHmac('sha256', secret)
       .update(rawBody)
       .digest('hex');
 
-    if (expectedSig !== signature) {
-      throw new BadRequestException('Invalid webhook signature');
+    if (generatedSignature !== signature) {
+      throw new BadRequestException(
+        'Invalid webhook signature',
+      );
     }
 
-    const event   = body['event'] as string;
-    const payload = body['payload'] as Record<string, unknown>;
+    const event = body['event'] as string;
+    const payload = body['payload'] as Record<
+      string,
+      unknown
+    >;
 
     this.logger.log(`Webhook received: ${event}`);
 
@@ -174,75 +246,137 @@ export class PaymentsService {
       case 'payment.captured':
         await this.handlePaymentCaptured(payload);
         break;
+
       case 'payment.failed':
         await this.handlePaymentFailed(payload);
         break;
+
       case 'refund.processed':
         await this.handleRefundProcessed(payload);
         break;
+
       default:
-        this.logger.warn(`Unhandled webhook event: ${event}`);
+        this.logger.warn(
+          `Unhandled webhook event: ${event}`,
+        );
     }
 
-    return { received: true };
+    return {
+      received: true,
+    };
   }
 
-  /** Initiate a Razorpay refund for an order */
-  async initiateRefund(orderId: string, reason: string) {
-    const payment = await this.prisma.payment.findFirst({
-      where:   { orderId, status: PaymentStatus.COMPLETED },
-      include: { refunds: true },
-    });
-    if (!payment) throw new NotFoundException('No completed payment for this order');
+  /**
+   * Initiate Refund
+   */
+  async initiateRefund(
+    orderId: string,
+    reason: string,
+  ) {
+    const payment =
+      await this.prisma.payment.findFirst({
+        where: {
+          orderId,
+          status: PaymentStatus.COMPLETED,
+        },
+        include: {
+          refunds: true,
+        },
+      });
 
-    if (payment.refunds.length > 0) {
-      throw new BadRequestException('Refund already initiated for this order');
+    if (!payment) {
+      throw new NotFoundException(
+        'No completed payment found',
+      );
     }
 
-    const rzpRefund = await this.razorpay.payments.refund(
-      payment.razorpayPaymentId!,
-      { amount: Math.round(Number(payment.amount) * 100) },
-    );
+    if (payment.refunds.length > 0) {
+      throw new BadRequestException(
+        'Refund already initiated',
+      );
+    }
+
+    const refund =
+      await this.razorpay.payments.refund(
+        payment.razorpayPaymentId,
+        {
+          amount: Math.round(
+            Number(payment.amount) * 100,
+          ),
+          notes: {
+            reason,
+          },
+        },
+      );
 
     await this.prisma.paymentRefund.create({
       data: {
-        paymentId:       payment.id,
-        razorpayRefundId: rzpRefund.id,
-        amount:          payment.amount,
+        paymentId: payment.id,
+        razorpayRefundId: refund.id,
+        amount: payment.amount,
       },
     });
 
     await this.prisma.order.update({
-      where: { id: orderId },
-      data:  { paymentStatus: PaymentStatus.REFUNDED },
+      where: {
+        id: orderId,
+      },
+      data: {
+        paymentStatus: PaymentStatus.REFUNDED,
+      },
     });
 
-    this.logger.log(`Refund initiated: ${rzpRefund.id} for Order ${orderId}`);
-    return { message: 'Refund initiated', refundId: rzpRefund.id };
+    this.logger.log(
+      `Refund initiated: ${refund.id}`,
+    );
+
+    return {
+      message: 'Refund initiated',
+      refundId: refund.id,
+    };
   }
 
-  private async handlePaymentCaptured(payload: Record<string, unknown>) {
+  private async handlePaymentCaptured(
+    payload: Record<string, unknown>,
+  ) {
     const payment = (payload['payment'] as any)?.entity;
-    if (payment?.order_id) {
-      await this.prisma.payment.updateMany({
-        where: { razorpayOrderId: payment.order_id },
-        data:  { status: PaymentStatus.COMPLETED },
-      });
-    }
+
+    if (!payment?.order_id) return;
+
+    await this.prisma.payment.updateMany({
+      where: {
+        razorpayOrderId: payment.order_id,
+      },
+      data: {
+        status: PaymentStatus.COMPLETED,
+      },
+    });
   }
 
-  private async handlePaymentFailed(payload: Record<string, unknown>) {
+  private async handlePaymentFailed(
+    payload: Record<string, unknown>,
+  ) {
     const payment = (payload['payment'] as any)?.entity;
-    if (payment?.order_id) {
-      await this.prisma.payment.updateMany({
-        where: { razorpayOrderId: payment.order_id },
-        data:  { status: PaymentStatus.FAILED },
-      });
-    }
+
+    if (!payment?.order_id) return;
+
+    await this.prisma.payment.updateMany({
+      where: {
+        razorpayOrderId: payment.order_id,
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+      },
+    });
   }
 
-  private async handleRefundProcessed(payload: Record<string, unknown>) {
+  private async handleRefundProcessed(
+    payload: Record<string, unknown>,
+  ) {
     const refund = (payload['refund'] as any)?.entity;
-    this.logger.log(`Refund processed by Razorpay: ${refund?.id}`);
+
+    this.logger.log(
+      `Refund processed: ${refund?.id}`,
+    );
   }
 }
