@@ -36,51 +36,49 @@ export class OrdersService {
 
   async createOrder(customerId: string, dto: CreateOrderDto) {
     let targetCustomerId = customerId;
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerId);
 
-    // In development mode or guest checkout, ensure a valid customer record exists in DB
-    if (process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true') {
-      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerId);
+    // Look up existing customer by ID (if valid UUID) or find/create guest customer record in PostgreSQL
+    let existingCustomer = isUuid
+      ? await this.prisma.customer.findUnique({ where: { id: customerId } })
+      : null;
 
-      const existingCustomer = await this.prisma.customer.findFirst({
-        where: {
-          OR: [
-            ...(isUuid ? [{ id: customerId }] : []),
-            { user: { phone: '+919876543210' } },
-          ],
-        },
+    if (!existingCustomer) {
+      existingCustomer = await this.prisma.customer.findFirst({
+        where: { user: { phone: '+919876543210' } },
+      });
+    }
+
+    if (existingCustomer) {
+      targetCustomerId = existingCustomer.id;
+    } else {
+      let existingUser = await this.prisma.user.findFirst({
+        where: { phone: '+919876543210' },
+        include: { customer: true },
       });
 
-      if (existingCustomer) {
-        targetCustomerId = existingCustomer.id;
-      } else {
-        let existingUser = await this.prisma.user.findFirst({
-          where: { phone: '+919876543210' },
+      if (!existingUser) {
+        existingUser = await this.prisma.user.create({
+          data: {
+            phone: '+919876543210',
+            passwordHash: '$2b$10$devguestdummyhashplaceholder',
+            role: 'CUSTOMER',
+            isVerified: true,
+            isActive: true,
+            profile: { create: { firstName: 'Guest', lastName: 'User' } },
+            customer: { create: {} },
+          },
           include: { customer: true },
         });
+      }
 
-        if (!existingUser) {
-          existingUser = await this.prisma.user.create({
-            data: {
-              phone: '+919876543210',
-              passwordHash: '$2b$10$devguestdummyhashplaceholder',
-              role: 'CUSTOMER',
-              isVerified: true,
-              isActive: true,
-              profile: { create: { firstName: 'Guest', lastName: 'User' } },
-              customer: { create: {} },
-            },
-            include: { customer: true },
-          });
-        }
-
-        if (existingUser.customer) {
-          targetCustomerId = existingUser.customer.id;
-        } else {
-          const newCustomer = await this.prisma.customer.create({
-            data: { userId: existingUser.id },
-          });
-          targetCustomerId = newCustomer.id;
-        }
+      if (existingUser.customer) {
+        targetCustomerId = existingUser.customer.id;
+      } else {
+        const newCustomer = await this.prisma.customer.create({
+          data: { userId: existingUser.id },
+        });
+        targetCustomerId = newCustomer.id;
       }
     }
 

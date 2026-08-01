@@ -3,6 +3,16 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
+const DEV_GUEST_USER = {
+  id: 'c0000000-0000-0000-0000-000000000001',
+  sub: 'c0000000-0000-0000-0000-000000000001',
+  email: 'guest@foodhub.com',
+  phone: '+919876543210',
+  role: 'CUSTOMER',
+  firstName: 'Guest',
+  lastName: 'User',
+};
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
@@ -32,15 +42,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return result;
     } catch (err) {
       if (isDevOrGuestMode) {
-        req.user = req.user || {
-          id: 'guest-customer-dev',
-          sub: 'guest-customer-dev',
-          email: 'guest@foodhub.com',
-          phone: '+919876543210',
-          role: 'CUSTOMER',
-          firstName: 'Guest',
-          lastName: 'User',
-        };
+        req.user = req.user || DEV_GUEST_USER;
         return true;
       }
       throw err;
@@ -58,15 +60,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     if (err || !user) {
       if (isDevOrGuestMode) {
-        return {
-          id: 'guest-customer-dev',
-          sub: 'guest-customer-dev',
-          email: 'guest@foodhub.com',
-          phone: '+919876543210',
-          role: 'CUSTOMER',
-          firstName: 'Guest',
-          lastName: 'User',
-        };
+        return DEV_GUEST_USER;
       }
       throw err || new UnauthorizedException('Authentication token required or expired');
     }
