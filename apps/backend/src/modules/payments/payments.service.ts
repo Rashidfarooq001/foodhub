@@ -36,8 +36,19 @@ export class PaymentsService {
     });
     if (existing) return { razorpayOrderId: existing.razorpayOrderId };
 
+    // Resolve valid amount (from DTO or Order totalAmount in DB)
+    let rawAmount = dto.amount;
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
+      rawAmount = Number(order.totalAmount);
+    }
+
+    const paymentAmount = Number(rawAmount);
+    if (!paymentAmount || isNaN(paymentAmount) || paymentAmount <= 0) {
+      throw new BadRequestException('Invalid payment amount');
+    }
+
     // Amount in paise (Razorpay uses smallest currency unit)
-    const amountPaise = Math.round(dto.amount * 100);
+    const amountPaise = Math.round(paymentAmount * 100);
 
     const rzpOrder = await this.razorpay.orders.create({
       amount:   amountPaise,

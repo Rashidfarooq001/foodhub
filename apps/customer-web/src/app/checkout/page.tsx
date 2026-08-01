@@ -159,6 +159,32 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Extract numeric total amount safely (handles Prisma Decimal object, number, or string)
+      let parsedAmount = grandTotal;
+      if (createdOrder.totalAmount !== undefined && createdOrder.totalAmount !== null) {
+        if (typeof createdOrder.totalAmount === 'number') {
+          parsedAmount = createdOrder.totalAmount;
+        } else if (typeof createdOrder.totalAmount === 'string') {
+          parsedAmount = parseFloat(createdOrder.totalAmount);
+        } else if (typeof createdOrder.totalAmount === 'object' && createdOrder.totalAmount.d) {
+          parsedAmount = parseFloat(String(createdOrder.totalAmount));
+          if (isNaN(parsedAmount) && Array.isArray(createdOrder.totalAmount.d)) {
+            parsedAmount = Number(createdOrder.totalAmount.d[0]);
+          }
+        } else {
+          parsedAmount = Number(createdOrder.totalAmount);
+        }
+      }
+
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        parsedAmount = grandTotal;
+      }
+
+      // Mandatory validation check
+      if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Invalid payment amount');
+      }
+
       // Call backend to create real Razorpay payment order
       const pmtRes = await fetch(`${API_BASE}/payments/create`, {
         method: 'POST',
@@ -168,7 +194,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           orderId: createdOrder.id,
-          amount: Number(createdOrder.totalAmount || grandTotal),
+          amount: Math.round(parsedAmount),
           method: validPaymentMethod,
         }),
       });
@@ -190,7 +216,7 @@ export default function CheckoutPage() {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TJd8pmiEPE8AuF',
-        amount: Math.round(Number(createdOrder.totalAmount || grandTotal) * 100),
+        amount: Math.round(parsedAmount * 100),
         currency: 'INR',
         name: 'FoodHub Enterprise',
         description: `Order #${createdOrder.orderNumber || orderId}`,
