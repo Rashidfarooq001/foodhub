@@ -18,13 +18,23 @@ export function useMsg91Widget() {
       return new Promise((resolve, reject) => {
         setIsWidgetLoading(true);
 
-        const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '';
-        const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || '';
+        const envWidgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID;
+        const envTokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN;
+
+        console.log('MSG91 Env check - NEXT_PUBLIC_MSG91_WIDGET_ID:', envWidgetId);
+        console.log('MSG91 Env check - NEXT_PUBLIC_MSG91_WIDGET_TOKEN:', envTokenAuth);
+
+        const widgetId = envWidgetId || '366861655a52353436333837';
+        const tokenAuth = envTokenAuth || '556022TLShucwZ86a6d8a7bP1';
+
+        console.log('MSG91 resolved widgetId:', widgetId);
+        console.log('MSG91 resolved tokenAuth:', tokenAuth);
 
         const cleanPhone = phone.replace(/\D/g, '');
         const identifier = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
 
         const onSuccess = (data: any) => {
+          console.log('MSG91 SUCCESS', data);
           setIsWidgetLoading(false);
           const token =
             typeof data === 'string'
@@ -38,11 +48,12 @@ export function useMsg91Widget() {
         };
 
         const onFailure = (error: any) => {
+          console.error('MSG91 FAILURE', error);
           setIsWidgetLoading(false);
           const errMsg =
             typeof error === 'string'
               ? error
-              : error?.message || 'MSG91 Widget authentication cancelled or failed';
+              : error?.message || 'MSG91 Widget verification cancelled or failed';
           reject(new Error(errMsg));
         };
 
@@ -63,10 +74,17 @@ export function useMsg91Widget() {
           onFailure,
         };
 
+        console.log(
+          'MSG91: window.initSendOTP exists?',
+          typeof window !== 'undefined' ? typeof window.initSendOTP : 'undefined',
+        );
+        console.log('MSG91: starting', configuration);
+
         if (typeof window !== 'undefined' && typeof window.initSendOTP === 'function') {
           try {
             window.initSendOTP(configuration, onSuccess, onFailure);
           } catch (e: any) {
+            console.error('MSG91: EXCEPTION in initSendOTP', e);
             setIsWidgetLoading(false);
             reject(e);
           }
@@ -74,12 +92,14 @@ export function useMsg91Widget() {
           try {
             window.loadOtpProvider(configuration, onSuccess, onFailure);
           } catch (e: any) {
+            console.error('MSG91: EXCEPTION in loadOtpProvider', e);
             setIsWidgetLoading(false);
             reject(e);
           }
         } else {
+          console.error('MSG91: Widget SDK script not loaded on window object');
           setIsWidgetLoading(false);
-          reject(new Error('MSG91 Widget SDK is not available'));
+          reject(new Error('MSG91 Widget SDK script not available on window object'));
         }
       });
     },
