@@ -12,11 +12,11 @@ const API_BASE = getApiBaseUrl();
 export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
-  const { launchWidget } = useMsg91Widget();
+  const { launchWidget, isWidgetLoading } = useMsg91Widget();
 
   const [phone, setPhone] = useState('+919876543210');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
@@ -30,27 +30,28 @@ export default function LoginPage() {
 
   const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!phone || phone.replace(/\D/g, '').length < 10) {
+    const cleanDigits = phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
     setError('');
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
-      let accessToken: string | null = null;
+      let accessToken: string;
       try {
         accessToken = await launchWidget(phone);
         setOtpSent(true);
         setCooldown(30);
       } catch (widgetErr: any) {
-        // Dev / local fallback if MSG91 SDK or credentials are missing in local dev
+        // Fallback for offline local dev without MSG91 keys
         if (
           !process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ||
           widgetErr.message?.includes('SDK') ||
           widgetErr.message?.includes('not available')
         ) {
-          console.warn('[MSG91 Fallback] Executing local auth verification...');
+          console.warn('[MSG91 Fallback] MSG91 Widget keys missing, executing local dev auth...');
           await handleLocalAuthFallback();
           return;
         }
@@ -58,10 +59,10 @@ export default function LoginPage() {
       }
 
       if (!accessToken) {
-        throw new Error('OTP verification token missing from widget');
+        throw new Error('Access token missing from MSG91 verification response');
       }
 
-      // Backend verification
+      // Send accessToken to backend POST /api/v1/auth/verify-otp
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +97,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -138,9 +139,11 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || 'Authentication error');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  const isLoading = isSubmitting || isWidgetLoading;
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
