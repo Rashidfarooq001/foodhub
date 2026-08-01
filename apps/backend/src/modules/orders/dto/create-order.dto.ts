@@ -1,6 +1,6 @@
 import {
   IsString, IsNotEmpty, IsArray, IsEnum, IsOptional,
-  IsBoolean, ValidateNested, IsNumber, Min, IsUUID,
+  IsBoolean, ValidateNested, IsNumber, Min, IsUUID, IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -32,8 +32,10 @@ export class CreateOrderDto {
   @Type(() => OrderItemDto)
   items!: OrderItemDto[];
 
-  @ApiProperty({ example: { line1: 'MG Road', city: 'Bengaluru', lat: 12.97, lng: 77.59 } })
-  deliveryAddress!: Record<string, unknown>;
+  @ApiPropertyOptional({ example: { line1: 'MG Road', city: 'Bengaluru', lat: 12.97, lng: 77.59 } })
+  @IsObject()
+  @IsOptional()
+  deliveryAddress?: Record<string, unknown>;
 
   @ApiProperty({ enum: PaymentMethod, example: 'UPI' })
   @IsEnum(PaymentMethod)
