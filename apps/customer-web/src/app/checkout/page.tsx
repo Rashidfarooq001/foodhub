@@ -214,14 +214,41 @@ export default function CheckoutPage() {
 
       const rzpOrderId = pmtData.razorpayOrderId;
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TKWo9ZF0l2LUHq',
-        amount: pmtData.amount || Math.round(parsedAmount * 100),
-        currency: pmtData.currency || 'INR',
-        name: 'FoodHub Enterprise',
-        description: `Order #${createdOrder.orderNumber || orderId}`,
-        order_id: rzpOrderId,
-        handler: async function (response: any) {
+    const isDesktop =
+  typeof window !== "undefined" &&
+  !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+const options = {
+  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  amount: pmtData.amount || Math.round(parsedAmount * 100),
+  currency: pmtData.currency || "INR",
+  name: "Foodtop enterprises",
+  description: `Order #${createdOrder.orderNumber || orderId}`,
+  order_id: rzpOrderId,
+
+  ...(isDesktop && {
+    config: {
+      display: {
+        blocks: {
+          upi: {
+            name: "Scan & Pay",
+            instruments: [
+              {
+                method: "upi",
+                flows: ["qr"],
+              },
+            ],
+          },
+        },
+        sequence: ["block.upi"],
+        preferences: {
+          show_default_blocks: false,
+        },
+      },
+    },
+  }),
+
+  handler: async function (response: any) {
           try {
             const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
               method: 'POST',
@@ -256,8 +283,8 @@ export default function CheckoutPage() {
         },
         prefill: {
           name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Customer',
-          email: user?.email || 'customer@foodhub.com',
-          contact: user?.phone || '+919876543210',
+          email: user?.email || '',
+          contact: user?.phone || '',
         },
         theme: {
           color: '#ea580c',
