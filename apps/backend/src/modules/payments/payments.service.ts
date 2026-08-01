@@ -59,23 +59,18 @@ export class PaymentsService {
     }
 
     const amountPaise = Math.round(paymentAmount * 100);
+// Always create a fresh Razorpay Order.
+// Razorpay Orders cannot be reused once paid or closed.
 
-    const existingPayment = await this.prisma.payment.findFirst({
-      where: {
-        orderId: dto.orderId,
-        status: PaymentStatus.PENDING,
-      },
-    });
-
-    if (existingPayment) {
-      return {
-        dbOrderId: dto.orderId,
-        razorpayOrderId: existingPayment.razorpayOrderId,
-        amount: Math.round(Number(existingPayment.amount) * 100),
-        currency: 'INR',
-        paymentId: existingPayment.id,
-      };
-    }
+await this.prisma.payment.updateMany({
+  where: {
+    orderId: dto.orderId,
+    status: PaymentStatus.PENDING,
+  },
+  data: {
+    status: PaymentStatus.FAILED,
+  },
+});
 
     let razorpayOrder: any;
 
@@ -87,7 +82,7 @@ export class PaymentsService {
       razorpayOrder = await this.razorpay.orders.create({
         amount: amountPaise,
         currency: 'INR',
-        receipt: order.orderNumber,
+       receipt: `${order.orderNumber}-${Date.now()}`
       });
 
       this.logger.log(
@@ -106,16 +101,17 @@ export class PaymentsService {
           'Unable to create Razorpay order',
       );
     }
-
-    const payment = await this.prisma.payment.create({
-      data: {
-        orderId: dto.orderId,
-        razorpayOrderId: razorpayOrder.id,
-        amount: paymentAmount,
-        status: PaymentStatus.PENDING,
-        method: dto.method,
-      },
-    });
+const payment = await this.prisma.payment.create({
+  data: {
+    orderId: dto.orderId,
+    razorpayOrderId: razorpayOrder.id,
+    amount: paymentAmount,
+    status: PaymentStatus.PENDING,
+    method: dto.method,
+    razorpayPaymentId: null,
+    razorpaySignature: null,
+  },
+});
 
     this.logger.log(
       `Payment record created: ${payment.id}`,
