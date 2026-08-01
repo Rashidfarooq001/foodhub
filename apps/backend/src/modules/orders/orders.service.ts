@@ -35,6 +35,55 @@ export class OrdersService {
   ) {}
 
   async createOrder(customerId: string, dto: CreateOrderDto) {
+    let targetCustomerId = customerId;
+
+    // In development mode or guest checkout, ensure a valid customer record exists in DB
+    if (process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true') {
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerId);
+
+      const existingCustomer = await this.prisma.customer.findFirst({
+        where: {
+          OR: [
+            ...(isUuid ? [{ id: customerId }] : []),
+            { user: { phone: '+919876543210' } },
+          ],
+        },
+      });
+
+      if (existingCustomer) {
+        targetCustomerId = existingCustomer.id;
+      } else {
+        let existingUser = await this.prisma.user.findFirst({
+          where: { phone: '+919876543210' },
+          include: { customer: true },
+        });
+
+        if (!existingUser) {
+          existingUser = await this.prisma.user.create({
+            data: {
+              phone: '+919876543210',
+              passwordHash: '$2b$10$devguestdummyhashplaceholder',
+              role: 'CUSTOMER',
+              isVerified: true,
+              isActive: true,
+              profile: { create: { firstName: 'Guest', lastName: 'User' } },
+              customer: { create: {} },
+            },
+            include: { customer: true },
+          });
+        }
+
+        if (existingUser.customer) {
+          targetCustomerId = existingUser.customer.id;
+        } else {
+          const newCustomer = await this.prisma.customer.create({
+            data: { userId: existingUser.id },
+          });
+          targetCustomerId = newCustomer.id;
+        }
+      }
+    }
+
     // 1. Validate restaurant
     await this.validation.validateRestaurantOpen(dto.restaurantId);
 
@@ -81,7 +130,7 @@ export class OrdersService {
     let discountAmount = 0;
     if (dto.couponCode) {
       discountAmount = await this.validation.validateAndApplyCoupon(
-        dto.couponCode, customerId, subtotal,
+        dto.couponCode, targetCustomerId, subtotal,
       );
     }
 
@@ -99,7 +148,7 @@ export class OrdersService {
     // 7. Wallet deduction check
     if (dto.useWallet) {
       const customer = await this.prisma.customer.findUnique({
-        where: { id: customerId },
+        where: { id: targetCustomerId },
         include: { user: true },
       });
       if (customer) {
@@ -112,7 +161,7 @@ export class OrdersService {
       const newOrder = await tx.order.create({
         data: {
           orderNumber:        generateOrderNumber(),
-          customerId,
+          customerId:         targetCustomerId,
           restaurantId:       dto.restaurantId,
           status:             OrderStatus.PENDING,
           subtotal,

@@ -23,7 +23,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err: any, user: any) {
+    const isGuestCheckoutDev = process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true';
+
     if (err || !user) {
+      if (isGuestCheckoutDev) {
+        return {
+          id: 'guest-customer-dev',
+          sub: 'guest-customer-dev',
+          email: 'guest@foodhub.com',
+          phone: '+919876543210',
+          role: 'CUSTOMER',
+          firstName: 'Guest',
+          lastName: 'User',
+        };
+      }
       throw err || new UnauthorizedException('Authentication token required or expired');
     }
     return user;
