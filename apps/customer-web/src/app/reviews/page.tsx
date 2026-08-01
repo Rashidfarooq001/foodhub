@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 
 import { getApiBaseUrl } from '@foodhub/config';
 
+import { useAuthStore } from '../../stores/use-auth-store';
+
 const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 const DEFAULT_REVIEWS = [
@@ -48,7 +50,7 @@ export default function ReviewsPage() {
   React.useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+        const token = useAuthStore.getState().accessToken;
         const res = await fetch(`${getApiBase()}/reviews/me`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });

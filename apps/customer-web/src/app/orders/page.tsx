@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ActiveOrderTrackingData } from '../../data/mock-data';
 import { Clock, ArrowRight, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
+import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -27,9 +28,13 @@ export default function OrderHistoryPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        const { accessToken } = useAuthStore.getState();
+        const headers: Record<string, string> = accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : {};
         const [activeRes, historyRes] = await Promise.all([
-          fetch(`${API_BASE}/orders/active`),
-          fetch(`${API_BASE}/orders/history`),
+          fetch(`${API_BASE}/orders/active`, { headers }),
+          fetch(`${API_BASE}/orders/history`, { headers }),
         ]);
         if (activeRes.ok) {
           setActiveOrder(await activeRes.json());

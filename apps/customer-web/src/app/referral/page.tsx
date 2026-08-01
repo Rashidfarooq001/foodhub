@@ -7,6 +7,8 @@ import {
 
 import { getApiBaseUrl } from '@foodhub/config';
 
+import { useAuthStore } from '../../stores/use-auth-store';
+
 const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
 export default function ReferralPage() {
@@ -20,7 +22,7 @@ export default function ReferralPage() {
   React.useEffect(() => {
     const fetchReferrals = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+        const token = useAuthStore.getState().accessToken;
         const res = await fetch(`${getApiBase()}/referrals/me`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -60,7 +62,7 @@ export default function ReferralPage() {
     setApplying(true);
     setApplyMsg('');
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+      const token = useAuthStore.getState().accessToken;
       const res = await fetch(`${getApiBase()}/referrals/claim`, {
         method: 'POST',
         headers: {

@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +17,8 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [cooldown, setCooldown] = useState(60);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   useEffect(() => {
     let timer: any;
@@ -23,40 +28,86 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, [step, cooldown]);
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
     setError('');
-    setStep('OTP');
-    setCooldown(60);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send OTP. Please try again.');
+      }
+
+      setStep('OTP');
+      setCooldown(data.cooldownSec || 60);
+      if (data.otp) {
+        setDevOtp(data.otp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error sending OTP');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join('');
     if (enteredOtp.length !== 4) {
       setError('Please enter the complete 4-digit OTP');
       return;
     }
+    setError('');
+    setIsLoading(true);
 
-    // Mock Login Success
-    setAuth(
-      {
-        id: 'usr-customer-1',
-        phone,
-        role: 'CUSTOMER',
-        firstName: 'Rahul',
-        lastName: 'Sharma',
-        email: 'rahul.sharma@example.com',
-      },
-      'access-token-xyz',
-      'refresh-token-xyz',
-    );
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp: enteredOtp }),
+      });
 
-    router.push('/');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid or expired OTP');
+      }
+
+      if (!data.tokens?.accessToken) {
+        throw new Error('Authentication token not received from server');
+      }
+
+      const userProfile = {
+        id: data.user.id,
+        phone: data.user.phone,
+        email: data.user.email,
+        role: data.user.role,
+        firstName: data.user.profile?.firstName || 'Customer',
+        lastName: data.user.profile?.lastName || '',
+      };
+
+      setAuth(
+        userProfile,
+        data.tokens.accessToken,
+        data.tokens.refreshToken || data.tokens.accessToken,
+      );
+
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'OTP verification failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,6 +125,11 @@ export default function LoginPage() {
               ? 'Enter your mobile number to receive a 4-digit login OTP'
               : `Enter 4-digit OTP sent to ${phone}`}
           </p>
+          {devOtp && step === 'OTP' && (
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 py-1 px-3 rounded-lg inline-block">
+              Demo OTP: {devOtp}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -100,9 +156,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <span>Get OTP</span>
+              <span>{isLoading ? 'Sending OTP...' : 'Get OTP'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -132,9 +189,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <CheckCircle2 className="h-4 w-4" /> Verify & Login
+              <CheckCircle2 className="h-4 w-4" /> {isLoading ? 'Verifying...' : 'Verify & Login'}
             </button>
 
             <div className="flex items-center justify-between text-xs">
