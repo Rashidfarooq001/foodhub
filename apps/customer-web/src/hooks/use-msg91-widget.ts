@@ -52,6 +52,7 @@ export function useMsg91Widget() {
         if (typeof window !== 'undefined' && window.initSendOTP) {
           try {
             window.initSendOTP(configuration);
+            setTimeout(() => setIsWidgetLoading(false), 600);
           } catch (e: any) {
             setIsWidgetLoading(false);
             reject(e);
@@ -59,6 +60,7 @@ export function useMsg91Widget() {
         } else if (typeof window !== 'undefined' && window.loadOtpProvider) {
           try {
             window.loadOtpProvider(configuration);
+            setTimeout(() => setIsWidgetLoading(false), 600);
           } catch (e: any) {
             setIsWidgetLoading(false);
             reject(e);
