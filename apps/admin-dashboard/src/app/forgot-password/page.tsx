@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
+import { isAuthEnabled } from '@foodhub/config';
 import Link from 'next/link';
-
-const IS_AUTH_TEMPORARILY_DISABLED = true;
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
 
-  if (IS_AUTH_TEMPORARILY_DISABLED) {
+  if (!isAuthEnabled()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { isAuthEnabled } from '@foodhub/config';
 import { useCartStore } from './use-cart-store';
 
 export interface UserProfile {
@@ -24,20 +25,35 @@ interface AuthState {
   logout: () => void;
 }
 
+const DEV_GUEST_USER: UserProfile = {
+  id: 'guest-customer-dev',
+  phone: '+919876543210',
+  role: 'CUSTOMER',
+  firstName: 'Guest',
+  lastName: 'User',
+};
+
+const getInitialAuthState = () => {
+  const authActive = isAuthEnabled();
+  return {
+    user: authActive ? null : DEV_GUEST_USER,
+    accessToken: authActive ? null : 'dev-guest-access-token',
+    refreshToken: authActive ? null : 'dev-guest-refresh-token',
+    isAuthenticated: !authActive,
+  };
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+      ...getInitialAuthState(),
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
 
       updateUser: (profile) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...profile } : null,
+          user: state.user ? { ...state.user, ...profile } : DEV_GUEST_USER,
         })),
 
       logout: () => {
@@ -48,13 +64,18 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem('foodhub-customer-address');
           sessionStorage.clear();
         }
-        // Clear active cart store
         try {
           useCartStore.getState().clearCart();
         } catch {
           /* ignore */
         }
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        const authActive = isAuthEnabled();
+        set({
+          user: authActive ? null : DEV_GUEST_USER,
+          accessToken: authActive ? null : 'dev-guest-access-token',
+          refreshToken: authActive ? null : 'dev-guest-refresh-token',
+          isAuthenticated: !authActive,
+        });
       },
     }),
     {

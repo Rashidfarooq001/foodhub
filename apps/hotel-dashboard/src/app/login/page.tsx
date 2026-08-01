@@ -4,19 +4,16 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UtensilsCrossed, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const API_BASE = getApiBaseUrl();
-
+import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 import Link from 'next/link';
 
-const IS_AUTH_TEMPORARILY_DISABLED = true;
+const API_BASE = getApiBaseUrl();
 
 export default function HotelLoginPage() {
   const router = useRouter();
   const { setAuth } = useHotelAuthStore();
 
-  if (IS_AUTH_TEMPORARILY_DISABLED) {
+  if (!isAuthEnabled()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">

@@ -4,14 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
-const IS_AUTH_TEMPORARILY_DISABLED = true;
-
 export default function RestaurantRegisterPage() {
-  if (IS_AUTH_TEMPORARILY_DISABLED) {
+  if (!isAuthEnabled()) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-4 py-16">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">

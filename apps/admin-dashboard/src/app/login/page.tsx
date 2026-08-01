@@ -10,22 +10,19 @@ import {
 } from 'lucide-react';
 
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
+import Link from 'next/link';
 
 const getApiBase = () =>
   typeof window !== 'undefined'
     ? getApiBaseUrl()
     : 'https://foodhub-backend-enq2.onrender.com/api/v1';
 
-import Link from 'next/link';
-
-const IS_AUTH_TEMPORARILY_DISABLED = true;
-
 export default function AdminLoginPage() {
   const router = useRouter();
   const { setAuth } = useAdminAuthStore();
 
-  if (IS_AUTH_TEMPORARILY_DISABLED) {
+  if (!isAuthEnabled()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">

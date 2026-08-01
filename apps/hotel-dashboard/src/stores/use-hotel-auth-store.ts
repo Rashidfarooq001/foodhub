@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { isAuthEnabled } from '@foodhub/config';
 
 export interface HotelUserProfile {
   id: string;
@@ -20,6 +21,24 @@ interface HotelAuthState {
   logout: () => void;
 }
 
+const DEV_HOTEL_USER: HotelUserProfile = {
+  id: 'hotel-owner-dev',
+  email: 'owner@spicegarden.com',
+  role: 'RESTAURANT_OWNER',
+  name: 'Spice Garden Owner (Dev Mode)',
+  restaurantId: 'rest-spice-garden-id',
+};
+
+const getInitialAuthState = () => {
+  const authActive = isAuthEnabled();
+  return {
+    user: authActive ? null : DEV_HOTEL_USER,
+    accessToken: authActive ? null : 'dev-hotel-access-token',
+    refreshToken: authActive ? null : 'dev-hotel-refresh-token',
+    isAuthenticated: !authActive,
+  };
+};
+
 const dummyStorage = {
   getItem: () => null,
   setItem: () => {},
@@ -29,10 +48,7 @@ const dummyStorage = {
 export const useHotelAuthStore = create<HotelAuthState>()(
   persist(
     (set) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+      ...getInitialAuthState(),
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
@@ -41,7 +57,13 @@ export const useHotelAuthStore = create<HotelAuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodhub-hotel-auth');
         }
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        const authActive = isAuthEnabled();
+        set({
+          user: authActive ? null : DEV_HOTEL_USER,
+          accessToken: authActive ? null : 'dev-hotel-access-token',
+          refreshToken: authActive ? null : 'dev-hotel-refresh-token',
+          isAuthenticated: !authActive,
+        });
       },
     }),
     {

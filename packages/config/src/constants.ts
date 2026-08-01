@@ -1,3 +1,12 @@
+export const AUTH_ENABLED = false;
+
+export function isAuthEnabled(): boolean {
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_AUTH_ENABLED !== undefined) {
+    return process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true';
+  }
+  return AUTH_ENABLED;
+}
+
 export const APP_CONSTANTS = {
   APP_NAME: 'FoodHub',
   DEFAULT_CURRENCY: 'INR',

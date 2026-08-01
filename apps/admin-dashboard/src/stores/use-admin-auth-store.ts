@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { isAuthEnabled } from '@foodhub/config';
 
 export interface AdminUserProfile {
   id: string;
@@ -19,6 +20,23 @@ interface AdminAuthState {
   logout: () => void;
 }
 
+const DEV_ADMIN_USER: AdminUserProfile = {
+  id: 'admin-super-dev',
+  email: 'admin@foodhub.com',
+  role: 'SUPER_ADMIN',
+  name: 'Super Admin (Dev Mode)',
+};
+
+const getInitialAuthState = () => {
+  const authActive = isAuthEnabled();
+  return {
+    user: authActive ? null : DEV_ADMIN_USER,
+    accessToken: authActive ? null : 'dev-admin-access-token',
+    refreshToken: authActive ? null : 'dev-admin-refresh-token',
+    isAuthenticated: !authActive,
+  };
+};
+
 const dummyStorage = {
   getItem: () => null,
   setItem: () => {},
@@ -28,10 +46,7 @@ const dummyStorage = {
 export const useAdminAuthStore = create<AdminAuthState>()(
   persist(
     (set) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+      ...getInitialAuthState(),
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
@@ -40,7 +55,13 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodhub-admin-auth');
         }
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        const authActive = isAuthEnabled();
+        set({
+          user: authActive ? null : DEV_ADMIN_USER,
+          accessToken: authActive ? null : 'dev-admin-access-token',
+          refreshToken: authActive ? null : 'dev-admin-refresh-token',
+          isAuthenticated: !authActive,
+        });
       },
     }),
     {

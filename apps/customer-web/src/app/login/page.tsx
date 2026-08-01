@@ -5,12 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2, RotateCcw, Edit2, Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
-
-// Set to true to temporarily hide authentication UI during development
-const IS_AUTH_TEMPORARILY_DISABLED = true;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -130,7 +127,7 @@ export default function LoginPage() {
     }
   };
 
-  if (IS_AUTH_TEMPORARILY_DISABLED) {
+  if (!isAuthEnabled()) {
     return (
       <div className="flex min-h-[75vh] items-center justify-center px-4 py-12">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
@@ -140,7 +137,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <h2 className="text-2xl font-black text-gray-900">Authentication Temporarily Disabled</h2>
             <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
-              Customer sign in and registration screens are temporarily hidden during active development. You can explore all FoodHub features directly.
+              Customer sign in and registration screens are temporarily hidden during active development (`AUTH_ENABLED=false`). You can explore all FoodHub features directly.
             </p>
           </div>
           <div className="pt-2">
