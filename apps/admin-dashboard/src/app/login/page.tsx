@@ -147,7 +147,18 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <div className="border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400">
+
+<div className="text-center mt-4">
+  <button
+    type="button"
+    onClick={() => router.push('/forgot-password')}
+    className="text-sm font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+  >
+    Forgot Password?
+  </button>
+</div>
+
+<div className="border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400">
           Protected by FoodHub Enterprise RBAC &amp; JWT Session Management
         </div>
 
