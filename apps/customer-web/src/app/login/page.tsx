@@ -1,12 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2, RotateCcw, Edit2 } from 'lucide-react';
+import { Sparkles, Phone, ArrowRight, ShieldCheck, CheckCircle2, RotateCcw, Edit2, Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
+
+// Set to true to temporarily hide authentication UI during development
+const IS_AUTH_TEMPORARILY_DISABLED = true;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -125,6 +129,33 @@ export default function LoginPage() {
       otpInputsRef.current[index - 1]?.focus();
     }
   };
+
+  if (IS_AUTH_TEMPORARILY_DISABLED) {
+    return (
+      <div className="flex min-h-[75vh] items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
+            <Lock className="h-8 w-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-gray-900">Authentication Temporarily Disabled</h2>
+            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Customer sign in and registration screens are temporarily hidden during active development. You can explore all FoodHub features directly.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-gray-900/10 transition hover:bg-gray-800"
+            >
+              <span>Return to FoodHub Home</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">

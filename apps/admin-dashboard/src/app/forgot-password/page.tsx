@@ -3,8 +3,35 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import Link from 'next/link';
+
+const IS_AUTH_TEMPORARILY_DISABLED = true;
+
 export default function ForgotPasswordPage() {
   const router = useRouter();
+
+  if (IS_AUTH_TEMPORARILY_DISABLED) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
+        <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-gray-900">Password Reset Temporarily Disabled</h1>
+            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Password reset workflows are temporarily hidden during active development.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-purple-700"
+            >
+              <span>Return to Command Center</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');

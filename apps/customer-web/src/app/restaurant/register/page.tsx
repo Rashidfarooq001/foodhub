@@ -8,7 +8,35 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
+const IS_AUTH_TEMPORARILY_DISABLED = true;
+
 export default function RestaurantRegisterPage() {
+  if (IS_AUTH_TEMPORARILY_DISABLED) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4 py-16">
+        <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
+            <UtensilsCrossed className="h-8 w-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-gray-900">Registration Temporarily Disabled</h1>
+            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Restaurant onboarding registration screens are temporarily hidden during active development.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
+            >
+              <span>Return to FoodHub Home</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const [form, setForm] = useState({
     name: '',
     ownerName: '',

@@ -193,14 +193,7 @@ export const Navbar: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-2 rounded-2xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800"
-              >
-                <User className="h-4 w-4" /> Login
-              </Link>
-            )}
+            ) : null}
 
             {/* Mobile Hamburger Menu Toggle */}
             <button
