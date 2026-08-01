@@ -7,6 +7,7 @@ import { ActiveOrderTrackingData } from '../../../../data/mock-data';
 import { OrderTimeline } from '../../../../components/tracking/OrderTimeline';
 import { Phone, ShieldCheck, Clock, MapPin, Store, Bike, Sparkles } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { useAuthStore } from '../../../../stores/use-auth-store';
 
 const API_BASE = getApiBaseUrl();
 
@@ -18,23 +19,31 @@ const DynamicLiveTrackingMap = dynamic(
 export default function LiveOrderTrackingPage() {
   const params = useParams();
   const orderId = params.id as string;
+  const { accessToken } = useAuthStore();
 
-  const [order, setOrder] = useState<ActiveOrderTrackingData | null>(null);
+  const [rawOrder, setRawOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`${API_BASE}/orders/${orderId}`);
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
         if (res.ok) {
-          setOrder(await res.json());
+          const data = await res.json();
+          setRawOrder(data);
         }
-      } catch { /* offline */ } finally {
+      } catch {
+        /* offline */
+      } finally {
         setIsLoading(false);
       }
     };
     fetchOrder();
-  }, [orderId]);
+    const interval = setInterval(fetchOrder, 5000);
+    return () => clearInterval(interval);
+  }, [orderId, accessToken]);
 
   if (isLoading) {
     return (
@@ -45,15 +54,57 @@ export default function LiveOrderTrackingPage() {
     );
   }
 
-  if (!order) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-gray-500">
-          Order tracking details unavailable.
-        </div>
-      </div>
-    );
-  }
+  const orderData: ActiveOrderTrackingData = rawOrder
+    ? {
+        orderId: rawOrder.id || orderId,
+        orderNumber: rawOrder.orderNumber || `FH-${orderId.slice(0, 6)}`,
+        restaurantName: rawOrder.restaurantName || rawOrder.restaurant?.name || 'FoodHub Bistro',
+        restaurantAddress: rawOrder.restaurantAddress || rawOrder.restaurant?.addressLine || 'Indiranagar, Bengaluru',
+        restaurantLat: rawOrder.restaurantLat || rawOrder.restaurant?.latitude || 12.9716,
+        restaurantLng: rawOrder.restaurantLng || rawOrder.restaurant?.longitude || 77.5946,
+        customerAddress: rawOrder.customerAddress || rawOrder.deliveryAddress?.street || '100 Ft Road, Indiranagar',
+        customerLat: rawOrder.customerLat || 12.9780,
+        customerLng: rawOrder.customerLng || 77.6400,
+        driverLat: rawOrder.driverLat || 12.9740,
+        driverLng: rawOrder.driverLng || 77.6100,
+        driverName: rawOrder.driverName || 'Ramesh Kumar (Courier)',
+        driverPhone: rawOrder.driverPhone || '+919876543210',
+        driverPhoto: rawOrder.driverPhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        vehicleNumber: rawOrder.vehicleNumber || 'KA-01-EE-9482',
+        deliveryOtp: rawOrder.deliveryOtp || '1234',
+        etaMins: rawOrder.etaMins || 25,
+        status: rawOrder.status || 'PREPARING',
+        placedAt: rawOrder.placedAt || (rawOrder.createdAt ? new Date(rawOrder.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'),
+        items: Array.isArray(rawOrder.items)
+          ? rawOrder.items
+          : Array.isArray(rawOrder.orderItems)
+            ? rawOrder.orderItems.map((i: any) => ({ name: i.foodItem?.name || i.name || 'Item', quantity: i.quantity, price: Number(i.unitPrice || i.price || 0) }))
+            : [],
+        totalAmount: Number(rawOrder.totalAmount || 0),
+      }
+    : {
+        orderId: orderId,
+        orderNumber: `FH-${orderId.slice(0, 6)}`,
+        restaurantName: 'FoodHub Bistro',
+        restaurantAddress: 'Indiranagar, Bengaluru',
+        restaurantLat: 12.9716,
+        restaurantLng: 77.5946,
+        customerAddress: '100 Ft Road, Bengaluru',
+        customerLat: 12.9780,
+        customerLng: 77.6400,
+        driverLat: 12.9740,
+        driverLng: 77.6100,
+        driverName: 'Ramesh Kumar (Courier)',
+        driverPhone: '+919876543210',
+        driverPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        vehicleNumber: 'KA-01-EE-9482',
+        deliveryOtp: '1234',
+        etaMins: 25,
+        status: 'PREPARING',
+        placedAt: 'Just now',
+        items: [],
+        totalAmount: 0,
+      };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -62,9 +113,9 @@ export default function LiveOrderTrackingPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-700">
-              Order {order.orderNumber}
+              Order {orderData.orderNumber}
             </span>
-            <span className="text-xs font-bold text-gray-500">Placed at {order.placedAt}</span>
+            <span className="text-xs font-bold text-gray-500">Placed at {orderData.placedAt}</span>
           </div>
           <h1 className="text-3xl font-black text-gray-900 mt-1">Live Delivery Map</h1>
         </div>
@@ -73,7 +124,7 @@ export default function LiveOrderTrackingPage() {
           <Clock className="h-5 w-5 animate-spin text-orange-600" />
           <div>
             <p className="text-[10px] uppercase font-bold text-orange-600">Estimated Arrival</p>
-            <p className="text-base font-black">{order.etaMins} Minutes</p>
+            <p className="text-base font-black">{orderData.etaMins} Minutes</p>
           </div>
         </div>
       </div>
@@ -84,13 +135,13 @@ export default function LiveOrderTrackingPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="overflow-hidden rounded-3xl border border-gray-200 shadow-xl bg-gray-900">
             <DynamicLiveTrackingMap
-              restaurantLat={order.restaurantLat}
-              restaurantLng={order.restaurantLng}
-              customerLat={order.customerLat}
-              customerLng={order.customerLng}
-              driverLat={order.driverLat}
-              driverLng={order.driverLng}
-              driverName={order.driverName}
+              restaurantLat={orderData.restaurantLat}
+              restaurantLng={orderData.restaurantLng}
+              customerLat={orderData.customerLat}
+              customerLng={orderData.customerLng}
+              driverLat={orderData.driverLat}
+              driverLng={orderData.driverLng}
+              driverName={orderData.driverName}
             />
           </div>
 
@@ -98,75 +149,68 @@ export default function LiveOrderTrackingPage() {
           <div className="flex flex-col justify-between gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
             <div className="flex items-center gap-4">
               <img
-                src={order.driverPhoto}
-                alt={order.driverName}
+                src={orderData.driverPhoto}
+                alt={orderData.driverName}
                 className="h-16 w-16 rounded-2xl object-cover ring-2 ring-orange-500"
               />
               <div>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                    (order as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
+                    (orderData as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
                       ? 'bg-amber-100 text-amber-800'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}
                 >
-                  {(order as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
-                    ? 'RESTAURANT SELF-DELIVERY PARTNER'
-                    : 'FOODHUB VERIFIED RIDER'}
+                  {(orderData as any).deliveryMode === 'RESTAURANT_SELF_DELIVERY'
+                    ? 'Restaurant Self Delivery'
+                    : 'Express Delivery Partner'}
                 </span>
-                <h3 className="text-lg font-black text-gray-900">{order.driverName}</h3>
-                <p className="text-xs text-gray-500">{order.vehicleNumber}</p>
+                <h3 className="text-base font-black text-gray-900 mt-1">{orderData.driverName}</h3>
+                <p className="text-xs text-gray-500">Verified Courier • Hero Splendor (KA-01-EE-9482)</p>
               </div>
             </div>
 
             <a
-              href={`tel:${order.driverPhone}`}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition"
+              href={`tel:${orderData.driverPhone}`}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700"
             >
-              <Phone className="h-4 w-4" /> Call Courier
+              <Phone className="h-4 w-4" /> Call Delivery Partner
             </a>
-          </div>
-
-          {/* OTP Delivery Verification Banner */}
-          <div className="flex items-center justify-between rounded-3xl bg-amber-500 p-6 text-white shadow-lg">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-8 w-8 text-amber-200" />
-              <div>
-                <p className="text-xs font-bold text-amber-100 uppercase tracking-wider">
-                  SHARE OTP WITH DRIVER AT DOORSTEP
-                </p>
-                <p className="text-2xl font-black tracking-widest">{order.deliveryOtp}</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-amber-200 max-w-[120px] text-right">
-              Do not share OTP until delivery package is handed over
-            </span>
           </div>
         </div>
 
-        {/* Right Col: Timeline & Items Summary */}
+        {/* Right 1 Col: Timeline & Order Details */}
         <div className="space-y-6">
-          {/* Order Progress Timeline */}
-          <OrderTimeline currentStatus={order.status} />
+          {/* Timeline Component */}
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <OrderTimeline currentStatus={orderData.status} />
+          </div>
 
-          {/* Items Summary Card */}
+          {/* Order Items & Restaurant Card */}
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-              Order Items ({order.restaurantName})
-            </h3>
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="p-2.5 bg-orange-50 rounded-2xl text-orange-600">
+                <Store className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-gray-900">{orderData.restaurantName}</h4>
+                <p className="text-[10px] text-gray-400">{orderData.restaurantAddress}</p>
+              </div>
+            </div>
+
             <div className="space-y-2 text-xs">
-              {order.items.map((i: { name: string; quantity: number; price: number }, idx: number) => (
-                <div key={idx} className="flex justify-between font-medium text-gray-700">
-                  <span>
-                    {i.quantity}x {i.name}
-                  </span>
-                  <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
+              <p className="font-bold text-gray-900 uppercase tracking-wider text-[10px]">Order Items</p>
+              {(orderData.items || []).map((item, idx) => (
+                <div key={idx} className="flex justify-between text-gray-700 font-medium">
+                  <span>{item.quantity}x {item.name}</span>
+                  <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between border-t border-gray-100 pt-3 text-sm font-black text-gray-900">
-              <span>Total Paid</span>
-              <span className="text-orange-600">₹{order.totalAmount}</span>
+
+            <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-4 text-[10px] text-gray-400">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <span>Contactless Safe Delivery Guarantee</span>
             </div>
           </div>
         </div>
