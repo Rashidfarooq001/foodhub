@@ -208,16 +208,16 @@ export default function CheckoutPage() {
       }
 
       const pmtData = await pmtRes.json();
-      if (!pmtData.razorpayOrderId) {
-        throw new Error('Invalid order response from payment server.');
+      if (!pmtData.razorpayOrderId || !pmtData.razorpayOrderId.startsWith('order_')) {
+        throw new Error('Invalid Razorpay order ID returned from payment server.');
       }
 
       const rzpOrderId = pmtData.razorpayOrderId;
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TJd8pmiEPE8AuF',
-        amount: Math.round(parsedAmount * 100),
-        currency: 'INR',
+        amount: pmtData.amount || Math.round(parsedAmount * 100),
+        currency: pmtData.currency || 'INR',
         name: 'FoodHub Enterprise',
         description: `Order #${createdOrder.orderNumber || orderId}`,
         order_id: rzpOrderId,
