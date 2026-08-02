@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.APP_CONSTANTS = exports.AUTH_ENABLED = void 0;
 exports.isAuthEnabled = isAuthEnabled;
-exports.AUTH_ENABLED = false;
+exports.AUTH_ENABLED = true;
 function isAuthEnabled() {
     if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_AUTH_ENABLED !== undefined) {
         return process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true';

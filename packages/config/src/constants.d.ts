@@ -1,4 +1,4 @@
-export declare const AUTH_ENABLED = false;
+export declare const AUTH_ENABLED = true;
 export declare function isAuthEnabled(): boolean;
 export declare const APP_CONSTANTS: {
     APP_NAME: string;
