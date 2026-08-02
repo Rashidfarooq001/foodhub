@@ -209,12 +209,57 @@ export class OrdersService {
     return order;
   }
 
-  async updateStatus(
-    orderId:   string,
-    dto:       UpdateOrderStatusDto,
-    changedBy?: string,
-  ) {
+ async updateStatus(
+  orderId: string,
+  dto: UpdateOrderStatusDto,
+  changedBy?: string,
+  userRole?: string,
+) {
     const order = await this.repo.findById(orderId);
+    // Restaurant permissions
+if (
+  userRole === 'RESTAURANT_OWNER' ||
+  userRole === 'RESTAURANT_MANAGER' ||
+  userRole === 'RESTAURANT_STAFF'
+) {
+ const allowed: OrderStatus[] = [
+  OrderStatus.PREPARING,
+  OrderStatus.CANCELLED,
+  OrderStatus.READY_FOR_PICKUP,
+];
+
+if (!allowed.includes(dto.status as OrderStatus)) {
+  throw new ForbiddenException(
+    'Restaurant cannot change order to this status',
+  );
+}
+
+  if (!allowed.includes(dto.status)) {
+    throw new ForbiddenException(
+      'Restaurant cannot change order to this status',
+    );
+  }
+}
+
+// Driver permissions
+if (userRole === 'DRIVER') {
+ const allowed: OrderStatus[] = [
+  OrderStatus.OUT_FOR_DELIVERY,
+  OrderStatus.DELIVERED,
+];
+
+if (!allowed.includes(dto.status as OrderStatus)) {
+  throw new ForbiddenException(
+    'Driver cannot change order to this status',
+  );
+}
+
+  if (!allowed.includes(dto.status)) {
+    throw new ForbiddenException(
+      'Driver cannot change order to this status',
+    );
+  }
+}
 
     this.validation.validateStatusTransition(order.status, dto.status);
 

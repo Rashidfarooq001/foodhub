@@ -22,7 +22,13 @@ export interface DeliveryJob {
   deliveryOtp: string;
   paymentMethod?: 'COD' | 'ONLINE';
   codAmountToCollect?: number;
-  status: 'ASSIGNED' | 'PICKED_UP' | 'DELIVERED';
+ status:
+  | 'PENDING'
+  | 'PREPARING'
+  | 'READY_FOR_PICKUP'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED';
   items: { name: string; quantity: number }[];
 }
 

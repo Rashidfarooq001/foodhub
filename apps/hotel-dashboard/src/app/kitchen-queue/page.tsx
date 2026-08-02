@@ -3,14 +3,58 @@
 import React from 'react';
 import { useKitchenStore } from '../../stores/use-kitchen-store';
 import { Clock, CheckCircle2, AlertCircle, Utensils, Bike } from 'lucide-react';
+import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
 
 export default function KitchenQueuePage() {
-  const { queue, acceptOrder, markReady, cancelOrder } = useKitchenStore();
+ const { queue, setQueue } = useKitchenStore();
+const { accessToken } = useHotelAuthStore();
 
   const pending = queue.filter((q) => q.status === 'PENDING');
   const preparing = queue.filter((q) => q.status === 'PREPARING');
   const ready = queue.filter((q) => q.status === 'READY_FOR_PICKUP');
+  const updateOrderStatus = async (
+  orderId: string,
+  status: string,
+) => {
+  const res = await fetch(
+    `${API_BASE}/orders/${orderId}/status`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status,
+      }),
+    },
+  );
 
+  if (!res.ok) {
+    alert('Failed to update order');
+    return;
+  }
+const refreshed = await fetch(
+  `${API_BASE}/orders?status=PENDING,PREPARING,READY_FOR_PICKUP`,
+  {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  },
+);
+
+if (refreshed.ok) {
+  const data = await refreshed.json();
+
+  setQueue(
+    Array.isArray(data)
+      ? data
+      : data.orders ?? [],
+  );
+}
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
@@ -56,13 +100,23 @@ export default function KitchenQueuePage() {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => acceptOrder(order.id)}
+                    onClick={() =>
+  updateOrderStatus(
+    order.id,
+    'PREPARING',
+  )
+}
                     className="flex-1 rounded-xl bg-orange-600 py-2.5 text-xs font-bold text-white hover:bg-orange-700 shadow-md"
                   >
                     Accept & Prepare
                   </button>
                   <button
-                    onClick={() => cancelOrder(order.id)}
+                   onClick={() =>
+  updateOrderStatus(
+    order.id,
+    'CANCELLED',
+  )
+}
                     className="rounded-xl border border-rose-200 px-3 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
                   >
                     Reject
@@ -106,7 +160,12 @@ export default function KitchenQueuePage() {
                 )}
 
                 <button
-                  onClick={() => markReady(order.id)}
+                  onClick={() =>
+  updateOrderStatus(
+    order.id,
+    'READY_FOR_PICKUP',
+  )
+}
                   className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-md"
                 >
                   Mark Ready for Pickup
@@ -141,18 +200,18 @@ export default function KitchenQueuePage() {
                     </div>
                   ))}
                 </div>
-
-                {order.driverName ? (
-                  <div className="rounded-xl bg-gray-50 p-2.5 text-xs font-bold text-gray-800">
-                    Assigned Rider: {order.driverName} ({order.driverPhone})
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      alert(`Self-Delivery Rider Ramesh Kumar assigned to ${order.orderNumber}`);
-                    }}
-                    className="w-full rounded-xl bg-orange-600 py-2.5 text-xs font-black text-white hover:bg-orange-700 shadow-md flex items-center justify-center gap-2"
-                  >
+<button
+  onClick={() =>
+    updateOrderStatus(
+      order.id,
+      'OUT_FOR_DELIVERY',
+    )
+  }
+  className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-black text-white hover:bg-blue-700 shadow-md flex items-center justify-center gap-2"
+>
+  <Bike className="h-4 w-4" />
+  Order Picked Up
+</button>
                     <Bike className="h-4 w-4" /> Assign Self Delivery Rider
                   </button>
                 )}

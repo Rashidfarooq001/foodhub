@@ -6,12 +6,13 @@ import { useActiveDeliveryStore } from '../../stores/use-active-delivery-store';
 import { useRouter } from 'next/navigation';
 import { DollarSign, MapPin } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
-
+import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 const API_BASE = getApiBaseUrl();
 
 export default function AvailableOrdersPage() {
   const router = useRouter();
   const { acceptNewJob } = useActiveDeliveryStore();
+const { accessToken } = useDeliveryAuthStore();
 
   const [availableJobs, setAvailableJobs] = useState<DeliveryJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +33,35 @@ export default function AvailableOrdersPage() {
     };
     fetchJobs();
   }, []);
+  const handleAccept = async (job: DeliveryJob) => {
+  const res = await fetch(
+    `${API_BASE}/orders/${job.id}/status`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'OUT_FOR_DELIVERY',
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    alert('Unable to accept delivery');
+    return;
+  }
+
+ setAvailableJobs((prev) => prev.filter((j) => j.id !== job.id));
+
+acceptNewJob({
+  ...job,
+  status: 'OUT_FOR_DELIVERY',
+});
+
+router.push('/current-delivery');
+};
 
   const handleDecline = (jobId: string) => {
     setAvailableJobs((prev) => prev.filter((j) => j.id !== jobId));
@@ -76,10 +106,8 @@ export default function AvailableOrdersPage() {
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    acceptNewJob(job);
-                    router.push('/current-delivery');
-                  }}
+                 onClick={() => handleAccept(job)}
+                
                   className="flex-1 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700"
                 >
                   Accept Order

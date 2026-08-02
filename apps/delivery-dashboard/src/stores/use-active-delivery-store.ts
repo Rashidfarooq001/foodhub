@@ -25,14 +25,22 @@ export const useActiveDeliveryStore = create<ActiveDeliveryState>()((set, get) =
     }
     return false;
   },
-
-  markPickedUp: () => {
-    set((state) => ({
-      currentJob: state.currentJob ? { ...state.currentJob, status: 'PICKED_UP' } : null,
-    }));
-  },
+markPickedUp: () => {
+  set((state) => ({
+    currentJob: state.currentJob
+      ? {
+          ...state.currentJob,
+          status: 'DELIVERED',
+        }
+      : null,
+  }));
+},
 
   acceptNewJob: (job) => {
-    set({ currentJob: { ...job, status: 'ASSIGNED' } });
-  },
-}));
+  set({
+    currentJob: {
+      ...job,
+      status: 'OUT_FOR_DELIVERY',
+    },
+  });
+},}));
