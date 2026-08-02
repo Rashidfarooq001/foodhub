@@ -42,6 +42,8 @@ interface RestaurantStats {
 export default function HotelDashboardPage() {
   const { queue, setQueue } = useKitchenStore();
   const { user } = useHotelAuthStore();
+  console.log("USER =", user);
+console.log("RESTAURANT ID =", user?.restaurantId);
 
   const restaurantId = user?.restaurantId;
 
@@ -59,7 +61,24 @@ export default function HotelDashboardPage() {
       try {
         const [statsRes, ordersRes] = await Promise.all([
           fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`),
-          fetch(`${API_BASE}/orders?status=PENDING,PREPARING`),
+         fetch(`${API_BASE}/orders?status=PENDING,PREPARING`)const token = localStorage.getItem('hotel_access_token');
+
+const [statsRes, ordersRes] = await Promise.all([
+  fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }),
+
+  fetch(
+    `${API_BASE}/orders?restaurantId=${restaurantId}&status=PENDING,PREPARING`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  ),
+]);
         ]);
 
         if (statsRes.ok) {

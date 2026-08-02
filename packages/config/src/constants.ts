@@ -1,4 +1,4 @@
-export const AUTH_ENABLED = false;
+export const AUTH_ENABLED = true;
 
 export function isAuthEnabled(): boolean {
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_AUTH_ENABLED !== undefined) {
