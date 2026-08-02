@@ -41,69 +41,57 @@ interface RestaurantStats {
 
 export default function HotelDashboardPage() {
   const { queue, setQueue } = useKitchenStore();
-  const { user } = useHotelAuthStore();
-  console.log("USER =", user);
-console.log("RESTAURANT ID =", user?.restaurantId);
-
-  const restaurantId = user?.restaurantId;
-
+ const {  accessToken } = useHotelAuthStore();
+ 
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!restaurantId) {
-      console.warn('Restaurant ID not found');
-      setIsLoading(false);
-      return;
-    }
+ useEffect(() => {
+  if (!accessToken) {
+    console.warn('No access token');
+    setIsLoading(false);
+    return;
+  }
 
-    const fetchAll = async () => {
-      try {
-        const [statsRes, ordersRes] = await Promise.all([
-          fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`),
-         fetch(`${API_BASE}/orders?status=PENDING,PREPARING`)const token = localStorage.getItem('hotel_access_token');
+  const fetchAll = async () => {
+    try {
+      const [statsRes, ordersRes] = await Promise.all([
+        fetch(`${API_BASE}/analytics/restaurant`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
 
-const [statsRes, ordersRes] = await Promise.all([
-  fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }),
+        fetch(`${API_BASE}/orders?status=PENDING,PREPARING`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+      ]);
 
-  fetch(
-    `${API_BASE}/orders?restaurantId=${restaurantId}&status=PENDING,PREPARING`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  ),
-]);
-        ]);
-
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
-        }
-
-        if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
-
-          setQueue(
-            Array.isArray(ordersData)
-              ? ordersData
-              : ordersData.orders ?? [],
-          );
-        }
-      } catch (err) {
-        console.error('Dashboard loading failed:', err);
-      } finally {
-        setIsLoading(false);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
       }
-    };
 
-    fetchAll();
-  }, [restaurantId, setQueue]);
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+
+        setQueue(
+          Array.isArray(ordersData)
+            ? ordersData
+            : ordersData.orders ?? [],
+        );
+      }
+    } catch (err) {
+      console.error('Dashboard loading failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchAll();
+}, [accessToken, setQueue]);
 
   const kpi = {
     todayRevenue: stats?.todayRevenue ?? 0,

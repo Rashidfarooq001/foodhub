@@ -36,11 +36,12 @@ export class AnalyticsController {
   }
 
   // ── RESTAURANT ─────────────────────────────────────────────────────────────
+@Get('restaurant')
+async restaurantStats(@Request() req: any) {
+  return this.analyticsService.getRestaurantStats(
+    req.user.restaurantId,
+  );
 
-  @Get('restaurant/:id')
-  @ApiOperation({ summary: 'Restaurant analytics (owner or admin)' })
-  async restaurantStats(@Param('id') id: string) {
-    return this.analyticsService.getRestaurantStats(id);
   }
 
   // ── DRIVER ─────────────────────────────────────────────────────────────────

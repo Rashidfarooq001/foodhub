@@ -18,41 +18,51 @@ export class TokenService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async generateTokenPair(user: { id: string; phone: string; role: string }, sessionId: string): Promise<TokenPair> {
-    const payload = {
-      sub: user.id,
-      phone: user.phone,
-      role: user.role,
-      sessionId,
-    };
+  async generateTokenPair(
+  user: {
+    id: string;
+    phone: string;
+    role: string;
+    restaurantId?: string;
+  },
+  sessionId: string,
+): Promise<TokenPair> {
+  const payload = {
+    sub: user.id,
+    phone: user.phone,
+    role: user.role,
+    restaurantId: user.restaurantId,
+    sessionId,
+  };
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m',
-    });
+  const accessToken = this.jwtService.sign(payload, {
+    expiresIn: '15m',
+  });
 
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET') || 'super-secret-refresh-key-foodhub-2026',
-    });
+  const refreshToken = this.jwtService.sign(payload, {
+    expiresIn: '7d',
+    secret:
+      this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
+      'super-secret-refresh-key-foodhub-2026',
+  });
 
-    // Save hashed refresh token to DB
-    const tokenHash = await bcrypt.hash(refreshToken, 10);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const tokenHash = await bcrypt.hash(refreshToken, 10);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt,
-      },
-    });
+  await this.prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    },
+  });
 
-    return {
-      accessToken,
-      refreshToken,
-      expiresInSec: 15 * 60,
-    };
-  }
+  return {
+    accessToken,
+    refreshToken,
+    expiresInSec: 15 * 60,
+  };
+}
 
   async rotateRefreshToken(oldRefreshToken: string): Promise<TokenPair> {
     let payload: any;
