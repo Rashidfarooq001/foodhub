@@ -203,7 +203,7 @@ export class AnalyticsService {
         orderBy: { _sum: { quantity: 'desc' } },
         take:    5,
       }),
-      console.log("Restaurant ID =", restaurantId);
+ 
       this.prisma.restaurantReview.aggregate({
         where:  { restaurantId },
         _avg:   { rating: true },
