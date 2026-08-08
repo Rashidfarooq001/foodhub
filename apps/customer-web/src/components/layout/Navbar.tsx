@@ -17,6 +17,10 @@ import {
   Clock,
   Menu as MenuIcon,
   X,
+  LogIn,
+  UserPlus,
+  Tag,
+  Grid,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/use-cart-store';
@@ -88,7 +92,7 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Actions: Veg Toggle, Cart, Profile */}
+          {/* Right Actions: Veg Toggle, Cart, Profile / Login */}
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Veg Only Toggle */}
             <button
@@ -123,7 +127,7 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {/* Profile / Auth Menu */}
+            {/* Profile Dropdown or Unauthenticated Login/Signup Buttons */}
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
@@ -143,7 +147,7 @@ export const Navbar: React.FC = () => {
 
                 {/* Dropdown Menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl">
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50">
                     <div className="border-b border-gray-100 p-3">
                       <p className="text-sm font-bold text-gray-900">{user.firstName} {user.lastName}</p>
                       <p className="text-xs text-gray-500">{user.phone}</p>
@@ -193,17 +197,101 @@ export const Navbar: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Link
+                  href="/login"
+                  className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 transition hover:border-orange-500 hover:text-orange-600"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Hamburger Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="rounded-xl border border-gray-200 p-2 text-gray-600 md:hidden"
+              aria-label="Toggle Navigation Menu"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
             </button>
           </div>
         </div>
+
+        {/* Mobile Menu Panel (Self-sizing, no blank space, responsive across all viewports) */}
+        {isMobileMenuOpen && (
+          <div className="border-b border-gray-200 bg-white p-4 shadow-xl md:hidden">
+            {isAuthenticated && user ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <img
+                    src={user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
+                    alt={user.firstName}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-gray-500">{user.phone}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                  <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                    <User className="h-4 w-4 text-orange-500" /> Profile
+                  </Link>
+                  <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                    <Clock className="h-4 w-4 text-orange-500" /> Orders
+                  </Link>
+                  <Link href="/wallet" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                    <Wallet className="h-4 w-4 text-orange-500" /> Wallet
+                  </Link>
+                  <Link href="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                    <Heart className="h-4 w-4 text-orange-500" /> Wishlist
+                  </Link>
+                </div>
+                <button
+                  onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-600 hover:bg-rose-100"
+                >
+                  <LogOut className="h-4 w-4" /> Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-gray-100 p-3 text-xs font-bold text-gray-900 transition hover:bg-gray-200"
+                  >
+                    <LogIn className="h-4 w-4 text-orange-600" /> Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 p-3 text-xs font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
+                  >
+                    <UserPlus className="h-4 w-4" /> Sign Up
+                  </Link>
+                </div>
+                <div className="border-t border-gray-100 pt-2 space-y-1">
+                  <Link href="/categories" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50">
+                    <Grid className="h-4 w-4 text-orange-500" /> Browse Categories
+                  </Link>
+                  <Link href="/coupons" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50">
+                    <Tag className="h-4 w-4 text-orange-500" /> Coupons &amp; Offers
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Cart Drawer */}

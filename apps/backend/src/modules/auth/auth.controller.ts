@@ -19,6 +19,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -143,13 +144,24 @@ export class AuthController {
   }
 
   @Public()
+  @Post('verify-reset-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify MSG91 access token for password reset and issue short-lived resetToken' })
+  @ApiResponse({ status: 200, description: 'Reset token issued successfully' })
+  async verifyResetToken(@Body() dto: VerifyResetTokenDto) {
+    return this.authService.verifyResetToken(dto);
+  }
+
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify reset OTP & set new password' })
+  @ApiOperation({ summary: 'Verify reset token & set new password' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
-  @ApiResponse({ status: 400, description: 'Password policy violation or invalid OTP' })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
+  @ApiResponse({ status: 400, description: 'Password policy violation or invalid token' })
+  async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.resetPassword(dto, ip, ua);
   }
 
   @Post('change-password')

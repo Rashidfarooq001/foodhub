@@ -6,16 +6,25 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
+import * as crypto from 'crypto';
 
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+
+interface ResetTokenPayload {
+  userId: string;
+  phone: string;
+  expiresAt: number;
+}
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly resetTokenMap = new Map<string, ResetTokenPayload>();
 
   constructor(
     private readonly otpService: OtpService,
@@ -465,29 +474,157 @@ export class AuthService {
   }
 
   async forgotPassword(input: string) {
-    const user = await this.usersService.findUserByPhoneOrEmail(input);
-    if (!user) {
-      return { message: 'If registered, reset OTP has been sent' };
+    const rawInput = (input || '').trim();
+    if (!rawInput) {
+      throw new BadRequestException('Phone number or email is required');
     }
-    return this.otpService.sendOtp(user.phone);
+    const user = await this.usersService.findUserByPhoneOrEmail(rawInput);
+    if (!user || !user.isActive) {
+      // Security standard: generic success response to prevent account enumeration
+      return { message: 'If registered, password reset OTP instructions have been sent.' };
+    }
+
+    // Trigger OTP sending
+    await this.otpService.sendOtp(user.phone);
+
+    return {
+      exists: true,
+      phone: user.phone,
+      message: 'Password reset OTP dispatched successfully via MSG91.',
+    };
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
-    const input = (dto.phone || dto.email || '').trim();
-    const user = await this.usersService.findUserByPhoneOrEmail(input);
-    if (!user) {
-      throw new BadRequestException('User record not found');
+  async verifyResetToken(dto: VerifyResetTokenDto) {
+    if (!dto.phone) {
+      throw new BadRequestException('Registered phone number is required');
     }
 
-    await this.otpService.verifyOtp(user.phone, dto.otp);
+    const cleanDigits = dto.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+    const requestedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+
+    let phoneToVerify = requestedPhone;
+
+    if (dto.accessToken) {
+      const msg91Data = await this.otpService.verifyAccessToken(dto.accessToken);
+
+      const extractMobileFromMsg91 = (res: any): string | null => {
+        if (!res) return null;
+        if (typeof res?.message === 'string' && res.message.trim().length >= 10) return res.message.trim();
+        if (res?.data && typeof res.data === 'object' && res.data.mobile) return String(res.data.mobile).trim();
+        if (res?.mobile) return String(res.mobile).trim();
+        if (typeof res?.data === 'string' && res.data.trim().length >= 10) return res.data.trim();
+        if (res?.message && typeof res.message === 'object' && res.message.mobile) return String(res.message.mobile).trim();
+        if (res?.phone) return String(res.phone).trim();
+        return null;
+      };
+
+      const rawMobile = extractMobileFromMsg91(msg91Data);
+      if (!rawMobile) {
+        throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
+      }
+
+      phoneToVerify = rawMobile.startsWith('+')
+        ? rawMobile
+        : rawMobile.length === 10
+        ? `+91${rawMobile}`
+        : `+${rawMobile}`;
+
+      if (phoneToVerify !== requestedPhone) {
+        this.logger.error(`[Backend ForgotPassword] Phone mismatch! Requested: ${requestedPhone}, Verified by MSG91: ${phoneToVerify}`);
+        throw new BadRequestException('MSG91 verified phone does not match requested password reset phone.');
+      }
+    } else if (dto.otp) {
+      await this.otpService.verifyOtp(requestedPhone, dto.otp);
+    } else {
+      throw new BadRequestException('MSG91 access token or OTP code is required');
+    }
+
+    const user = await this.usersService.findUserByPhone(phoneToVerify);
+    if (!user || !user.isActive) {
+      throw new BadRequestException('No active user account found for this phone number');
+    }
+
+    // Issue short-lived, single-use password reset token (valid 10 minutes)
+    const resetToken = `rst_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
+    this.resetTokenMap.set(resetToken, {
+      userId: user.id,
+      phone: user.phone,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    this.logger.log(`[Backend ForgotPassword] Issued reset token for user ID=${user.id}, phone=${user.phone}`);
+
+    return {
+      resetToken,
+      phone: user.phone,
+      message: 'OTP verified successfully. You may now set your new password.',
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto, ipAddress?: string, userAgent?: string) {
+    let userId: string | null = null;
+
+    if (dto.resetToken) {
+      const payload = this.resetTokenMap.get(dto.resetToken);
+      if (!payload) {
+        throw new BadRequestException('Invalid or expired password reset token. Please request a new OTP.');
+      }
+      if (Date.now() > payload.expiresAt) {
+        this.resetTokenMap.delete(dto.resetToken);
+        throw new BadRequestException('Password reset token has expired. Please request a new OTP.');
+      }
+      // Single-use token: invalidate immediately!
+      this.resetTokenMap.delete(dto.resetToken);
+      userId = payload.userId;
+    } else if (dto.accessToken || (dto.phone && dto.otp)) {
+      const verifyRes = await this.verifyResetToken({
+        accessToken: dto.accessToken,
+        phone: dto.phone || '',
+        otp: dto.otp,
+      });
+      const payload = this.resetTokenMap.get(verifyRes.resetToken);
+      if (payload) {
+        userId = payload.userId;
+        this.resetTokenMap.delete(verifyRes.resetToken);
+      }
+    }
+
+    if (!userId) {
+      throw new BadRequestException('Valid reset token or OTP verification is required');
+    }
+
+    const user = await this.usersService.findUserById(userId);
+    if (!user || !user.isActive) {
+      throw new BadRequestException('User record not found or account is disabled');
+    }
 
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.updatePassword(user.id, newPasswordHash);
 
+    // Invalidate all active sessions & refresh tokens
     await this.tokenService.revokeAllUserTokens(user.id);
     await this.sessionService.terminateAllUserSessions(user.id);
 
-    return { message: 'Password reset successfully. Please login with your new password' };
+    // Automatically log in user with fresh session JWT
+    const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(user, session.id);
+
+    this.logger.log(`[Backend ResetPassword] Password updated successfully for user ID=${user.id}. Logged in.`);
+
+    return {
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+      },
+      tokens,
+      message: 'Password reset successfully. You are now logged in.',
+    };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {

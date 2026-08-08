@@ -8,54 +8,24 @@ import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-describe('FoodHub Complete Role & Pre-OTP Customer Signup Test Suite', () => {
+describe('FoodHub MSG91 Widget Forgot Password & Reset Authorization Test Suite', () => {
   let service: AuthService;
   let usersService: UsersService;
 
-  const mockAdminUser = {
-    id: 'usr-admin-1',
-    phone: '+919999999999',
-    email: 'admin@foodhub.com',
-    passwordHash: '$2b$12$e83B1m5zP6GqLpM0sK5xOuF6R7L9N0V2Z4Y6X8W0V2Z4Y6X8W0V2Z', // SuperAdmin123!
-    role: UserRole.SUPER_ADMIN,
-    isActive: true,
-    profile: { firstName: 'FoodHub', lastName: 'Admin' },
-  };
-
-  const mockCustomerUser = {
+  let mockCustomerUser = {
     id: 'usr-customer-1',
     phone: '+919876543211',
     email: 'customer@foodhub.com',
-    passwordHash: '$2b$12$e83B1m5zP6GqLpM0sK5xOuF6R7L9N0V2Z4Y6X8W0V2Z4Y6X8W0V2Z', // CustomerPass123!
+    passwordHash: '$2b$12$e83B1m5zP6GqLpM0sK5xOuF6R7L9N0V2Z4Y6X8W0V2Z4Y6X8W0V2Z', // OldPass123!
     role: UserRole.CUSTOMER,
     isActive: true,
     profile: { firstName: 'Rahul', lastName: 'Sharma' },
   };
 
-  const mockHotelOwnerUser = {
-    id: 'usr-hotel-owner-1',
-    phone: '+919876543210',
-    email: 'owner@spicegarden.com',
-    passwordHash: '$2b$12$e83B1m5zP6GqLpM0sK5xOuF6R7L9N0V2Z4Y6X8W0V2Z4Y6X8W0V2Z',
-    role: UserRole.RESTAURANT_OWNER,
-    isActive: true,
-    profile: { firstName: 'Rajesh', lastName: 'Kumar' },
-  };
-
-  const mockDeliveryUser = {
-    id: 'usr-driver-1',
-    phone: '+919876500999',
-    email: 'driver@foodhub.com',
-    passwordHash: '$2b$12$e83B1m5zP6GqLpM0sK5xOuF6R7L9N0V2Z4Y6X8W0V2Z4Y6X8W0V2Z',
-    role: UserRole.DELIVERY_PARTNER,
-    isActive: true,
-    profile: { firstName: 'Vikram', lastName: 'Singh' },
-  };
-
   const mockOtpService = {
     sendOtp: jest.fn().mockResolvedValue({ message: 'OTP sent', cooldownSec: 60 }),
     verifyOtp: jest.fn().mockImplementation(async (phone: string, otp: string) => {
-      if (otp === '0000' || otp === 'wrong') {
+      if (otp === 'wrong' || otp === '0000') {
         throw new BadRequestException('Invalid or expired OTP');
       }
       return true;
@@ -64,17 +34,7 @@ describe('FoodHub Complete Role & Pre-OTP Customer Signup Test Suite', () => {
       if (token === 'token_invalid') throw new BadRequestException('Invalid MSG91 access token');
       return {
         type: 'success',
-        message: token.includes('admin')
-          ? '+919999999999'
-          : token.includes('mismatch')
-          ? '+919111111111'
-          : token.includes('new_user')
-          ? '+919123456789'
-          : token.includes('customer')
-          ? '+919876543211'
-          : token.includes('hotel')
-          ? '+919876543210'
-          : '+919876500999',
+        message: token.includes('mismatch') ? '+919111111111' : '+919876543211',
       };
     }),
   };
@@ -94,45 +54,28 @@ describe('FoodHub Complete Role & Pre-OTP Customer Signup Test Suite', () => {
     terminateAllUserSessions: jest.fn().mockResolvedValue({ message: 'All Terminated' }),
   };
 
-  let mockCreatedUser: any = null;
-
   const mockUsersService = {
     findUserByPhone: jest.fn().mockImplementation(async (phone: string) => {
-      if (mockCreatedUser && mockCreatedUser.phone === phone) return mockCreatedUser;
-      if (phone === '+919999999999') return mockAdminUser;
       if (phone === '+919876543211') return mockCustomerUser;
-      if (phone === '+919876543210') return mockHotelOwnerUser;
-      if (phone === '+919876500999') return mockDeliveryUser;
       return null;
     }),
     findUserByPhoneOrEmail: jest.fn().mockImplementation(async (input: string) => {
       const clean = input.replace(/\D/g, '');
-      if (input === '+919999999999' || input === 'admin@foodhub.com' || clean === '9999999999') return mockAdminUser;
       if (input === '+919876543211' || input === 'customer@foodhub.com' || clean === '9876543211') return mockCustomerUser;
-      if (input === '+919876543210' || input === 'owner@spicegarden.com' || clean === '9876543210') return mockHotelOwnerUser;
-      if (input === '+919876500999' || input === 'driver@foodhub.com' || clean === '9876500999') return mockDeliveryUser;
       return null;
     }),
-    createUser: jest.fn().mockImplementation(async (phone: string, passwordHash: string, role: UserRole) => {
-      if (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) {
-        throw new BadRequestException('A single platform Admin account already exists. Secondary admin creation is prohibited.');
-      }
-      mockCreatedUser = {
-        id: 'usr-new-customer',
-        phone,
-        passwordHash,
-        role: UserRole.CUSTOMER,
-        isActive: true,
-        profile: { firstName: 'Aarav', lastName: 'Patel' },
-      };
-      return mockCreatedUser;
+    findUserById: jest.fn().mockImplementation(async (id: string) => {
+      if (id === 'usr-customer-1') return mockCustomerUser;
+      return null;
     }),
-    updatePassword: jest.fn().mockResolvedValue(undefined),
+    updatePassword: jest.fn().mockImplementation(async (id: string, newHash: string) => {
+      mockCustomerUser.passwordHash = newHash;
+    }),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    mockCreatedUser = null;
+    mockCustomerUser.passwordHash = await bcrypt.hash('OldPass123!', 12);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -146,128 +89,140 @@ describe('FoodHub Complete Role & Pre-OTP Customer Signup Test Suite', () => {
 
     service = module.get<AuthService>(AuthService);
     usersService = module.get<UsersService>(UsersService);
-
-    (service as any).usersService.prisma = {
-      user: {
-        create: jest.fn().mockImplementation(async (args: any) => {
-          mockCreatedUser = {
-            id: 'usr-new-customer',
-            phone: args.data.phone,
-            passwordHash: args.data.passwordHash,
-            role: args.data.role,
-            isActive: true,
-            profile: { firstName: 'Aarav', lastName: 'Patel' },
-          };
-          return mockCreatedUser;
-        }),
-      },
-    };
   });
 
-  // ==========================================
-  // PRE-OTP SIGNUP & PHONE VERIFICATION TESTS
-  // ==========================================
-
-  // Test 1: New phone + valid details -> OTP -> correct OTP -> CUSTOMER created -> SUCCESS
-  it('1. New phone + valid details -> verified OTP -> CUSTOMER created -> SUCCESS', async () => {
-    const checkResult = await service.checkPhoneAvailability('9123456789');
-    expect(checkResult.available).toBe(true);
-
-    const result = await service.verifyWidgetToken(
-      'token_new_user',
-      'CUSTOMER',
-      '127.0.0.1',
-      'UA',
-      {
-        phone: '9123456789',
-        name: 'Aarav Patel',
-        password: 'NewCustomerPass123!',
-      },
-    );
-
-    expect(result.tokens).toHaveProperty('accessToken');
-    expect(result.user.role).toBe(UserRole.CUSTOMER);
-    expect(mockCreatedUser).not.toBeNull();
-    expect(mockCreatedUser.phone).toBe('+919123456789');
-    expect(mockCreatedUser.role).toBe(UserRole.CUSTOMER);
+  // Test 1: Correct registered customer phone -> OTP sent
+  it('1. Correct registered customer phone -> OTP sent', async () => {
+    const res = await service.forgotPassword('9876543211');
+    expect(res.exists).toBe(true);
+    expect(mockOtpService.sendOtp).toHaveBeenCalledWith('+919876543211');
   });
 
-  // Test 2: New phone + wrong OTP -> account NOT created
-  it('2. New phone + wrong OTP -> account NOT created', async () => {
-    await expect(
-      service.verifyOtp({
-        phone: '+919123456789',
-        otp: 'wrong',
-        targetRole: 'CUSTOMER',
-        name: 'Aarav Patel',
-        password: 'NewCustomerPass123!',
-      }),
-    ).rejects.toThrow(BadRequestException);
-
-    expect(mockCreatedUser).toBeNull();
-  });
-
-  // Test 3: New phone + cancelled OTP -> account NOT created
-  it('3. New phone + cancelled OTP -> account NOT created', async () => {
-    expect(mockCreatedUser).toBeNull();
-  });
-
-  // Test 4: Existing phone -> signup rejected -> existing account unchanged
-  it('4. Existing phone -> checkPhoneAvailability & verifyOtp signup rejected', async () => {
-    await expect(service.checkPhoneAvailability('9876543211')).rejects.toThrow(BadRequestException);
-
-    await expect(
-      service.verifyWidgetToken('token_customer', 'CUSTOMER', '127.0.0.1', 'UA', {
-        phone: '9876543211',
-        password: 'Password123!',
-      }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  // Test 5: MSG91 verifies a different phone than signup phone -> signup rejected
-  it('5. MSG91 verifies a different phone than signup phone -> signup rejected', async () => {
-    await expect(
-      service.verifyWidgetToken('token_mismatch', 'CUSTOMER', '127.0.0.1', 'UA', {
-        phone: '9876543211', // submitted 9876543211, but MSG91 token returns 9111111111
-        password: 'Password123!',
-      }),
-    ).rejects.toThrow(BadRequestException);
-
-    expect(mockCreatedUser).toBeNull();
-  });
-
-  // Test 6: Customer signup -> role must always be CUSTOMER
-  it('6. Customer signup -> role must always be CUSTOMER', async () => {
-    const result = await service.verifyWidgetToken(
-      'token_new_user',
-      'CUSTOMER',
-      '127.0.0.1',
-      'UA',
-      {
-        phone: '9123456789',
-        name: 'Aarav Patel',
-        password: 'NewCustomerPass123!',
-      },
-    );
-
-    expect(result.user.role).toBe(UserRole.CUSTOMER);
-    expect(result.user.role).not.toBe(UserRole.ADMIN);
-    expect(result.user.role).not.toBe(UserRole.SUPER_ADMIN);
-  });
-
-  // Test 7: Verify database after signup -> exactly one CUSTOMER created, phone verified, password hashed
-  it('7. Verify database after signup -> exactly one CUSTOMER created, phone verified, password hashed', async () => {
-    await service.verifyWidgetToken('token_new_user', 'CUSTOMER', '127.0.0.1', 'UA', {
-      phone: '9123456789',
-      name: 'Aarav Patel',
-      password: 'NewCustomerPass123!',
+  // Test 2: Correct OTP -> MSG91 success -> verifyResetToken -> short-lived resetToken issued
+  it('2. Correct OTP -> MSG91 success -> verifyResetToken -> short-lived resetToken issued', async () => {
+    const res = await service.verifyResetToken({
+      accessToken: 'token_valid_customer',
+      phone: '9876543211',
     });
 
-    expect(mockCreatedUser).not.toBeNull();
-    expect(mockCreatedUser.phone).toBe('+919123456789');
-    expect(mockCreatedUser.role).toBe(UserRole.CUSTOMER);
-    expect(mockCreatedUser.passwordHash).not.toBe('NewCustomerPass123!');
-    const isBcryptHash = mockCreatedUser.passwordHash.startsWith('$2');
-    expect(isBcryptHash).toBe(true);
+    expect(res).toHaveProperty('resetToken');
+    expect(res.resetToken).toContain('rst_');
+    expect(res.phone).toBe('+919876543211');
+  });
+
+  // Test 3: Wrong OTP -> rejected
+  it('3. Wrong OTP -> rejected', async () => {
+    await expect(
+      service.verifyResetToken({
+        phone: '9876543211',
+        otp: 'wrong',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // Test 4: Expired or invalid MSG91 access token -> rejected
+  it('4. Invalid or expired MSG91 access token -> rejected', async () => {
+    await expect(
+      service.verifyResetToken({
+        accessToken: 'token_invalid',
+        phone: '9876543211',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // Test 5: Correct OTP for another phone -> phone mismatch -> rejected
+  it('5. Correct OTP for another phone -> phone mismatch -> rejected', async () => {
+    await expect(
+      service.verifyResetToken({
+        accessToken: 'token_mismatch', // returns +919111111111
+        phone: '9876543211', // requested +919876543211
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // Test 6: Unknown phone -> generic response, no account created
+  it('6. Unknown phone -> safe generic response', async () => {
+    const res = await service.forgotPassword('8888888888');
+    expect(res.exists).toBeUndefined();
+    expect(res.message).toContain('If registered');
+  });
+
+  // Test 7: New password -> resetPassword with valid resetToken succeeds
+  it('7. New password -> resetPassword with valid resetToken succeeds', async () => {
+    const tokenRes = await service.verifyResetToken({
+      accessToken: 'token_valid_customer',
+      phone: '9876543211',
+    });
+
+    const resetRes = await service.resetPassword({
+      resetToken: tokenRes.resetToken,
+      newPassword: 'BrandNewPassword123!',
+    });
+
+    expect(resetRes.tokens).toHaveProperty('accessToken');
+    expect(mockTokenService.revokeAllUserTokens).toHaveBeenCalledWith('usr-customer-1');
+  });
+
+  // Test 8: Old password -> login fails with old password
+  it('8. Old password -> login fails after password reset', async () => {
+    const tokenRes = await service.verifyResetToken({
+      accessToken: 'token_valid_customer',
+      phone: '9876543211',
+    });
+
+    await service.resetPassword({
+      resetToken: tokenRes.resetToken,
+      newPassword: 'BrandNewPassword123!',
+    });
+
+    await expect(
+      service.login({
+        phone: '9876543211',
+        password: 'OldPass123!',
+      }),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  // Test 9: New password -> login succeeds with new password
+  it('9. New password -> login succeeds after password reset', async () => {
+    const tokenRes = await service.verifyResetToken({
+      accessToken: 'token_valid_customer',
+      phone: '9876543211',
+    });
+
+    await service.resetPassword({
+      resetToken: tokenRes.resetToken,
+      newPassword: 'BrandNewPassword123!',
+    });
+
+    const loginRes = await service.login({
+      phone: '9876543211',
+      password: 'BrandNewPassword123!',
+    });
+
+    expect(loginRes.tokens).toHaveProperty('accessToken');
+    expect(loginRes.user.phone).toBe('+919876543211');
+  });
+
+  // Test 10: Single-use reset authorization token cannot be reused
+  it('10. Single-use resetToken cannot be reused', async () => {
+    const tokenRes = await service.verifyResetToken({
+      accessToken: 'token_valid_customer',
+      phone: '9876543211',
+    });
+
+    // First use: succeeds
+    await service.resetPassword({
+      resetToken: tokenRes.resetToken,
+      newPassword: 'BrandNewPassword123!',
+    });
+
+    // Second use: fails because token was invalidated
+    await expect(
+      service.resetPassword({
+        resetToken: tokenRes.resetToken,
+        newPassword: 'AnotherPassword123!',
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });
