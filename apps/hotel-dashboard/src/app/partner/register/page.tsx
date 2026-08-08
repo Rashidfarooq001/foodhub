@@ -547,11 +547,19 @@ export default function RestaurantPartnerRegisterPage() {
               />
 
               <MediaUploader
+                label="Restaurant Store Logo / Profile Avatar *"
+                acceptType="image"
+                value={form.logoUrl}
+                onChange={(url) => setForm((prev) => ({ ...prev, logoUrl: url }))}
+              />
+
+              <MediaUploader
                 label="Restaurant Visuals / Store Cover Photo *"
                 acceptType="image"
                 value={form.bannerUrl}
                 onChange={(url) => setForm((prev) => ({ ...prev, bannerUrl: url, logoUrl: prev.logoUrl || url }))}
               />
+
             </div>
           </div>
 

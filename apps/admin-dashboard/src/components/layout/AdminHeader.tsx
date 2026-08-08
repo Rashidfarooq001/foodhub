@@ -5,6 +5,8 @@ import { Search, Bell, Sliders, LogOut, Menu } from 'lucide-react';
 import { useAdminStore } from '../../stores/use-admin-store';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { useRouter } from 'next/navigation';
+import { getImageUrl } from '@foodhub/config';
+
 
 interface AdminHeaderProps {
   onOpenMobileMenu?: () => void;
@@ -74,13 +76,15 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
             title="Open Account Settings"
           >
             <img
-              src={
-                user?.avatarUrl ||
-                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'
-              }
+              src={getImageUrl(user?.avatarUrl)}
               alt={user?.name || 'Admin'}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+              }}
               className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-purple-600 shadow-sm group-hover:ring-2 group-hover:ring-purple-400"
             />
+
             <div className="hidden md:block">
               <span className="block text-xs font-bold text-gray-900 truncate max-w-[130px]">
                 {user?.name || user?.email || 'Admin User'}

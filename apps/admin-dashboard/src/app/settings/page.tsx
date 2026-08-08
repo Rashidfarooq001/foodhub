@@ -15,9 +15,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
+import { adminFetch } from '../../utils/admin-fetch';
 
 const API_BASE = getApiBaseUrl();
+
 
 export default function AdminAccountSettingsPage() {
   const { user, accessToken, updateUser } = useAdminAuthStore();
@@ -27,10 +29,8 @@ export default function AdminAccountSettingsPage() {
   // Profile State
   const [firstName, setFirstName] = useState(user?.firstName || 'Rashid');
   const [lastName, setLastName] = useState(user?.lastName || 'Reshi');
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    user?.avatarUrl ||
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-  );
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
 
   // Two-Password Change State
   const [newPassword1, setNewPassword1] = useState('');
@@ -63,7 +63,7 @@ export default function AdminAccountSettingsPage() {
     }, 4000);
   };
 
-  // Profile Picture Upload
+  // Profile Picture Selection
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -77,24 +77,19 @@ export default function AdminAccountSettingsPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setSelectedAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    if (e.target) e.target.value = '';
   };
 
   const handleRemoveAvatar = async () => {
+    setSelectedAvatarFile(null);
     setAvatarPreview(null);
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/auth/profile`, {
+      const res = await adminFetch('/auth/profile', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
         body: JSON.stringify({ avatarUrl: null }),
       });
 
@@ -122,18 +117,38 @@ export default function AdminAccountSettingsPage() {
 
     setLoading(true);
     try {
+      let finalAvatarUrl: string | null = user?.avatarUrl || null;
+
+      // 1. Upload newly selected avatar file if present
+      if (selectedAvatarFile) {
+        const formData = new FormData();
+        formData.append('file', selectedAvatarFile);
+
+        const uploadRes = await adminFetch('/storage/upload?type=image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json().catch(() => ({}));
+          throw new Error(uploadErr.message || 'Failed to upload profile image file');
+        }
+
+        const uploadData = await uploadRes.json();
+        finalAvatarUrl = uploadData.url;
+      } else if (avatarPreview === null) {
+        finalAvatarUrl = null;
+      }
+
+      // 2. Update profile record via authenticated admin session
       const payload: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        avatarUrl: avatarPreview || null,
+        avatarUrl: finalAvatarUrl,
       };
 
-      const res = await fetch(`${API_BASE}/auth/profile`, {
+      const res = await adminFetch('/auth/profile', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
         body: JSON.stringify(payload),
       });
 
@@ -148,8 +163,13 @@ export default function AdminAccountSettingsPage() {
         firstName: updatedProfile?.firstName || firstName.trim(),
         lastName: updatedProfile?.lastName || lastName.trim(),
         name: fullName,
-        avatarUrl: updatedProfile?.avatarUrl ?? (avatarPreview || undefined),
+        avatarUrl: updatedProfile?.avatarUrl ?? (finalAvatarUrl || undefined),
       });
+
+      setSelectedAvatarFile(null);
+      if (updatedProfile?.avatarUrl) {
+        setAvatarPreview(updatedProfile.avatarUrl);
+      }
 
       showNotification('Admin profile updated successfully!');
     } catch (err: any) {
@@ -158,6 +178,7 @@ export default function AdminAccountSettingsPage() {
       setLoading(false);
     }
   };
+
 
   // Save Two-Password Changes
   const handleSaveTwoPasswords = async (e: React.FormEvent) => {
@@ -279,13 +300,15 @@ export default function AdminAccountSettingsPage() {
           <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-100 pb-8">
             <div className="relative shrink-0">
               <img
-                src={
-                  avatarPreview ||
-                  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
-                }
+                src={getImageUrl(avatarPreview)}
                 alt="Admin Avatar Preview"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+                }}
                 className="h-28 w-28 rounded-full object-cover border-4 border-purple-600 shadow-md"
               />
+
               <label
                 htmlFor="avatar-upload"
                 className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition hover:bg-purple-700"

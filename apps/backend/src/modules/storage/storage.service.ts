@@ -1,16 +1,18 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
 export class StorageService {
   private readonly uploadDir = path.join(process.cwd(), 'uploads');
+  private readonly logger = new Logger(StorageService.name);
 
   constructor() {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
   }
+
 
   validateFile(file: any, acceptType: 'image' | 'video' | 'any' = 'any') {
     if (!file) {
@@ -50,6 +52,10 @@ export class StorageService {
       fs.copyFileSync(file.path, filePath);
     }
 
+    this.logger.log(
+      `[Media Storage Upload] filename=${uniqueFilename}, originalName=${file.originalname}, mime=${file.mimetype}, size=${file.size} bytes`,
+    );
+
     return {
       url: this.getPublicUrl(uniqueFilename),
       filename: uniqueFilename,
@@ -58,6 +64,7 @@ export class StorageService {
       size: file.size,
     };
   }
+
 
   getPublicUrl(filename: string): string {
     let host = (

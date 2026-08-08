@@ -109,11 +109,13 @@ export class RestaurantsService {
             fullAddress || dto.address || 'Bengaluru, India',
           latitude: dto.latitude || 12.9716,
           longitude: dto.longitude || 77.5946,
-          bannerUrl: dto.bannerUrl,
+          bannerUrl: dto.bannerUrl || dto.logoUrl,
           menuUrl: dto.menuUrl,
           fssaiUrl: dto.fssaiUrl,
           panUrl: dto.panUrl,
           panNumber: dto.panNumber,
+
+
           status: RestaurantStatus.PENDING_APPROVAL,
           isOpen: false,
         },
