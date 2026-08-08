@@ -9,7 +9,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function HotelSettingsPage() {
-  const { user, accessToken, setAuth } = useHotelAuthStore();
+  const { user, accessToken, setAuth, updateUser } = useHotelAuthStore();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'store'>('profile');
 
@@ -38,10 +38,12 @@ export default function HotelSettingsPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.name) {
-      const parts = user.name.split(' ');
-      setFirstName(parts[0] || 'Merchant');
-      setLastName(parts.slice(1).join(' ') || '');
+    if (user) {
+      if (user.firstName) setFirstName(user.firstName);
+      else if (user.name) setFirstName(user.name.split(' ')[0] || 'Merchant');
+      if (user.lastName) setLastName(user.lastName);
+      else if (user.name) setLastName(user.name.split(' ').slice(1).join(' ') || '');
+      if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
     }
   }, [user]);
 
@@ -120,10 +122,8 @@ export default function HotelSettingsPage() {
       const payload: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        avatarUrl: avatarPreview || null,
       };
-      if (avatarPreview) {
-        payload.avatarUrl = avatarPreview;
-      }
 
       const res = await fetch(`${API_BASE}/auth/profile`, {
         method: 'PATCH',
@@ -134,19 +134,19 @@ export default function HotelSettingsPage() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to update profile');
+        throw new Error(data.message || 'Failed to update profile');
       }
 
+      const updatedProfile = data?.profile;
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      if (user) {
-        setAuth(
-          { ...user, name: fullName },
-          accessToken || '',
-          accessToken || '',
-        );
-      }
+      updateUser({
+        firstName: updatedProfile?.firstName || firstName.trim(),
+        lastName: updatedProfile?.lastName || lastName.trim(),
+        name: fullName,
+        avatarUrl: updatedProfile?.avatarUrl ?? (avatarPreview || undefined),
+      });
 
       showNotification('Merchant profile updated successfully!');
     } catch (err: any) {

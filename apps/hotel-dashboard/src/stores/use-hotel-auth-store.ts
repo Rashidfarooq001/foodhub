@@ -2,13 +2,15 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { isAuthEnabled } from '@foodhub/config';
 
 export interface HotelUserProfile {
   id: string;
   email: string;
   role: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
   restaurantId?: string;
   applicationStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   rejectionReason?: string;
@@ -20,25 +22,9 @@ interface HotelAuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   setAuth: (user: HotelUserProfile, accessToken: string, refreshToken: string) => void;
+  updateUser: (profile: Partial<HotelUserProfile>) => void;
   logout: () => void;
 }
-
-const DEV_HOTEL_USER: HotelUserProfile = {
-  id: 'hotel-owner-dev',
-  email: 'owner@spicegarden.com',
-  role: 'RESTAURANT_OWNER',
-  name: 'Spice Garden Owner (Dev Mode)',
-  restaurantId: 'rest-spice-garden-id',
-};
-
-const getInitialAuthState = () => {
-  return {
-    user: null,
-    accessToken: null,
-    refreshToken: null,
-    isAuthenticated: false,
-  };
-};
 
 const dummyStorage = {
   getItem: () => null,
@@ -49,10 +35,18 @@ const dummyStorage = {
 export const useHotelAuthStore = create<HotelAuthState>()(
   persist(
     (set) => ({
-      ...getInitialAuthState(),
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
+
+      updateUser: (profile) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...profile } : state.user,
+        })),
 
       logout: () => {
         if (typeof window !== 'undefined') {

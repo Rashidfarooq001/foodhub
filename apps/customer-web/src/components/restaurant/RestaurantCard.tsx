@@ -13,10 +13,10 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
   return (
     <Link
       href={`/restaurant/${restaurant.slug}`}
-      className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl w-full max-w-full min-w-0 flex flex-col"
     >
       {/* Banner & Badges */}
-      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+      <div className="relative h-48 w-full overflow-hidden bg-gray-100 shrink-0">
         <img
           src={restaurant.bannerUrl}
           alt={restaurant.name}
@@ -27,37 +27,36 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
         {/* Discount Badge */}
         {restaurant.discountBadge && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-orange-600 px-3 py-1 text-xs font-black text-white shadow-lg">
-            <Tag className="h-3.5 w-3.5" /> {restaurant.discountBadge}
+            <Tag className="h-3.5 w-3.5 shrink-0" /> {restaurant.discountBadge}
           </div>
         )}
 
         {/* Rating Badge */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 px-2.5 py-1 text-xs font-bold text-gray-900 shadow-md backdrop-blur-md">
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
           <span>{restaurant.avgRating}</span>
           <span className="text-gray-400">({restaurant.ratingCount})</span>
         </div>
       </div>
 
       {/* Details */}
-      <div className="p-5 space-y-3">
-        <div className="flex items-start justify-between">
-          <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition">
+      <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition break-words">
             {restaurant.name}
           </h3>
+          <p className="text-xs text-gray-500 truncate">
+            {restaurant.cuisines.join(' • ')}
+          </p>
         </div>
 
-        <p className="text-xs text-gray-500 truncate">
-          {restaurant.cuisines.join(' • ')}
-        </p>
-
-        <div className="flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-600">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-[11px] sm:text-xs text-gray-600">
           <div className="flex items-center gap-1 font-medium">
-            <Clock className="h-3.5 w-3.5 text-orange-600" />
+            <Clock className="h-3.5 w-3.5 text-orange-600 shrink-0" />
             <span>{restaurant.deliveryTimeMins} mins</span>
           </div>
           <div className="flex items-center gap-1 font-medium">
-            <MapPin className="h-3.5 w-3.5 text-gray-400" />
+            <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
             <span>{restaurant.distanceKm} km away</span>
           </div>
           <div className="font-bold text-gray-900">

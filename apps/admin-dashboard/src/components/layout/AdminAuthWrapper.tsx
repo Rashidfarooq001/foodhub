@@ -5,6 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { AdminLayout } from './AdminLayout';
 
+import { useSessionTimeout } from '@foodhub/hooks';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
+
 const PUBLIC_ROUTES = [
   '/login',
   '/forgot-password',
@@ -13,12 +18,54 @@ const PUBLIC_ROUTES = [
 export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated } = useAdminAuthStore();
+  const { isAuthenticated, accessToken, logout, updateUser } = useAdminAuthStore();
+
+  useSessionTimeout({
+    portalName: 'admin',
+    isAuthenticated,
+    accessToken,
+    logout,
+    apiBaseUrl: API_BASE,
+    loginPath: '/login',
+    timeoutMs: 5 * 60 * 1000,
+  });
+
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Hydrate latest Admin profile from database on mount / auth restore
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !mounted) return;
+    let isMounted = true;
+    const fetchAdminProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/profile`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data?.profile) {
+            const fullName = `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() || data.name || 'Super Admin';
+            updateUser({
+              firstName: data.profile.firstName,
+              lastName: data.profile.lastName,
+              name: fullName,
+              avatarUrl: data.profile.avatarUrl || undefined,
+            });
+          }
+        }
+      } catch {
+        /* fallback to cached state */
+      }
+    };
+    fetchAdminProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, accessToken, mounted, updateUser]);
 
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname?.startsWith(route),

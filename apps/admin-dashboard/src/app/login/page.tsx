@@ -51,12 +51,21 @@ export default function AdminLoginPage() {
         return;
       }
 
+      const profileData = data.user?.profile;
+      const fullName = profileData?.firstName
+        ? `${profileData.firstName} ${profileData.lastName || ''}`.trim()
+        : data.user?.name || 'Super Admin';
+
       setAuth(
         {
           id: data.user.id,
           email: data.user.email,
+          phone: data.user.phone,
           role: data.user.role,
-          name: data.user.profile?.firstName || data.user.name || 'Super Admin',
+          name: fullName,
+          firstName: profileData?.firstName,
+          lastName: profileData?.lastName,
+          avatarUrl: profileData?.avatarUrl || undefined,
         },
         data.tokens.accessToken,
         data.tokens.refreshToken || data.tokens.accessToken,
@@ -84,9 +93,16 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
+        {/* Session Expired Banner */}
+        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+          <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
+            ⚠️ Your session has expired. Please log in again.
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
-          <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700">
+          <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 shadow-sm">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>

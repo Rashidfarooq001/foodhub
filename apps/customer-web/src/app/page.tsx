@@ -31,8 +31,6 @@ export default function CustomerHomePage() {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.restaurants ?? [];
           const normalized = list.map(normalizeRestaurantData);
-          console.log('[TRACE CustomerApp] 1. API Raw Response count:', list.length);
-          console.log('[TRACE CustomerApp] 2. Normalized Restaurants count:', normalized.length);
           setRestaurants(normalized);
         }
       } catch (err) {
@@ -83,23 +81,21 @@ export default function CustomerHomePage() {
   } else if (activeFilter === 'price') {
     filteredRestaurants.sort((a, b) => a.priceForTwo - b.priceForTwo);
   }
-  console.log('[TRACE CustomerApp] 3. Filtered Restaurants count:', filteredRestaurants.length);
 
   const allFoodItems: FoodItemData[] = restaurants.flatMap((r) => r.foodItems ?? []);
-
   const skeletonCards = Array.from({ length: 3 });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-12 w-full max-w-full min-w-0">
       {/* Active Order Live Banner (Only for Authenticated Users with Active Orders) */}
       {isAuthenticated && activeOrder && (
-        <div className="flex flex-col items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-orange-600 to-amber-600 p-5 text-white shadow-xl sm:flex-row sm:px-8">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
+        <div className="flex flex-col items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-orange-600 to-amber-600 p-5 text-white shadow-xl sm:flex-row sm:px-8 w-full max-w-full min-w-0">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shrink-0">
               <Clock className="h-6 w-6 animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-white/30 px-2.5 py-0.5 text-[10px] font-black uppercase">
                   Order {activeOrder.orderNumber}
                 </span>
@@ -107,12 +103,12 @@ export default function CustomerHomePage() {
                   Arriving in {activeOrder.etaMins} mins
                 </span>
               </div>
-              <p className="text-base font-black">Out For Delivery with {activeOrder.driverName}</p>
+              <p className="text-sm sm:text-base font-black truncate">Out For Delivery with {activeOrder.driverName}</p>
             </div>
           </div>
           <Link
             href={`/orders/${activeOrder.orderId}/track`}
-            className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-xs font-black text-orange-700 shadow-md hover:bg-gray-100"
+            className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-xs font-black text-orange-700 shadow-md hover:bg-gray-100 shrink-0"
           >
             Track Live Map <ArrowRight className="h-4 w-4" />
           </Link>
@@ -126,22 +122,22 @@ export default function CustomerHomePage() {
       <CategorySlider />
 
       {/* Restaurants Section */}
-      <div className="space-y-6">
+      <div className="space-y-6 w-full max-w-full min-w-0">
         <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
               Top Restaurants Nearby {isLoading ? '' : `(${filteredRestaurants.length})`}
             </h2>
             <p className="text-xs text-gray-500">Handpicked kitchens with fast 30-min dispatch</p>
           </div>
 
           {/* Quick Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {(['all', 'rating', 'deliveryTime', 'price'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFilter(f)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                   activeFilter === f
                     ? 'bg-orange-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -154,7 +150,7 @@ export default function CustomerHomePage() {
         </div>
 
         {/* Restaurant Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 w-full max-w-full min-w-0">
           {isLoading
             ? skeletonCards.map((_, i) => (
                 <div key={i} className="h-72 animate-pulse rounded-3xl bg-gray-100" />
@@ -164,7 +160,7 @@ export default function CustomerHomePage() {
                 <RestaurantCard key={rest.id} restaurant={rest} />
               ))
             : (
-              <div className="col-span-3 rounded-3xl border border-gray-100 bg-white p-12 text-center">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 rounded-3xl border border-gray-100 bg-white p-12 text-center">
                 <Sparkles className="mx-auto h-10 w-10 text-gray-300 mb-3" />
                 <p className="text-base font-bold text-gray-700">No restaurants found nearby</p>
                 <p className="text-xs text-gray-400 mt-1">Check back soon — new restaurants are joining FoodHub daily.</p>
@@ -175,16 +171,16 @@ export default function CustomerHomePage() {
 
       {/* Featured Food Items Section */}
       {allFoodItems.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-6 w-full max-w-full min-w-0">
           <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-            <Flame className="h-6 w-6 text-orange-600" />
+            <Flame className="h-6 w-6 text-orange-600 shrink-0" />
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Trending Bestsellers</h2>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Trending Bestsellers</h2>
               <p className="text-xs text-gray-500">Most ordered dishes in your locality right now</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 w-full max-w-full min-w-0">
             {allFoodItems.map((food) => (
               <FoodCard key={food.id} food={food} />
             ))}

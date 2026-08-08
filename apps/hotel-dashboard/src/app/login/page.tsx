@@ -186,12 +186,19 @@ export default function HotelLoginPage() {
 
       if (res.ok) {
         const data = await res.json();
+        const profileData = data.user?.profile;
+        const fullName = profileData?.firstName
+          ? `${profileData.firstName} ${profileData.lastName || ''}`.trim()
+          : data.user?.name || 'Restaurant Owner';
         setAuth(
           {
             id: data.user.id,
             email: data.user.email,
             role: data.user.role,
-            name: data.user.profile?.firstName || data.user.name || 'Restaurant Owner',
+            name: fullName,
+            firstName: profileData?.firstName,
+            lastName: profileData?.lastName,
+            avatarUrl: profileData?.avatarUrl || undefined,
             restaurantId: data.user.restaurantId,
           },
           data.tokens.accessToken,
@@ -237,6 +244,13 @@ export default function HotelLoginPage() {
             Password Login
           </button>
         </div>
+
+        {/* Session Expired Banner */}
+        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+          <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
+            ⚠️ Your session has expired. Please log in again.
+          </div>
+        )}
 
         {error && (
           <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3 text-xs font-bold text-rose-700">

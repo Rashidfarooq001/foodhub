@@ -53,6 +53,7 @@ export default function LoginPage() {
           role: data.user.role,
           firstName: data.user.profile?.firstName || 'Customer',
           lastName: data.user.profile?.lastName || '',
+          avatarUrl: data.user.profile?.avatarUrl || undefined,
         },
         data.tokens.accessToken,
         data.tokens.refreshToken || data.tokens.accessToken,
@@ -121,6 +122,13 @@ export default function LoginPage() {
             New Customer Sign Up
           </Link>
         </div>
+
+        {/* Session Expired Banner */}
+        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+          <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
+            ⚠️ Your session has expired. Please log in again.
+          </div>
+        )}
 
         {error && (
           <div className="rounded-xl bg-rose-50 p-3 text-center text-xs font-bold text-rose-600 border border-rose-100">

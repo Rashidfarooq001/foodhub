@@ -45,7 +45,7 @@ export const HeroBanner: React.FC = () => {
   const banner = BANNERS[current];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gray-900 text-white shadow-2xl">
+    <div className="relative w-full max-w-full min-w-0 overflow-hidden rounded-3xl bg-gray-900 text-white shadow-2xl">
       <AnimatePresence mode="wait">
         <motion.div
           key={banner.id}
@@ -53,27 +53,27 @@ export const HeroBanner: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.02 }}
           transition={{ duration: 0.5 }}
-          className={`grid min-h-[360px] grid-cols-1 items-center gap-8 bg-gradient-to-r ${banner.bgGradient} p-8 sm:p-12 lg:grid-cols-2`}
+          className={`grid min-h-[300px] sm:min-h-[360px] grid-cols-1 items-center gap-6 sm:gap-8 bg-gradient-to-r ${banner.bgGradient} p-5 sm:p-12 lg:grid-cols-2`}
         >
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3.5 py-1.5 text-xs font-bold backdrop-blur-md">
-              <Sparkles className="h-4 w-4" /> SPECIAL OFFER
+              <Sparkles className="h-4 w-4 shrink-0" /> SPECIAL OFFER
             </div>
-            <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight break-words">
               {banner.title}
             </h1>
-            <p className="max-w-lg text-sm leading-relaxed text-white/90 sm:text-base">
+            <p className="max-w-lg text-xs sm:text-base leading-relaxed text-white/90">
               {banner.subtitle}
             </p>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <Link
                 href="/restaurants"
-                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-gray-900 shadow-xl transition hover:bg-gray-100"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-xl transition hover:bg-gray-100"
               >
                 Order Now <ArrowRight className="h-4 w-4" />
               </Link>
-              <div className="flex items-center gap-2 rounded-2xl border border-white/30 bg-black/20 px-4 py-3 text-xs font-bold backdrop-blur-md">
-                <Tag className="h-4 w-4" /> Use Code: <span className="tracking-widest text-amber-300">{banner.code}</span>
+              <div className="flex items-center gap-2 rounded-2xl border border-white/30 bg-black/20 px-3.5 py-2.5 text-xs font-bold backdrop-blur-md">
+                <Tag className="h-4 w-4 shrink-0" /> Use Code: <span className="tracking-widest text-amber-300">{banner.code}</span>
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const HeroBanner: React.FC = () => {
       </AnimatePresence>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-8 flex gap-2">
+      <div className="absolute bottom-4 left-5 sm:left-8 flex gap-2">
         {BANNERS.map((b, idx) => (
           <button
             key={b.id}

@@ -2,7 +2,6 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { isAuthEnabled } from '@foodhub/config';
 
 export interface DeliveryUserProfile {
   id: string;
@@ -10,6 +9,9 @@ export interface DeliveryUserProfile {
   phone: string;
   role: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
 }
 
 interface DeliveryAuthState {
@@ -18,25 +20,9 @@ interface DeliveryAuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   setAuth: (user: DeliveryUserProfile, accessToken: string, refreshToken: string) => void;
+  updateUser: (profile: Partial<DeliveryUserProfile>) => void;
   logout: () => void;
 }
-
-const DEV_DELIVERY_USER: DeliveryUserProfile = {
-  id: 'driver-vikram-1',
-  email: 'driver@foodhub.com',
-  phone: '+919876500999',
-  role: 'DELIVERY_PARTNER',
-  name: 'Vikram Singh (Dev Mode)',
-};
-
-const getInitialAuthState = () => {
-  return {
-    user: null,
-    accessToken: null,
-    refreshToken: null,
-    isAuthenticated: false,
-  };
-};
 
 const dummyStorage = {
   getItem: () => null,
@@ -47,10 +33,18 @@ const dummyStorage = {
 export const useDeliveryAuthStore = create<DeliveryAuthState>()(
   persist(
     (set) => ({
-      ...getInitialAuthState(),
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
+
+      updateUser: (profile) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...profile } : state.user,
+        })),
 
       logout: () => {
         if (typeof window !== 'undefined') {

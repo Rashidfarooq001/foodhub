@@ -8,7 +8,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function DeliverySettingsPage() {
-  const { user, accessToken, setAuth } = useDeliveryAuthStore();
+  const { user, accessToken, setAuth, updateUser } = useDeliveryAuthStore();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'passwords'>('profile');
 
@@ -28,10 +28,12 @@ export default function DeliverySettingsPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.name) {
-      const parts = user.name.split(' ');
-      setFirstName(parts[0] || 'Courier');
-      setLastName(parts.slice(1).join(' ') || '');
+    if (user) {
+      if (user.firstName) setFirstName(user.firstName);
+      else if (user.name) setFirstName(user.name.split(' ')[0] || 'Courier');
+      if (user.lastName) setLastName(user.lastName);
+      else if (user.name) setLastName(user.name.split(' ').slice(1).join(' ') || '');
+      if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
     }
   }, [user]);
 
@@ -110,10 +112,8 @@ export default function DeliverySettingsPage() {
       const payload: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        avatarUrl: avatarPreview || null,
       };
-      if (avatarPreview) {
-        payload.avatarUrl = avatarPreview;
-      }
 
       const res = await fetch(`${API_BASE}/auth/profile`, {
         method: 'PATCH',
@@ -124,19 +124,19 @@ export default function DeliverySettingsPage() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to update profile');
+        throw new Error(data.message || 'Failed to update profile');
       }
 
+      const updatedProfile = data?.profile;
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      if (user) {
-        setAuth(
-          { ...user, name: fullName },
-          accessToken || '',
-          accessToken || '',
-        );
-      }
+      updateUser({
+        firstName: updatedProfile?.firstName || firstName.trim(),
+        lastName: updatedProfile?.lastName || lastName.trim(),
+        name: fullName,
+        avatarUrl: updatedProfile?.avatarUrl ?? (avatarPreview || undefined),
+      });
 
       showNotification('Courier profile updated successfully!');
     } catch (err: any) {

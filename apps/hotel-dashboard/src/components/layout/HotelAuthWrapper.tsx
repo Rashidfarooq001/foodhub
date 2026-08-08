@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { HotelLayout } from './HotelLayout';
+import { useSessionTimeout } from '@foodhub/hooks';
 import { Clock, XCircle, LogOut } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -20,7 +21,18 @@ const PUBLIC_ROUTES = [
 export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, user, accessToken, logout } = useHotelAuthStore();
+  const { isAuthenticated, user, accessToken, logout, updateUser } = useHotelAuthStore();
+
+  useSessionTimeout({
+    portalName: 'hotel',
+    isAuthenticated,
+    accessToken,
+    logout,
+    apiBaseUrl: API_BASE,
+    loginPath: '/login',
+    timeoutMs: 5 * 60 * 1000,
+  });
+
   const [mounted, setMounted] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<string | null>(
     user?.applicationStatus || null,
@@ -32,6 +44,29 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Hydrate latest Hotel profile (incl. avatarUrl) from database on mount / auth restore
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || !mounted) return;
+    let alive = true;
+    fetch(`${API_BASE}/auth/profile`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (alive && data?.profile) {
+          const fullName = `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() || data.name || 'Restaurant Owner';
+          updateUser({
+            firstName: data.profile.firstName,
+            lastName: data.profile.lastName,
+            name: fullName,
+            avatarUrl: data.profile.avatarUrl || undefined,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [isAuthenticated, accessToken, mounted, updateUser]);
 
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname?.startsWith(route),

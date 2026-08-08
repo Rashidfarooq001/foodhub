@@ -26,32 +26,32 @@ export const CategorySlider: React.FC = () => {
   if (categories.length === 0) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full min-w-0">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">What&apos;s on your mind?</h2>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">What&apos;s on your mind?</h2>
           <p className="text-xs text-gray-500">Explore dishes by popularity and cuisine</p>
         </div>
-        <Link href="/categories" className="text-xs font-bold text-orange-600 hover:underline">
-          View All Categories →
+        <Link href="/categories" className="text-xs font-bold text-orange-600 hover:underline shrink-0">
+          View All →
         </Link>
       </div>
 
-      <div className="no-scrollbar flex gap-4 overflow-x-auto pb-4">
+      <div className="no-scrollbar flex gap-3 sm:gap-4 overflow-x-auto pb-4 w-full max-w-full min-w-0">
         {categories.map((cat) => (
           <Link
             key={cat.id}
             href={`/categories/${cat.id}`}
-            className="group flex flex-col items-center gap-2 min-w-[100px]"
+            className="group flex flex-col items-center gap-2 min-w-[85px] sm:min-w-[100px] shrink-0"
           >
-            <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-gray-100 bg-gray-50 p-1 transition group-hover:scale-105 group-hover:border-orange-500 group-hover:shadow-md">
+            <div className="relative h-16 w-16 sm:h-20 sm:w-20 overflow-hidden rounded-full border-2 border-gray-100 bg-gray-50 p-1 transition group-hover:scale-105 group-hover:border-orange-500 group-hover:shadow-md">
               <img
                 src={cat.image}
                 alt={cat.name}
                 className="h-full w-full rounded-full object-cover"
               />
             </div>
-            <span className="text-xs font-bold text-gray-800 transition group-hover:text-orange-600">
+            <span className="text-xs font-bold text-gray-800 transition group-hover:text-orange-600 text-center">
               {cat.name}
             </span>
           </Link>

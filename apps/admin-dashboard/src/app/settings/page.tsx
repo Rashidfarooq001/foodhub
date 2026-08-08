@@ -125,10 +125,8 @@ export default function AdminAccountSettingsPage() {
       const payload: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        avatarUrl: avatarPreview || null,
       };
-      if (avatarPreview) {
-        payload.avatarUrl = avatarPreview;
-      }
 
       const res = await fetch(`${API_BASE}/auth/profile`, {
         method: 'PATCH',
@@ -139,17 +137,18 @@ export default function AdminAccountSettingsPage() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed to update profile');
+        throw new Error(data.message || 'Failed to update profile');
       }
 
+      const updatedProfile = data?.profile;
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
       updateUser({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: updatedProfile?.firstName || firstName.trim(),
+        lastName: updatedProfile?.lastName || lastName.trim(),
         name: fullName,
-        ...(avatarPreview ? { avatarUrl: avatarPreview } : {}),
+        avatarUrl: updatedProfile?.avatarUrl ?? (avatarPreview || undefined),
       });
 
       showNotification('Admin profile updated successfully!');
