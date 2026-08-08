@@ -38,6 +38,16 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Post('check-phone')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check if phone number is available for registration' })
+  @ApiResponse({ status: 200, description: 'Phone is available' })
+  @ApiResponse({ status: 400, description: 'Phone is already registered' })
+  async checkPhone(@Body('phone') phone: string) {
+    return this.authService.checkPhoneAvailability(phone);
+  }
+
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Public Customer Registration (name, address, phone, password)' })

@@ -28,6 +28,22 @@ export class AuthService {
     return this.otpService.sendOtp(phone);
   }
 
+  async checkPhoneAvailability(rawPhone: string) {
+    if (!rawPhone) {
+      throw new BadRequestException('Phone number is required');
+    }
+    const cleanDigits = rawPhone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+    const existing = await this.usersService.findUserByPhone(formattedPhone);
+    if (existing) {
+      throw new BadRequestException('Phone number is already registered. Please login.');
+    }
+    return { available: true, message: 'Phone number is available for registration.' };
+  }
+
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
@@ -160,6 +176,7 @@ export class AuthService {
     targetRole?: string,
     ipAddress?: string,
     userAgent?: string,
+    dto?: VerifyOtpDto,
   ) {
     if (!accessToken) {
       throw new BadRequestException('Widget access token is required');
@@ -207,17 +224,54 @@ export class AuthService {
       }
     }
 
+    // Phone mismatch check between submitted phone and MSG91 verified phone
+    if (dto?.phone) {
+      const cleanSub = dto.phone.replace(/\D/g, '');
+      if (cleanSub.length >= 10) {
+        const submittedFormatted = cleanSub.length === 10 ? `+91${cleanSub}` : `+${cleanSub}`;
+        if (submittedFormatted !== phoneToVerify) {
+          this.logger.error(`[Backend MSG91] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${phoneToVerify}`);
+          throw new BadRequestException('Submitted phone number does not match MSG91 verified phone number.');
+        }
+      }
+    }
+
     let user = await this.usersService.findUserByPhone(phoneToVerify);
     const normalizedTarget = (targetRole || 'CUSTOMER').toUpperCase();
 
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
-        this.logger.log(`[Backend MSG91] User not found for phone. Auto-registering CUSTOMER...`);
-        const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-        user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+        this.logger.log(`[Backend MSG91] Creating CUSTOMER account for verified phone ${phoneToVerify} AFTER OTP...`);
+        const passwordToHash = dto?.password || `Customer@${Date.now()}`;
+        const passwordHash = await bcrypt.hash(passwordToHash, 12);
+        
+        const nameParts = (dto?.name || 'Customer').trim().split(' ');
+        const firstName = nameParts[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        user = await (this.usersService as any).prisma.user.create({
+          data: {
+            phone: phoneToVerify,
+            passwordHash,
+            role: UserRole.CUSTOMER,
+            isVerified: true,
+            isActive: true,
+            profile: {
+              create: {
+                firstName,
+                lastName,
+              },
+            },
+          },
+          include: { profile: true },
+        });
       } else {
         this.logger.warn(`[Backend MSG91] Rejected: No user found for phone ${phoneToVerify} targeting ${normalizedTarget}`);
         throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+      }
+    } else {
+      if (dto?.password && normalizedTarget === 'CUSTOMER') {
+        throw new BadRequestException('Phone number is already registered. Please login.');
       }
     }
 
@@ -249,7 +303,7 @@ export class AuthService {
 
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string, userAgent?: string) {
     if (dto.accessToken) {
-      return this.verifyWidgetToken(dto.accessToken, dto.targetRole, ipAddress, userAgent);
+      return this.verifyWidgetToken(dto.accessToken, dto.targetRole, ipAddress, userAgent, dto);
     }
 
     if (!dto.phone || !dto.otp) {
@@ -270,10 +324,35 @@ export class AuthService {
 
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
-        const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-        user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+        const passwordToHash = dto?.password || `Customer@${Date.now()}`;
+        const passwordHash = await bcrypt.hash(passwordToHash, 12);
+        
+        const nameParts = (dto?.name || 'Customer').trim().split(' ');
+        const firstName = nameParts[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        user = await (this.usersService as any).prisma.user.create({
+          data: {
+            phone: phoneToVerify,
+            passwordHash,
+            role: UserRole.CUSTOMER,
+            isVerified: true,
+            isActive: true,
+            profile: {
+              create: {
+                firstName,
+                lastName,
+              },
+            },
+          },
+          include: { profile: true },
+        });
       } else {
         throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+      }
+    } else {
+      if (dto?.password && normalizedTarget === 'CUSTOMER') {
+        throw new BadRequestException('Phone number is already registered. Please login.');
       }
     }
 
@@ -388,7 +467,6 @@ export class AuthService {
   async forgotPassword(input: string) {
     const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
-      // Security standard: generic success response to prevent enumeration
       return { message: 'If registered, reset OTP has been sent' };
     }
     return this.otpService.sendOtp(user.phone);

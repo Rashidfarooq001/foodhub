@@ -17,8 +17,23 @@ export class VerifyOtpDto {
   @IsString()
   accessToken?: string;
 
-  @ApiPropertyOptional({ example: 'HOTEL', description: 'Target application/role requirement: CUSTOMER | HOTEL | DELIVERY | ADMIN' })
+  @ApiPropertyOptional({ example: 'CUSTOMER', description: 'Target application/role requirement: CUSTOMER | HOTEL | DELIVERY | ADMIN' })
   @IsOptional()
   @IsString()
   targetRole?: string;
+
+  @ApiPropertyOptional({ example: 'Rahul Sharma', description: 'Signup full name if registering via verified OTP' })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ example: '123 MG Road, Indiranagar, Bengaluru', description: 'Signup delivery address' })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiPropertyOptional({ example: 'CustomerPass123!', description: 'Signup password (hashed upon verification)' })
+  @IsOptional()
+  @IsString()
+  password?: string;
 }
