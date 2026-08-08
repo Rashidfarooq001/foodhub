@@ -67,20 +67,25 @@ export class StorageService {
 
 
   getPublicUrl(filename: string): string {
-    let host = (
-      process.env.PUBLIC_URL ||
-      process.env.PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:4000'
-    )
-      .trim()
-      .replace(/\/+$/, '');
+    let host: string;
 
-    // Strip trailing /api/v1 if present to construct clean uploads URL
-    host = host.replace(/\/api\/v1\/?$/, '');
+    if (process.env.PUBLIC_URL && process.env.PUBLIC_URL.trim()) {
+      host = process.env.PUBLIC_URL.trim();
+    } else if (process.env.NODE_ENV === 'production') {
+      host = (
+        process.env.PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        'https://foodhub-backend-enq2.onrender.com'
+      );
+    } else {
+      host = `http://localhost:${process.env.PORT || 4000}`;
+    }
+
+    host = host.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
 
     return `${host}/uploads/${filename}`;
   }
+
 
 
   deleteFile(filename: string) {

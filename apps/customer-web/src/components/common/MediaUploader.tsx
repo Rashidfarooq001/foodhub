@@ -54,6 +54,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       return;
     }
 
+    // Set immediate client-side preview URL
+    const localPreview = URL.createObjectURL(file);
+    onChange(localPreview);
+
     setIsUploading(true);
 
     try {
@@ -69,7 +73,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         const data = await res.json();
         onChange(data.url);
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         setError(errData.message || 'File upload failed. Please try again.');
       }
     } catch {
@@ -91,7 +95,9 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     if (e.target.files && e.target.files[0]) {
       handleFileSelect(e.target.files[0]);
     }
+    if (e.target) e.target.value = '';
   };
+
 
   return (
     <div className="space-y-2">
