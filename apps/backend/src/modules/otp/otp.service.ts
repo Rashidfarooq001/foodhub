@@ -1,10 +1,6 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { UsersService } from '../users/users.service';
-import { TokenService } from '../tokens/token.service';
-import { SessionService } from '../sessions/session.service';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class OtpService {
@@ -14,9 +10,6 @@ export class OtpService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly usersService: UsersService,
-    private readonly tokenService: TokenService,
-    private readonly sessionService: SessionService,
   ) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
@@ -90,107 +83,65 @@ export class OtpService {
     return true;
   }
 
-  async verifyAccessToken(accessToken: string, ipAddress?: string, userAgent?: string): Promise<any> {
+  async verifyAccessToken(accessToken: string): Promise<any> {
     const authKey = process.env.MSG91_AUTH_KEY;
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
-    this.logger.log(`[Backend MSG91] verifyAccessToken request received. Token present: ${!!accessToken}, Length: ${accessToken?.length}`);
+    this.logger.log(`[Backend MSG91] MSG91_AUTH_KEY_PRESENT=${!!authKey}, KeyLength=${authKey?.length || 0}`);
+    this.logger.log(`[Backend MSG91] Token present=${!!accessToken}, TokenLength=${accessToken?.length || 0}`);
 
-    let msg91Data: any;
-
-    // Dev/Test Mode fallback for local testing
-    if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken.startsWith('dev_')) {
+    if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken?.startsWith('dev_')) {
       this.logger.log('[Backend MSG91] Bypassing MSG91 API in local test mode for dev_ token');
       const devPhone = accessToken.replace('dev_widget_token_', '').replace('dev_', '');
       const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
-      msg91Data = {
+      return {
         type: 'success',
         message: 'Dev OTP widget verified',
         mobile: formattedDevPhone || '+919876543210',
       };
-    } else {
-      try {
-        this.logger.log('[Backend MSG91] Calling https://control.msg91.com/api/v5/widget/verifyAccessToken...');
-        const response = await fetch(
-          'https://control.msg91.com/api/v5/widget/verifyAccessToken',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-            },
-            body: JSON.stringify({
-              authkey: authKey,
-              'access-token': accessToken,
-            }),
+    }
+
+    if (!authKey) {
+      this.logger.error('[Backend MSG91] MSG91_AUTH_KEY is missing in environment variables!');
+      throw new UnauthorizedException('Server configuration error: MSG91_AUTH_KEY missing');
+    }
+
+    try {
+      this.logger.log('[Backend MSG91] Requesting https://control.msg91.com/api/v5/widget/verifyAccessToken...');
+      const response = await fetch(
+        'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
-        );
+          body: JSON.stringify({
+            authkey: authKey,
+            'access-token': accessToken,
+          }),
+        },
+      );
 
-        this.logger.log(`[Backend MSG91] MSG91 endpoint response HTTP status: ${response.status}`);
-        msg91Data = await response.json();
-        this.logger.log(`[Backend MSG91] Response fields from MSG91: ${Object.keys(msg91Data || {}).join(', ')}`);
-        this.logger.log(`[Backend MSG91] MSG91 type/status: type="${msg91Data?.type || 'none'}", status="${msg91Data?.status || 'none'}"`);
+      this.logger.log(`[Backend MSG91] HTTP status from MSG91 server: ${response.status}`);
+      const msg91Data = await response.json();
+      this.logger.log(`[Backend MSG91] Response keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
+      this.logger.log(`[Backend MSG91] MSG91 response type="${msg91Data?.type || 'none'}", status="${msg91Data?.status || 'none'}"`);
 
-        if (!response.ok || msg91Data.type === 'error' || msg91Data.status === 'error') {
-          const msg = msg91Data.message || msg91Data.error || 'OTP verification failed';
-          this.logger.error(`[Backend MSG91] Verification rejected by MSG91: ${msg}`);
-          throw new UnauthorizedException(msg);
-        }
-      } catch (error: any) {
-        if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
-          throw error;
-        }
-        this.logger.error(`[Backend MSG91] Exception calling verifyAccessToken: ${error?.message || error}`);
-        throw new UnauthorizedException(error?.message || 'MSG91 OTP widget token verification failed.');
+      if (!response.ok || msg91Data?.type === 'error' || msg91Data?.status === 'error') {
+        const msg = msg91Data?.message || msg91Data?.error || 'MSG91 widget verification failed';
+        this.logger.error(`[Backend MSG91] Verification rejected by MSG91 server: ${msg}`);
+        throw new UnauthorizedException(`MSG91 verification rejected: ${msg}`);
       }
-    }
 
-    // Extract mobile number from MSG91 response
-    const rawMobile =
-      msg91Data?.data?.mobile ||
-      msg91Data?.mobile ||
-      msg91Data?.data?.mobileNumber ||
-      msg91Data?.mobileNumber ||
-      msg91Data?.phone;
-
-    this.logger.log(`[Backend MSG91] Extracted mobile field present: ${!!rawMobile}`);
-
-    let phoneToVerify = String(rawMobile || '').trim();
-    if (!phoneToVerify) {
-      this.logger.error('[Backend MSG91] Mobile field missing in MSG91 payload response!');
-      throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
-    }
-
-    if (!phoneToVerify.startsWith('+')) {
-      if (phoneToVerify.length === 10) {
-        phoneToVerify = `+91${phoneToVerify}`;
-      } else {
-        phoneToVerify = `+${phoneToVerify}`;
+      return msg91Data;
+    } catch (error: any) {
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
       }
+      this.logger.error(`[Backend MSG91] Exception during MSG91 verifyAccessToken: ${error?.message || error}`);
+      throw new UnauthorizedException(error?.message || 'MSG91 token verification failed.');
     }
-
-    let user = await this.usersService.findUserByPhone(phoneToVerify);
-    if (!user) {
-      this.logger.log(`[Backend MSG91] User not found for phone. Auto-creating customer record...`);
-      const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-      user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
-    }
-
-    this.logger.log(`[Backend MSG91] User found/created with ID: ${user.id}. Creating session & generating tokens...`);
-    const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
-    const tokens = await this.tokenService.generateTokenPair(user, session.id);
-
-    this.logger.log(`[Backend MSG91] Verification & session creation completed successfully.`);
-    return {
-      user: {
-        id: user.id,
-        phone: user.phone,
-        email: user.email,
-        role: user.role,
-        profile: user.profile,
-      },
-      tokens,
-    };
   }
 
   async sendDeliveryOtp(orderId: string) {

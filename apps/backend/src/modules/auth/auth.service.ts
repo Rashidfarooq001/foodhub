@@ -32,17 +32,22 @@ export class AuthService {
       throw new BadRequestException('Widget access token is required');
     }
 
-    const msg91Res = await this.otpService.verifyAccessToken(accessToken);
+    const msg91Data = await this.otpService.verifyAccessToken(accessToken);
 
+    // Extract mobile number from MSG91 response structure
     const rawMobile =
-      msg91Res?.data?.mobile ||
-      msg91Res?.mobile ||
-      msg91Res?.data?.mobileNumber ||
-      msg91Res?.mobileNumber ||
-      msg91Res?.phone;
+      msg91Data?.data?.mobile ||
+      msg91Data?.mobile ||
+      msg91Data?.data?.mobileNumber ||
+      msg91Data?.mobileNumber ||
+      msg91Data?.phone ||
+      msg91Data?.message?.mobile;
+
+    this.logger.log(`[Backend MSG91] Extracted mobile present=${!!rawMobile}`);
 
     let phoneToVerify = String(rawMobile || '').trim();
     if (!phoneToVerify) {
+      this.logger.error(`[Backend MSG91] Mobile number missing in MSG91 payload response. Keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
       throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
     }
 
@@ -56,11 +61,12 @@ export class AuthService {
 
     let user = await this.usersService.findUserByPhone(phoneToVerify);
     if (!user) {
-      // Auto-register Customer upon first successful OTP verification
+      this.logger.log(`[Backend MSG91] User not found for phone. Auto-registering customer...`);
       const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
       user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
     }
 
+    this.logger.log(`[Backend MSG91] Customer authenticated with ID=${user.id}. Creating session & tokens...`);
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(user, session.id);
 
@@ -162,13 +168,14 @@ export class AuthService {
     }
 
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
-   const tokens = await this.tokenService.generateTokenPair(
-  {
-    ...user,
-    restaurantId: restaurant?.id,
-  },
-  session.id,
-);
+    const tokens = await this.tokenService.generateTokenPair(
+      {
+        ...user,
+        restaurantId: restaurant?.id,
+      },
+      session.id,
+    );
+
     return {
       user: {
         id: user.id,
