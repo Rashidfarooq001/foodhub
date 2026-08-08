@@ -73,6 +73,18 @@ export default function RestaurantPartnerRegisterPage() {
   // OTP Verification State (MSG91 Widget)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   // Form Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +100,7 @@ export default function RestaurantPartnerRegisterPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === 'phone') {
       setIsPhoneVerified(false);
+      setShowOtpInput(false);
     }
   };
 
@@ -135,11 +148,13 @@ export default function RestaurantPartnerRegisterPage() {
           } else {
             setErrorMsg('Verification succeeded on MSG91, but verification token was missing.');
             setIsVerifyingPhone(false);
+            setIsVerifyingOtp(false);
           }
         },
         failure: (err: any) => {
           setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Phone verification failed. Please try again.'));
           setIsVerifyingPhone(false);
+          setIsVerifyingOtp(false);
         },
       };
 
@@ -149,19 +164,18 @@ export default function RestaurantPartnerRegisterPage() {
           if (typeof (window as any).sendOtp === 'function') {
             (window as any).sendOtp(identifier, () => {}, (err: any) => {
               console.error('[MSG91 Restaurant] sendOtp error:', err);
-              setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Unable to start phone verification. Please try again.'));
-              setIsVerifyingPhone(false);
             });
           }
         } catch (widgetErr: any) {
           console.warn('[MSG91 Restaurant] initSendOTP exception:', widgetErr);
-          setErrorMsg('Unable to start phone verification widget. Please try again.');
-          setIsVerifyingPhone(false);
         }
-      } else {
-        setErrorMsg('MSG91 verification widget script is still loading. Please try again in a moment.');
-        setIsVerifyingPhone(false);
       }
+
+      // Open OTP Input interface immediately upon triggering SMS
+      setShowOtpInput(true);
+      setResendCooldown(30);
+      setIsVerifyingPhone(false);
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 100);
     } catch (err: any) {
       setErrorMsg(err.message || 'Phone verification initialization failed.');
       setIsVerifyingPhone(false);
@@ -171,7 +185,7 @@ export default function RestaurantPartnerRegisterPage() {
   // Secure Backend Verification of MSG91 Widget Token
   const handleBackendWidgetVerification = async (accessToken: string) => {
     setErrorMsg(null);
-    setIsVerifyingPhone(true);
+    setIsVerifyingOtp(true);
 
     try {
       const res = await fetch(`${API_BASE}/auth/verify-registration-widget`, {
@@ -189,14 +203,88 @@ export default function RestaurantPartnerRegisterPage() {
       }
 
       setIsPhoneVerified(true);
+      setShowOtpInput(false);
       setErrorMsg(null);
     } catch (err: any) {
       setErrorMsg(err.message || 'Phone verification failed after widget verification.');
       setIsPhoneVerified(false);
     } finally {
       setIsVerifyingPhone(false);
+      setIsVerifyingOtp(false);
     }
   };
+
+  // Submit entered OTP
+  const handleVerifyOtpSubmit = async () => {
+    const enteredOtp = otpDigits.join('');
+    if (enteredOtp.length < 4) {
+      setErrorMsg('Please enter the complete 4-digit OTP code');
+      return;
+    }
+
+    setErrorMsg(null);
+    setIsVerifyingOtp(true);
+
+    // 1. Try MSG91 Widget JS SDK verifyOtp
+    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
+      try {
+        (window as any).verifyOtp(enteredOtp, () => {}, (err: any) => {
+          setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Incorrect OTP entered. Please try again.'));
+          setIsVerifyingOtp(false);
+        });
+        return;
+      } catch (verifyErr: any) {
+        console.warn('[MSG91 Restaurant] verifyOtp exception:', verifyErr);
+      }
+    }
+
+    // 2. Direct Backend fallback verification
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-registration-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: form.phone,
+          otp: enteredOtp,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.verified) {
+        setIsPhoneVerified(true);
+        setShowOtpInput(false);
+        setErrorMsg(null);
+      } else {
+        throw new Error(data.message || 'Incorrect OTP code entered.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Phone verification failed.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = () => {
+    if (resendCooldown > 0) return;
+    setErrorMsg(null);
+    setResendCooldown(30);
+    const identifier = formatIdentifier(form.phone);
+
+    if (typeof window !== 'undefined' && typeof (window as any).retryOtp === 'function') {
+      (window as any).retryOtp();
+    } else if (typeof window !== 'undefined' && typeof (window as any).sendOtp === 'function') {
+      (window as any).sendOtp(identifier, () => {}, (err: any) => console.error(err));
+    }
+  };
+
+  const handleCancelOtp = () => {
+    setShowOtpInput(false);
+    setIsVerifyingPhone(false);
+    setIsVerifyingOtp(false);
+    setOtpDigits(['', '', '', '']);
+    setErrorMsg(null);
+  };
+
 
 
   // 3. Complete Application Submission
@@ -433,6 +521,84 @@ export default function RestaurantPartnerRegisterPage() {
                   )}
                 </div>
               </div>
+
+              {/* OTP Verification Card */}
+              {showOtpInput && !isPhoneVerified && (
+                <div className="col-span-1 sm:col-span-2 rounded-2xl bg-orange-50/80 p-5 border border-orange-200 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-black text-orange-900">
+                      <Phone className="h-4 w-4 text-orange-600" /> Enter MSG91 Verification OTP
+                    </div>
+                    <span className="text-[11px] font-bold text-orange-700">
+                      Sent to +91{form.phone.replace(/\D/g, '')}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="flex justify-center gap-3">
+                      {otpDigits.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={(el) => { otpInputsRef.current[idx] = el; }}
+                          type="text"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => {
+                            if (!/^\d*$/.test(e.target.value)) return;
+                            const next = [...otpDigits];
+                            next[idx] = e.target.value.substring(e.target.value.length - 1);
+                            setOtpDigits(next);
+                            if (e.target.value && idx < 3) otpInputsRef.current[idx + 1]?.focus();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
+                              otpInputsRef.current[idx - 1]?.focus();
+                            }
+                          }}
+                          disabled={isVerifyingOtp}
+                          className="h-12 w-12 rounded-2xl border-2 border-gray-300 text-center text-lg font-black text-gray-900 focus:border-orange-500 focus:outline-none bg-white shadow-sm disabled:bg-gray-100"
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full max-w-xs pt-1">
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtpSubmit}
+                        disabled={isVerifyingOtp || otpDigits.join('').length < 4}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 disabled:opacity-50 transition"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>{isVerifyingOtp ? 'Verifying OTP...' : 'Verify OTP'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCancelOtp}
+                        disabled={isVerifyingOtp}
+                        className="rounded-xl bg-gray-200 px-3 py-3 text-xs font-bold text-gray-700 hover:bg-gray-300 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[11px] text-gray-500 pt-1">
+                      {resendCooldown > 0 ? (
+                        <span>Resend OTP in <strong className="text-orange-600">{resendCooldown}s</strong></span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          className="font-bold text-orange-600 hover:underline"
+                        >
+                          Resend OTP
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
 
 
               <div>
