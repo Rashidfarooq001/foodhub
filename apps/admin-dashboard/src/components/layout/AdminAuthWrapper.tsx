@@ -32,6 +32,7 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
       isAuthenticated={isAuthenticated}
       userRole={user?.role || null}
       allowedRoles={['ADMIN', 'SUPER_ADMIN']}
+      customerPortalUrl={process.env.NEXT_PUBLIC_CUSTOMER_WEB_URL || 'http://localhost:3000'}
       onUnauthorized={(reason) => {
         if (reason === 'UNAUTHENTICATED') {
           router.push('/login');
