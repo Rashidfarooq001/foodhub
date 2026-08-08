@@ -115,16 +115,17 @@ export default function LiveOrderTrackingPage() {
       <div className="mx-auto max-w-xl px-4 py-16 text-center space-y-4">
         <AlertCircle className="h-12 w-12 mx-auto text-rose-500" />
         <h2 className="text-2xl font-black text-gray-900">Order Not Found</h2>
-        <p className="text-xs text-gray-500">Live location is temporarily unavailable for this order.</p>
+        <p className="text-xs text-gray-500">We couldn't locate this order or you do not have permission to view it.</p>
         <button
           onClick={() => router.push('/orders')}
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-bold text-white"
+          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-orange-700"
         >
           <ArrowLeft className="h-4 w-4" /> Return to Orders
         </button>
       </div>
     );
   }
+
 
   const deliveryAddress = order.deliveryAddress || {};
   const restaurantLat = order.restaurant?.latitude || 12.9716;

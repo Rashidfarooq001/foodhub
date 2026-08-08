@@ -34,31 +34,44 @@ export class OrdersService {
     private readonly gateway:     OrdersGateway,
   ) {}
 
-  async createOrder(customerId: string, dto: CreateOrderDto) {
-    let targetCustomerId = customerId;
-    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerId);
+  async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerIdOrUserId);
 
-    // Look up existing customer by ID (if valid UUID) or find/create guest customer record in PostgreSQL
+    // Look up customer by userId OR customer id in PostgreSQL
     let existingCustomer = isUuid
-      ? await this.prisma.customer.findUnique({ where: { id: customerId } })
+      ? await this.prisma.customer.findFirst({
+          where: {
+            OR: [
+              { userId: customerIdOrUserId },
+              { id: customerIdOrUserId },
+            ],
+          },
+        })
       : null;
 
-    if (!existingCustomer) {
-      existingCustomer = await this.prisma.customer.findFirst({
-        where: { user: { phone: '+919876543210' } },
-      });
+    if (!existingCustomer && isUuid) {
+      // Auto-create Customer record for authenticated User if missing
+      const existingUser = await this.prisma.user.findUnique({ where: { id: customerIdOrUserId } });
+      if (existingUser) {
+        existingCustomer = await this.prisma.customer.create({
+          data: { userId: existingUser.id },
+        });
+      }
     }
+
+    let targetCustomerId: string;
 
     if (existingCustomer) {
       targetCustomerId = existingCustomer.id;
     } else {
-      let existingUser = await this.prisma.user.findFirst({
+      // Fallback for unauthenticated dev guest
+      let guestUser = await this.prisma.user.findFirst({
         where: { phone: '+919876543210' },
         include: { customer: true },
       });
 
-      if (!existingUser) {
-        existingUser = await this.prisma.user.create({
+      if (!guestUser) {
+        guestUser = await this.prisma.user.create({
           data: {
             phone: '+919876543210',
             passwordHash: '$2b$10$devguestdummyhashplaceholder',
@@ -72,15 +85,16 @@ export class OrdersService {
         });
       }
 
-      if (existingUser.customer) {
-        targetCustomerId = existingUser.customer.id;
+      if (guestUser.customer) {
+        targetCustomerId = guestUser.customer.id;
       } else {
         const newCustomer = await this.prisma.customer.create({
-          data: { userId: existingUser.id },
+          data: { userId: guestUser.id },
         });
         targetCustomerId = newCustomer.id;
       }
     }
+
 
     // 1. Validate restaurant
     await this.validation.validateRestaurantOpen(dto.restaurantId);
@@ -641,7 +655,9 @@ if (!allowed.includes(dto.status as OrderStatus)) {
 
     // STRICT CUSTOMER & ROLE SECURITY CHECK
     const isCustomerOwner =
-      order.customer.userId === userId || order.customerId === userId;
+      order.customer.userId === userId ||
+      order.customerId === userId ||
+      order.customer.id === userId;
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
     const isRestaurantStaff =
       role === 'RESTAURANT_OWNER' ||
@@ -669,7 +685,11 @@ if (!allowed.includes(dto.status as OrderStatus)) {
 
     if (!order) throw new BadRequestException(`Order ${orderId} not found`);
 
-    const isCustomerOwner = order.customer.userId === userId || order.customerId === userId;
+    const isCustomerOwner =
+      order.customer.userId === userId ||
+      order.customerId === userId ||
+      order.customer.id === userId;
+
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
     const isRestaurantStaff = role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF';
     const isDriver = role === 'DRIVER';

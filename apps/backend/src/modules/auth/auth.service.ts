@@ -480,14 +480,18 @@ export class AuthService {
       throw new BadRequestException('Phone or email is required for login');
     }
     const user = await this.usersService.findUserByPhoneOrEmail(input);
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException('Invalid credentials or account disabled');
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled. Please contact support.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials entered');
     }
+
 
     // Portal-specific role enforcement: reject if the caller declared a targetRole
     // that does not match the account's actual role

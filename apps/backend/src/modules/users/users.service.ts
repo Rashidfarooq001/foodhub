@@ -8,18 +8,42 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findUserByPhone(phone: string) {
+    if (!phone || !phone.trim()) return null;
+    const cleanInput = phone.trim();
+
+    if (cleanInput.includes('@')) {
+      return this.prisma.user.findFirst({
+        where: { email: cleanInput.toLowerCase() },
+        include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
+      });
+    }
+
+    const cleanDigits = cleanInput.replace(/\D/g, '');
+    const phoneFormats: string[] = [cleanInput];
+
+    if (cleanDigits.length >= 10) {
+      const tenDigits = cleanDigits.slice(-10);
+      phoneFormats.push(
+        tenDigits,
+        `+91${tenDigits}`,
+        `91${tenDigits}`,
+      );
+    }
+
+    const uniqueFormats = Array.from(new Set(phoneFormats));
+
     return this.prisma.user.findFirst({
-      where: { OR: [{ phone }, { email: phone }] },
+      where: {
+        OR: uniqueFormats.map((p) => ({ phone: p })),
+      },
       include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
     });
   }
 
   async findUserByPhoneOrEmail(input: string) {
-    return this.prisma.user.findFirst({
-      where: { OR: [{ phone: input }, { email: input }] },
-      include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
-    });
+    return this.findUserByPhone(input);
   }
+
 
   async findUserById(userId: string) {
     const user = await this.prisma.user.findUnique({

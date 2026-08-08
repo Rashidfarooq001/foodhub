@@ -56,7 +56,17 @@ function getImageUrl(url) {
     // Get API Server Base Origin (e.g. "http://localhost:4000" or "https://foodhub-backend-enq2.onrender.com")
     const apiBase = getApiBaseUrl();
     const serverOrigin = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
-    // Handle localhost:4000 URL when app is running in production (e.g. on Vercel)
+    // Handle any upload URL (localhost or production domain) when running in local development environment
+    if (cleanUrl.includes('/uploads/')) {
+        if (typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            const match = cleanUrl.match(/\/uploads\/(.+)$/);
+            if (match && match[1]) {
+                return `${serverOrigin}/uploads/${match[1]}`;
+            }
+        }
+    }
+    // Handle localhost:4000 URL when app is running in remote production environment (e.g. on Vercel)
     if (cleanUrl.includes('localhost:4000') || cleanUrl.includes('127.0.0.1:4000')) {
         if (typeof window !== 'undefined' &&
             window.location.hostname !== 'localhost' &&

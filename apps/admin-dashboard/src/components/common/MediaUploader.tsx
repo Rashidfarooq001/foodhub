@@ -25,6 +25,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const isVideo = acceptType === 'video';
   const allowedExtensions = isVideo ? '.mp4,.mov,.webm' : '.jpg,.jpeg,.png,.webp';
@@ -54,6 +55,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     // Set immediate client-side preview URL
     const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
     onChange(localPreview);
 
     setIsUploading(true);
@@ -69,6 +71,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
       if (res.ok) {
         const data = await res.json();
+        // Update parent form with permanent backend URL
         onChange(data.url);
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -120,14 +123,13 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             ) : (
               <img
-                key={value}
-                src={getImageUrl(value)}
+                key={previewUrl || value}
+                src={previewUrl || getImageUrl(value)}
                 alt="Uploaded media preview"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  if (!target.dataset.failed) {
-                    target.dataset.failed = 'true';
-                    target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
+                  if (previewUrl && target.src !== previewUrl) {
+                    target.src = previewUrl;
                   }
                 }}
                 className="h-16 w-16 shrink-0 rounded-xl object-cover border border-gray-200 bg-white"
