@@ -503,6 +503,17 @@ model RestaurantDocument {
   @@map("restaurant_documents")
 }
 
+model RejectedRestaurantRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  restaurantName    String   @map("restaurant_name")
+  status            String   @default("REJECTED")
+  rejectionReason   String   @map("rejection_reason")
+  rejectedAt        DateTime @default(now()) @map("rejected_at")
+  reviewedByAdminId String?  @map("reviewed_by_admin_id") @db.Uuid
+
+  @@map("rejected_restaurant_records")
+}
+
 model RestaurantStaff {
   id           String   @id @default(uuid()) @db.Uuid
   restaurantId String   @map("restaurant_id") @db.Uuid

@@ -5,6 +5,7 @@ import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Restaurants & Onboarding (Phase 8)')
 @Controller('restaurants')
@@ -57,8 +58,9 @@ export class RestaurantsController {
     @Param('id') id: string,
     @Body('status') status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING',
     @Body('rejectionReason') rejectionReason?: string,
+    @CurrentUser() currentUser?: any,
   ) {
-    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason);
+    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
   }
 
   @Patch(':id/delivery-mode')

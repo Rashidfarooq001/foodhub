@@ -24,9 +24,9 @@ import { adminFetch } from '../../../utils/admin-fetch';
 interface RestaurantApplication {
   id: string;
   name: string;
-  phone: string;
+  phone?: string;
   email?: string;
-  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | string;
   licenseFssai: string;
   fssaiUrl?: string;
   panNumber?: string;
@@ -66,6 +66,7 @@ export default function AdminRestaurantApprovalPage() {
   const [rejectionReasonInput, setRejectionReasonInput] = useState('');
   const [rejectionError, setRejectionError] = useState<string | null>(null);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   const fetchApplications = async () => {
     setIsLoading(true);
@@ -88,6 +89,7 @@ export default function AdminRestaurantApprovalPage() {
 
   const handleApprove = async (id: string) => {
     setIsSubmittingAction(true);
+    setSuccessNotice(null);
     try {
       const res = await adminFetch(`/restaurants/${id}/approval`, {
         method: 'PATCH',
@@ -95,6 +97,7 @@ export default function AdminRestaurantApprovalPage() {
       });
       if (res.ok) {
         if (selectedApp?.id === id) setSelectedApp(null);
+        setSuccessNotice('Restaurant application approved successfully.');
         fetchApplications();
       }
     } catch {
@@ -119,6 +122,7 @@ export default function AdminRestaurantApprovalPage() {
 
     setIsSubmittingAction(true);
     setRejectionError(null);
+    setSuccessNotice(null);
 
     try {
       const res = await adminFetch(`/restaurants/${rejectingAppId}/approval`, {
@@ -132,6 +136,7 @@ export default function AdminRestaurantApprovalPage() {
       if (res.ok) {
         setRejectingAppId(null);
         if (selectedApp?.id === rejectingAppId) setSelectedApp(null);
+        setSuccessNotice('Restaurant application rejected and applicant data permanently removed.');
         fetchApplications();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -198,6 +203,19 @@ export default function AdminRestaurantApprovalPage() {
         })}
       </div>
 
+      {/* Toast Notification */}
+      {successNotice && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <span>{successNotice}</span>
+          </div>
+          <button onClick={() => setSuccessNotice(null)} className="text-emerald-600 hover:text-emerald-900">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Applications List */}
       {isLoading ? (
         <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-xs font-bold text-gray-400">
@@ -227,68 +245,85 @@ export default function AdminRestaurantApprovalPage() {
                       {app.status}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">{app.addressLine}</p>
+                  {app.status !== 'REJECTED' && app.addressLine && (
+                    <p className="text-xs text-gray-500">{app.addressLine}</p>
+                  )}
                 </div>
                 <span className="text-xs font-bold text-gray-400">
-                  Submitted: {new Date(app.createdAt).toLocaleDateString()}
+                  {app.status === 'REJECTED' ? 'Rejected' : 'Submitted'}: {new Date(app.createdAt).toLocaleDateString()}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
-                <div>
-                  <span className="block font-semibold text-gray-400">Owner Name</span>
-                  <span className="font-bold text-gray-900">{getOwnerName(app)}</span>
+              {/* RENDER ONLY MINIMAL INFO FOR REJECTED APPLICATIONS */}
+              {app.status === 'REJECTED' ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-rose-50 p-4 border border-rose-200 text-xs font-bold text-rose-800">
+                    <span className="text-[10px] uppercase block font-black text-rose-600 mb-1">Rejection Reason:</span>
+                    <span>{app.rejectionReason || 'FSSAI License or submitted documents could not be verified.'}</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-gray-400 italic">
+                    ℹ️ All submitted applicant PII, phone numbers, legal documents, menu items and images have been permanently removed from the system.
+                  </div>
                 </div>
-                <div>
-                  <span className="block font-semibold text-gray-400">Phone</span>
-                  <span className="font-bold text-gray-900">{app.phone}</span>
-                </div>
-                <div>
-                  <span className="block font-semibold text-gray-400">FSSAI License</span>
-                  <span className="font-bold text-gray-900">{app.licenseFssai}</span>
-                </div>
-                <div>
-                  <span className="block font-semibold text-gray-400">Email</span>
-                  <span className="font-bold text-gray-900 truncate block">{app.email || 'N/A'}</span>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
+                    <div>
+                      <span className="block font-semibold text-gray-400">Owner Name</span>
+                      <span className="font-bold text-gray-900">{getOwnerName(app)}</span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-gray-400">Phone</span>
+                      <span className="font-bold text-gray-900">{app.phone}</span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-gray-400">FSSAI License</span>
+                      <span className="font-bold text-gray-900">{app.licenseFssai}</span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-gray-400">Email</span>
+                      <span className="font-bold text-gray-900 truncate block">{app.email || 'N/A'}</span>
+                    </div>
+                  </div>
 
-              {app.rejectionReason && (
-                <div className="rounded-2xl bg-rose-50 p-3 border border-rose-200 text-xs font-bold text-rose-800">
-                  <span className="text-[10px] uppercase block font-black text-rose-600">Rejection Reason:</span>
-                  <span>{app.rejectionReason}</span>
-                </div>
+                  {app.rejectionReason && (
+                    <div className="rounded-2xl bg-rose-50 p-3 border border-rose-200 text-xs font-bold text-rose-800">
+                      <span className="text-[10px] uppercase block font-black text-rose-600">Rejection Reason:</span>
+                      <span>{app.rejectionReason}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                    <button
+                      onClick={() => setSelectedApp(app)}
+                      className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"
+                    >
+                      <Eye className="h-4 w-4 text-purple-600" /> View Complete Application
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {app.status !== 'APPROVED' && (
+                        <button
+                          onClick={() => handleApprove(app.id)}
+                          disabled={isSubmittingAction}
+                          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition"
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Approve
+                        </button>
+                      )}
+                      {app.status !== 'REJECTED' && (
+                        <button
+                          onClick={() => handleOpenRejectModal(app.id)}
+                          disabled={isSubmittingAction}
+                          className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-50 transition"
+                        >
+                          <XCircle className="h-4 w-4" /> Reject
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                <button
-                  onClick={() => setSelectedApp(app)}
-                  className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"
-                >
-                  <Eye className="h-4 w-4 text-purple-600" /> View Complete Application
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {app.status !== 'APPROVED' && (
-                    <button
-                      onClick={() => handleApprove(app.id)}
-                      disabled={isSubmittingAction}
-                      className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition"
-                    >
-                      <CheckCircle2 className="h-4 w-4" /> Approve
-                    </button>
-                  )}
-                  {app.status !== 'REJECTED' && (
-                    <button
-                      onClick={() => handleOpenRejectModal(app.id)}
-                      disabled={isSubmittingAction}
-                      className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-50 transition"
-                    >
-                      <XCircle className="h-4 w-4" /> Reject
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
           ))}
         </div>
@@ -481,12 +516,17 @@ export default function AdminRestaurantApprovalPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-lg font-black text-rose-600 flex items-center gap-1.5">
-                <XCircle className="h-5 w-5" /> Reject Restaurant Application
-              </h3>
+              <div>
+                <h3 className="text-lg font-black text-rose-600 flex items-center gap-1.5">
+                  <XCircle className="h-5 w-5" /> Reject this restaurant application?
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Rejecting this application will permanently remove all submitted legal documents, menu items, images, and applicant PII from FoodHub.
+                </p>
+              </div>
               <button
                 onClick={() => setRejectingAppId(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 shrink-0"
               >
                 <X className="h-5 w-5" />
               </button>

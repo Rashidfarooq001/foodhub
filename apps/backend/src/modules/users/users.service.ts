@@ -64,20 +64,21 @@ export class UsersService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const user = await this.findUserById(userId);
 
+    const profileData: any = {};
+    if (dto.firstName !== undefined) profileData.firstName = dto.firstName;
+    if (dto.lastName !== undefined) profileData.lastName = dto.lastName;
+    if (dto.gender !== undefined) profileData.gender = dto.gender;
+    if (dto.avatarUrl !== undefined) profileData.avatarUrl = dto.avatarUrl;
+
     const updatedProfile = await this.prisma.profile.upsert({
       where: { userId },
-      update: {
-        ...(dto.firstName && { firstName: dto.firstName }),
-        ...(dto.lastName && { lastName: dto.lastName }),
-        ...(dto.gender && { gender: dto.gender }),
-        ...(dto.avatarUrl && { avatarUrl: dto.avatarUrl }),
-      },
+      update: profileData,
       create: {
         userId,
-        firstName: dto.firstName || 'Customer',
-        lastName: dto.lastName || 'User',
+        firstName: dto.firstName || 'User',
+        lastName: dto.lastName || '',
         gender: dto.gender,
-        avatarUrl: dto.avatarUrl,
+        avatarUrl: dto.avatarUrl || null,
       },
     });
 

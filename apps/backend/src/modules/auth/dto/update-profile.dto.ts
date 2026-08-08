@@ -20,6 +20,6 @@ export class UpdateProfileDto {
 
   @ApiPropertyOptional({ example: 'https://assets.foodhub.local/avatars/user-1.jpg' })
   @IsOptional()
-  @IsUrl()
-  avatarUrl?: string;
+  @IsString()
+  avatarUrl?: string | null;
 }
