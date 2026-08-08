@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { OrderStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -96,8 +97,7 @@ export class OtpService {
       const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
       return {
         type: 'success',
-        message: 'Dev OTP widget verified',
-        mobile: formattedDevPhone || '+919876543210',
+        message: formattedDevPhone || '919876543210',
       };
     }
 
@@ -125,8 +125,6 @@ export class OtpService {
 
       this.logger.log(`[Backend MSG91] HTTP status from MSG91 server: ${response.status}`);
       const msg91Data = await response.json();
-      this.logger.log(`[Backend MSG91] Response keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
-      this.logger.log(`[Backend MSG91] MSG91 response type="${msg91Data?.type || 'none'}", status="${msg91Data?.status || 'none'}"`);
 
       if (!response.ok || msg91Data?.type === 'error' || msg91Data?.status === 'error') {
         const msg = msg91Data?.message || msg91Data?.error || 'MSG91 widget verification failed';
@@ -145,19 +143,69 @@ export class OtpService {
   }
 
   async sendDeliveryOtp(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new BadRequestException('Order record not found');
+    }
+
+    if (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException(`Order is already ${order.status}. Delivery OTP cannot be generated.`);
+    }
+
+    const rawOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        deliveryOtp: rawOtp,
+        updatedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`[Delivery OTP] Order ${orderId} OTP generated.`);
+
     return {
       success: true,
-      message: 'Delivery OTP initiated.',
+      message: 'Delivery OTP generated successfully.',
       orderId,
     };
   }
 
   async verifyDeliveryOtp(orderId: string, otp: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new BadRequestException('Order record not found');
+    }
+
+    if (order.status === OrderStatus.DELIVERED) {
+      throw new BadRequestException('Order has already been delivered.');
+    }
+
+    if (!order.deliveryOtp || order.deliveryOtp === 'USED' || order.deliveryOtp.trim() !== otp.trim()) {
+      throw new BadRequestException('Invalid or expired delivery OTP code.');
+    }
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.DELIVERED,
+        deliveryOtp: 'USED',
+        updatedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`[Delivery OTP] Order ${orderId} verified successfully. Status set to DELIVERED.`);
+
     return {
       success: true,
-      message: 'Delivery OTP verified.',
+      message: 'Delivery OTP verified successfully. Order marked as DELIVERED.',
       orderId,
-      otp,
     };
   }
 }

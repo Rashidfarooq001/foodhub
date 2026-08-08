@@ -27,58 +27,110 @@ export class AuthService {
     return this.otpService.sendOtp(phone);
   }
 
-  async verifyWidgetToken(accessToken: string, ipAddress?: string, userAgent?: string) {
+  private async enforceUserRoleAndStatus(user: any, targetRole?: string) {
+    const normalizedTarget = (targetRole || 'CUSTOMER').toUpperCase();
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled. Please contact support.');
+    }
+
+    if (normalizedTarget === 'HOTEL') {
+      const allowedHotelRoles: string[] = [
+        UserRole.RESTAURANT_OWNER,
+        UserRole.RESTAURANT_MANAGER,
+        UserRole.RESTAURANT_STAFF,
+      ];
+      if (!allowedHotelRoles.includes(user.role)) {
+        throw new UnauthorizedException(
+          'Access denied. Your account is not authorized for the Merchant Partner Portal.',
+        );
+      }
+    } else if (normalizedTarget === 'DELIVERY') {
+      if (user.role !== UserRole.DELIVERY_PARTNER) {
+        throw new UnauthorizedException(
+          'Access denied. Your account is not authorized for the Courier Partner Portal.',
+        );
+      }
+    } else if (normalizedTarget === 'ADMIN') {
+      const allowedAdminRoles: string[] = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
+      if (!allowedAdminRoles.includes(user.role)) {
+        throw new UnauthorizedException(
+          'Access denied. Your account does not have administrative privileges.',
+        );
+      }
+    }
+
+    // Fetch restaurant association for Hotel roles
+    let restaurant: any = null;
+    if (
+      user.role === UserRole.RESTAURANT_OWNER ||
+      user.role === UserRole.RESTAURANT_MANAGER ||
+      user.role === UserRole.RESTAURANT_STAFF
+    ) {
+      let rObj = (user as any).restaurantStaff?.[0]?.restaurant;
+      if (!rObj && user.role === UserRole.RESTAURANT_OWNER) {
+        rObj = await (this.usersService as any).prisma?.restaurant?.findFirst({
+          where: { ownerId: user.id },
+        });
+      }
+
+      if (rObj) {
+        if (rObj.status === 'PENDING_APPROVAL') {
+          throw new UnauthorizedException(
+            'Your restaurant application is currently pending admin approval.',
+          );
+        }
+        if (rObj.status === 'REJECTED') {
+          throw new UnauthorizedException(
+            'Your restaurant application has been rejected by FoodHub admin.',
+          );
+        }
+        restaurant = {
+          id: rObj.id,
+          name: rObj.name,
+          slug: rObj.slug,
+          status: rObj.status,
+          deliveryMode: rObj.deliveryMode,
+        };
+      }
+    }
+
+    return restaurant;
+  }
+
+  async verifyWidgetToken(
+    accessToken: string,
+    targetRole?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     if (!accessToken) {
       throw new BadRequestException('Widget access token is required');
     }
 
     const msg91Data = await this.otpService.verifyAccessToken(accessToken);
 
-    // Safe Diagnostic Logging (no secrets or numbers logged)
-    this.logger.log(`[Backend MSG91] Top-level response keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
-    this.logger.log(`[Backend MSG91] response.type="${msg91Data?.type}", response.status="${msg91Data?.status}"`);
-    this.logger.log(`[Backend MSG91] typeof response.data="${typeof msg91Data?.data}"`);
-    this.logger.log(`[Backend MSG91] typeof response.message="${typeof msg91Data?.message}"`);
-
-    if (typeof msg91Data?.data === 'object' && msg91Data?.data !== null) {
-      this.logger.log(`[Backend MSG91] keys of response.data: [${Object.keys(msg91Data.data).join(', ')}]`);
-    }
-
-    if (typeof msg91Data?.message === 'object' && msg91Data?.message !== null) {
-      this.logger.log(`[Backend MSG91] keys of response.message: [${Object.keys(msg91Data.message).join(', ')}]`);
-    }
-
     // Explicit Field Extractor (Checking documented MSG91 response fields)
     const extractMobileFromMsg91 = (res: any): string | null => {
       if (!res) return null;
-
-      // 1. Primary MSG91 Custom UI response field: res.message as string (e.g. "917006298795")
       if (typeof res?.message === 'string' && res.message.trim().length >= 10) {
         return res.message.trim();
       }
-
-      // 2. Documented object fields
       if (res?.data && typeof res.data === 'object' && res.data.mobile) {
         return String(res.data.mobile).trim();
       }
-
       if (res?.mobile) {
         return String(res.mobile).trim();
       }
-
-      // 3. Fallback direct data string or nested message object
       if (typeof res?.data === 'string' && res.data.trim().length >= 10) {
         return res.data.trim();
       }
-
       if (res?.message && typeof res.message === 'object' && res.message.mobile) {
         return String(res.message.mobile).trim();
       }
-
       if (res?.phone) {
         return String(res.phone).trim();
       }
-
       return null;
     };
 
@@ -100,15 +152,30 @@ export class AuthService {
     }
 
     let user = await this.usersService.findUserByPhone(phoneToVerify);
+    const normalizedTarget = (targetRole || 'CUSTOMER').toUpperCase();
+
     if (!user) {
-      this.logger.log(`[Backend MSG91] User not found for phone. Auto-registering customer...`);
-      const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-      user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+      if (normalizedTarget === 'CUSTOMER') {
+        this.logger.log(`[Backend MSG91] User not found for phone. Auto-registering CUSTOMER...`);
+        const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
+        user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+      } else {
+        this.logger.warn(`[Backend MSG91] Rejected: No user found for phone ${phoneToVerify} targeting ${normalizedTarget}`);
+        throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+      }
     }
 
-    this.logger.log(`[Backend MSG91] Customer authenticated with ID=${user.id}. Creating session & tokens...`);
+    const restaurant = await this.enforceUserRoleAndStatus(user, targetRole);
+
+    this.logger.log(`[Backend MSG91] User authenticated with ID=${user.id}, role=${user.role}. Creating session & tokens...`);
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
-    const tokens = await this.tokenService.generateTokenPair(user, session.id);
+    const tokens = await this.tokenService.generateTokenPair(
+      {
+        ...user,
+        restaurantId: restaurant?.id,
+      },
+      session.id,
+    );
 
     return {
       user: {
@@ -117,6 +184,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         profile: user.profile,
+        restaurant,
+        restaurantId: restaurant?.id,
       },
       tokens,
     };
@@ -124,7 +193,7 @@ export class AuthService {
 
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string, userAgent?: string) {
     if (dto.accessToken) {
-      return this.verifyWidgetToken(dto.accessToken, ipAddress, userAgent);
+      return this.verifyWidgetToken(dto.accessToken, dto.targetRole, ipAddress, userAgent);
     }
 
     if (!dto.phone || !dto.otp) {
@@ -141,14 +210,27 @@ export class AuthService {
     const phoneToVerify = formattedPhone;
 
     let user = await this.usersService.findUserByPhone(phoneToVerify);
+    const normalizedTarget = (dto.targetRole || 'CUSTOMER').toUpperCase();
+
     if (!user) {
-      // Auto-register Customer upon first successful OTP verification
-      const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
-      user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+      if (normalizedTarget === 'CUSTOMER') {
+        const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
+        user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+      } else {
+        throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+      }
     }
 
+    const restaurant = await this.enforceUserRoleAndStatus(user, dto.targetRole);
+
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
-    const tokens = await this.tokenService.generateTokenPair(user, session.id);
+    const tokens = await this.tokenService.generateTokenPair(
+      {
+        ...user,
+        restaurantId: restaurant?.id,
+      },
+      session.id,
+    );
 
     return {
       user: {
@@ -157,6 +239,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         profile: user.profile,
+        restaurant,
+        restaurantId: restaurant?.id,
       },
       tokens,
     };
@@ -248,7 +332,6 @@ export class AuthService {
   async forgotPassword(input: string) {
     const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
-      // Security standard: generic success response to prevent enumeration
       return { message: 'If registered, reset OTP has been sent' };
     }
     return this.otpService.sendOtp(user.phone);
@@ -266,7 +349,6 @@ export class AuthService {
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.updatePassword(user.id, newPasswordHash);
 
-    // Invalidate old refresh tokens and sessions for security
     await this.tokenService.revokeAllUserTokens(user.id);
     await this.sessionService.terminateAllUserSessions(user.id);
 

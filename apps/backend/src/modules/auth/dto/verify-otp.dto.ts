@@ -16,4 +16,9 @@ export class VerifyOtpDto {
   @IsOptional()
   @IsString()
   accessToken?: string;
+
+  @ApiPropertyOptional({ example: 'HOTEL', description: 'Target application/role requirement: CUSTOMER | HOTEL | DELIVERY | ADMIN' })
+  @IsOptional()
+  @IsString()
+  targetRole?: string;
 }

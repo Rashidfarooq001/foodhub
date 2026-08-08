@@ -6,3 +6,4 @@ export * from './use-pagination';
 export * from './use-infinite-scroll';
 export * from './use-modal';
 export * from './use-disclosure';
+export * from './use-msg91-widget';

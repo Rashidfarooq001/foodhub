@@ -4,13 +4,18 @@ import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
 import { SessionService } from '../sessions/session.service';
 import { UsersService } from '../users/users.service';
+import { UnauthorizedException } from '@nestjs/common';
 
-describe('AuthService', () => {
+describe('AuthService Role-Aware MSG91 OTP Tests', () => {
   let service: AuthService;
 
   const mockOtpService = {
     sendOtp: jest.fn().mockResolvedValue({ message: 'OTP sent', cooldownSec: 60 }),
     verifyOtp: jest.fn().mockResolvedValue(true),
+    verifyAccessToken: jest.fn().mockResolvedValue({
+      type: 'success',
+      message: '919876543210',
+    }),
   };
 
   const mockTokenService = {
@@ -29,16 +34,19 @@ describe('AuthService', () => {
   };
 
   const mockUsersService = {
-    findUserByPhone: jest.fn().mockResolvedValue(null),
+    findUserByPhone: jest.fn(),
     createUser: jest.fn().mockResolvedValue({
-      id: 'usr-uuid-1',
+      id: 'usr-customer-1',
       phone: '+919876543210',
       role: 'CUSTOMER',
+      isActive: true,
       profile: { firstName: 'Customer' },
     }),
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -52,19 +60,75 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+  it('should auto-register unknown phone for CUSTOMER targetRole', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce(null);
 
-  it('should dispatch OTP via sendOtp()', async () => {
-    const result = await service.sendOtp('+919876543210');
-    expect(result).toEqual({ message: 'OTP sent', cooldownSec: 60 });
-    expect(mockOtpService.sendOtp).toHaveBeenCalledWith('+919876543210');
-  });
-
-  it('should verify OTP and return tokens via verifyOtp()', async () => {
-    const result = await service.verifyOtp({ phone: '+919876543210', otp: '4819' });
+    const result = await service.verifyWidgetToken('widget-token-123', 'CUSTOMER');
     expect(result.tokens).toHaveProperty('accessToken');
-    expect(result.user.phone).toBe('+919876543210');
+    expect(result.user.role).toBe('CUSTOMER');
+    expect(mockUsersService.createUser).toHaveBeenCalled();
+  });
+
+  it('should reject unknown phone for HOTEL targetRole', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce(null);
+
+    await expect(
+      service.verifyWidgetToken('widget-token-123', 'HOTEL'),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should reject unknown phone for DELIVERY targetRole', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce(null);
+
+    await expect(
+      service.verifyWidgetToken('widget-token-123', 'DELIVERY'),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should reject unknown phone for ADMIN targetRole', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce(null);
+
+    await expect(
+      service.verifyWidgetToken('widget-token-123', 'ADMIN'),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should allow valid RESTAURANT_OWNER to login to HOTEL dashboard', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce({
+      id: 'usr-owner-1',
+      phone: '+919876543210',
+      role: 'RESTAURANT_OWNER',
+      isActive: true,
+    });
+
+    const result = await service.verifyWidgetToken('widget-token-123', 'HOTEL');
+    expect(result.tokens).toHaveProperty('accessToken');
+    expect(result.user.role).toBe('RESTAURANT_OWNER');
+  });
+
+  it('should reject CUSTOMER role attempting to login to ADMIN dashboard', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce({
+      id: 'usr-customer-1',
+      phone: '+919876543210',
+      role: 'CUSTOMER',
+      isActive: true,
+    });
+
+    await expect(
+      service.verifyWidgetToken('widget-token-123', 'ADMIN'),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should allow valid ADMIN to login to ADMIN dashboard', async () => {
+    mockUsersService.findUserByPhone.mockResolvedValueOnce({
+      id: 'usr-admin-1',
+      phone: '+919876543210',
+      role: 'ADMIN',
+      isActive: true,
+    });
+
+    const result = await service.verifyWidgetToken('widget-token-123', 'ADMIN');
+    expect(result.tokens).toHaveProperty('accessToken');
+    expect(result.user.role).toBe('ADMIN');
   });
 });
