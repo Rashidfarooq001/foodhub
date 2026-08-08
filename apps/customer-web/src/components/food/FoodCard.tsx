@@ -4,6 +4,8 @@ import React from 'react';
 import { Star, Plus, Minus } from 'lucide-react';
 import { FoodItemData } from '../../data/mock-data';
 import { useCartStore } from '../../stores/use-cart-store';
+import { getImageUrl } from '@foodhub/config';
+
 
 interface Props {
   food: FoodItemData;
@@ -91,10 +93,14 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
       {/* Food Image & Action Button */}
       <div className="relative flex flex-col items-center self-center sm:self-start flex-shrink-0">
         <img
-          src={food.imageUrl}
+          src={getImageUrl(food.imageUrl)}
           alt={food.name}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
+          }}
           className="h-28 w-28 sm:h-28 sm:w-28 rounded-2xl object-cover"
         />
+
 
         {/* Stepper or Add Button */}
         <div className="absolute -bottom-2">

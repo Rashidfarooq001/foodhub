@@ -60,9 +60,21 @@ export class StorageService {
   }
 
   getPublicUrl(filename: string): string {
-    const host = (process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
+    let host = (
+      process.env.PUBLIC_URL ||
+      process.env.PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:4000'
+    )
+      .trim()
+      .replace(/\/+$/, '');
+
+    // Strip trailing /api/v1 if present to construct clean uploads URL
+    host = host.replace(/\/api\/v1\/?$/, '');
+
     return `${host}/uploads/${filename}`;
   }
+
 
   deleteFile(filename: string) {
     const filePath = path.join(this.uploadDir, filename);

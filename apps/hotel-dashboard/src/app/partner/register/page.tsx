@@ -58,37 +58,51 @@ export default function RestaurantPartnerRegisterPage() {
     upiId: '',
   });
 
-  // OTP Verification State
+  // Load MSG91 script dynamically
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (document.getElementById('msg91-verify-script')) return;
+
+    const script = document.createElement('script');
+    script.id = 'msg91-verify-script';
+    script.src = 'https://verify.msg91.com/otp-provider.js';
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
+  // OTP Verification State (MSG91 Widget)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [otpStep, setOtpStep] = useState<'IDLE' | 'OTP_SENT' | 'VERIFIED'>('IDLE');
-  const [otpCode, setOtpCode] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
 
   // Form Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const formatIdentifier = (raw: string): string => {
+    const cleaned = raw.replace(/\D/g, '');
+    return cleaned.length === 10 ? `91${cleaned}` : cleaned;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === 'phone') {
       setIsPhoneVerified(false);
-      setOtpStep('IDLE');
     }
   };
 
-  // 1. Send OTP & Check Phone Availability
-  const handleSendPhoneOtp = async () => {
+  // Launch MSG91 Widget & Trigger OTP
+  const handleVerifyPhoneWithWidget = async () => {
     const cleanDigits = form.phone.replace(/\D/g, '');
     if (cleanDigits.length < 10) {
       setErrorMsg('Please enter a valid 10-digit owner mobile number');
       return;
     }
     setErrorMsg(null);
-    setIsSendingOtp(true);
+    setIsVerifyingPhone(true);
 
     try {
-      // Global phone uniqueness check
+      // 1. Check phone availability
       const checkRes = await fetch(`${API_BASE}/auth/check-phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,26 +117,87 @@ export default function RestaurantPartnerRegisterPage() {
         );
       }
 
-      // Simulate / send OTP via MSG91
-      setOtpStep('OTP_SENT');
-      setErrorMsg(null);
+      // 2. Configure & Trigger MSG91 OTP Widget
+      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
+      const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+      const identifier = formatIdentifier(form.phone);
+
+      const configuration = {
+        widgetId,
+        tokenAuth,
+        identifier,
+        exposeMethods: true,
+        captchaRenderId: '',
+        success: (msgData: any) => {
+          const token = typeof msgData === 'string' ? msgData : (msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token);
+          if (token) {
+            handleBackendWidgetVerification(token);
+          } else {
+            setErrorMsg('Verification succeeded on MSG91, but verification token was missing.');
+            setIsVerifyingPhone(false);
+          }
+        },
+        failure: (err: any) => {
+          setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Phone verification failed. Please try again.'));
+          setIsVerifyingPhone(false);
+        },
+      };
+
+      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
+        try {
+          (window as any).initSendOTP(configuration);
+          if (typeof (window as any).sendOtp === 'function') {
+            (window as any).sendOtp(identifier, () => {}, (err: any) => {
+              console.error('[MSG91 Restaurant] sendOtp error:', err);
+              setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Unable to start phone verification. Please try again.'));
+              setIsVerifyingPhone(false);
+            });
+          }
+        } catch (widgetErr: any) {
+          console.warn('[MSG91 Restaurant] initSendOTP exception:', widgetErr);
+          setErrorMsg('Unable to start phone verification widget. Please try again.');
+          setIsVerifyingPhone(false);
+        }
+      } else {
+        setErrorMsg('MSG91 verification widget script is still loading. Please try again in a moment.');
+        setIsVerifyingPhone(false);
+      }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Phone validation failed. Please check number.');
-    } finally {
-      setIsSendingOtp(false);
+      setErrorMsg(err.message || 'Phone verification initialization failed.');
+      setIsVerifyingPhone(false);
     }
   };
 
-  // 2. Verify OTP
-  const handleVerifyPhoneOtp = () => {
-    if (otpCode.length < 4) {
-      setErrorMsg('Please enter the complete 4-digit OTP code');
-      return;
-    }
-    setIsPhoneVerified(true);
-    setOtpStep('VERIFIED');
+  // Secure Backend Verification of MSG91 Widget Token
+  const handleBackendWidgetVerification = async (accessToken: string) => {
     setErrorMsg(null);
+    setIsVerifyingPhone(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-registration-widget`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          phone: form.phone,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.verified) {
+        throw new Error(data.message || 'Phone verification failed.');
+      }
+
+      setIsPhoneVerified(true);
+      setErrorMsg(null);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Phone verification failed after widget verification.');
+      setIsPhoneVerified(false);
+    } finally {
+      setIsVerifyingPhone(false);
+    }
   };
+
 
   // 3. Complete Application Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -345,11 +420,11 @@ export default function RestaurantPartnerRegisterPage() {
                   {!isPhoneVerified ? (
                     <button
                       type="button"
-                      onClick={handleSendPhoneOtp}
-                      disabled={isSendingOtp}
+                      onClick={handleVerifyPhoneWithWidget}
+                      disabled={isVerifyingPhone}
                       className="rounded-2xl bg-orange-600 px-4 py-3.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 shrink-0"
                     >
-                      {isSendingOtp ? 'Sending...' : 'Send OTP'}
+                      {isVerifyingPhone ? 'Verifying...' : 'Verify Phone Number'}
                     </button>
                   ) : (
                     <span className="flex items-center gap-1 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 border border-emerald-200 shrink-0">
@@ -357,27 +432,8 @@ export default function RestaurantPartnerRegisterPage() {
                     </span>
                   )}
                 </div>
-
-                {otpStep === 'OTP_SENT' && !isPhoneVerified && (
-                  <div className="mt-3 flex items-center gap-2 rounded-2xl bg-orange-50 p-3 border border-orange-200">
-                    <input
-                      type="text"
-                      maxLength={4}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Enter 4-digit OTP"
-                      className="w-32 rounded-xl border border-gray-300 py-2 text-center text-xs font-black tracking-widest focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyPhoneOtp}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
-                    >
-                      Verify OTP
-                    </button>
-                  </div>
-                )}
               </div>
+
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">

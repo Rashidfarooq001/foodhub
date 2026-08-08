@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Upload, Edit, Trash2, CheckCircle2, X, Copy, Tag, FolderPlus, MoveUp, MoveDown } from 'lucide-react';
 import { MediaUploader } from '../../components/common/MediaUploader';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
+
 
 interface FoodItem {
   id: string;
@@ -281,8 +282,16 @@ const restaurantId = user.restaurantId;
           {items.map((item) => (
             <div key={item.id} className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm space-y-4 p-5">
               <div className="relative h-40 w-full overflow-hidden rounded-2xl">
-                <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                <img
+                  src={getImageUrl(item.imageUrl)}
+                  alt={item.name}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+                  }}
+                  className="h-full w-full object-cover"
+                />
                 <span
+
                   className={`absolute top-3 left-3 flex h-4 w-4 items-center justify-center rounded-sm border ${
                     item.isVeg ? 'border-emerald-600 bg-white' : 'border-rose-600 bg-white'
                   }`}

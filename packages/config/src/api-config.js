@@ -8,6 +8,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.API_CONFIG = void 0;
 exports.getApiBaseUrl = getApiBaseUrl;
 exports.getWsBaseUrl = getWsBaseUrl;
+exports.getImageUrl = getImageUrl;
 function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
     let url;
@@ -36,6 +37,44 @@ function getWsBaseUrl() {
     }
     const apiBase = getApiBaseUrl();
     return apiBase.replace(/^http/, 'ws');
+}
+/**
+ * Resolves media/image URLs consistently across localhost and production environments.
+ * Handles relative paths (/uploads/file.jpg), full URLs, base64 data URLs,
+ * and localhost URLs accessed from production environments.
+ */
+function getImageUrl(url) {
+    const fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+    if (!url || typeof url !== 'string' || !url.trim()) {
+        return fallback;
+    }
+    const cleanUrl = url.trim();
+    // Data URLs or blob URLs pass through as-is
+    if (cleanUrl.startsWith('data:') || cleanUrl.startsWith('blob:')) {
+        return cleanUrl;
+    }
+    // Get API Server Base Origin (e.g. "http://localhost:4000" or "https://foodhub-backend-enq2.onrender.com")
+    const apiBase = getApiBaseUrl();
+    const serverOrigin = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+    // Handle localhost:4000 URL when app is running in production (e.g. on Vercel)
+    if (cleanUrl.includes('localhost:4000') || cleanUrl.includes('127.0.0.1:4000')) {
+        if (typeof window !== 'undefined' &&
+            window.location.hostname !== 'localhost' &&
+            window.location.hostname !== '127.0.0.1') {
+            return cleanUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1):4000/, serverOrigin);
+        }
+    }
+    // Handle relative upload paths e.g. "/uploads/filename.jpg" or "uploads/filename.jpg"
+    if (cleanUrl.startsWith('/uploads/') || cleanUrl.startsWith('uploads/')) {
+        const path = cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`;
+        return `${serverOrigin}${path}`;
+    }
+    // Handle full HTTP / HTTPS URLs
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+        return cleanUrl;
+    }
+    // Fallback relative path
+    return `${serverOrigin}/${cleanUrl.replace(/^\/+/, '')}`;
 }
 exports.API_CONFIG = {
     get baseUrl() {

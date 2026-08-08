@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Star, Clock, MapPin, Tag } from 'lucide-react';
 import { RestaurantData } from '../../data/mock-data';
+import { getImageUrl } from '@foodhub/config';
 
 interface Props {
   restaurant: RestaurantData;
@@ -18,10 +19,14 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
       {/* Banner & Badges */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100 shrink-0">
         <img
-          src={restaurant.bannerUrl}
+          src={getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)}
           alt={restaurant.name}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+          }}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
         {/* Discount Badge */}

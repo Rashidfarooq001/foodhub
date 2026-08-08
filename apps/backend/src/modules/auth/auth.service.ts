@@ -39,6 +39,74 @@ export class AuthService {
     return this.otpService.sendOtp(phone);
   }
 
+  /**
+   * Verify MSG91 Widget access token for pre-registration phone check.
+   * Extracts phone from MSG91 payload, verifies match against submitted registration phone.
+   * Does NOT create a user account, does NOT issue JWTs.
+   * Returns { verified: true } on success so the registration form can proceed.
+   */
+  async verifyRegistrationWidgetToken(accessToken: string, submittedPhone: string) {
+    if (!accessToken) {
+      throw new BadRequestException('Widget access token is required');
+    }
+    if (!submittedPhone) {
+      throw new BadRequestException('Registration phone number is required');
+    }
+
+    const msg91Data = await this.otpService.verifyAccessToken(accessToken);
+
+    const extractMobileFromMsg91 = (res: any): string | null => {
+      if (!res) return null;
+      if (typeof res?.message === 'string' && res.message.trim().length >= 10) {
+        return res.message.trim();
+      }
+      if (res?.data && typeof res.data === 'object' && res.data.mobile) {
+        return String(res.data.mobile).trim();
+      }
+      if (res?.mobile) {
+        return String(res.mobile).trim();
+      }
+      if (typeof res?.data === 'string' && res.data.trim().length >= 10) {
+        return res.data.trim();
+      }
+      if (res?.message && typeof res.message === 'object' && res.message.mobile) {
+        return String(res.message.mobile).trim();
+      }
+      if (res?.phone) {
+        return String(res.phone).trim();
+      }
+      return null;
+    };
+
+    const rawMobile = extractMobileFromMsg91(msg91Data);
+    this.logger.log(`[Restaurant Registration Widget] Extracted mobile present=${!!rawMobile}`);
+
+    let verifiedMobile = String(rawMobile || '').trim();
+    if (!verifiedMobile) {
+      this.logger.error(`[Restaurant Registration Widget] Mobile number missing in MSG91 payload response.`);
+      throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
+    }
+
+    const cleanVerified = verifiedMobile.replace(/\D/g, '');
+    const cleanSubmitted = submittedPhone.replace(/\D/g, '');
+
+    if (cleanVerified.length < 10 || cleanSubmitted.length < 10) {
+      throw new BadRequestException('Invalid mobile number format for verification');
+    }
+
+    const verifiedFormatted = cleanVerified.length === 10 ? `+91${cleanVerified}` : `+${cleanVerified}`;
+    const submittedFormatted = cleanSubmitted.length === 10 ? `+91${cleanSubmitted}` : `+${cleanSubmitted}`;
+
+    if (verifiedFormatted !== submittedFormatted) {
+      this.logger.error(`[Restaurant Registration Widget] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${verifiedFormatted}`);
+      throw new BadRequestException('Verified phone number does not match the registration phone number.');
+    }
+
+    this.logger.log(`[Restaurant Registration Widget] Phone verification succeeded for ${submittedFormatted}`);
+    return { verified: true, message: 'Phone number verified successfully' };
+  }
+
+
   async checkPhoneAvailability(rawPhone: string) {
     if (!rawPhone) {
       throw new BadRequestException('Phone number is required');

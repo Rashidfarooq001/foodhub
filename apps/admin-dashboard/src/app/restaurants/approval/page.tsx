@@ -20,6 +20,8 @@ import {
   Download,
 } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
+import { getImageUrl } from '@foodhub/config';
+
 
 interface RestaurantApplication {
   id: string;
@@ -159,12 +161,10 @@ export default function AdminRestaurantApprovalPage() {
 
   const getDocUrl = (app: RestaurantApplication, type: string): string | null => {
     const doc = app.documents?.find((d) => d.documentType === type);
-    if (doc) return doc.documentUrl;
-    if (type === 'FSSAI') return app.fssaiUrl || null;
-    if (type === 'PAN') return app.panUrl || null;
-    if (type === 'MENU') return app.menuUrl || null;
-    return null;
+    const raw = doc?.documentUrl || (type === 'FSSAI' ? app.fssaiUrl : type === 'PAN' ? app.panUrl : type === 'MENU' ? app.menuUrl : null);
+    return raw ? getImageUrl(raw) : null;
   };
+
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -416,7 +416,7 @@ export default function AdminRestaurantApprovalPage() {
                   <span className="block font-semibold text-gray-400 mb-1">Store Banner Photo</span>
                   {selectedApp.bannerUrl ? (
                     <a
-                      href={selectedApp.bannerUrl}
+                      href={getImageUrl(selectedApp.bannerUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-purple-600 font-bold hover:underline"
@@ -432,7 +432,7 @@ export default function AdminRestaurantApprovalPage() {
                   <span className="block font-semibold text-gray-400 mb-1">Store Logo</span>
                   {selectedApp.logoUrl ? (
                     <a
-                      href={selectedApp.logoUrl}
+                      href={getImageUrl(selectedApp.logoUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-purple-600 font-bold hover:underline"
@@ -443,6 +443,7 @@ export default function AdminRestaurantApprovalPage() {
                     <span className="text-gray-400 font-bold">No logo uploaded</span>
                   )}
                 </div>
+
               </div>
             </div>
 

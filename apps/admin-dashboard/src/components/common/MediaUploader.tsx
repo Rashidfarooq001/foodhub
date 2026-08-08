@@ -3,6 +3,8 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Image as ImageIcon, Video, Trash2, RefreshCw, Loader2, Eye } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
+import { getImageUrl } from '@foodhub/config';
+
 
 interface MediaUploaderProps {
   value?: string;
@@ -112,15 +114,18 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             ) : (
               <img
-                src={value}
+                src={getImageUrl(value)}
                 alt="Uploaded media preview"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
+                }}
                 className="h-16 w-16 shrink-0 rounded-xl object-cover border border-gray-200 bg-white"
               />
             )}
             <div className="truncate text-xs">
               <span className="font-bold text-gray-900 block truncate">{value.split('/').pop()}</span>
               <a
-                href={value}
+                href={getImageUrl(value)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[10px] font-bold text-purple-600 hover:underline flex items-center gap-1 mt-1"
@@ -128,6 +133,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 <Eye className="h-3 w-3" /> View Media File
               </a>
             </div>
+
           </div>
 
           <div className="flex items-center gap-2">

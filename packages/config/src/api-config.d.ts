@@ -5,6 +5,12 @@
  */
 export declare function getApiBaseUrl(): string;
 export declare function getWsBaseUrl(): string;
+/**
+ * Resolves media/image URLs consistently across localhost and production environments.
+ * Handles relative paths (/uploads/file.jpg), full URLs, base64 data URLs,
+ * and localhost URLs accessed from production environments.
+ */
+export declare function getImageUrl(url?: string | null): string;
 export declare const API_CONFIG: {
     readonly baseUrl: string;
     readonly wsUrl: string;

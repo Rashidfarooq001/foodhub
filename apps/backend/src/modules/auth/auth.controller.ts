@@ -75,6 +75,20 @@ export class AuthController {
   }
 
   @Public()
+  @Post('verify-registration-widget')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify MSG91 Widget access token for restaurant registration phone check (no account creation, no login)' })
+  @ApiResponse({ status: 200, description: 'Widget token verified, phone matches registration phone' })
+  @ApiResponse({ status: 400, description: 'Invalid widget token or phone mismatch' })
+  async verifyRegistrationWidget(
+    @Body('accessToken') accessToken: string,
+    @Body('phone') phone: string,
+  ) {
+    return this.authService.verifyRegistrationWidgetToken(accessToken, phone);
+  }
+
+
+  @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify SMS OTP & authenticate customer session' })

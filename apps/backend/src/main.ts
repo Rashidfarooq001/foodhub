@@ -28,9 +28,11 @@ async function bootstrap() {
   // Compression
   app.use(compression());
 
-  // Uploads
+  // Uploads (served on both /uploads and /api/v1/uploads)
   const uploadsPath = path.join(process.cwd(), 'uploads');
   app.use('/uploads', express.static(uploadsPath));
+  app.use('/api/v1/uploads', express.static(uploadsPath));
+
 
   // Body Size
   app.use(express.json({ limit: '120mb' }));

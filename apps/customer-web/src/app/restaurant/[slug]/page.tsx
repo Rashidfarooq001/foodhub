@@ -7,9 +7,10 @@ import { FoodCard } from '../../../components/food/FoodCard';
 import { Star, Clock, MapPin, Search, ShieldCheck, Tag, X, ArrowLeft, UtensilsCrossed } from 'lucide-react';
 import { useCartStore } from '../../../stores/use-cart-store';
 import Link from 'next/link';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
+
 
 export default function RestaurantDetailPage() {
   const params = useParams();
@@ -81,10 +82,14 @@ export default function RestaurantDetailPage() {
       <div className="relative overflow-hidden rounded-3xl bg-gray-900 text-white shadow-2xl">
         <div className="h-64 w-full relative">
           <img
-            src={restaurant.bannerUrl}
+            src={getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)}
             alt={restaurant.name}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+            }}
             className="h-full w-full object-cover opacity-50"
           />
+
           <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/40 to-transparent" />
         </div>
 

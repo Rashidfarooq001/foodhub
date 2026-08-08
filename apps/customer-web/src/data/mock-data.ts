@@ -105,6 +105,8 @@ export interface ActiveOrderTrackingData {
   totalAmount: number;
 }
 
+import { getImageUrl } from '@foodhub/config';
+
 export function safeNumber(val: any, defaultVal = 0): number {
   if (val === null || val === undefined) return defaultVal;
   if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
@@ -138,7 +140,7 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
       description: item.description ?? '',
       price: safeNumber(item.price, 0),
       originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
-      imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
       isVeg: item.isVeg ?? true,
       isBestseller: item.isBestseller ?? false,
       rating: safeNumber(item.rating, 4.5),
@@ -155,7 +157,7 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
         description: item.description ?? '',
         price: safeNumber(item.price, 0),
         originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
-        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
         isVeg: item.isVeg ?? true,
         isBestseller: item.isBestseller ?? false,
         rating: safeNumber(item.rating, 4.5),
@@ -186,8 +188,8 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
     deliveryTimeMins: r.deliveryTimeMins ? safeNumber(r.deliveryTimeMins) : 30,
     distanceKm: r.distanceKm ? safeNumber(r.distanceKm) : 2.5,
     priceForTwo: r.priceForTwo ? safeNumber(r.priceForTwo) : 350,
-    bannerUrl: r.bannerUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-    logoUrl: r.logoUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
+    bannerUrl: r.bannerUrl ? getImageUrl(r.bannerUrl) : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+    logoUrl: r.logoUrl ? getImageUrl(r.logoUrl) : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
     isOpen: r.isOpen ?? true,
     fssaiLicense: r.licenseFssai || r.fssaiLicense || 'FSSAI-12345678901234',
     discountBadge: r.discountBadge || '20% OFF',
@@ -196,3 +198,4 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
     foodItems,
   };
 }
+

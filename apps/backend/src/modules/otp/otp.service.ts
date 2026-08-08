@@ -15,9 +15,15 @@ export class OtpService {
   ) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
+    const cleanDigits = (phone || '').replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    }
+    const normalizedDbPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+
     // Check cooldown on latest request
     const existingOtp = await this.prisma.otp.findFirst({
-      where: { phone },
+      where: { phone: normalizedDbPhone },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -32,26 +38,26 @@ export class OtpService {
 
     // OTP ROTATION & INVALIDATION: Immediately mark all previous unused OTPs for this phone as used/invalid
     await this.prisma.otp.updateMany({
-      where: { phone, isUsed: false },
+      where: { phone: normalizedDbPhone, isUsed: false },
       data: { isUsed: true },
     });
 
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
-    // Generate unique 4-digit OTP code (in dev/test mode generation is randomized or deterministic per request)
+    // Generate unique 4-digit OTP code
     const rawOtp = Math.floor(1000 + Math.random() * 9000).toString();
     const otpHash = await bcrypt.hash(rawOtp, 10);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINS * 60 * 1000);
 
     await this.prisma.otp.create({
       data: {
-        phone,
+        phone: normalizedDbPhone,
         otpHash,
         expiresAt,
       },
     });
 
-    this.logger.log(`[OTP Gateway] Dispatched SMS OTP for phone=${phone}`);
+    this.logger.log(`[OTP Gateway] Dispatched OTP for phone=${normalizedDbPhone}`);
 
     return {
       message: 'OTP sent successfully',
@@ -60,9 +66,13 @@ export class OtpService {
     };
   }
 
+
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
+    const cleanDigits = (phone || '').replace(/\D/g, '');
+    const normalizedDbPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+
     const otpRecord = await this.prisma.otp.findFirst({
-      where: { phone, isUsed: false },
+      where: { phone: normalizedDbPhone, isUsed: false },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -87,6 +97,7 @@ export class OtpService {
 
     return true;
   }
+
 
   async verifyAccessToken(accessToken: string): Promise<any> {
     if (!accessToken) {
