@@ -5,18 +5,14 @@ import {
   User,
   Shield,
   Key,
-  Smartphone,
-  Mail,
   Camera,
   Trash2,
   Save,
   CheckCircle2,
   AlertCircle,
   Lock,
-  RotateCcw,
-  Sparkles,
+  KeyRound,
   ShieldCheck,
-  Building,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -24,9 +20,9 @@ import { getApiBaseUrl } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function AdminAccountSettingsPage() {
-  const { user, accessToken, updateUser, logout } = useAdminAuthStore();
+  const { user, accessToken, updateUser } = useAdminAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'phone' | 'account'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'account'>('profile');
 
   // Profile State
   const [firstName, setFirstName] = useState(user?.firstName || 'Rashid');
@@ -35,22 +31,10 @@ export default function AdminAccountSettingsPage() {
     user?.avatarUrl ||
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
   );
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  // Email State
-  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
-  const [newEmail, setNewEmail] = useState(user?.email || '');
-
-  // Phone Change State
-  const [currentPasswordForPhone, setCurrentPasswordForPhone] = useState('');
-  const [newPhone, setNewPhone] = useState(user?.phone || '');
-  const [phoneStep, setPhoneStep] = useState<'INPUT' | 'VERIFY_OTP'>('INPUT');
-  const [phoneOtp, setPhoneOtp] = useState('');
-
-  // Password Change State
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Two-Password Change State
+  const [newPassword1, setNewPassword1] = useState('');
+  const [newPassword2, setNewPassword2] = useState('');
 
   // Feedback & Loading State
   const [loading, setLoading] = useState(false);
@@ -61,8 +45,6 @@ export default function AdminAccountSettingsPage() {
     if (user) {
       if (user.firstName) setFirstName(user.firstName);
       if (user.lastName) setLastName(user.lastName);
-      if (user.email) setNewEmail(user.email);
-      if (user.phone) setNewPhone(user.phone);
       if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
     }
   }, [user]);
@@ -81,7 +63,7 @@ export default function AdminAccountSettingsPage() {
     }, 4000);
   };
 
-  // 1. Handle Profile Picture File Selection
+  // Profile Picture Upload
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -95,7 +77,6 @@ export default function AdminAccountSettingsPage() {
       return;
     }
 
-    setAvatarFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setAvatarPreview(reader.result as string);
@@ -103,9 +84,7 @@ export default function AdminAccountSettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  // Remove Avatar
   const handleRemoveAvatar = async () => {
-    setAvatarFile(null);
     setAvatarPreview(null);
     setLoading(true);
 
@@ -133,7 +112,7 @@ export default function AdminAccountSettingsPage() {
     }
   };
 
-  // Save Profile Details (Name & Avatar)
+  // Save Profile Details
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim()) {
@@ -181,169 +160,51 @@ export default function AdminAccountSettingsPage() {
     }
   };
 
-  // 2. Handle Password Change
-  const handleChangePassword = async (e: React.FormEvent) => {
+  // Save Two-Password Changes
+  const handleSaveTwoPasswords = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      showNotification('Current password is required', true);
+
+    const p1 = newPassword1.trim();
+    const p2 = newPassword2.trim();
+
+    if (!p1 && !p2) {
+      showNotification('Please enter a new Password 1 or Password 2 to update.', true);
       return;
     }
-    if (newPassword.length < 8) {
-      showNotification('New password must be at least 8 characters long', true);
+
+    if (p1 && !/^\d{16}$/.test(p1)) {
+      showNotification('Password 1 must be exactly 16 numeric digits.', true);
       return;
     }
-    if (newPassword !== confirmPassword) {
-      showNotification('New passwords do not match', true);
+    if (p2 && !/^\d{8}$/.test(p2)) {
+      showNotification('Password 2 must be exactly 8 numeric digits.', true);
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/change-password`, {
-        method: 'POST',
+      const res = await fetch(`${API_BASE}/auth/admin/change-passwords`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
-          currentPassword,
-          newPassword,
+          ...(p1 ? { newPassword1: p1 } : {}),
+          ...(p2 ? { newPassword2: p2 } : {}),
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to change password');
+        throw new Error(data.message || 'Failed to update admin passwords');
       }
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      showNotification('Password updated successfully!');
+      setNewPassword1('');
+      setNewPassword2('');
+      showNotification('Admin passwords updated successfully!');
     } catch (err: any) {
-      showNotification(err.message || 'Failed to change password', true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Handle Email Change
-  const handleChangeEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPasswordForEmail) {
-      showNotification('Current password is required to change email', true);
-      return;
-    }
-    if (!newEmail || !newEmail.includes('@')) {
-      showNotification('Please enter a valid email address', true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/change-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          currentPassword: currentPasswordForEmail,
-          newEmail: newEmail.trim(),
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to change email address');
-      }
-
-      setCurrentPasswordForEmail('');
-      updateUser({ email: data.user?.email || newEmail.trim() });
-      showNotification('Email address updated successfully!');
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to change email', true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 4. Handle Phone Change — Step 1: Request OTP
-  const handleRequestPhoneOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPasswordForPhone) {
-      showNotification('Current password is required to change phone number', true);
-      return;
-    }
-    const cleanDigits = newPhone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
-      showNotification('Please enter a valid 10-digit mobile number', true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/change-phone/request-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          currentPassword: currentPasswordForPhone,
-          newPhone: cleanDigits,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to request OTP for phone change');
-      }
-
-      setPhoneStep('VERIFY_OTP');
-      showNotification(`OTP sent to +91${cleanDigits}`);
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to request OTP', true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Verify OTP & Save Phone
-  const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneOtp || phoneOtp.length < 4) {
-      showNotification('Please enter the complete 4-digit OTP code', true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/change-phone/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          newPhone,
-          otp: phoneOtp,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Phone OTP verification failed');
-      }
-
-      const updatedPhone = data.user?.phone || newPhone;
-      updateUser({ phone: updatedPhone });
-      setPhoneStep('INPUT');
-      setCurrentPasswordForPhone('');
-      setPhoneOtp('');
-      showNotification('Phone number updated successfully!');
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to update phone number', true);
+      showNotification(err.message || 'Failed to update admin passwords', true);
     } finally {
       setLoading(false);
     }
@@ -361,14 +222,14 @@ export default function AdminAccountSettingsPage() {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Manage your administrator profile, security credentials, registered phone, and authentication details
+            Manage your administrator profile picture, display name, and two-password credentials
           </p>
         </div>
       </div>
 
       {/* Notifications */}
       {errorMsg && (
-        <div className="flex items-center gap-3 rounded-2xl bg-rose-50 p-4 text-xs font-bold text-rose-700 border border-rose-200 shadow-sm animate-shake">
+        <div className="flex items-center gap-3 rounded-2xl bg-rose-50 p-4 text-xs font-bold text-rose-700 border border-rose-200 shadow-sm">
           <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
@@ -385,8 +246,7 @@ export default function AdminAccountSettingsPage() {
       <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-3">
         {[
           { id: 'profile', label: 'Profile & Avatar', icon: User },
-          { id: 'security', label: 'Password & Email', icon: Key },
-          { id: 'phone', label: 'Phone & 2FA OTP', icon: Smartphone },
+          { id: 'passwords', label: 'Password 1 & Password 2', icon: Key },
           { id: 'account', label: 'Security & Role Details', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -510,229 +370,72 @@ export default function AdminAccountSettingsPage() {
         </form>
       )}
 
-      {/* TAB 2: SECURITY & EMAIL / PASSWORD */}
-      {activeTab === 'security' && (
-        <div className="space-y-8">
-          {/* Change Email Card */}
-          <form onSubmit={handleChangeEmail} className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Registered Email Address</h2>
-              <p className="text-xs text-gray-500">Update your primary admin notification & login email</p>
-            </div>
+      {/* TAB 2: TWO-PASSWORD MANAGEMENT */}
+      {activeTab === 'passwords' && (
+        <form onSubmit={handleSaveTwoPasswords} className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Manage Two-Password Credentials</h2>
+            <p className="text-xs text-gray-500">
+              Update Password 1 (16 numeric digits) or Password 2 (8 numeric digits). Existing passwords are never exposed.
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">New Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="email"
-                    required
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="admin@foodhub.com"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                New Password 1 <span className="text-purple-600 font-bold">(16 Numeric Digits)</span>
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="password"
+                  maxLength={16}
+                  value={newPassword1}
+                  onChange={(e) => setNewPassword1(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter new 16-digit Password 1"
+                  className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-mono font-bold tracking-widest text-gray-900 focus:border-purple-600 focus:outline-none"
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm Current Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="password"
-                    required
-                    value={currentPasswordForEmail}
-                    onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                    placeholder="Enter current password"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 rounded-2xl bg-purple-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
-              >
-                <Save className="h-4 w-4" />
-                <span>{loading ? 'Updating Email...' : 'Update Email Address'}</span>
-              </button>
-            </div>
-          </form>
-
-          {/* Change Password Card */}
-          <form onSubmit={handleChangePassword} className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Change Admin Password</h2>
-              <p className="text-xs text-gray-500">Ensure password has 8+ chars, 1 uppercase, 1 lowercase, 1 number & 1 special char</p>
+              <p className="text-[10px] text-gray-400 mt-1 font-semibold">
+                Length: {newPassword1.length}/16 digits
+              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Current Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                New Password 2 <span className="text-purple-600 font-bold">(8 Numeric Digits)</span>
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
-                  required
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter your current password"
-                  className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                  maxLength={8}
+                  value={newPassword2}
+                  onChange={(e) => setNewPassword2(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter new 8-digit Password 2"
+                  className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-mono font-bold tracking-widest text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
+              <p className="text-[10px] text-gray-400 mt-1 font-semibold">
+                Length: {newPassword2.length}/8 digits
+              </p>
             </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">New Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min 8 characters"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm New Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Re-enter new password"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 rounded-2xl bg-purple-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
-              >
-                <Key className="h-4 w-4" />
-                <span>{loading ? 'Updating Password...' : 'Save New Password'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* TAB 3: PHONE & OTP VERIFICATION */}
-      {activeTab === 'phone' && (
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Registered Phone Number & 2FA</h2>
-            <p className="text-xs text-gray-500">
-              Updating your mobile number requires current password confirmation + SMS OTP verification
-            </p>
           </div>
 
-          {phoneStep === 'INPUT' ? (
-            <form onSubmit={handleRequestPhoneOtp} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">New Mobile Number</label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="tel"
-                      required
-                      value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="Enter 10-digit number"
-                      className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm Current Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="password"
-                      required
-                      value={currentPasswordForPhone}
-                      onChange={(e) => setCurrentPasswordForPhone(e.target.value)}
-                      placeholder="Enter current password"
-                      className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex items-center gap-2 rounded-2xl bg-purple-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
-                >
-                  <Smartphone className="h-4 w-4" />
-                  <span>{loading ? 'Requesting OTP...' : 'Send OTP to New Phone'}</span>
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyPhoneOtp} className="space-y-6">
-              <div className="rounded-2xl bg-purple-50 p-4 border border-purple-100 text-center space-y-1">
-                <p className="text-xs font-bold text-purple-900">Verify OTP for Phone Update</p>
-                <p className="text-[11px] text-purple-700">
-                  Enter 4-digit SMS OTP code sent to <span className="font-black">+{newPhone.replace(/\D/g, '')}</span>
-                </p>
-              </div>
-
-              <div className="max-w-xs mx-auto">
-                <label className="block text-xs font-bold text-gray-700 mb-2 text-center">4-Digit MSG91 OTP</label>
-                <input
-                  type="text"
-                  maxLength={4}
-                  required
-                  value={phoneOtp}
-                  onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter OTP code"
-                  className="w-full rounded-2xl border-2 border-purple-200 py-3 text-center text-lg font-black text-gray-900 focus:border-purple-600 focus:outline-none tracking-widest"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPhoneStep('INPUT')}
-                  className="text-xs font-bold text-gray-500 hover:text-purple-600"
-                >
-                  ← Edit Number / Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex items-center gap-2 rounded-2xl bg-purple-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>{loading ? 'Verifying OTP...' : 'Verify & Save New Phone'}</span>
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 rounded-2xl bg-purple-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
+            >
+              <Key className="h-4 w-4" />
+              <span>{loading ? 'Updating Passwords...' : 'Save New Admin Passwords'}</span>
+            </button>
+          </div>
+        </form>
       )}
 
-      {/* TAB 4: SECURITY & ACCOUNT DETAILS (READ-ONLY) */}
+      {/* TAB 3: ACCOUNT & ROLE SUMMARY */}
       {activeTab === 'account' && (
         <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-8">
           <div>
@@ -763,32 +466,24 @@ export default function AdminAccountSettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Login Email</span>
-              <p className="text-xs font-bold text-gray-900 truncate">{user?.email || 'admin@foodhub.com'}</p>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password 1</span>
+              <p className="text-xs font-black text-gray-900">•••••••••••••••• (16 Digits)</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Login Phone</span>
-              <p className="text-xs font-bold text-gray-900">{user?.phone || '+917006298795'}</p>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password 2</span>
+              <p className="text-xs font-black text-gray-900">•••••••• (8 Digits)</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password</span>
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-black text-gray-900">••••••••</p>
-                <button
-                  onClick={() => setActiveTab('security')}
-                  className="text-[10px] font-bold text-purple-600 hover:underline"
-                >
-                  Change Password
-                </button>
-              </div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auth Scheme</span>
+              <p className="text-xs font-bold text-purple-700">Two-Password Hashing</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 text-xs font-bold text-indigo-900">
             <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0" />
-            <span>Protected by FoodHub 256-Bit SSL JWT Session Management & MSG91 2FA Gateway</span>
+            <span>Protected by FoodHub Two-Password Authentication &amp; 256-Bit SSL JWT Session Management</span>
           </div>
         </div>
       )}

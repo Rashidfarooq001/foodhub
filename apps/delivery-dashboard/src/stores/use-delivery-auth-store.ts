@@ -30,12 +30,11 @@ const DEV_DELIVERY_USER: DeliveryUserProfile = {
 };
 
 const getInitialAuthState = () => {
-  const authActive = isAuthEnabled();
   return {
-    user: authActive ? null : DEV_DELIVERY_USER,
-    accessToken: authActive ? null : 'dev-driver-access-token',
-    refreshToken: authActive ? null : 'dev-driver-refresh-token',
-    isAuthenticated: !authActive,
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
   };
 };
 
@@ -57,12 +56,11 @@ export const useDeliveryAuthStore = create<DeliveryAuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodhub-delivery-auth');
         }
-        const authActive = isAuthEnabled();
         set({
-          user: authActive ? null : DEV_DELIVERY_USER,
-          accessToken: authActive ? null : 'dev-driver-access-token',
-          refreshToken: authActive ? null : 'dev-driver-refresh-token',
-          isAuthenticated: !authActive,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
         });
       },
     }),

@@ -14,8 +14,8 @@ export class AdminBootstrapService implements OnModuleInit {
   }
 
   async ensureSingleAdminExists() {
-    const adminPhone = process.env.ADMIN_PHONE || '+919999999999';
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@foodhub.com';
+    const adminPhone = process.env.ADMIN_PHONE || '+917006298795';
+    const adminEmail = process.env.ADMIN_EMAIL || 'www.rashidreshi2005@gmail.com';
     const rawPassword = process.env.ADMIN_PASSWORD || 'SuperAdmin123!';
 
     try {

@@ -19,7 +19,8 @@ export interface CustomerAddressItem {
 interface AddressState {
   addresses: CustomerAddressItem[];
   selectedAddressId: string | null;
-  addAddress: (address: Omit<CustomerAddressItem, 'id'>) => void;
+  setAddresses: (addresses: CustomerAddressItem[]) => void;
+  addAddress: (address: Omit<CustomerAddressItem, 'id'> | CustomerAddressItem) => void;
   removeAddress: (id: string) => void;
   setSelectedAddress: (id: string) => void;
   getSelectedAddress: () => CustomerAddressItem | null;
@@ -56,12 +57,18 @@ export const useAddressStore = create<AddressState>()(
       ],
       selectedAddressId: 'addr-1',
 
+      setAddresses: (addresses) =>
+        set({
+          addresses,
+          selectedAddressId: addresses.find((a) => a.isDefault)?.id || addresses[0]?.id || null,
+        }),
+
       addAddress: (newAddr) =>
         set((state) => {
-          const id = `addr-${Date.now()}`;
+          const id = (newAddr as any).id || `addr-${Date.now()}`;
           const item = { ...newAddr, id };
           return {
-            addresses: [...state.addresses, item],
+            addresses: [...state.addresses.filter((a) => a.id !== id), item],
             selectedAddressId: state.selectedAddressId || id,
           };
         }),

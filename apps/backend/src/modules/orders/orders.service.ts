@@ -492,4 +492,299 @@ if (!allowed.includes(dto.status as OrderStatus)) {
 
     return { message: `Order status updated to ${nextStatus}` };
   }
+
+  // --- CUSTOMER ORDER TRACKING & HISTORY METHODS ---
+
+  async getActiveCustomerOrder(userId: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { userId },
+    });
+    const customerId = customer?.id || userId;
+
+    const activeOrder = await this.prisma.order.findFirst({
+      where: {
+        customerId,
+        status: {
+          notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+        },
+      },
+      include: {
+        restaurant: true,
+        orderItems: { include: { foodItem: true } },
+        orderTimelines: { orderBy: { createdAt: 'asc' } },
+        tracking: true,
+        assignedRestaurantDriver: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeOrder) return null;
+
+    const deliveryAddress: any = activeOrder.deliveryAddress || {};
+    const restaurantLat = activeOrder.restaurant.latitude || 12.9716;
+    const restaurantLng = activeOrder.restaurant.longitude || 77.5946;
+    const customerLat = deliveryAddress.latitude || 12.9780;
+    const customerLng = deliveryAddress.longitude || 77.6400;
+    const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
+    const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
+
+    // Calculate ETA (mins) based on distance
+    const distKm = Math.sqrt(
+      Math.pow((customerLat - driverLat) * 111, 2) +
+      Math.pow((customerLng - driverLng) * 111, 2),
+    );
+    const etaMins = Math.max(10, Math.ceil((distKm / 25) * 60) + 10);
+
+    return serializePrisma({
+      orderId: activeOrder.id,
+      orderNumber: activeOrder.orderNumber,
+      restaurantName: activeOrder.restaurant.name,
+      restaurantAddress: activeOrder.restaurant.addressLine,
+      restaurantLat,
+      restaurantLng,
+      customerAddress: [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') || 'Delivery Address',
+      customerLat,
+      customerLng,
+      driverLat,
+      driverLng,
+      driverName: activeOrder.assignedRestaurantDriver
+        ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
+        : 'Assigned Partner',
+      driverPhone: activeOrder.assignedRestaurantDriver?.phone || '+919876543210',
+      vehicleNumber: activeOrder.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482',
+      deliveryOtp: activeOrder.deliveryOtp,
+      etaMins,
+      status: activeOrder.status,
+      placedAt: activeOrder.createdAt,
+      items: activeOrder.orderItems.map((i) => ({
+        name: i.foodItem?.name || 'Item',
+        quantity: i.quantity,
+        price: Number(i.unitPrice),
+      })),
+      totalAmount: Number(activeOrder.totalAmount),
+    });
+  }
+
+  async getCustomerOrderHistory(userId: string, statusFilter?: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { userId },
+    });
+    const customerId = customer?.id || userId;
+
+    let whereClause: any = { customerId };
+    if (statusFilter && statusFilter !== 'ALL') {
+      if (statusFilter === 'ACTIVE') {
+        whereClause.status = { notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] };
+      } else if (statusFilter === 'DELIVERED') {
+        whereClause.status = OrderStatus.DELIVERED;
+      } else if (statusFilter === 'CANCELLED') {
+        whereClause.status = OrderStatus.CANCELLED;
+      } else {
+        whereClause.status = statusFilter as any;
+      }
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      include: {
+        restaurant: true,
+        orderItems: { include: { foodItem: true } },
+        orderTimelines: { orderBy: { createdAt: 'asc' } },
+        tracking: true,
+        cancellation: true,
+        refund: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return serializePrisma(
+      orders.map((ord) => ({
+        id: ord.id,
+        orderNumber: ord.orderNumber,
+        restaurantName: ord.restaurant.name,
+        restaurantBanner: ord.restaurant.bannerUrl,
+        date: ord.createdAt.toLocaleDateString() + ' ' + ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt: ord.createdAt,
+        totalAmount: Number(ord.totalAmount),
+        itemCount: ord.orderItems.reduce((acc, i) => acc + i.quantity, 0),
+        itemsSummary: ord.orderItems.map((i) => `${i.quantity}x ${i.foodItem?.name || 'Item'}`).join(', '),
+        status: ord.status,
+        paymentStatus: ord.paymentStatus,
+        paymentMethod: ord.paymentMethod,
+        cancellationReason: ord.cancellation?.reason,
+        isRefunded: !!ord.refund,
+      })),
+    );
+  }
+
+  async getOrderWithTimelineSecured(orderId: string, userId: string, role?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        restaurant: true,
+        customer: { include: { user: { include: { profile: true } } } },
+        orderItems: { include: { foodItem: true } },
+        orderTimelines: { orderBy: { createdAt: 'asc' } },
+        statusHistories: { orderBy: { createdAt: 'asc' } },
+        tracking: true,
+        cancellation: true,
+        refund: true,
+        assignedRestaurantDriver: true,
+        payments: true,
+        restaurantReviews: true,
+      },
+    });
+
+    if (!order) {
+      throw new BadRequestException(`Order ${orderId} not found`);
+    }
+
+    // STRICT CUSTOMER & ROLE SECURITY CHECK
+    const isCustomerOwner =
+      order.customer.userId === userId || order.customerId === userId;
+    const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+    const isRestaurantStaff =
+      role === 'RESTAURANT_OWNER' ||
+      role === 'RESTAURANT_MANAGER' ||
+      role === 'RESTAURANT_STAFF';
+    const isDriver = role === 'DRIVER';
+
+    if (!isCustomerOwner && !isAdmin && !isRestaurantStaff && !isDriver) {
+      throw new ForbiddenException('You do not have permission to view this order.');
+    }
+
+    return serializePrisma(order);
+  }
+
+  async getOrderTrackingSecured(orderId: string, userId: string, role?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        restaurant: true,
+        customer: { include: { user: { include: { profile: true } } } },
+        tracking: true,
+        assignedRestaurantDriver: true,
+      },
+    });
+
+    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
+
+    const isCustomerOwner = order.customer.userId === userId || order.customerId === userId;
+    const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+    const isRestaurantStaff = role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF';
+    const isDriver = role === 'DRIVER';
+
+    if (!isCustomerOwner && !isAdmin && !isRestaurantStaff && !isDriver) {
+      throw new ForbiddenException('You do not have permission to view delivery tracking for this order.');
+    }
+
+    const deliveryAddress: any = order.deliveryAddress || {};
+    const restaurantLat = order.restaurant.latitude || 12.9716;
+    const restaurantLng = order.restaurant.longitude || 77.5946;
+    const customerLat = deliveryAddress.latitude || 12.9780;
+    const customerLng = deliveryAddress.longitude || 77.6400;
+    const driverLat = order.tracking?.currentLat || restaurantLat + 0.002;
+    const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
+
+    const distKm = Math.sqrt(
+      Math.pow((customerLat - driverLat) * 111, 2) +
+      Math.pow((customerLng - driverLng) * 111, 2),
+    );
+    const etaMins = Math.max(5, Math.ceil((distKm / 25) * 60) + 5);
+
+    return serializePrisma({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      restaurantName: order.restaurant.name,
+      restaurantLat,
+      restaurantLng,
+      customerLat,
+      customerLng,
+      driverLat,
+      driverLng,
+      driverName: order.assignedRestaurantDriver
+        ? `${order.assignedRestaurantDriver.firstName} ${order.assignedRestaurantDriver.lastName || ''}`.trim()
+        : 'Delivery Partner',
+      driverPhone: order.assignedRestaurantDriver?.phone || '+919876543210',
+      vehicleNumber: order.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482',
+      etaMins,
+      updatedAt: order.tracking?.updatedAt || new Date(),
+    });
+  }
+
+  async updateDriverLocation(orderId: string, lat: number, lng: number, userId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
+
+    const tracking = await this.prisma.orderTracking.upsert({
+      where: { orderId },
+      update: { currentLat: lat, currentLng: lng },
+      create: { orderId, currentLat: lat, currentLng: lng },
+    });
+
+    this.gateway.emitToOrder(orderId, ORDER_EVENTS.DRIVER_LOCATION, {
+      orderId,
+      lat,
+      lng,
+      updatedAt: tracking.updatedAt,
+    });
+
+    return serializePrisma(tracking);
+  }
+
+  async submitOrderReview(orderId: string, rating: number, comment: string, userId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { customer: true },
+    });
+
+    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException('Reviews can only be submitted for delivered orders.');
+    }
+
+    const existingReview = await this.prisma.restaurantReview.findFirst({
+      where: { orderId },
+    });
+    if (existingReview) {
+      throw new BadRequestException('A review has already been submitted for this order.');
+    }
+
+    const review = await this.prisma.restaurantReview.create({
+      data: {
+        orderId,
+        restaurantId: order.restaurantId,
+        customerId: order.customerId,
+        rating: Math.min(5, Math.max(1, rating)),
+        comment: comment || 'Great food and fast delivery!',
+      },
+    });
+
+    return serializePrisma(review);
+  }
+
+  async submitSupportTicket(orderId: string, issueType: string, description: string, userId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
+
+    const timeline = await this.prisma.orderTimeline.create({
+      data: {
+        orderId,
+        status: order.status,
+        message: `Customer Support Issue Reported: [${issueType}] ${description}`,
+      },
+    });
+
+    return serializePrisma({
+      ticketId: `TICKET-${Date.now().toString().slice(-6)}`,
+      orderId,
+      issueType,
+      status: 'OPEN',
+      createdAt: timeline.createdAt,
+      message: 'Support request submitted. FoodHub Resolution Team will contact you within 15 minutes.',
+    });
+  }
 }

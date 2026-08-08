@@ -167,6 +167,8 @@ model User {
   phone          String    @unique
   email          String?   @unique
   passwordHash   String    @map("password_hash")
+  password1Hash  String?   @map("password1_hash")
+  password2Hash  String?   @map("password2_hash")
   role           UserRole  @default(CUSTOMER)
   isVerified     Boolean   @default(false) @map("is_verified")
   isActive       Boolean   @default(true) @map("is_active")

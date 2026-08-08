@@ -4,10 +4,13 @@ import {
   OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { OrderEventName } from './orders.events';
+import { OrderEventName, ORDER_EVENTS } from './orders.events';
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/orders' })
 export class OrdersGateway
@@ -28,6 +31,37 @@ export class OrdersGateway
 
   handleDisconnect(client: Socket): void {
     this.logger.log(`Client disconnected: ${client.id}`);
+  }
+
+  @SubscribeMessage('joinOrder')
+  handleJoinOrder(@ConnectedSocket() client: Socket, @MessageBody() data: { orderId: string }): void {
+    if (data?.orderId) {
+      client.join(`order:${data.orderId}`);
+      this.logger.log(`Client ${client.id} joined order:${data.orderId}`);
+    }
+  }
+
+  @SubscribeMessage('joinRestaurant')
+  handleJoinRestaurant(@ConnectedSocket() client: Socket, @MessageBody() data: { restaurantId: string }): void {
+    if (data?.restaurantId) {
+      client.join(`restaurant:${data.restaurantId}`);
+      this.logger.log(`Client ${client.id} joined restaurant:${data.restaurantId}`);
+    }
+  }
+
+  @SubscribeMessage('updateLocation')
+  handleLocationUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { orderId: string; lat: number; lng: number },
+  ): void {
+    if (data?.orderId && data?.lat && data?.lng) {
+      this.emitToOrder(data.orderId, ORDER_EVENTS.DRIVER_LOCATION, {
+        orderId: data.orderId,
+        lat: data.lat,
+        lng: data.lng,
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }
 
   /** Emit an event to all subscribers of a specific order room */

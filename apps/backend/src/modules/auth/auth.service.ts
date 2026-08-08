@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
 import { SessionService } from '../sessions/session.service';
@@ -780,5 +780,123 @@ export class AuthService {
         profile: updated.profile,
       },
     };
+  }
+
+  // --- ADMIN TWO-PASSWORD AUTHENTICATION SYSTEM ---
+
+  async adminTwoPasswordLogin(
+    dto: { password1: string; password2: string },
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    // 1. Format validation (16 numeric digits for pwd1, 8 numeric digits for pwd2)
+    const p1 = (dto.password1 || '').trim();
+    const p2 = (dto.password2 || '').trim();
+
+    if (!/^\d{16}$/.test(p1)) {
+      throw new BadRequestException('Password 1 must be exactly 16 numeric digits.');
+    }
+    if (!/^\d{8}$/.test(p2)) {
+      throw new BadRequestException('Password 2 must be exactly 8 numeric digits.');
+    }
+
+    this.logger.log(
+      `[Admin Two-Password Auth] Attempt: password1Present=${!!p1}, password2Present=${!!p2}`,
+    );
+
+    // 2. Locate platform Admin / SuperAdmin account in PostgreSQL
+    let adminUser = await (this.usersService as any).prisma.user.findFirst({
+      where: {
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+        isActive: true,
+      },
+      include: { profile: true },
+    });
+
+    if (!adminUser) {
+      this.logger.warn('[Admin Two-Password Auth] Rejected: No active Admin/SuperAdmin account found.');
+      throw new UnauthorizedException('Invalid admin credentials.');
+    }
+
+    // 3. Auto-provision initial bcrypt hashes if password1Hash or password2Hash are null
+    if (!adminUser.password1Hash || !adminUser.password2Hash) {
+      this.logger.log('[Admin Two-Password Auth] Provisioning initial bcrypt hashes for Admin account...');
+      const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
+      const initialP2Hash = await bcrypt.hash('88887777', 10);
+
+      adminUser = await (this.usersService as any).prisma.user.update({
+        where: { id: adminUser.id },
+        data: {
+          password1Hash: initialP1Hash,
+          password2Hash: initialP2Hash,
+        },
+        include: { profile: true },
+      });
+    }
+
+    // 4. Verify BOTH passwords using bcrypt
+    const isP1Valid = await bcrypt.compare(p1, adminUser.password1Hash);
+    const isP2Valid = await bcrypt.compare(p2, adminUser.password2Hash);
+
+    if (!isP1Valid || !isP2Valid) {
+      this.logger.warn(`[Admin Two-Password Auth] Credentials verification failed for adminUser=${adminUser.id}`);
+      throw new UnauthorizedException('Invalid admin credentials.');
+    }
+
+    // 5. Authenticate Admin session & issue JWT token pair
+    this.logger.log(`[Admin Two-Password Auth] Successful login for Admin ID=${adminUser.id}, role=${adminUser.role}`);
+    const session = await this.sessionService.createSession(adminUser.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(
+      {
+        ...adminUser,
+      },
+      session.id,
+    );
+
+    return {
+      user: {
+        id: adminUser.id,
+        phone: adminUser.phone,
+        email: adminUser.email,
+        role: adminUser.role,
+        profile: adminUser.profile,
+      },
+      tokens,
+    };
+  }
+
+  async changeAdminPasswords(userId: string, dto: { newPassword1?: string; newPassword2?: string }) {
+    const user = await this.usersService.findUserById(userId);
+
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Only Admin / Super Admin can access this operation.');
+    }
+
+    const updates: any = {};
+
+    if (dto.newPassword1) {
+      const p1 = dto.newPassword1.trim();
+      if (!/^\d{16}$/.test(p1)) {
+        throw new BadRequestException('Password 1 must be exactly 16 numeric digits.');
+      }
+      updates.password1Hash = await bcrypt.hash(p1, 10);
+    }
+
+    if (dto.newPassword2) {
+      const p2 = dto.newPassword2.trim();
+      if (!/^\d{8}$/.test(p2)) {
+        throw new BadRequestException('Password 2 must be exactly 8 numeric digits.');
+      }
+      updates.password2Hash = await bcrypt.hash(p2, 10);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await (this.usersService as any).prisma.user.update({
+        where: { id: userId },
+        data: updates,
+      });
+    }
+
+    return { message: 'Admin passwords updated successfully' };
   }
 }

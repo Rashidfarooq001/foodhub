@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthGuard = AuthGuard;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const react_1 = require("react");
-function AuthGuard({ children, allowedRoles, userRole, isAuthenticated, onUnauthorized, }) {
+function AuthGuard({ children, allowedRoles, userRole, isAuthenticated, onUnauthorized, customerPortalUrl, }) {
     const [mounted, setMounted] = (0, react_1.useState)(false);
     (0, react_1.useEffect)(() => {
         setMounted(true);
@@ -32,7 +32,7 @@ function AuthGuard({ children, allowedRoles, userRole, isAuthenticated, onUnauth
         return ((0, jsx_runtime_1.jsxs)("div", { className: "flex min-h-[60vh] flex-col items-center justify-center space-y-4 p-8 text-center", children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-gray-900", children: "Authentication Required" }), (0, jsx_runtime_1.jsx)("p", { className: "text-sm text-gray-500", children: "Please log in to access this page." }), (0, jsx_runtime_1.jsx)("a", { href: "/login", className: "rounded-xl bg-orange-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-orange-700", children: "Go to Login" })] }));
     }
     if (isForbidden) {
-        return ((0, jsx_runtime_1.jsxs)("div", { className: "flex min-h-[60vh] flex-col items-center justify-center space-y-4 p-8 text-center", children: [(0, jsx_runtime_1.jsx)("div", { className: "rounded-full bg-rose-100 p-4 text-rose-600 font-black text-2xl", children: "403" }), (0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-gray-900", children: "Access Denied (403 Forbidden)" }), (0, jsx_runtime_1.jsx)("p", { className: "text-sm text-gray-500", children: "You do not have permission to view this page." }), (0, jsx_runtime_1.jsx)("a", { href: "/", className: "rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-gray-800", children: "Return to Home" })] }));
+        return ((0, jsx_runtime_1.jsxs)("div", { className: "flex min-h-[60vh] flex-col items-center justify-center space-y-4 p-8 text-center", children: [(0, jsx_runtime_1.jsx)("div", { className: "rounded-full bg-rose-100 p-4 text-rose-600 font-black text-2xl", children: "403" }), (0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-gray-900", children: "Access Denied (403 Forbidden)" }), (0, jsx_runtime_1.jsx)("p", { className: "text-sm text-gray-500", children: "You do not have permission to view this page." }), (0, jsx_runtime_1.jsxs)("div", { className: "flex flex-col items-center gap-3 sm:flex-row", children: [(0, jsx_runtime_1.jsx)("a", { href: "/", className: "rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-gray-800", children: "Return to Home" }), customerPortalUrl && ((0, jsx_runtime_1.jsx)("a", { href: customerPortalUrl, className: "rounded-xl border border-orange-500 bg-white px-6 py-2.5 text-sm font-bold text-orange-600 shadow-lg hover:bg-orange-50", children: "Go to Customer Portal" }))] })] }));
     }
     return (0, jsx_runtime_1.jsx)(jsx_runtime_1.Fragment, { children: children });
 }

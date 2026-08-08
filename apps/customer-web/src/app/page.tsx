@@ -50,10 +50,16 @@ export default function CustomerHomePage() {
     if (!isAuthenticated) return;
     const fetchActiveOrder = async () => {
       try {
-        const res = await fetch(`${API_BASE}/orders/active`);
+        const { accessToken } = useAuthStore.getState();
+        const headers: Record<string, string> = accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : {};
+        const res = await fetch(`${API_BASE}/orders/active`, { headers });
         if (res.ok) {
           const data = await res.json();
           setActiveOrder(data ?? null);
+        } else {
+          setActiveOrder(null);
         }
       } catch {
         // No active order

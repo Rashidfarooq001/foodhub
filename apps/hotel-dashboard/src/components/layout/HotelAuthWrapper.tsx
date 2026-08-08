@@ -3,18 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
-import { AuthGuard } from '@foodhub/ui';
-import { Clock, XCircle, AlertCircle, LogOut, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { HotelLayout } from './HotelLayout';
+import { Clock, XCircle, LogOut } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
+const PUBLIC_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/partner/register',
+  '/register',
+];
+
 export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, user, accessToken, logout, setAuth } = useHotelAuthStore();
+  const { isAuthenticated, user, accessToken, logout } = useHotelAuthStore();
   const [mounted, setMounted] = useState(false);
-  const [statusChecked, setStatusChecked] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<string | null>(
     user?.applicationStatus || null,
   );
@@ -26,10 +33,13 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Fetch latest restaurant approval status when user is authenticated
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname?.startsWith(route),
+  );
+
+  // Fetch latest restaurant approval status when user is authenticated on protected route
   useEffect(() => {
-    if (!isAuthenticated || !user || !mounted) return;
-    if (pathname === '/login' || pathname?.startsWith('/partner/register') || pathname?.startsWith('/register')) return;
+    if (!isAuthenticated || !user || !mounted || isPublicRoute) return;
 
     let isMounted = true;
     const fetchStatus = async () => {
@@ -46,8 +56,6 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
         }
       } catch {
         /* fallback to store value */
-      } finally {
-        if (isMounted) setStatusChecked(true);
       }
     };
 
@@ -55,24 +63,38 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, user, accessToken, mounted, pathname]);
+  }, [isAuthenticated, user, accessToken, mounted, pathname, isPublicRoute]);
 
-  if (pathname === '/login' || pathname?.startsWith('/partner/register') || pathname?.startsWith('/register')) {
-    return <>{children}</>;
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout / Sidebar / Header
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col">{children}</main>;
   }
 
+  // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
       </div>
     );
   }
 
-  // Application Pending Screen
-  if (isAuthenticated && user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'PENDING_APPROVAL') {
+  // Protected Route Unauthenticated Guard: Redirect to /login
+  if (!isAuthenticated) {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Application Pending Admin Approval Screen
+  if (user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'PENDING_APPROVAL') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
         <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
             <Clock className="h-10 w-10 animate-pulse" />
@@ -113,9 +135,9 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   }
 
   // Application Rejected Screen
-  if (isAuthenticated && user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'REJECTED') {
+  if (user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'REJECTED') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
         <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-100 text-rose-600">
             <XCircle className="h-10 w-10" />
@@ -152,19 +174,6 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <AuthGuard
-      isAuthenticated={isAuthenticated}
-      userRole={user?.role || null}
-      allowedRoles={['RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF', 'SUPER_ADMIN']}
-      customerPortalUrl={process.env.NEXT_PUBLIC_CUSTOMER_WEB_URL || 'https://foodhub-customer-web-ten.vercel.app'}
-      onUnauthorized={(reason) => {
-        if (reason === 'UNAUTHENTICATED') {
-          router.push('/login');
-        }
-      }}
-    >
-      {children}
-    </AuthGuard>
-  );
+  // PROTECTED AUTHENTICATED ROUTES ONLY: Wrap inside HotelLayout (Sidebar + Header)
+  return <HotelLayout>{children}</HotelLayout>;
 }

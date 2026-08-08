@@ -3,43 +3,54 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
-import { AuthGuard } from '@foodhub/ui';
+import { DeliveryLayout } from './DeliveryLayout';
+
+const PUBLIC_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+];
 
 export function DeliveryAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, user } = useDeliveryAuthStore();
+  const { isAuthenticated } = useDeliveryAuthStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (pathname === '/login') {
-    return <>{children}</>;
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname?.startsWith(route),
+  );
+
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT DeliveryLayout / Sidebar / Header
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col">{children}</main>;
   }
 
+  // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
       </div>
     );
   }
 
-  return (
-    <AuthGuard
-      isAuthenticated={isAuthenticated}
-      userRole={user?.role || null}
-      allowedRoles={['DELIVERY_PARTNER', 'DRIVER', 'SUPER_ADMIN']}
-      customerPortalUrl={process.env.NEXT_PUBLIC_CUSTOMER_WEB_URL || 'http://localhost:3000'}
-      onUnauthorized={(reason) => {
-        if (reason === 'UNAUTHENTICATED') {
-          router.push('/login');
-        }
-      }}
-    >
-      {children}
-    </AuthGuard>
-  );
+  // Protected Route Unauthenticated Guard: Redirect to /login
+  if (!isAuthenticated) {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // PROTECTED AUTHENTICATED ROUTES ONLY: Wrap inside DeliveryLayout (Sidebar + Header)
+  return <DeliveryLayout>{children}</DeliveryLayout>;
 }

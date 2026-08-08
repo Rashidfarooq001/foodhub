@@ -93,4 +93,106 @@ export class UsersService {
       data: { passwordHash: newPasswordHash },
     });
   }
+
+  // --- ADDRESS MANAGEMENT ---
+  private async getOrCreateCustomerId(userId: string): Promise<string> {
+    const existing = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+    if (existing) return existing.id;
+
+    const newCustomer = await this.prisma.customer.create({
+      data: { userId },
+    });
+    return newCustomer.id;
+  }
+
+  async getCustomerAddresses(userId: string) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+    return this.prisma.customerAddress.findMany({
+      where: { customerId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async createCustomerAddress(userId: string, dto: any) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+
+    if (dto.isDefault) {
+      await this.prisma.customerAddress.updateMany({
+        where: { customerId },
+        data: { isDefault: false },
+      });
+    }
+
+    const count = await this.prisma.customerAddress.count({
+      where: { customerId },
+    });
+
+    return this.prisma.customerAddress.create({
+      data: {
+        customerId,
+        addressLabel: dto.addressLabel || 'Home',
+        addressLine1: dto.addressLine1,
+        addressLine2: dto.addressLine2,
+        city: dto.city || 'Bengaluru',
+        state: dto.state || 'Karnataka',
+        postalCode: dto.postalCode || '560038',
+        latitude: dto.latitude || 12.9780,
+        longitude: dto.longitude || 77.6400,
+        isDefault: dto.isDefault ?? (count === 0),
+      },
+    });
+  }
+
+  async updateCustomerAddress(userId: string, addressId: string, dto: any) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+
+    const existing = await this.prisma.customerAddress.findFirst({
+      where: { id: addressId, customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Address not found or unauthorized');
+    }
+
+    if (dto.isDefault) {
+      await this.prisma.customerAddress.updateMany({
+        where: { customerId },
+        data: { isDefault: false },
+      });
+    }
+
+    return this.prisma.customerAddress.update({
+      where: { id: addressId },
+      data: {
+        ...(dto.addressLabel && { addressLabel: dto.addressLabel }),
+        ...(dto.addressLine1 && { addressLine1: dto.addressLine1 }),
+        ...(dto.addressLine2 !== undefined && { addressLine2: dto.addressLine2 }),
+        ...(dto.city && { city: dto.city }),
+        ...(dto.state && { state: dto.state }),
+        ...(dto.postalCode && { postalCode: dto.postalCode }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.isDefault !== undefined && { isDefault: dto.isDefault }),
+      },
+    });
+  }
+
+  async deleteCustomerAddress(userId: string, addressId: string) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+    const existing = await this.prisma.customerAddress.findFirst({
+      where: { id: addressId, customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Address not found or unauthorized');
+    }
+
+    await this.prisma.customerAddress.delete({
+      where: { id: addressId },
+    });
+
+    return { message: 'Address deleted successfully' };
+  }
 }

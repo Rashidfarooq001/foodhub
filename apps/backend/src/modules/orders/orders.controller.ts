@@ -52,10 +52,70 @@ export class OrdersController {
     return this.ordersService.createOrder(req.user.id || req.user.sub, dto);
   }
 
+  @Get('active')
+  @ApiOperation({ summary: 'Get current active order for authenticated customer' })
+  async getActiveOrder(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.getActiveCustomerOrder(userId);
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get order history for authenticated customer' })
+  async getOrderHistory(@Request() req: any, @Query('status') status?: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.getCustomerOrderHistory(userId, status);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get order detail with full timeline' })
-  async findOne(@Param('id') id: string) {
-    return this.ordersService.getOrderWithTimeline(id);
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    const role = req.user?.role;
+    return this.ordersService.getOrderWithTimelineSecured(id, userId, role);
+  }
+
+  @Get(':id/tracking')
+  @ApiOperation({ summary: 'Get live delivery tracking location for an order' })
+  async getOrderTracking(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    const role = req.user?.role;
+    return this.ordersService.getOrderTrackingSecured(id, userId, role);
+  }
+
+  @Post(':id/location')
+  @ApiOperation({ summary: 'Update driver live location for active order' })
+  async updateDriverLocation(
+    @Param('id') id: string,
+    @Body('lat') lat: number,
+    @Body('lng') lng: number,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.updateDriverLocation(id, lat, lng, userId);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({ summary: 'Submit rating & review for delivered order' })
+  async submitReview(
+    @Param('id') id: string,
+    @Body('rating') rating: number,
+    @Body('comment') comment: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.submitOrderReview(id, rating, comment, userId);
+  }
+
+  @Post(':id/support')
+  @ApiOperation({ summary: 'Submit support ticket for an order issue' })
+  async submitSupportTicket(
+    @Param('id') id: string,
+    @Body('issueType') issueType: string,
+    @Body('description') description: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.submitSupportTicket(id, issueType, description, userId);
   }
 
   @Get(':id/invoice')

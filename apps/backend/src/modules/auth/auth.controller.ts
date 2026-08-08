@@ -26,6 +26,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { AdminTwoPasswordLoginDto } from './dto/admin-login.dto';
+import { AdminChangePasswordsDto } from './dto/admin-change-passwords.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -96,9 +98,32 @@ export class AuthController {
   }
 
   @Public()
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin Dashboard Two-Password Authentication (16-digit P1 + 8-digit P2)' })
+  @ApiResponse({ status: 200, description: 'Admin authenticated successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid admin credentials' })
+  async adminLogin(@Body() dto: AdminTwoPasswordLoginDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.adminTwoPasswordLogin(dto, ip, ua);
+  }
+
+  @Patch('admin/change-passwords')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Admin Password 1 (16 digits) or Password 2 (8 digits)' })
+  async changeAdminPasswords(
+    @CurrentUser('id') userId: string,
+    @Body() dto: AdminChangePasswordsDto,
+  ) {
+    return this.authService.changeAdminPasswords(userId, dto);
+  }
+
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Password login for Merchant, Courier, Finance & Admin' })
+  @ApiOperation({ summary: 'Password login for Merchant, Courier & Finance' })
   @ApiResponse({ status: 200, description: 'Authenticated successfully' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {

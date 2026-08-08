@@ -32,12 +32,11 @@ const DEV_HOTEL_USER: HotelUserProfile = {
 };
 
 const getInitialAuthState = () => {
-  const authActive = isAuthEnabled();
   return {
-    user: authActive ? null : DEV_HOTEL_USER,
-    accessToken: authActive ? null : 'dev-hotel-access-token',
-    refreshToken: authActive ? null : 'dev-hotel-refresh-token',
-    isAuthenticated: !authActive,
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
   };
 };
 
@@ -59,12 +58,11 @@ export const useHotelAuthStore = create<HotelAuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodhub-hotel-auth');
         }
-        const authActive = isAuthEnabled();
         set({
-          user: authActive ? null : DEV_HOTEL_USER,
-          accessToken: authActive ? null : 'dev-hotel-access-token',
-          refreshToken: authActive ? null : 'dev-hotel-refresh-token',
-          isAuthenticated: !authActive,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
         });
       },
     }),

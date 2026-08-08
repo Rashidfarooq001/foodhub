@@ -204,33 +204,6 @@ export default function DeliveryLoginPage() {
     }
   };
 
-  if (!isAuthEnabled()) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
-        <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
-            <Bike className="h-8 w-8" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">Courier Login Temporarily Disabled</h1>
-            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
-              Courier partner login screens are temporarily hidden during active development.
-            </p>
-          </div>
-          <div className="pt-2">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-emerald-700"
-            >
-              <span>Access Courier Dashboard</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
@@ -368,7 +341,15 @@ export default function DeliveryLoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-gray-700">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-bold text-emerald-600 hover:underline"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -397,6 +378,15 @@ export default function DeliveryLoginPage() {
           <span>Protected by FoodHub Courier Role Based Access Control</span>
         </div>
       </div>
+
+      {/* Footer Navigation */}
+      <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
+        <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
+          <span>FoodHub Delivery</span>
+          <span>•</span>
+          <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
+        </div>
+      </footer>
     </div>
   );
 }

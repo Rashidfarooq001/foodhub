@@ -34,12 +34,11 @@ const DEV_ADMIN_USER: AdminUserProfile = {
 };
 
 const getInitialAuthState = () => {
-  const authActive = isAuthEnabled();
   return {
-    user: authActive ? null : DEV_ADMIN_USER,
-    accessToken: authActive ? null : 'dev-admin-access-token',
-    refreshToken: authActive ? null : 'dev-admin-refresh-token',
-    isAuthenticated: !authActive,
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
   };
 };
 
@@ -66,12 +65,11 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodhub-admin-auth');
         }
-        const authActive = isAuthEnabled();
         set({
-          user: authActive ? null : DEV_ADMIN_USER,
-          accessToken: authActive ? null : 'dev-admin-access-token',
-          refreshToken: authActive ? null : 'dev-admin-refresh-token',
-          isAuthenticated: !authActive,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
         });
       },
     }),
