@@ -17,6 +17,7 @@ import { SessionService } from '../sessions/session.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -35,6 +36,18 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
   ) {}
+
+  @Public()
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Public Customer Registration (name, address, phone, password)' })
+  @ApiResponse({ status: 201, description: 'Customer registered successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error or duplicate phone' })
+  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.register(dto, ip, ua);
+  }
 
   @Public()
   @Post('send-otp')
@@ -66,7 +79,7 @@ export class AuthController {
   async verifyWidget(@Body('accessToken') accessToken: string, @Req() req: Request) {
     const ip = req.ip || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
-    return this.authService.verifyWidgetToken(accessToken, ip, ua);
+    return this.authService.verifyWidgetToken(accessToken, 'CUSTOMER', ip, ua);
   }
 
   @Public()

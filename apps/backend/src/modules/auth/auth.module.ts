@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AdminBootstrapService } from './admin-bootstrap.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -24,7 +25,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
     PermissionsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
-  exports: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
+  providers: [AuthService, AdminBootstrapService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
+  exports: [AuthService, AdminBootstrapService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

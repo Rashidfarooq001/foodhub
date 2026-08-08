@@ -4,6 +4,7 @@ import { TokenService } from '../tokens/token.service';
 import { SessionService } from '../sessions/session.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -25,6 +26,62 @@ export class AuthService {
 
   async sendOtp(phone: string) {
     return this.otpService.sendOtp(phone);
+  }
+
+  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const cleanDigits = dto.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    }
+
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+
+    const existingUser = await this.usersService.findUserByPhone(formattedPhone);
+    if (existingUser) {
+      throw new BadRequestException('Phone number is already registered. Please login.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const nameParts = dto.name.trim().split(' ');
+    const firstName = nameParts[0] || 'Customer';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Create ONLY CUSTOMER user
+    const user = await (this.usersService as any).prisma.user.create({
+      data: {
+        phone: formattedPhone,
+        passwordHash,
+        role: UserRole.CUSTOMER,
+        isVerified: true,
+        isActive: true,
+        profile: {
+          create: {
+            firstName,
+            lastName,
+          },
+        },
+      },
+      include: { profile: true },
+    });
+
+    this.logger.log(`[Customer Register] Registered new Customer ID=${user.id}, phone=${user.phone}`);
+    const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(user, session.id);
+
+    return {
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+      },
+      tokens,
+    };
   }
 
   private async enforceUserRoleAndStatus(user: any, targetRole?: string) {
@@ -110,7 +167,6 @@ export class AuthService {
 
     const msg91Data = await this.otpService.verifyAccessToken(accessToken);
 
-    // Explicit Field Extractor (Checking documented MSG91 response fields)
     const extractMobileFromMsg91 = (res: any): string | null => {
       if (!res) return null;
       if (typeof res?.message === 'string' && res.message.trim().length >= 10) {
@@ -269,7 +325,7 @@ export class AuthService {
     ) {
       let rObj = (user as any).restaurantStaff?.[0]?.restaurant;
       if (!rObj && user.role === UserRole.RESTAURANT_OWNER) {
-        rObj = await (this.usersService as any).prisma.restaurant.findFirst({
+        rObj = await (this.usersService as any).prisma?.restaurant?.findFirst({
           where: { ownerId: user.id },
         });
       }
@@ -332,6 +388,7 @@ export class AuthService {
   async forgotPassword(input: string) {
     const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
+      // Security standard: generic success response to prevent enumeration
       return { message: 'If registered, reset OTP has been sent' };
     }
     return this.otpService.sendOtp(user.phone);

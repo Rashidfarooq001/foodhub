@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { UserRole } from '@prisma/client';
 import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
@@ -35,6 +35,15 @@ export class UsersService {
   }
 
   async createUser(phone: string, passwordHash: string, role: UserRole = UserRole.CUSTOMER) {
+    if (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) {
+      const existingAdminCount = await this.prisma.user.count({
+        where: { OR: [{ role: UserRole.ADMIN }, { role: UserRole.SUPER_ADMIN }] },
+      });
+      if (existingAdminCount >= 1) {
+        throw new BadRequestException('A single platform Admin account already exists. Secondary admin creation is prohibited.');
+      }
+    }
+
     return this.prisma.user.create({
       data: {
         phone,
