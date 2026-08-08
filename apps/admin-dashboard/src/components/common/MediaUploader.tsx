@@ -120,13 +120,19 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             ) : (
               <img
+                key={value}
                 src={getImageUrl(value)}
                 alt="Uploaded media preview"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
+                  const target = e.target as HTMLImageElement;
+                  if (!target.dataset.failed) {
+                    target.dataset.failed = 'true';
+                    target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
+                  }
                 }}
                 className="h-16 w-16 shrink-0 rounded-xl object-cover border border-gray-200 bg-white"
               />
+
             )}
             <div className="truncate text-xs">
               <span className="font-bold text-gray-900 block truncate">{value.split('/').pop()}</span>

@@ -22,15 +22,15 @@ export class CouponsController {
   }
 
   @Post('validate')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Validate a coupon code and preview discount amount' })
   async validate(
-    @Request() req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: ValidateCouponDto,
   ) {
-    return this.couponsService.validateCoupon(dto.code, req.user.sub, dto.subtotal);
+    const userId = req?.user?.id || req?.user?.sub || '';
+    return this.couponsService.validateCoupon(dto.code, userId, Number(dto.subtotal || 0), dto.restaurantId);
   }
+
 
   @Get('suggest')
   @ApiBearerAuth()

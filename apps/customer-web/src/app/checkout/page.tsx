@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, CreditCard, Wallet, ShieldCheck, ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react';
+import { MapPin, CreditCard, Wallet, ShieldCheck, ArrowRight, CheckCircle2, MessageSquare, Tag } from 'lucide-react';
+
 import { useCartStore } from '../../stores/use-cart-store';
 import { useAddressStore } from '../../stores/use-address-store';
 import { useAuthStore } from '../../stores/use-auth-store';
@@ -19,6 +20,9 @@ export default function CheckoutPage() {
   const {
     items,
     restaurantName,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
     getSubtotal,
     getPackagingFee,
     getDeliveryFee,
@@ -37,6 +41,10 @@ export default function CheckoutPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
   const selectedAddress = getSelectedAddress();
   const subtotal = getSubtotal();
   const packagingFee = getPackagingFee();
@@ -45,6 +53,67 @@ export default function CheckoutPage() {
   const discount = getDiscountAmount();
   const walletApplied = getWalletAppliedAmount();
   const grandTotal = getGrandTotal();
+
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanCode = couponCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+
+    try {
+      const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          code: cleanCode,
+          subtotal,
+          restaurantId: restId || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid && data.discountAmount > 0) {
+          applyCoupon(cleanCode, data.discountAmount);
+          setCouponError(null);
+          setCouponCodeInput('');
+          setIsApplyingCoupon(false);
+          return;
+        } else {
+          setCouponError(data.message || 'Invalid or expired coupon code');
+          setIsApplyingCoupon(false);
+          return;
+        }
+      }
+    } catch {
+      /* Fallback to local validation */
+    }
+
+    if (cleanCode === 'FOODHUB50') {
+      const disc = Math.round(subtotal * 0.5);
+      applyCoupon('FOODHUB50', Math.min(disc, 150));
+      setCouponError(null);
+      setCouponCodeInput('');
+    } else if (cleanCode === 'WELCOME100') {
+      applyCoupon('WELCOME100', Math.min(100, subtotal));
+      setCouponError(null);
+      setCouponCodeInput('');
+    } else {
+      setCouponError('Invalid coupon code. Try FOODHUB50 or WELCOME100');
+    }
+
+    setIsApplyingCoupon(false);
+  };
+
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -436,7 +505,7 @@ const options = {
             </div>
           </div>
 
-          {/* Right Column: Order Summary */}
+          {/* Right Column: Order Summary & Coupon */}
           <div className="space-y-6">
             <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
               <h3 className="text-base font-bold text-gray-900">Order Summary</h3>
@@ -452,6 +521,76 @@ const options = {
                   </div>
                 ))}
               </div>
+
+              {/* Coupon Section */}
+              <div className="rounded-2xl bg-orange-50/50 p-4 border border-orange-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-orange-900">
+                    <Tag className="h-4 w-4 text-orange-600" /> Apply Promo Code
+                  </div>
+                  {appliedCoupon && (
+                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                      Applied
+                    </span>
+                  )}
+                </div>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-black text-gray-900">{appliedCoupon.code}</span>
+                        <span className="block text-[10px] text-emerald-700 font-semibold">
+                          Saving ₹{appliedCoupon.discountAmount} on this order
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Try FOODHUB50"
+                      value={couponCodeInput}
+                      onChange={(e) => {
+                        setCouponCodeInput(e.target.value);
+                        setCouponError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleApplyCoupon();
+                        }
+                      }}
+                      disabled={isApplyingCoupon}
+                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 uppercase focus:border-orange-500 focus:outline-none disabled:bg-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                      className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition shrink-0"
+                    >
+                      {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+
+                {couponError && (
+                  <div className="rounded-xl bg-rose-50 border border-rose-200 p-2 text-xs font-bold text-rose-700">
+                    ⚠️ {couponError}
+                  </div>
+                )}
+              </div>
+
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-gray-600">

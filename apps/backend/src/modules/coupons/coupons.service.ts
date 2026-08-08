@@ -22,13 +22,23 @@ export class CouponsService {
   /** Full coupon validation engine — returns discount amount if valid */
   async validateCoupon(
     code:         string,
-    customerId:   string,
-    subtotal:     number,
+    customerId?:  string,
+    subtotal:     number = 0,
+    restaurantId?: string,
   ): Promise<CouponValidationResult> {
-    const coupon = await this.prisma.coupon.findUnique({ where: { code } });
+    if (!code || !code.trim()) {
+      return { valid: false, discountAmount: 0, message: 'Please enter a coupon code' };
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    const coupon = await this.prisma.coupon.findFirst({
+      where: {
+        code: { equals: cleanCode, mode: 'insensitive' },
+      },
+    });
 
     if (!coupon || coupon.status !== CouponStatus.ACTIVE) {
-      return { valid: false, discountAmount: 0, message: 'Coupon is invalid or inactive' };
+      return { valid: false, discountAmount: 0, message: 'Invalid or inactive coupon code' };
     }
 
     const now = new Date();
@@ -43,27 +53,38 @@ export class CouponsService {
       return {
         valid:          false,
         discountAmount: 0,
-        message:        `Minimum order ₹${coupon.minOrderVal} required`,
+        message:        `Minimum order value of ₹${coupon.minOrderVal} is required for this coupon`,
+      };
+    }
+
+    // Check restaurant restrictions if coupon belongs to a specific restaurant
+    if ((coupon as any).restaurantId && restaurantId && (coupon as any).restaurantId !== restaurantId) {
+      return {
+        valid:          false,
+        discountAmount: 0,
+        message:        'Coupon is not valid for this restaurant',
       };
     }
 
     // Per-user usage check
-    const customerRecord = await this.prisma.customer.findFirst({
-      where: { userId: customerId },
-    });
-    if (customerRecord) {
-      const usageCount = await this.prisma.couponUsage.count({
-        where: { couponId: coupon.id, customerId: customerRecord.id },
+    if (customerId) {
+      const customerRecord = await this.prisma.customer.findFirst({
+        where: { userId: customerId },
       });
-      if (usageCount >= 1) {
-        return { valid: false, discountAmount: 0, message: 'You have already used this coupon' };
+      if (customerRecord) {
+        const usageCount = await this.prisma.couponUsage.count({
+          where: { couponId: coupon.id, customerId: customerRecord.id },
+        });
+        if (usageCount >= 1) {
+          return { valid: false, discountAmount: 0, message: 'You have already used this coupon' };
+        }
       }
     }
 
     // Global usage limit
     const totalUsage = await this.prisma.couponUsage.count({ where: { couponId: coupon.id } });
     if (totalUsage >= coupon.usageLimit) {
-      return { valid: false, discountAmount: 0, message: 'Coupon usage limit reached' };
+      return { valid: false, discountAmount: 0, message: 'Coupon usage limit has been reached' };
     }
 
     // Calculate discount
@@ -77,13 +98,16 @@ export class CouponsService {
       discountAmount = Math.min(Number(coupon.discountVal), subtotal);
     }
 
+    discountAmount = Math.round(discountAmount * 100) / 100;
+
     return {
       valid:          true,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      message:        `Coupon applied! You save ₹${discountAmount.toFixed(2)}`,
+      discountAmount: Math.max(0, discountAmount),
+      message:        `Coupon applied! Saved ₹${discountAmount.toFixed(2)}`,
       couponId:       coupon.id,
     };
   }
+
 
   /** Suggest the best available coupon for a given subtotal */
   async suggestBestCoupon(customerId: string, subtotal: number) {

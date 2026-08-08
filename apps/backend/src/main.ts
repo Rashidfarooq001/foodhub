@@ -28,10 +28,18 @@ async function bootstrap() {
   // Compression
   app.use(compression());
 
-  // Uploads (served on both /uploads and /api/v1/uploads)
+  // Uploads (served on both /uploads and /api/v1/uploads with CORS & Caching headers)
   const uploadsPath = path.join(process.cwd(), 'uploads');
-  app.use('/uploads', express.static(uploadsPath));
-  app.use('/api/v1/uploads', express.static(uploadsPath));
+  const staticOptions = {
+    setHeaders: (res: any) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    },
+  };
+  app.use('/uploads', express.static(uploadsPath, staticOptions));
+  app.use('/api/v1/uploads', express.static(uploadsPath, staticOptions));
+
 
 
   // Body Size

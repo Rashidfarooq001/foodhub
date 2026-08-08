@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsNumber, Min, IsUUID } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsNumber, Min, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ValidateCouponDto {
   @ApiProperty({ example: 'SAVE50' })
@@ -12,7 +12,9 @@ export class ValidateCouponDto {
   @Min(0)
   subtotal!: number;
 
-  @ApiProperty({ example: 'uuid-restaurant' })
-  @IsUUID()
-  restaurantId!: string;
+  @ApiPropertyOptional({ example: 'uuid-restaurant' })
+  @IsString()
+  @IsOptional()
+  restaurantId?: string;
 }
+

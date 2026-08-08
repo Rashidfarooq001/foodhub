@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ShoppingBag, Plus, Minus, Tag, Wallet, ArrowRight, Trash2 } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Tag, Wallet, ArrowRight, Trash2, CheckCircle2 } from 'lucide-react';
 import { useCartStore } from '../../stores/use-cart-store';
+import { useAuthStore } from '../../stores/use-auth-store';
 import { CouponData } from '../../data/mock-data';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
+
 
 interface Props {
   isOpen: boolean;
@@ -37,8 +39,10 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     getGrandTotal,
   } = useCartStore();
 
+  const { accessToken } = useAuthStore();
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState<CouponData[]>([]);
 
   useEffect(() => {
@@ -64,16 +68,76 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const walletApplied = getWalletAppliedAmount();
   const grandTotal = getGrandTotal();
 
-  const handleApplyCoupon = () => {
-    const match = availableCoupons.find((c) => c.code.toUpperCase() === couponCodeInput.trim().toUpperCase());
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanCode = couponCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponError('');
+
+    try {
+      const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          code: cleanCode,
+          subtotal,
+          restaurantId: restId || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid && data.discountAmount > 0) {
+          applyCoupon(cleanCode, data.discountAmount);
+          setCouponError('');
+          setCouponCodeInput('');
+          setIsApplyingCoupon(false);
+          return;
+        } else {
+          setCouponError(data.message || 'Invalid or expired coupon code');
+          setIsApplyingCoupon(false);
+          return;
+        }
+      }
+    } catch {
+      /* Fallback to local validation if backend offline */
+    }
+
+    // Client-side fallback check
+    const match = availableCoupons.find((c) => c.code.toUpperCase() === cleanCode);
     if (match) {
-      applyCoupon(match.code, match.discountVal);
+      if (match.minOrderVal && subtotal < match.minOrderVal) {
+        setCouponError(`Minimum order value of ₹${match.minOrderVal} required`);
+      } else {
+        applyCoupon(match.code, match.discountVal);
+        setCouponError('');
+        setCouponCodeInput('');
+      }
+    } else if (cleanCode === 'FOODHUB50') {
+      const disc = Math.round(subtotal * 0.5);
+      applyCoupon('FOODHUB50', Math.min(disc, 150));
+      setCouponError('');
+      setCouponCodeInput('');
+    } else if (cleanCode === 'WELCOME100') {
+      applyCoupon('WELCOME100', Math.min(100, subtotal));
       setCouponError('');
       setCouponCodeInput('');
     } else {
       setCouponError('Invalid coupon code. Try FOODHUB50 or WELCOME100');
     }
+
+    setIsApplyingCoupon(false);
   };
+
 
   const handleCheckout = () => {
     onClose();
@@ -170,13 +234,33 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
                 {/* Coupon Section */}
                 <div className="rounded-2xl bg-orange-50/50 p-4 border border-orange-100 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-orange-900">
-                    <Tag className="h-4 w-4 text-orange-600" /> Apply Promo Code
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-orange-900">
+                      <Tag className="h-4 w-4 text-orange-600" /> Apply Promo Code
+                    </div>
+                    {appliedCoupon && (
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                        Applied
+                      </span>
+                    )}
                   </div>
+
                   {appliedCoupon ? (
-                    <div className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-emerald-200 text-xs font-bold text-emerald-800">
-                      <span>Code "{appliedCoupon.code}" Applied (-₹{appliedCoupon.discountAmount})</span>
-                      <button onClick={removeCoupon} className="text-rose-600 hover:underline">
+                    <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-black text-gray-900">{appliedCoupon.code}</span>
+                          <span className="block text-[10px] text-emerald-700 font-semibold">
+                            Saving ₹{appliedCoupon.discountAmount} on this order
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline shrink-0"
+                      >
                         Remove
                       </button>
                     </div>
@@ -186,19 +270,37 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                         type="text"
                         placeholder="Try FOODHUB50"
                         value={couponCodeInput}
-                        onChange={(e) => setCouponCodeInput(e.target.value)}
-                        className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-900 uppercase focus:border-orange-500 focus:outline-none"
+                        onChange={(e) => {
+                          setCouponCodeInput(e.target.value);
+                          setCouponError('');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        disabled={isApplyingCoupon}
+                        className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 uppercase focus:border-orange-500 focus:outline-none disabled:bg-gray-100"
                       />
                       <button
+                        type="button"
                         onClick={handleApplyCoupon}
-                        className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700"
+                        disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                        className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition shrink-0"
                       >
-                        Apply
+                        {isApplyingCoupon ? 'Applying...' : 'Apply'}
                       </button>
                     </div>
                   )}
-                  {couponError && <p className="text-[10px] text-rose-600">{couponError}</p>}
+
+                  {couponError && (
+                    <div className="rounded-xl bg-rose-50 border border-rose-200 p-2 text-xs font-bold text-rose-700">
+                      ⚠️ {couponError}
+                    </div>
+                  )}
                 </div>
+
 
                 {/* Wallet Cashback Application */}
                 <div className="flex items-center justify-between rounded-2xl bg-gray-50 p-4 border border-gray-100">
