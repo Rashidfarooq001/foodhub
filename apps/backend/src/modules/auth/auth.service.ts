@@ -9,6 +9,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-phone.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -676,5 +678,107 @@ export class AuthService {
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, dto);
+  }
+
+  async changeEmail(userId: string, dto: ChangeEmailDto) {
+    const user = await this.usersService.findUserById(userId);
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new BadRequestException('Current password does not match');
+    }
+
+    const cleanEmail = dto.newEmail.trim().toLowerCase();
+    const existing = await this.usersService.findUserByPhoneOrEmail(cleanEmail);
+    if (existing && existing.id !== userId) {
+      throw new BadRequestException('An account with this email address already exists. Please use a different email.');
+    }
+
+    const updated = await (this.usersService as any).prisma.user.update({
+      where: { id: userId },
+      data: { email: cleanEmail },
+      include: { profile: true },
+    });
+
+    return {
+      message: 'Email address updated successfully',
+      user: {
+        id: updated.id,
+        email: updated.email,
+        phone: updated.phone,
+        role: updated.role,
+        profile: updated.profile,
+      },
+    };
+  }
+
+  async requestPhoneChangeOtp(userId: string, dto: RequestPhoneChangeOtpDto) {
+    const user = await this.usersService.findUserById(userId);
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new BadRequestException('Current password does not match');
+    }
+
+    const cleanDigits = dto.newPhone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+    const existing = await this.usersService.findUserByPhone(formattedPhone);
+    if (existing && existing.id !== userId) {
+      throw new BadRequestException('An account with this phone number already exists. Please use a different phone number.');
+    }
+
+    await this.otpService.sendOtp(formattedPhone);
+    return {
+      message: 'OTP dispatched to new phone number',
+      phone: formattedPhone,
+    };
+  }
+
+  async verifyPhoneChangeOtp(userId: string, dto: VerifyPhoneChangeOtpDto) {
+    const user = await this.usersService.findUserById(userId);
+
+    const cleanDigits = dto.newPhone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+
+    if (dto.accessToken) {
+      const msg91Data = await this.otpService.verifyAccessToken(dto.accessToken);
+      if (!msg91Data) {
+        throw new BadRequestException('Invalid MSG91 verification token');
+      }
+    } else if (dto.otp) {
+      await this.otpService.verifyOtp(formattedPhone, dto.otp);
+    } else {
+      throw new BadRequestException('OTP code or MSG91 access token is required');
+    }
+
+    // Safety re-check against race conditions
+    const existing = await this.usersService.findUserByPhone(formattedPhone);
+    if (existing && existing.id !== userId) {
+      throw new BadRequestException('An account with this phone number already exists. Please use a different phone number.');
+    }
+
+    const updated = await (this.usersService as any).prisma.user.update({
+      where: { id: userId },
+      data: { phone: formattedPhone },
+      include: { profile: true },
+    });
+
+    return {
+      message: 'Phone number updated successfully',
+      user: {
+        id: updated.id,
+        email: updated.email,
+        phone: updated.phone,
+        role: updated.role,
+        profile: updated.profile,
+      },
+    };
   }
 }

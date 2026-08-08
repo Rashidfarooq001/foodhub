@@ -153,4 +153,24 @@ export class CreateRestaurantDto {
   @IsString()
   @IsOptional()
   upiId?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/menus/menu-1.pdf' })
+  @IsString()
+  @IsOptional()
+  menuUrl?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/fssai-1.pdf' })
+  @IsString()
+  @IsOptional()
+  fssaiUrl?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/pan-1.pdf' })
+  @IsString()
+  @IsOptional()
+  panUrl?: string;
+
+  @ApiPropertyOptional({ example: 'ABCDE1234F' })
+  @IsString()
+  @IsOptional()
+  panNumber?: string;
 }

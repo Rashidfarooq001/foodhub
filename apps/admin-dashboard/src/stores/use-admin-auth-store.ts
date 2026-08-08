@@ -9,6 +9,10 @@ export interface AdminUserProfile {
   email: string;
   role: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  avatarUrl?: string;
 }
 
 interface AdminAuthState {
@@ -17,14 +21,16 @@ interface AdminAuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   setAuth: (user: AdminUserProfile, accessToken: string, refreshToken: string) => void;
+  updateUser: (profile: Partial<AdminUserProfile>) => void;
   logout: () => void;
 }
 
 const DEV_ADMIN_USER: AdminUserProfile = {
   id: 'admin-super-dev',
-  email: 'admin@foodhub.com',
+  email: 'www.rashidreshi2005@gmail.com',
   role: 'SUPER_ADMIN',
-  name: 'Super Admin (Dev Mode)',
+  name: 'Rashid Reshi',
+  phone: '+917006298795',
 };
 
 const getInitialAuthState = () => {
@@ -50,6 +56,11 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
+
+      updateUser: (profile) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...profile } : DEV_ADMIN_USER,
+        })),
 
       logout: () => {
         if (typeof window !== 'undefined') {

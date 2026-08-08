@@ -374,7 +374,16 @@ export default function HotelLoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-gray-700">Password</label>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMode('OTP'); setError(''); }}
+                  className="text-xs font-bold text-orange-600 hover:underline"
+                >
+                  Forgot Password? (Use OTP)
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -403,6 +412,19 @@ export default function HotelLoginPage() {
           <span>Protected by FoodHub Restaurant Role Based Access Control</span>
         </div>
       </div>
+
+      {/* Footer Navigation */}
+      <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
+        <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
+          <span>FoodHub Partner</span>
+          <span>•</span>
+          <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
+          <span>•</span>
+          <Link href="/partner/register" className="font-bold text-orange-500 hover:text-orange-400 transition underline">
+            Become a Partner
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

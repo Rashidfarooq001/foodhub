@@ -108,10 +108,45 @@ export class RestaurantsService {
           latitude: dto.latitude || 12.9716,
           longitude: dto.longitude || 77.5946,
           bannerUrl: dto.bannerUrl,
+          menuUrl: dto.menuUrl,
+          fssaiUrl: dto.fssaiUrl,
+          panUrl: dto.panUrl,
+          panNumber: dto.panNumber,
           status: RestaurantStatus.PENDING_APPROVAL,
           isOpen: false,
         },
       });
+
+      // Create RestaurantDocument records for FSSAI, PAN, and MENU if provided
+      if (dto.fssaiUrl || dto.fssaiLicense) {
+        await tx.restaurantDocument.create({
+          data: {
+            restaurantId: restaurant.id,
+            documentType: 'FSSAI',
+            documentUrl: dto.fssaiUrl || `https://assets.foodhub.local/docs/fssai-${restaurant.id}.pdf`,
+          },
+        });
+      }
+
+      if (dto.panUrl || dto.panNumber) {
+        await tx.restaurantDocument.create({
+          data: {
+            restaurantId: restaurant.id,
+            documentType: 'PAN',
+            documentUrl: dto.panUrl || `https://assets.foodhub.local/docs/pan-${restaurant.id}.pdf`,
+          },
+        });
+      }
+
+      if (dto.menuUrl) {
+        await tx.restaurantDocument.create({
+          data: {
+            restaurantId: restaurant.id,
+            documentType: 'MENU',
+            documentUrl: dto.menuUrl,
+          },
+        });
+      }
 
       // Link owner in RestaurantStaff table
       await tx.restaurantStaff.upsert({
@@ -155,15 +190,34 @@ export class RestaurantsService {
     };
   }
 
-  async findPendingApprovalRestaurants() {
+  async findPendingApprovalRestaurants(statusFilter?: string) {
+    let whereCondition: any = {};
+    if (statusFilter && statusFilter.toUpperCase() !== 'ALL') {
+      const s = statusFilter.toUpperCase();
+      if (s === 'PENDING') whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
+      else if (s === 'APPROVED') whereCondition.status = RestaurantStatus.APPROVED;
+      else if (s === 'REJECTED') whereCondition.status = RestaurantStatus.REJECTED;
+      else if (s === 'SUSPENDED') whereCondition.status = RestaurantStatus.SUSPENDED;
+      else whereCondition.status = s as any;
+    } else if (!statusFilter) {
+      whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
+    }
+
     const restaurants = await this.prisma.restaurant.findMany({
-      where: {
-        status: RestaurantStatus.PENDING_APPROVAL,
-      },
+      where: whereCondition,
       include: {
         categories: {
           include: {
             foodItems: true,
+          },
+        },
+        documents: true,
+        galleries: true,
+        staff: {
+          include: {
+            user: {
+              include: { profile: true },
+            },
           },
         },
       },
@@ -172,7 +226,7 @@ export class RestaurantsService {
       },
     });
 
-    return restaurants.map((restaurant) => ({
+    return serializePrisma(restaurants.map((restaurant) => ({
       ...restaurant,
       avgRating: restaurant.avgRating
         ? Number(restaurant.avgRating)
@@ -180,7 +234,7 @@ export class RestaurantsService {
       commissionRate: restaurant.commissionRate
         ? Number(restaurant.commissionRate)
         : 0,
-    }));
+    })));
   }
 
   async findAllRestaurants(adminView = false) {
@@ -196,6 +250,8 @@ export class RestaurantsService {
             foodItems: true,
           },
         },
+        documents: true,
+        galleries: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -215,12 +271,12 @@ export class RestaurantsService {
   }
 
   async findRestaurantById(idOrSlug: string) {
-   const whereCondition = isUUID(idOrSlug)
-  ? { id: idOrSlug }
-  : { slug: idOrSlug };
+    const whereCondition = isUUID(idOrSlug)
+      ? { id: idOrSlug }
+      : { slug: idOrSlug };
 
-const restaurant = await this.prisma.restaurant.findFirst({
-  where: whereCondition,
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: whereCondition,
       include: {
         categories: {
           include: {
@@ -240,6 +296,8 @@ const restaurant = await this.prisma.restaurant.findFirst({
             addonGroups: { include: { addons: true } },
           },
         },
+        documents: true,
+        galleries: true,
         staff: {
           include: {
             user: {
@@ -270,8 +328,13 @@ const restaurant = await this.prisma.restaurant.findFirst({
   async updateVerificationStatus(
     id: string,
     status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING',
+    rejectionReason?: string,
   ) {
     await this.findRestaurantById(id);
+
+    if (status === 'REJECTED' && (!rejectionReason || !rejectionReason.trim())) {
+      throw new Error('A valid rejection reason is mandatory when rejecting a restaurant application.');
+    }
 
     const prismaStatus =
       status === 'APPROVED'
@@ -291,6 +354,7 @@ const restaurant = await this.prisma.restaurant.findFirst({
       data: {
         status: prismaStatus,
         isOpen,
+        ...(status === 'REJECTED' ? { rejectionReason: rejectionReason?.trim() } : {}),
       },
     });
 

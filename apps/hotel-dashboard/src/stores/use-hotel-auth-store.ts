@@ -10,6 +10,8 @@ export interface HotelUserProfile {
   role: string;
   name?: string;
   restaurantId?: string;
+  applicationStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  rejectionReason?: string;
 }
 
 interface HotelAuthState {

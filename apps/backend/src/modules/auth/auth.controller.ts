@@ -23,6 +23,8 @@ import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -187,6 +189,39 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile updated' })
   async updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.authService.updateProfile(userId, dto);
+  }
+
+  @Post('change-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Securely update registered email address after password verification' })
+  @ApiResponse({ status: 200, description: 'Email address updated successfully' })
+  async changeEmail(@CurrentUser('id') userId: string, @Body() dto: ChangeEmailDto) {
+    return this.authService.changeEmail(userId, dto);
+  }
+
+  @Post('change-phone/request-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Request OTP for updating registered phone number' })
+  @ApiResponse({ status: 200, description: 'OTP sent to new phone number' })
+  async requestPhoneChangeOtp(
+    @CurrentUser('id') userId: string,
+    @Body() dto: RequestPhoneChangeOtpDto,
+  ) {
+    return this.authService.requestPhoneChangeOtp(userId, dto);
+  }
+
+  @Post('change-phone/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify OTP and update registered phone number' })
+  @ApiResponse({ status: 200, description: 'Phone number updated successfully' })
+  async verifyPhoneChangeOtp(
+    @CurrentUser('id') userId: string,
+    @Body() dto: VerifyPhoneChangeOtpDto,
+  ) {
+    return this.authService.verifyPhoneChangeOtp(userId, dto);
   }
 
   @Get('sessions')

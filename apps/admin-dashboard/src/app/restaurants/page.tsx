@@ -101,10 +101,10 @@ export default function AdminRestaurantsPage() {
           </div>
 
           <Link
-            href="/restaurants/add"
+            href="/restaurants/approval"
             className="flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-500/20 hover:bg-purple-700 min-h-[40px]"
           >
-            <Plus className="h-4 w-4 shrink-0" /> Add Restaurant
+            <Plus className="h-4 w-4 shrink-0" /> Restaurant Applications
           </Link>
         </div>
       </div>

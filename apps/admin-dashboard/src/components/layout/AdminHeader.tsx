@@ -68,22 +68,33 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
 
         {/* SuperAdmin Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-100 pl-2 sm:pl-4 shrink-0">
-          <img
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80"
-            alt="SuperAdmin"
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-purple-600"
-          />
-          <div className="hidden md:block text-left">
-            <span className="block text-xs font-bold text-gray-900 truncate max-w-[120px]">
-              {user?.name || user?.email || 'SuperAdmin'}
-            </span>
-            <span className="block text-[10px] text-purple-600 font-bold">{user?.role || 'SUPER_ADMIN'}</span>
-          </div>
+          <button
+            onClick={() => router.push('/settings')}
+            className="flex items-center gap-2 sm:gap-3 text-left hover:opacity-90 transition focus:outline-none group"
+            title="Open Account Settings"
+          >
+            <img
+              src={
+                user?.avatarUrl ||
+                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'
+              }
+              alt={user?.name || 'Admin'}
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-purple-600 shadow-sm group-hover:ring-2 group-hover:ring-purple-400"
+            />
+            <div className="hidden md:block">
+              <span className="block text-xs font-bold text-gray-900 truncate max-w-[130px]">
+                {user?.name || user?.email || 'Admin User'}
+              </span>
+              <span className="block text-[10px] text-purple-600 font-bold uppercase tracking-wider">
+                {user?.role || 'SUPER_ADMIN'}
+              </span>
+            </div>
+          </button>
 
           <button
             onClick={handleLogout}
             title="Logout"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </button>

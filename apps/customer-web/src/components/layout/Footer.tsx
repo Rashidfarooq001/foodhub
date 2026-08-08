@@ -47,7 +47,16 @@ export const Footer: React.FC = () => {
             <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-white">Company</h4>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/support" className="hover:text-orange-400">Customer Support</Link></li>
-              <li><a href="#" className="hover:text-orange-400">Partner With Us</a></li>
+              <li>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'https://foodhub-hotel-dashboard.vercel.app'}/partner/register`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-orange-400 hover:text-orange-300 transition"
+                >
+                  Become a Partner
+                </a>
+              </li>
               <li><a href="#" className="hover:text-orange-400">Terms of Service</a></li>
               <li><a href="#" className="hover:text-orange-400">Privacy Policy</a></li>
             </ul>

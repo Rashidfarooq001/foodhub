@@ -23,8 +23,17 @@ export class RestaurantsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'List pending restaurant applications requiring approval (Admin Only)' })
-  async findPendingApproval() {
-    return this.restaurantsService.findPendingApprovalRestaurants();
+  async findPendingApproval(@Query('status') status?: string) {
+    return this.restaurantsService.findPendingApprovalRestaurants(status);
+  }
+
+  @Get('applications')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List all restaurant applications by status filter (Admin Only)' })
+  async getApplications(@Query('status') status?: string) {
+    return this.restaurantsService.findPendingApprovalRestaurants(status);
   }
 
   @Get()
@@ -46,9 +55,10 @@ export class RestaurantsController {
   @ApiOperation({ summary: 'Approve or Reject restaurant onboarding (Admin Only)' })
   async updateStatus(
     @Param('id') id: string,
-    @Body('status') status: 'APPROVED' | 'REJECTED' | 'SUSPENDED',
+    @Body('status') status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING',
+    @Body('rejectionReason') rejectionReason?: string,
   ) {
-    return this.restaurantsService.updateVerificationStatus(id, status);
+    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason);
   }
 
   @Patch(':id/delivery-mode')

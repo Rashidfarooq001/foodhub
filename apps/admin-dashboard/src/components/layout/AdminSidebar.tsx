@@ -18,11 +18,13 @@ import {
   Shield,
   Sliders,
   Settings,
+  UserCog,
   X,
 } from 'lucide-react';
 
 const NAVIGATION = [
   { name: 'Platform Overview', href: '/', icon: LayoutDashboard },
+  { name: 'Account Settings', href: '/settings', icon: UserCog },
   { name: 'Restaurant Approval Queue', href: '/restaurants/approval', icon: CheckSquare },
   { name: 'All Restaurants', href: '/restaurants', icon: Store },
   { name: 'Driver Approval Queue', href: '/delivery-partners/approval', icon: CheckSquare },
