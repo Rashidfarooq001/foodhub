@@ -34,20 +34,60 @@ export class AuthService {
 
     const msg91Data = await this.otpService.verifyAccessToken(accessToken);
 
-    // Extract mobile number from MSG91 response structure
-    const rawMobile =
-      msg91Data?.data?.mobile ||
-      msg91Data?.mobile ||
-      msg91Data?.data?.mobileNumber ||
-      msg91Data?.mobileNumber ||
-      msg91Data?.phone ||
-      msg91Data?.message?.mobile;
+    // Safe Diagnostic Logging (no secrets or numbers logged)
+    this.logger.log(`[Backend MSG91] Top-level response keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
+    this.logger.log(`[Backend MSG91] response.type="${msg91Data?.type}", response.status="${msg91Data?.status}"`);
+    this.logger.log(`[Backend MSG91] typeof response.data="${typeof msg91Data?.data}"`);
+    this.logger.log(`[Backend MSG91] typeof response.message="${typeof msg91Data?.message}"`);
 
+    if (typeof msg91Data?.data === 'object' && msg91Data?.data !== null) {
+      this.logger.log(`[Backend MSG91] keys of response.data: [${Object.keys(msg91Data.data).join(', ')}]`);
+    }
+
+    if (typeof msg91Data?.message === 'object' && msg91Data?.message !== null) {
+      this.logger.log(`[Backend MSG91] keys of response.message: [${Object.keys(msg91Data.message).join(', ')}]`);
+    }
+
+    // Explicit Field Extractor (Checking documented MSG91 response fields)
+    const extractMobileFromMsg91 = (res: any): string | null => {
+      if (!res) return null;
+
+      // 1. Primary MSG91 Custom UI response field: res.message as string (e.g. "917006298795")
+      if (typeof res?.message === 'string' && res.message.trim().length >= 10) {
+        return res.message.trim();
+      }
+
+      // 2. Documented object fields
+      if (res?.data && typeof res.data === 'object' && res.data.mobile) {
+        return String(res.data.mobile).trim();
+      }
+
+      if (res?.mobile) {
+        return String(res.mobile).trim();
+      }
+
+      // 3. Fallback direct data string or nested message object
+      if (typeof res?.data === 'string' && res.data.trim().length >= 10) {
+        return res.data.trim();
+      }
+
+      if (res?.message && typeof res.message === 'object' && res.message.mobile) {
+        return String(res.message.mobile).trim();
+      }
+
+      if (res?.phone) {
+        return String(res.phone).trim();
+      }
+
+      return null;
+    };
+
+    const rawMobile = extractMobileFromMsg91(msg91Data);
     this.logger.log(`[Backend MSG91] Extracted mobile present=${!!rawMobile}`);
 
     let phoneToVerify = String(rawMobile || '').trim();
     if (!phoneToVerify) {
-      this.logger.error(`[Backend MSG91] Mobile number missing in MSG91 payload response. Keys: [${Object.keys(msg91Data || {}).join(', ')}]`);
+      this.logger.error(`[Backend MSG91] Mobile number missing in MSG91 payload response.`);
       throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
     }
 
