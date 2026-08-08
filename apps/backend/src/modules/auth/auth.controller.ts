@@ -59,6 +59,17 @@ export class AuthController {
   }
 
   @Public()
+  @Post('verify-widget')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify MSG91 Widget access token & authenticate customer session' })
+  @ApiResponse({ status: 200, description: 'Widget token verified, returns JWT tokens' })
+  async verifyWidget(@Body('accessToken') accessToken: string, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.verifyWidgetToken(accessToken, ip, ua);
+  }
+
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Password login for Merchant, Courier, Finance & Admin' })

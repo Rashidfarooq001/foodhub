@@ -27,7 +27,60 @@ export class AuthService {
     return this.otpService.sendOtp(phone);
   }
 
+  async verifyWidgetToken(accessToken: string, ipAddress?: string, userAgent?: string) {
+    if (!accessToken) {
+      throw new BadRequestException('Widget access token is required');
+    }
+
+    const msg91Res = await this.otpService.verifyAccessToken(accessToken);
+
+    const rawMobile =
+      msg91Res?.data?.mobile ||
+      msg91Res?.mobile ||
+      msg91Res?.data?.mobileNumber ||
+      msg91Res?.mobileNumber ||
+      msg91Res?.phone;
+
+    let phoneToVerify = String(rawMobile || '').trim();
+    if (!phoneToVerify) {
+      throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
+    }
+
+    if (!phoneToVerify.startsWith('+')) {
+      if (phoneToVerify.length === 10) {
+        phoneToVerify = `+91${phoneToVerify}`;
+      } else {
+        phoneToVerify = `+${phoneToVerify}`;
+      }
+    }
+
+    let user = await this.usersService.findUserByPhone(phoneToVerify);
+    if (!user) {
+      // Auto-register Customer upon first successful OTP verification
+      const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
+      user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
+    }
+
+    const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(user, session.id);
+
+    return {
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+      },
+      tokens,
+    };
+  }
+
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string, userAgent?: string) {
+    if (dto.accessToken) {
+      return this.verifyWidgetToken(dto.accessToken, ipAddress, userAgent);
+    }
+
     if (!dto.phone || !dto.otp) {
       throw new BadRequestException('Phone number and OTP code are required');
     }

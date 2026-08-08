@@ -30,6 +30,61 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
+  // Dynamically load MSG91 OTP Widget Script
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (document.getElementById('msg91-widget-script')) return;
+
+    const script = document.createElement('script');
+    script.id = 'msg91-widget-script';
+    script.src = 'https://control.msg91.com/app/assets/otp-provider/otp-provider.js';
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
+  const handleWidgetSuccess = async (accessToken: string) => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-widget`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'MSG91 Widget authentication failed');
+      }
+
+      if (!data.tokens?.accessToken) {
+        throw new Error('Authentication token not received from server');
+      }
+
+      const userProfile = {
+        id: data.user.id,
+        phone: data.user.phone,
+        email: data.user.email,
+        role: data.user.role,
+        firstName: data.user.profile?.firstName || 'Customer',
+        lastName: data.user.profile?.lastName || '',
+      };
+
+      setAuth(
+        userProfile,
+        data.tokens.accessToken,
+        data.tokens.refreshToken || data.tokens.accessToken,
+      );
+
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'Widget verification failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanDigits = phone.replace(/\D/g, '');
@@ -40,6 +95,39 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
+    const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+
+    // If MSG91 widget function is available on window, trigger widget
+    if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
+      try {
+        const configuration = {
+          widgetId,
+          tokenAuth,
+          identifier: 'phone-input',
+          success: (data: any) => {
+            console.log('MSG91 Widget Success Callback:', data);
+            const token = typeof data === 'string' ? data : (data?.message || data?.jwtToken || data?.accessToken || data?.token);
+            if (token) {
+              handleWidgetSuccess(token);
+            }
+          },
+          failure: (err: any) => {
+            console.error('MSG91 Widget Failure Callback:', err);
+            setError('OTP verification failed or was cancelled.');
+            setIsLoading(false);
+          },
+        };
+
+        (window as any).initSendOTP(configuration);
+        setIsLoading(false);
+        return;
+      } catch (widgetErr) {
+        console.warn('MSG91 Widget initialization notice, falling back to API:', widgetErr);
+      }
+    }
+
+    // Fallback REST API flow if widget script is unavailable or in dev mode
     try {
       const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
@@ -184,6 +272,7 @@ export default function LoginPage() {
               <div className="relative flex items-center">
                 <Phone className="absolute left-4 h-4 w-4 text-gray-400" />
                 <input
+                  id="phone-input"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -198,7 +287,7 @@ export default function LoginPage() {
               disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <span>{isLoading ? 'Sending OTP...' : 'Send OTP'}</span>
+              <span>{isLoading ? 'Processing...' : 'Continue with MSG91 OTP'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -258,7 +347,7 @@ export default function LoginPage() {
 
         <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-6 text-[11px] text-gray-400">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>Protected by MSG91 SMS REST API & 256-bit SSL Encryption</span>
+          <span>Protected by MSG91 Official OTP Widget & 256-bit SSL</span>
         </div>
       </div>
     </div>

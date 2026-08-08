@@ -169,6 +169,7 @@ export default function CurrentDeliveryPage() {
         </h2>
 
         <p className="text-gray-500">
+        
           Accept an order to begin delivery.
         </p>
       </div>
