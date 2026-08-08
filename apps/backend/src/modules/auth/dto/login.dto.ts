@@ -22,4 +22,12 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   otp?: string;
+
+  @ApiPropertyOptional({
+    example: 'CUSTOMER',
+    description: 'Expected account role. When set, login is rejected if the account role does not match.',
+  })
+  @IsOptional()
+  @IsString()
+  targetRole?: string;
 }

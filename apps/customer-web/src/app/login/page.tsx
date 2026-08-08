@@ -30,12 +30,19 @@ export default function LoginPage() {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ phone, password, targetRole: 'CUSTOMER' }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.message || 'Login failed. Please check your credentials.');
+      }
+
+      // Frontend safety net: reject non-CUSTOMER accounts even if backend somehow passed them
+      if (data.user?.role && data.user.role !== 'CUSTOMER') {
+        throw new Error(
+          'An account with this phone number already exists. Please use the correct login portal.',
+        );
       }
 
       setAuth(

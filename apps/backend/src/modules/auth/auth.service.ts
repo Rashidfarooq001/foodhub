@@ -48,7 +48,9 @@ export class AuthService {
     const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
     const existing = await this.usersService.findUserByPhone(formattedPhone);
     if (existing) {
-      throw new BadRequestException('Phone number is already registered. Please login.');
+      throw new BadRequestException(
+        'An account with this phone number already exists. Please use the correct login portal.',
+      );
     }
     return { available: true, message: 'Phone number is available for registration.' };
   }
@@ -279,8 +281,14 @@ export class AuthService {
         throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
       }
     } else {
-      if (dto?.password && normalizedTarget === 'CUSTOMER') {
-        throw new BadRequestException('Phone number is already registered. Please login.');
+      // Existing account: reject CUSTOMER signup for any already-registered phone regardless of role
+      if (normalizedTarget === 'CUSTOMER') {
+        this.logger.warn(
+          `[Backend MSG91] Rejected CUSTOMER signup: phone ${phoneToVerify} already registered as role=${user.role}`,
+        );
+        throw new BadRequestException(
+          'An account with this phone number already exists. Please use the correct login portal.',
+        );
       }
     }
 
@@ -360,8 +368,14 @@ export class AuthService {
         throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
       }
     } else {
-      if (dto?.password && normalizedTarget === 'CUSTOMER') {
-        throw new BadRequestException('Phone number is already registered. Please login.');
+      // Existing account: reject any CUSTOMER signup attempt regardless of role or password presence
+      if (normalizedTarget === 'CUSTOMER') {
+        this.logger.warn(
+          `[verifyOtp] Rejected CUSTOMER signup: phone already registered as role=${user.role}`,
+        );
+        throw new BadRequestException(
+          'An account with this phone number already exists. Please use the correct login portal.',
+        );
       }
     }
 
@@ -403,6 +417,21 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials entered');
+    }
+
+    // Portal-specific role enforcement: reject if the caller declared a targetRole
+    // that does not match the account's actual role
+    if (dto.targetRole) {
+      const normalizedTarget = dto.targetRole.toUpperCase().trim();
+      const normalizedUserRole = user.role.toUpperCase().trim();
+      if (normalizedTarget === 'CUSTOMER' && normalizedUserRole !== 'CUSTOMER') {
+        this.logger.warn(
+          `[login] Portal role mismatch: user=${user.id} has role=${user.role}, but targetRole=CUSTOMER was required`,
+        );
+        throw new UnauthorizedException(
+          'An account with this phone number already exists. Please use the correct login portal.',
+        );
+      }
     }
 
     let restaurant: any = null;
