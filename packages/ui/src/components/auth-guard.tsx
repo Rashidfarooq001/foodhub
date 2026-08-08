@@ -23,6 +23,14 @@ export function AuthGuard({
     setMounted(true);
   }, []);
 
+  const normalizedUserRole = (userRole || 'CUSTOMER').toUpperCase().trim();
+  const normalizedAllowedRoles = allowedRoles?.map((r) => r.toUpperCase().trim());
+
+  const isForbidden =
+    Boolean(normalizedAllowedRoles && normalizedAllowedRoles.length > 0) &&
+    Boolean(userRole) &&
+    !normalizedAllowedRoles?.includes(normalizedUserRole);
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -31,10 +39,10 @@ export function AuthGuard({
       return;
     }
 
-    if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+    if (isForbidden) {
       onUnauthorized?.('FORBIDDEN');
     }
-  }, [mounted, isAuthenticated, userRole, allowedRoles, onUnauthorized]);
+  }, [mounted, isAuthenticated, isForbidden, onUnauthorized]);
 
   if (!mounted) {
     return (
@@ -59,12 +67,12 @@ export function AuthGuard({
     );
   }
 
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  if (isForbidden) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4 p-8 text-center">
         <div className="rounded-full bg-rose-100 p-4 text-rose-600 font-black text-2xl">403</div>
         <h2 className="text-2xl font-bold text-gray-900">Access Denied (403 Forbidden)</h2>
-        <p className="text-sm text-gray-500">You do not have permission to view this dashboard.</p>
+        <p className="text-sm text-gray-500">You do not have permission to view this page.</p>
         <a
           href="/"
           className="rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-gray-800"

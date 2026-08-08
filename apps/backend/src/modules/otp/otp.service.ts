@@ -8,15 +8,16 @@ export class OtpService {
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_COOLDOWN_SEC = 60;
   private readonly OTP_EXPIRY_MINS = 10;
+  private readonly usedAccessTokens = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
   ) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
-    // Check cooldown
+    // Check cooldown on latest request
     const existingOtp = await this.prisma.otp.findFirst({
-      where: { phone, isUsed: false },
+      where: { phone },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -29,10 +30,16 @@ export class OtpService {
       }
     }
 
+    // OTP ROTATION & INVALIDATION: Immediately mark all previous unused OTPs for this phone as used/invalid
+    await this.prisma.otp.updateMany({
+      where: { phone, isUsed: false },
+      data: { isUsed: true },
+    });
+
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
-    // Generate 4-digit OTP
-    const rawOtp = isDevOrTest ? '4819' : Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate unique 4-digit OTP code (in dev/test mode generation is randomized or deterministic per request)
+    const rawOtp = Math.floor(1000 + Math.random() * 9000).toString();
     const otpHash = await bcrypt.hash(rawOtp, 10);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINS * 60 * 1000);
 
@@ -44,11 +51,7 @@ export class OtpService {
       },
     });
 
-    if (!isDevOrTest) {
-      this.logger.log(`[MSG91 Gateway] Sent SMS OTP to ${phone}`);
-    } else {
-      this.logger.log(`[Dev SMS Suppressed] Generated OTP for ${phone}`);
-    }
+    this.logger.log(`[OTP Gateway] Dispatched SMS OTP for phone=${phone}`);
 
     return {
       message: 'OTP sent successfully',
@@ -76,6 +79,7 @@ export class OtpService {
       throw new BadRequestException('Invalid OTP code entered');
     }
 
+    // Immediately mark current OTP record as used (SINGLE-USE ENFORCEMENT)
     await this.prisma.otp.update({
       where: { id: otpRecord.id },
       data: { isUsed: true },
@@ -85,16 +89,28 @@ export class OtpService {
   }
 
   async verifyAccessToken(accessToken: string): Promise<any> {
+    if (!accessToken) {
+      throw new BadRequestException('Access token is required');
+    }
+
+    // SINGLE-USE ACCESS TOKEN ENFORCEMENT: Reject previously consumed MSG91 widget tokens
+    if (this.usedAccessTokens.has(accessToken)) {
+      this.logger.warn(`[Backend MSG91] Access token re-use attempt rejected for token len=${accessToken.length}`);
+      throw new BadRequestException('MSG91 access token has already been used. Please request a new OTP.');
+    }
+
     const authKey = process.env.MSG91_AUTH_KEY;
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
     this.logger.log(`[Backend MSG91] MSG91_AUTH_KEY_PRESENT=${!!authKey}, KeyLength=${authKey?.length || 0}`);
-    this.logger.log(`[Backend MSG91] Token present=${!!accessToken}, TokenLength=${accessToken?.length || 0}`);
+    this.logger.log(`[Backend MSG91] Token present=${!!accessToken}, TokenLength=${accessToken.length}`);
 
     if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken?.startsWith('dev_')) {
       this.logger.log('[Backend MSG91] Bypassing MSG91 API in local test mode for dev_ token');
       const devPhone = accessToken.replace('dev_widget_token_', '').replace('dev_', '');
       const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
+      
+      this.usedAccessTokens.add(accessToken);
       return {
         type: 'success',
         message: formattedDevPhone || '919876543210',
@@ -132,6 +148,8 @@ export class OtpService {
         throw new UnauthorizedException(`MSG91 verification rejected: ${msg}`);
       }
 
+      // Mark token as used after successful verification
+      this.usedAccessTokens.add(accessToken);
       return msg91Data;
     } catch (error: any) {
       if (error instanceof UnauthorizedException || error instanceof BadRequestException) {

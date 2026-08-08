@@ -46,7 +46,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
   };
 
   return (
-    <div className="flex gap-4 rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md">
+    <div className="flex flex-col-reverse gap-4 rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md sm:flex-row sm:items-start sm:justify-between">
       {/* Food Details */}
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-2">
@@ -89,11 +89,11 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
       </div>
 
       {/* Food Image & Action Button */}
-      <div className="relative flex flex-col items-center">
+      <div className="relative flex flex-col items-center self-center sm:self-start flex-shrink-0">
         <img
           src={food.imageUrl}
           alt={food.name}
-          className="h-28 w-28 rounded-2xl object-cover"
+          className="h-28 w-28 sm:h-28 sm:w-28 rounded-2xl object-cover"
         />
 
         {/* Stepper or Add Button */}

@@ -26,7 +26,7 @@ export function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
     <AuthGuard
       isAuthenticated={isAuthenticated}
       userRole={user?.role || 'CUSTOMER'}
-      allowedRoles={['CUSTOMER', 'SUPER_ADMIN']}
+      allowedRoles={['CUSTOMER', 'CUSTOMER_USER', 'USER', 'SUPER_ADMIN', 'ADMIN']}
       onUnauthorized={(reason) => {
         if (reason === 'UNAUTHENTICATED') {
           router.push('/login');

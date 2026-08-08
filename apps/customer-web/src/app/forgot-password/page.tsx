@@ -59,7 +59,12 @@ export default function ForgotPasswordPage() {
       setError('Please enter a valid 10-digit registered mobile number');
       return;
     }
+
+    // INVALIDATE PREVIOUS VERIFICATION & TOKEN STATE ON RESEND
+    setResetToken('');
+    setOtp(['', '', '', '']);
     setError('');
+    setSuccessMsg('');
     setIsLoading(true);
 
     try {
