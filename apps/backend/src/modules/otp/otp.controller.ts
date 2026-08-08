@@ -1,6 +1,7 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import { OtpService } from './otp.service';
 import { Request } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
 
 import { VerifyWidgetDto } from './dto/verify-widget.dto';
 import { SendDeliveryOtpDto } from './dto/send-delivery-otp.dto';
@@ -12,6 +13,7 @@ export class OtpController {
     private readonly otpService: OtpService,
   ) {}
 
+  @Public()
   @Post('widget/verify')
   verifyWidget(
     @Body() dto: VerifyWidgetDto,
@@ -26,6 +28,7 @@ export class OtpController {
     );
   }
 
+  @Public()
   @Post('delivery/send')
   sendDeliveryOtp(
     @Body() dto: SendDeliveryOtpDto,
@@ -35,6 +38,7 @@ export class OtpController {
     );
   }
 
+  @Public()
   @Post('delivery/verify')
   verifyDeliveryOtp(
     @Body() dto: VerifyDeliveryOtpDto,

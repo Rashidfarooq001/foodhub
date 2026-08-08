@@ -53,7 +53,7 @@ export class OtpService {
     if (!isDevOrTest) {
       this.logger.log(`[MSG91 Gateway] Sent SMS OTP to ${phone}`);
     } else {
-      this.logger.log(`[Dev SMS Suppressed] Generated OTP for ${phone}: ${rawOtp}`);
+      this.logger.log(`[Dev SMS Suppressed] Generated OTP for ${phone}`);
     }
 
     return {
@@ -94,10 +94,13 @@ export class OtpService {
     const authKey = process.env.MSG91_AUTH_KEY;
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
+    this.logger.log(`[Backend MSG91] verifyAccessToken request received. Token present: ${!!accessToken}, Length: ${accessToken?.length}`);
+
     let msg91Data: any;
 
     // Dev/Test Mode fallback for local testing
     if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken.startsWith('dev_')) {
+      this.logger.log('[Backend MSG91] Bypassing MSG91 API in local test mode for dev_ token');
       const devPhone = accessToken.replace('dev_widget_token_', '').replace('dev_', '');
       const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
       msg91Data = {
@@ -107,6 +110,7 @@ export class OtpService {
       };
     } else {
       try {
+        this.logger.log('[Backend MSG91] Calling https://control.msg91.com/api/v5/widget/verifyAccessToken...');
         const response = await fetch(
           'https://control.msg91.com/api/v5/widget/verifyAccessToken',
           {
@@ -122,16 +126,21 @@ export class OtpService {
           },
         );
 
+        this.logger.log(`[Backend MSG91] MSG91 endpoint response HTTP status: ${response.status}`);
         msg91Data = await response.json();
+        this.logger.log(`[Backend MSG91] Response fields from MSG91: ${Object.keys(msg91Data || {}).join(', ')}`);
+        this.logger.log(`[Backend MSG91] MSG91 type/status: type="${msg91Data?.type || 'none'}", status="${msg91Data?.status || 'none'}"`);
 
         if (!response.ok || msg91Data.type === 'error' || msg91Data.status === 'error') {
-          throw new UnauthorizedException(msg91Data.message || 'OTP verification failed');
+          const msg = msg91Data.message || msg91Data.error || 'OTP verification failed';
+          this.logger.error(`[Backend MSG91] Verification rejected by MSG91: ${msg}`);
+          throw new UnauthorizedException(msg);
         }
       } catch (error: any) {
         if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
           throw error;
         }
-        this.logger.error(`MSG91 Widget Verification Failed: ${error?.message || error}`);
+        this.logger.error(`[Backend MSG91] Exception calling verifyAccessToken: ${error?.message || error}`);
         throw new UnauthorizedException(error?.message || 'MSG91 OTP widget token verification failed.');
       }
     }
@@ -144,8 +153,11 @@ export class OtpService {
       msg91Data?.mobileNumber ||
       msg91Data?.phone;
 
+    this.logger.log(`[Backend MSG91] Extracted mobile field present: ${!!rawMobile}`);
+
     let phoneToVerify = String(rawMobile || '').trim();
     if (!phoneToVerify) {
+      this.logger.error('[Backend MSG91] Mobile field missing in MSG91 payload response!');
       throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
     }
 
@@ -159,14 +171,16 @@ export class OtpService {
 
     let user = await this.usersService.findUserByPhone(phoneToVerify);
     if (!user) {
-      // Auto-register Customer upon first successful MSG91 Widget verification
+      this.logger.log(`[Backend MSG91] User not found for phone. Auto-creating customer record...`);
       const dummyPassword = await bcrypt.hash(`Customer@${Date.now()}`, 12);
       user = await this.usersService.createUser(phoneToVerify, dummyPassword, UserRole.CUSTOMER);
     }
 
+    this.logger.log(`[Backend MSG91] User found/created with ID: ${user.id}. Creating session & generating tokens...`);
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(user, session.id);
 
+    this.logger.log(`[Backend MSG91] Verification & session creation completed successfully.`);
     return {
       user: {
         id: user.id,

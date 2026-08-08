@@ -35,10 +35,13 @@ export default function LoginPage() {
     if (typeof window === 'undefined') return;
     if (document.getElementById('msg91-verify-script')) return;
 
+    console.log('[Frontend MSG91] Loading https://verify.msg91.com/otp-provider.js...');
     const script = document.createElement('script');
     script.id = 'msg91-verify-script';
     script.src = 'https://verify.msg91.com/otp-provider.js';
     script.async = true;
+    script.onload = () => console.log('[Frontend MSG91] Script loaded successfully.');
+    script.onerror = (e) => console.error('[Frontend MSG91] Script load error:', e);
     document.body.appendChild(script);
   }, []);
 
@@ -53,16 +56,20 @@ export default function LoginPage() {
   const handleWidgetSuccess = async (accessToken: string) => {
     setError('');
     setIsLoading(true);
+    console.log('[Frontend MSG91] Sending POST /otp/widget/verify to backend...');
+    console.log('[Frontend MSG91] Access token present:', !!accessToken);
 
     try {
-      // Send access token to FoodHub backend /otp/widget/verify endpoint
       const res = await fetch(`${API_BASE}/otp/widget/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken }),
       });
 
+      console.log('[Frontend MSG91] Backend /otp/widget/verify HTTP status:', res.status);
       const data = await res.json().catch(() => ({}));
+      console.log('[Frontend MSG91] Backend response fields:', Object.keys(data || {}));
+
       if (!res.ok) {
         throw new Error(data.message || 'MSG91 Custom UI authentication failed');
       }
@@ -86,8 +93,10 @@ export default function LoginPage() {
         data.tokens.refreshToken || data.tokens.accessToken,
       );
 
+      console.log('[Frontend MSG91] Customer authenticated successfully. Redirecting to home.');
       router.push('/');
     } catch (err: any) {
+      console.error('[Frontend MSG91] Backend verification exception:', err?.message || err);
       setError(err.message || 'Widget verification failed.');
     } finally {
       setIsLoading(false);
@@ -108,6 +117,8 @@ export default function LoginPage() {
     const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
     const identifier = formatIdentifier(phone);
 
+    console.log('[Frontend MSG91] Dispatching sendOtp for identifier formatted (masked length):', identifier.length);
+
     // MSG91 Custom UI Configuration with exposeMethods: true
     const configuration = {
       widgetId,
@@ -116,14 +127,20 @@ export default function LoginPage() {
       exposeMethods: true,
       captchaRenderId: '',
       success: (data: any) => {
-        console.log('MSG91 Custom UI Success response:', data);
+        console.log('[Frontend MSG91] verifyOtp SUCCESS callback triggered.');
+        console.log('[Frontend MSG91] Success response keys:', Object.keys(data || {}));
         const token = typeof data === 'string' ? data : (data?.message || data?.jwtToken || data?.accessToken || data?.token);
+        console.log('[Frontend MSG91] Verified access token present:', !!token);
         if (token) {
           handleWidgetSuccess(token);
+        } else {
+          console.error('[Frontend MSG91] No access token string in success response structure!');
+          setError('Verification succeeded on MSG91, but token was missing.');
+          setIsLoading(false);
         }
       },
       failure: (error: any) => {
-        console.error('MSG91 Custom UI Failure reason:', error);
+        console.error('[Frontend MSG91] verifyOtp FAILURE callback triggered:', typeof error === 'object' ? Object.keys(error || {}) : error);
         setError(typeof error === 'string' ? error : (error?.message || 'OTP verification failed'));
         setIsLoading(false);
       },
@@ -131,25 +148,30 @@ export default function LoginPage() {
 
     if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
       try {
-        // Initialize MSG91 Custom UI with exposeMethods: true (no default popup)
+        console.log('[Frontend MSG91] Initializing initSendOTP with exposeMethods: true...');
         (window as any).initSendOTP(configuration);
 
-        // If sendOtp method is exposed on window by MSG91 Custom UI
         if (typeof (window as any).sendOtp === 'function') {
-          (window as any).sendOtp(identifier);
+          console.log('[Frontend MSG91] Calling window.sendOtp...');
+          (window as any).sendOtp(identifier, (res: any) => {
+            console.log('[Frontend MSG91] window.sendOtp success callback keys:', Object.keys(res || {}));
+          }, (err: any) => {
+            console.error('[Frontend MSG91] window.sendOtp failure callback:', err);
+          });
         }
 
         setStep('OTP');
         setCooldown(30);
         setIsLoading(false);
         return;
-      } catch (widgetErr) {
-        console.warn('MSG91 Custom UI initialization notice:', widgetErr);
+      } catch (widgetErr: any) {
+        console.warn('[Frontend MSG91] initSendOTP exception:', widgetErr?.message || widgetErr);
       }
     }
 
     // Dev mode / fallback flow
     try {
+      console.log('[Frontend MSG91] Fallback: Calling POST /auth/send-otp...');
       const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,18 +202,26 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    console.log('[Frontend MSG91] Submitting OTP for verification (OTP length):', enteredOtp.length);
+
     // If MSG91 Custom UI verifyOtp method is exposed on window
     if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
       try {
-        (window as any).verifyOtp(enteredOtp);
+        console.log('[Frontend MSG91] Calling window.verifyOtp...');
+        (window as any).verifyOtp(enteredOtp, (res: any) => {
+          console.log('[Frontend MSG91] window.verifyOtp callback keys:', Object.keys(res || {}));
+        }, (err: any) => {
+          console.error('[Frontend MSG91] window.verifyOtp callback failure:', err);
+        });
         return;
-      } catch (verifyErr) {
-        console.warn('MSG91 verifyOtp method notice, using API fallback:', verifyErr);
+      } catch (verifyErr: any) {
+        console.warn('[Frontend MSG91] Exception calling window.verifyOtp:', verifyErr?.message || verifyErr);
       }
     }
 
     // Dev mode / fallback API verification
     try {
+      console.log('[Frontend MSG91] Fallback: Calling POST /auth/verify-otp...');
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
