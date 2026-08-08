@@ -56,17 +56,18 @@ export default function LoginPage() {
   const handleWidgetSuccess = async (accessToken: string) => {
     setError('');
     setIsLoading(true);
-    console.log('[Frontend MSG91] Sending POST /otp/widget/verify to backend...');
+    console.log('[Frontend MSG91] Sending POST /auth/verify-otp to backend...');
     console.log('[Frontend MSG91] Access token present:', !!accessToken);
 
     try {
-      const res = await fetch(`${API_BASE}/otp/widget/verify`, {
+      // Reusing official backend endpoint POST /api/v1/auth/verify-otp
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken }),
       });
 
-      console.log('[Frontend MSG91] Backend /otp/widget/verify HTTP status:', res.status);
+      console.log('[Frontend MSG91] Backend /auth/verify-otp HTTP status:', res.status);
       const data = await res.json().catch(() => ({}));
       console.log('[Frontend MSG91] Backend response fields:', Object.keys(data || {}));
 
