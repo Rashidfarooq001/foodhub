@@ -14,7 +14,7 @@ export class RestaurantsService {
 
   async createRestaurant(dto: CreateRestaurantDto) {
     const rawPassword = dto.password || 'RestaurantPass123!';
-    const passwordHash = await bcrypt.hash(rawPassword, 10);
+    const passwordHash = await bcrypt.hash(rawPassword, 12);
     const phone =
       dto.phone ||
       `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
@@ -26,11 +26,12 @@ export class RestaurantsService {
       let ownerId = dto.ownerId;
 
       if (ownerId) {
-        // Update existing user role to RESTAURANT_OWNER
+        // Update existing user role to RESTAURANT_OWNER and update passwordHash
         await tx.user.update({
           where: { id: ownerId },
           data: {
             role: UserRole.RESTAURANT_OWNER,
+            ...(dto.password ? { passwordHash } : {}),
             isVerified: true,
             isActive: true,
           },
@@ -48,6 +49,7 @@ export class RestaurantsService {
             where: { id: existingUser.id },
             data: {
               role: UserRole.RESTAURANT_OWNER,
+              ...(dto.password ? { passwordHash } : {}),
               isVerified: true,
               isActive: true,
             },
@@ -73,6 +75,7 @@ export class RestaurantsService {
           ownerId = newUser.id;
         }
       }
+
 
       const slug =
         dto.name

@@ -506,7 +506,20 @@ export class AuthService {
           'An account with this phone number already exists. Please use the correct login portal.',
         );
       }
+      if (normalizedTarget === 'HOTEL') {
+        const allowedHotelRoles: string[] = [
+          UserRole.RESTAURANT_OWNER,
+          UserRole.RESTAURANT_MANAGER,
+          UserRole.RESTAURANT_STAFF,
+        ];
+        if (!allowedHotelRoles.includes(user.role)) {
+          throw new UnauthorizedException(
+            'Access denied. Your account is not authorized for the Merchant Partner Portal.',
+          );
+        }
+      }
     }
+
 
     let restaurant: any = null;
     if (

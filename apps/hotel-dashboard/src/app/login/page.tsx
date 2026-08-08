@@ -174,8 +174,8 @@ export default function HotelLoginPage() {
     setError('');
 
     const payload = identity.includes('@')
-      ? { email: identity.trim(), password }
-      : { phone: identity.trim(), password };
+      ? { email: identity.trim(), password, targetRole: 'HOTEL' }
+      : { phone: identity.trim(), password, targetRole: 'HOTEL' };
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
@@ -183,6 +183,7 @@ export default function HotelLoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
 
       if (res.ok) {
         const data = await res.json();
