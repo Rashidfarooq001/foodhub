@@ -128,13 +128,13 @@ export default function LiveOrderTrackingPage() {
 
 
   const deliveryAddress = order.deliveryAddress || {};
-  const restaurantLat = order.restaurant?.latitude || 12.9716;
-  const restaurantLng = order.restaurant?.longitude || 77.5946;
-  const customerLat = deliveryAddress.latitude || 12.9780;
-  const customerLng = deliveryAddress.longitude || 77.6400;
+  const restaurantLat = order.restaurant?.latitude ? Number(order.restaurant.latitude) : 0;
+  const restaurantLng = order.restaurant?.longitude ? Number(order.restaurant.longitude) : 0;
+  const customerLat = deliveryAddress.latitude ? Number(deliveryAddress.latitude) : 0;
+  const customerLng = deliveryAddress.longitude ? Number(deliveryAddress.longitude) : 0;
 
-  const currentDriverLat = driverLoc?.lat || restaurantLat + 0.003;
-  const currentDriverLng = driverLoc?.lng || restaurantLng + 0.003;
+  const currentDriverLat = driverLoc?.lat || (restaurantLat !== 0 ? restaurantLat + 0.003 : customerLat);
+  const currentDriverLng = driverLoc?.lng || (restaurantLng !== 0 ? restaurantLng + 0.003 : customerLng);
 
   const distKm = Math.sqrt(
     Math.pow((customerLat - currentDriverLat) * 111, 2) +

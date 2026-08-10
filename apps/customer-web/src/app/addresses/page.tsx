@@ -23,11 +23,11 @@ export default function AddressesPage() {
   const [label, setLabel] = useState('Home');
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
-  const [city, setCity] = useState('Bengaluru');
-  const [state, setState] = useState('Karnataka');
-  const [postalCode, setPostalCode] = useState('560038');
-  const [latitude, setLatitude] = useState(12.9780);
-  const [longitude, setLongitude] = useState(77.6400);
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [latitude, setLatitude] = useState(0);
+  const [longitude, setLongitude] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAddresses = async () => {

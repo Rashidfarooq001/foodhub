@@ -15,6 +15,7 @@ import {
   Sparkles,
   AlertCircle,
   Eye,
+  Star,
 } from 'lucide-react';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { useAuthStore } from '../../stores/use-auth-store';
@@ -294,19 +295,28 @@ export default function OrderHistoryPage() {
                     </Link>
 
                     <div className="flex items-center gap-2">
+                      {ord.status === 'DELIVERED' && (
+                        <Link
+                          href={`/orders/${ord.id}`}
+                          className="flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition shadow-xs"
+                        >
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-500" /> Rate Restaurant
+                        </Link>
+                      )}
+
                       {ord.status !== 'DELIVERED' && ord.status !== 'CANCELLED' && (
                         <Link
                           href={`/orders/${ord.id}/track`}
                           className="flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 transition"
                         >
-                          <ArrowRight className="h-4 w-4" /> Track Live
+                          Track Order <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       )}
 
-                      {ord.status === 'DELIVERED' && (
+                      {(ord.status === 'DELIVERED' || ord.status === 'CANCELLED') && (
                         <button
                           onClick={() => handleReorder(ord.id)}
-                          className="flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-bold text-orange-600 hover:bg-orange-100 transition"
+                          className="flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 transition"
                         >
                           <RotateCcw className="h-3.5 w-3.5" /> Reorder
                         </button>

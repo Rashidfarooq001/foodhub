@@ -88,14 +88,20 @@ export class ReviewsService {
       where:  { restaurantId, isHidden: false },
       select: { rating: true },
     });
-    if (reviews.length === 0) return;
+    if (reviews.length === 0) {
+      await this.prisma.restaurant.update({
+        where: { id: restaurantId },
+        data: { avgRating: 0.0 },
+      });
+      return;
+    }
 
-    const avgRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-    const weighted  = wilsonScore(avgRating, reviews.length);
+    const mean = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+    const roundedAvg = Math.round(mean * 10) / 10;
 
     await this.prisma.restaurant.update({
       where: { id: restaurantId },
-      data:  { avgRating: Math.min(weighted, 5.0) },
+      data:  { avgRating: Math.min(roundedAvg, 5.0) },
     });
   }
 
@@ -171,7 +177,18 @@ export class ReviewsService {
     const [reviews, total] = await this.prisma.$transaction([
       this.prisma.restaurantReview.findMany({
         where:   { restaurantId, isHidden: false },
-        include: { images: true, votes: true, replies: true },
+        include: {
+          images: true,
+          votes: true,
+          replies: true,
+          customer: {
+            include: {
+              user: {
+                include: { profile: true },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take:    limit,

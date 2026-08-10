@@ -21,8 +21,8 @@ interface AddressPickerMapProps {
 
 export default function AddressPickerMap({
   onAddressSelected,
-  initialLat = 12.9716,
-  initialLng = 77.5946,
+  initialLat = 0,
+  initialLng = 0,
 }: AddressPickerMapProps) {
   const mapRef      = useRef<any>(null);
   const markerRef   = useRef<any>(null);

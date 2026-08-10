@@ -38,9 +38,15 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
 
         {/* Rating Badge */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 px-2.5 py-1 text-xs font-bold text-gray-900 shadow-md backdrop-blur-md">
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
-          <span>{restaurant.avgRating}</span>
-          <span className="text-gray-400">({restaurant.ratingCount})</span>
+          {restaurant.avgRating && restaurant.avgRating > 0 ? (
+            <>
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+              <span>{restaurant.avgRating}</span>
+              <span className="text-gray-400 text-[10px]">({restaurant.ratingCount || 0})</span>
+            </>
+          ) : (
+            <span className="text-[11px] text-gray-500 font-semibold">No reviews yet</span>
+          )}
         </div>
       </div>
 

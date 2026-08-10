@@ -58,6 +58,7 @@ export interface RestaurantData {
   avgRating: number;
   ratingCount: number;
   deliveryTimeMins: number;
+  deliveryRadius?: number;
   distanceKm: number;
   priceForTwo: number;
   bannerUrl: string;
@@ -176,25 +177,29 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
     cuisines = r.cuisine.split(',').map((c: string) => c.trim()).filter(Boolean);
   }
 
+  const avgRatingVal = r.avgRating ? safeNumber(r.avgRating) : 0;
+  const ratingCountVal = r.ratingCount ? safeNumber(r.ratingCount) : (r._count?.reviews || (Array.isArray(r.reviews) ? r.reviews.length : 0));
+
   return {
     id: String(r.id || `rest-${Math.random()}`),
     slug: String(r.slug || r.id || 'restaurant'),
     name: String(r.name || 'Unnamed Restaurant'),
     phone: String(r.phone || ''),
-    address: String(r.addressLine || r.address || 'Bengaluru, India'),
+    address: String(r.addressLine || r.address || ''),
     cuisines,
-    avgRating: safeNumber(r.avgRating, 4.5),
-    ratingCount: r.ratingCount ? safeNumber(r.ratingCount) : 120,
+    avgRating: avgRatingVal,
+    ratingCount: ratingCountVal,
     deliveryTimeMins: r.deliveryTimeMins ? safeNumber(r.deliveryTimeMins) : 30,
-    distanceKm: r.distanceKm ? safeNumber(r.distanceKm) : 2.5,
+    deliveryRadius: r.deliveryRadius ? safeNumber(r.deliveryRadius) : 15.0,
+    distanceKm: r.distanceKm ? safeNumber(r.distanceKm) : 0,
     priceForTwo: r.priceForTwo ? safeNumber(r.priceForTwo) : 350,
     bannerUrl: r.bannerUrl ? getImageUrl(r.bannerUrl) : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     logoUrl: r.logoUrl ? getImageUrl(r.logoUrl) : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
     isOpen: r.isOpen ?? true,
-    fssaiLicense: r.licenseFssai || r.fssaiLicense || 'FSSAI-12345678901234',
-    discountBadge: r.discountBadge || '20% OFF',
-    latitude: r.latitude ? safeNumber(r.latitude) : 12.9716,
-    longitude: r.longitude ? safeNumber(r.longitude) : 77.5946,
+    fssaiLicense: r.licenseFssai || r.fssaiLicense || '',
+    discountBadge: r.discountBadge || '',
+    latitude: r.latitude ? safeNumber(r.latitude) : 0,
+    longitude: r.longitude ? safeNumber(r.longitude) : 0,
     foodItems,
   };
 }

@@ -17,6 +17,7 @@ export default function RestaurantDetailPage() {
   const slug = params.slug as string;
 
   const [restaurant, setRestaurant] = useState<RestaurantData | null>(null);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [menuSearch, setMenuSearch] = useState('');
@@ -32,7 +33,21 @@ export default function RestaurantDetailPage() {
           setNotFound(true);
         } else if (res.ok) {
           const data = await res.json();
-          setRestaurant(normalizeRestaurantData(data));
+          const normalized = normalizeRestaurantData(data);
+          setRestaurant(normalized);
+
+          // Fetch real customer reviews for this restaurant
+          if (data?.id) {
+            try {
+              const revRes = await fetch(`${API_BASE}/reviews/restaurant/${data.id}`);
+              if (revRes.ok) {
+                const revData = await revRes.json();
+                setReviewsList(revData.reviews || []);
+              }
+            } catch {
+              /* ignore reviews fetch error */
+            }
+          }
         }
       } catch {
         setNotFound(true);
@@ -116,27 +131,43 @@ export default function RestaurantDetailPage() {
             {/* Rating Box */}
             <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md border border-white/10">
               <div>
-                <div className="flex items-center gap-1 text-base font-black text-amber-400">
-                  <Star className="h-5 w-5 fill-amber-400" />
-                  <span>{restaurant.avgRating}</span>
-                </div>
-                <p className="text-[10px] text-gray-300">{restaurant.ratingCount}+ ratings</p>
+                {restaurant.avgRating && restaurant.avgRating > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1 text-base font-black text-amber-400">
+                      <Star className="h-5 w-5 fill-amber-400" />
+                      <span>{restaurant.avgRating}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-300">{restaurant.ratingCount || 0} reviews</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1 text-xs font-bold text-gray-300">
+                      <Star className="h-4 w-4 text-gray-400" />
+                      <span>No reviews yet</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400">Be the first to review!</p>
+                  </>
+                )}
               </div>
               <div className="h-8 w-px bg-white/20" />
               <div>
                 <div className="flex items-center gap-1 text-base font-black text-white">
                   <Clock className="h-5 w-5 text-orange-400" />
-                  <span>{restaurant.deliveryTimeMins}m</span>
+                  <span>{restaurant.deliveryTimeMins || 30}m</span>
                 </div>
-                <p className="text-[10px] text-gray-300">{restaurant.distanceKm} km</p>
+                <p className="text-[10px] text-gray-300">
+                  Radius: {restaurant.deliveryRadius ? `${restaurant.deliveryRadius} km` : '15 km'}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-gray-400">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>FSSAI License No: {restaurant.fssaiLicense}</span>
-          </div>
+          {restaurant.fssaiLicense && (
+            <div className="flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-gray-400">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              <span>FSSAI License No: {restaurant.fssaiLicense}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -176,6 +207,65 @@ export default function RestaurantDetailPage() {
           ))}
         </div>
       )}
+
+      {/* Customer Reviews Section */}
+      <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div>
+            <h3 className="text-xl font-black text-gray-900">Customer Ratings &amp; Reviews</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Real verified customer reviews for {restaurant.name}</p>
+          </div>
+          {restaurant.avgRating && restaurant.avgRating > 0 ? (
+            <div className="flex items-center gap-1.5 rounded-2xl bg-amber-50 border border-amber-200 px-3.5 py-1.5 font-black text-amber-700 text-sm">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+              <span>{restaurant.avgRating} / 5.0</span>
+            </div>
+          ) : (
+            <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+              No reviews yet
+            </span>
+          )}
+        </div>
+
+        {reviewsList.length === 0 ? (
+          <div className="py-8 text-center text-xs font-bold text-gray-400 space-y-1">
+            <p>No customer reviews submitted yet.</p>
+            <p className="text-[11px] text-gray-400 font-normal">Order from this kitchen and share your feedback after delivery!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 space-y-4">
+            {reviewsList.map((rev) => {
+              const reviewerName = rev.isAnonymous
+                ? 'Anonymous Customer'
+                : rev.customer?.user?.profile?.firstName
+                ? `${rev.customer.user.profile.firstName} ${rev.customer.user.profile.lastName?.[0] || ''}.`
+                : 'Verified Customer';
+
+              return (
+                <div key={rev.id} className="pt-4 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-900">{reviewerName}</span>
+                    <div className="flex items-center gap-0.5 text-amber-400">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-400' : 'text-gray-200'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {rev.comment && <p className="text-gray-700 font-medium">{rev.comment}</p>}
+
+                  <p className="text-[10px] text-gray-400">
+                    {new Date(rev.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Food Customization Modal */}
       {selectedFoodForCustomization && (
