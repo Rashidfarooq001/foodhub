@@ -54,10 +54,9 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       return;
     }
 
-    // Set immediate client-side preview URL
+    // Set immediate client-side preview URL for visual feedback
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
-    onChange(localPreview);
 
     setIsUploading(true);
 
@@ -72,14 +71,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        // Update parent form with permanent backend URL
+        setPreviewUrl(data.url);
         onChange(data.url);
       } else {
         const errData = await res.json().catch(() => ({}));
         setError(errData.message || 'File upload failed. Please try again.');
+        setPreviewUrl(null);
       }
     } catch {
       setError('Network error uploading file. Ensure backend is running.');
+      setPreviewUrl(null);
     } finally {
       setIsUploading(false);
     }

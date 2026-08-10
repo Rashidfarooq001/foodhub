@@ -6,6 +6,7 @@ import { useAdminStore } from '../../stores/use-admin-store';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { useRouter } from 'next/navigation';
 import { getImageUrl } from '@foodhub/config';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 
 interface AdminHeaderProps {
@@ -63,9 +64,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
           </span>
         </button>
 
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+        <ThemeToggle />
+
+        <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0">
           <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-purple-600 ring-2 ring-white" />
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-purple-600 ring-2 ring-white dark:ring-gray-900" />
         </button>
 
         {/* SuperAdmin Profile & Logout */}

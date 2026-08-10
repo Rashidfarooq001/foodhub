@@ -34,6 +34,7 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   });
 
   const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<string | null>(
     user?.applicationStatus || null,
   );
@@ -43,6 +44,15 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    if (useHotelAuthStore.persist?.hasHydrated()) {
+      setHydrated(true);
+    }
+    const unsub = useHotelAuthStore.persist?.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   // Hydrate latest Hotel profile (incl. avatarUrl) from database on mount / auth restore
@@ -107,7 +117,7 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user, accessToken, mounted, pathname, isPublicRoute]);
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
-  if (!mounted) {
+  if (!mounted || !hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />

@@ -5,6 +5,7 @@ import { useDutyStore, DutyStatus } from '../../stores/use-duty-store';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { Bell, Wallet, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 interface DeliveryHeaderProps {
   onOpenMobileMenu?: () => void;
@@ -66,9 +67,11 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
           <span>Wallet</span>
         </div>
 
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+        <ThemeToggle />
+
+        <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0">
           <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white" />
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-900" />
         </button>
 
         {/* Profile & Logout */}

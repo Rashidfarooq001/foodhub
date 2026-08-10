@@ -31,9 +31,19 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   });
 
   const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (useAdminAuthStore.persist?.hasHydrated()) {
+      setHydrated(true);
+    }
+    const unsub = useAdminAuthStore.persist?.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   // Hydrate latest Admin profile from database on mount / auth restore
@@ -78,7 +88,7 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   }
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
-  if (!mounted) {
+  if (!mounted || !hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
