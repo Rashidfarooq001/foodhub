@@ -67,13 +67,14 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
+  const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
   const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname?.startsWith(route),
+    (route) => currentPath === route || currentPath.startsWith(route),
   );
 
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Sidebar / Header
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Sidebar / Header / Loading Shell
   if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col">{children}</main>;
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
   }
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)

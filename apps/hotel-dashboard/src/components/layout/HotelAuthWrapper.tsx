@@ -68,9 +68,15 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     return () => { alive = false; };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
+  const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
   const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname?.startsWith(route),
+    (route) => currentPath === route || currentPath.startsWith(route),
   );
+
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout / Sidebar / Header / Loading Shell
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
+  }
 
   // Fetch latest restaurant approval status when user is authenticated on protected route
   useEffect(() => {
@@ -99,11 +105,6 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
       isMounted = false;
     };
   }, [isAuthenticated, user, accessToken, mounted, pathname, isPublicRoute]);
-
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout / Sidebar / Header
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col">{children}</main>;
-  }
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted) {

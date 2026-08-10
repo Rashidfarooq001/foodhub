@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-gray-50/50">
-      <body className={`${inter.className} flex min-h-full font-sans antialiased text-gray-900`}>
+    <html lang="en" className="h-full bg-gray-950">
+      <body className={`${inter.className} flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 bg-gray-950`}>
         <AdminAuthWrapper>{children}</AdminAuthWrapper>
       </body>
     </html>
