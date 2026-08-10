@@ -122,6 +122,18 @@ async function bootstrap() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_restaurant_driver_id') THEN
               ALTER TABLE "orders" ADD COLUMN "assigned_restaurant_driver_id" UUID;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_dob_hash') THEN
+              ALTER TABLE "users" ADD COLUMN "admin_dob_hash" TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_favorite_person_hash') THEN
+              ALTER TABLE "users" ADD COLUMN "admin_favorite_person_hash" TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_recovery_token') THEN
+              ALTER TABLE "users" ADD COLUMN "admin_recovery_token" TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_recovery_expires_at') THEN
+              ALTER TABLE "users" ADD COLUMN "admin_recovery_expires_at" TIMESTAMP(3);
+          END IF;
       END $$;
     `);
     console.log('✅ Production Neon DB schema verified & updated successfully.');

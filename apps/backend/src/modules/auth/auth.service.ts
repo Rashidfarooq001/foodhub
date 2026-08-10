@@ -1084,4 +1084,146 @@ export class AuthService {
 
     return { message: 'Admin passwords updated successfully' };
   }
+
+  // Rate-limiting memory store for admin recovery attempts (IP -> { count, resetTime })
+  private recoveryAttemptsMap = new Map<string, { count: number; resetTime: number }>();
+
+  async verifyAdminSecurityQuestions(
+    dto: { dob: string; favoritePerson: string },
+    ipAddress?: string,
+  ) {
+    const ipKey = ipAddress || 'global_ip';
+    const now = Date.now();
+    const attemptInfo = this.recoveryAttemptsMap.get(ipKey);
+
+    if (attemptInfo && now < attemptInfo.resetTime) {
+      if (attemptInfo.count >= 5) {
+        this.logger.warn(`[Admin Security Questions] Rate limit exceeded for IP=${ipKey}`);
+        throw new BadRequestException('Too many failed recovery attempts. Please try again in 15 minutes.');
+      }
+    } else {
+      this.recoveryAttemptsMap.set(ipKey, { count: 0, resetTime: now + 15 * 60 * 1000 });
+    }
+
+    const cleanDob = (dto.dob || '').trim();
+    const cleanPerson = (dto.favoritePerson || '').trim().toLowerCase();
+
+    if (!cleanDob || !cleanPerson) {
+      throw new BadRequestException('Both Date of Birth and Favorite Person are required.');
+    }
+
+    let adminUser = await (this.usersService as any).prisma.user.findFirst({
+      where: {
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+        isActive: true,
+      },
+    });
+
+    if (!adminUser) {
+      throw new UnauthorizedException('Unable to verify the recovery information.');
+    }
+
+    // Auto-provision initial security question hashes if null
+    if (!adminUser.adminDobHash || !adminUser.adminFavoritePersonHash) {
+      const defaultDobHash = await bcrypt.hash('2005-01-01', 10);
+      const defaultPersonHash = await bcrypt.hash('reshi', 10);
+
+      adminUser = await (this.usersService as any).prisma.user.update({
+        where: { id: adminUser.id },
+        data: {
+          adminDobHash: defaultDobHash,
+          adminFavoritePersonHash: defaultPersonHash,
+        },
+      });
+    }
+
+    const isDobValid = await bcrypt.compare(cleanDob, adminUser.adminDobHash);
+    const isPersonValid = await bcrypt.compare(cleanPerson, adminUser.adminFavoritePersonHash);
+
+    if (!isDobValid || !isPersonValid) {
+      const current = this.recoveryAttemptsMap.get(ipKey) || { count: 0, resetTime: now + 15 * 60 * 1000 };
+      this.recoveryAttemptsMap.set(ipKey, { ...current, count: current.count + 1 });
+      this.logger.warn(
+        `[Admin Security Questions] Recovery verification failed: dobValid=${isDobValid}, personValid=${isPersonValid}`,
+      );
+      throw new UnauthorizedException('Unable to verify the recovery information.');
+    }
+
+    // Clear failed attempts counter on success
+    this.recoveryAttemptsMap.delete(ipKey);
+
+    // Create short-lived single-use recovery token (valid for 10 minutes)
+    const resetToken = `admin_reset_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await (this.usersService as any).prisma.user.update({
+      where: { id: adminUser.id },
+      data: {
+        adminRecoveryToken: resetToken,
+        adminRecoveryExpiresAt: expiresAt,
+      },
+    });
+
+    this.logger.log(`[Admin Security Questions] Verification passed for Admin ID=${adminUser.id}. Issued resetToken.`);
+    return {
+      success: true,
+      resetToken,
+      message: 'Security information verified. Proceed to password reset.',
+    };
+  }
+
+  async resetAdminPasswordWithToken(dto: {
+    resetToken: string;
+    newPassword1: string;
+    newPassword2: string;
+  }) {
+    const p1 = (dto.newPassword1 || '').trim();
+    const p2 = (dto.newPassword2 || '').trim();
+
+    if (!/^\d{16}$/.test(p1)) {
+      throw new BadRequestException('Password 1 must be exactly 16 numeric digits.');
+    }
+    if (!/^\d{8}$/.test(p2)) {
+      throw new BadRequestException('Password 2 must be exactly 8 numeric digits.');
+    }
+
+    const adminUser = await (this.usersService as any).prisma.user.findFirst({
+      where: {
+        adminRecoveryToken: dto.resetToken,
+        adminRecoveryExpiresAt: { gt: new Date() },
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+        isActive: true,
+      },
+    });
+
+    if (!adminUser) {
+      throw new BadRequestException('Invalid or expired password reset token.');
+    }
+
+    const p1Hash = await bcrypt.hash(p1, 10);
+    const p2Hash = await bcrypt.hash(p2, 10);
+    const singleHash = await bcrypt.hash(p1, 10);
+
+    // Single-use token invalidation & password update
+    await (this.usersService as any).prisma.user.update({
+      where: { id: adminUser.id },
+      data: {
+        password1Hash: p1Hash,
+        password2Hash: p2Hash,
+        passwordHash: singleHash,
+        adminRecoveryToken: null,
+        adminRecoveryExpiresAt: null,
+      },
+    });
+
+    // Invalidate all active Admin sessions & tokens
+    await this.tokenService.revokeAllUserTokens(adminUser.id);
+    await this.sessionService.terminateAllUserSessions(adminUser.id);
+
+    this.logger.log(`[Admin Password Reset] Password updated and active sessions revoked for Admin ID=${adminUser.id}.`);
+    return {
+      success: true,
+      message: 'Admin password reset successfully. Please log in with your new credentials.',
+    };
+  }
 }

@@ -26,7 +26,11 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AdminTwoPasswordLoginDto } from './dto/admin-login.dto';
+import {
+  AdminTwoPasswordLoginDto,
+  AdminVerifySecurityQuestionsDto,
+  AdminResetPasswordDto,
+} from './dto/admin-login.dto';
 import { AdminChangePasswordsDto } from './dto/admin-change-passwords.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -134,15 +138,28 @@ export class AuthController {
     return this.authService.adminTwoPasswordLogin(dto, ip, ua);
   }
 
-  @Patch('admin/change-passwords')
+  @Public()
+  @Post('admin/verify-security-questions')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update Admin Password 1 (16 digits) or Password 2 (8 digits)' })
-  async changeAdminPasswords(
-    @CurrentUser('id') userId: string,
-    @Body() dto: AdminChangePasswordsDto,
+  @ApiOperation({ summary: 'Verify Admin Security Questions (Date of Birth + Favorite Person)' })
+  @ApiResponse({ status: 200, description: 'Security questions verified, returns short-lived reset token' })
+  @ApiResponse({ status: 401, description: 'Unable to verify the recovery information' })
+  async verifyAdminSecurityQuestions(
+    @Body() dto: AdminVerifySecurityQuestionsDto,
+    @Req() req: Request,
   ) {
-    return this.authService.changeAdminPasswords(userId, dto);
+    const ip = req.ip || req.socket.remoteAddress;
+    return this.authService.verifyAdminSecurityQuestions(dto, ip);
+  }
+
+  @Public()
+  @Post('admin/reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset Admin Passwords using single-use recovery token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async resetAdminPasswordWithToken(@Body() dto: AdminResetPasswordDto) {
+    return this.authService.resetAdminPasswordWithToken(dto);
   }
 
   @Public()
