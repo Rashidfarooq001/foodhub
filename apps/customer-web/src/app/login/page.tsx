@@ -107,21 +107,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="grid grid-cols-2 rounded-2xl bg-gray-100 p-1 text-xs font-bold">
-          <button
-            type="button"
-            className="rounded-xl bg-white py-2.5 text-orange-600 shadow"
-          >
-            Customer Login
-          </button>
-          <Link
-            href="/signup"
-            className="rounded-xl py-2.5 text-center text-gray-500 hover:text-gray-900 transition"
-          >
-            New Customer Sign Up
-          </Link>
-        </div>
+
 
         {/* Session Expired Banner */}
         {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
