@@ -57,6 +57,11 @@ export class RestaurantsService {
         });
 
         if (existingUser) {
+          if (existingUser.role === UserRole.ADMIN || existingUser.role === UserRole.SUPER_ADMIN) {
+            throw new BadRequestException(
+              'An Administrator account with this phone/email already exists and cannot be assigned as a restaurant owner.',
+            );
+          }
           ownerId = existingUser.id;
           await tx.user.update({
             where: { id: existingUser.id },
