@@ -142,6 +142,17 @@ export class AuthService {
     const user = await this.usersService.findUserByPhone(formattedPhone);
 
     if (!user) {
+      // Check if a rejected record exists
+      const rejected = await (this.usersService as any).prisma.rejectedRestaurantRecord.findFirst({
+        where: {
+          OR: [
+            { restaurantName: { contains: cleanDigits } },
+          ],
+        },
+      });
+      if (rejected) {
+        throw new UnauthorizedException('Your restaurant registration has not been approved.');
+      }
       throw new UnauthorizedException(
         'No authorized hotel account found for this phone number. Please complete restaurant registration first.',
       );
@@ -188,7 +199,7 @@ export class AuthService {
 
     if (restaurantStatus === 'REJECTED') {
       throw new UnauthorizedException(
-        'Your restaurant application has been rejected by FoodHub admin. Please contact support.',
+        'Your restaurant registration has not been approved.',
       );
     }
 
@@ -201,7 +212,7 @@ export class AuthService {
     if (!restaurantStatus) {
       this.logger.warn(`[checkHotelPhone] No restaurant found for RESTAURANT_OWNER user=${user.id}`);
       throw new UnauthorizedException(
-        'No restaurant found linked to your account. Please complete restaurant registration.',
+        'Your restaurant registration has not been approved.',
       );
     }
 
@@ -628,7 +639,7 @@ export class AuthService {
           throw new UnauthorizedException('Your restaurant application is currently pending admin approval.');
         }
         if (rObj.status === 'REJECTED') {
-          throw new UnauthorizedException('Your restaurant application has been rejected by FoodHub admin.');
+          throw new UnauthorizedException('Your restaurant registration has not been approved.');
         }
         restaurant = {
           id: rObj.id,

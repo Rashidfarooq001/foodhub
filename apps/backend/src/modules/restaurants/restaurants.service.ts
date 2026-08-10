@@ -15,10 +15,13 @@ export class RestaurantsService {
   async createRestaurant(dto: CreateRestaurantDto) {
     const rawPassword = dto.password || 'RestaurantPass123!';
     const passwordHash = await bcrypt.hash(rawPassword, 12);
-    const phone =
-      dto.phone ||
-      `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-    const email = dto.email || `owner_${Date.now()}@foodhub.com`;
+    
+    const cleanDigits = (dto.phone || '').replace(/\D/g, '');
+    const phone = cleanDigits.length >= 10
+      ? (cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`)
+      : dto.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+
+    const email = (dto.email || `owner_${Date.now()}@foodhub.com`).trim().toLowerCase();
     const ownerName = dto.ownerName || dto.name + ' Owner';
 
     // Execute atomic transaction for User, Profile, Restaurant, and Staff linkage
@@ -37,9 +40,19 @@ export class RestaurantsService {
           },
         });
       } else {
+        const phoneFormats: string[] = [phone];
+        if (cleanDigits.length >= 10) {
+          const tenDigits = cleanDigits.slice(-10);
+          phoneFormats.push(tenDigits, `+91${tenDigits}`, `91${tenDigits}`);
+        }
+        const uniqueFormats = Array.from(new Set(phoneFormats));
+
         const existingUser = await tx.user.findFirst({
           where: {
-            OR: [{ phone }, { email }],
+            OR: [
+              ...uniqueFormats.map((p) => ({ phone: p })),
+              { email },
+            ],
           },
         });
 
@@ -48,6 +61,7 @@ export class RestaurantsService {
           await tx.user.update({
             where: { id: existingUser.id },
             data: {
+              phone,
               role: UserRole.RESTAURANT_OWNER,
               ...(dto.password ? { passwordHash } : {}),
               isVerified: true,
