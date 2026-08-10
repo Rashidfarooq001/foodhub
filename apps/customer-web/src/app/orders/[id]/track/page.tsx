@@ -142,14 +142,39 @@ export default function LiveOrderTrackingPage() {
   );
   const etaMins = Math.max(5, Math.ceil((distKm / 25) * 60) + 5);
 
-  const driverName = order.assignedRestaurantDriver
+  const isDriverAssigned = Boolean(order.assignedRestaurantDriver);
+  const driverName = isDriverAssigned
     ? `${order.assignedRestaurantDriver.firstName} ${order.assignedRestaurantDriver.lastName || ''}`.trim()
-    : 'Assigned Partner';
-  const driverPhone = order.assignedRestaurantDriver?.phone || '+919876543210';
-  const vehicleNumber = order.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482';
+    : 'Assigning Delivery Partner...';
+  const driverPhone = order.assignedRestaurantDriver?.phone || '';
+  const vehicleNumber = order.assignedRestaurantDriver?.vehicleNumber || '';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      {/* Order Confirmed Banner */}
+      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-lg">
+            ✓
+          </div>
+          <div>
+            <p className="text-xs font-bold text-emerald-900">Order Confirmed • #{order.orderNumber}</p>
+            <p className="text-sm font-black text-emerald-950">Your order has been placed successfully!</p>
+            {!isDriverAssigned && (
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Live tracking will become fully active once your delivery partner is assigned.
+              </p>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => router.push('/orders')}
+          className="shrink-0 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
+        >
+          View All Orders
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 border-b border-gray-200 pb-4 sm:flex-row sm:items-center">
         <div>
@@ -168,7 +193,7 @@ export default function LiveOrderTrackingPage() {
               {isSocketConnected ? 'Live Socket Connected' : 'Auto Syncing (5s)'}
             </span>
           </div>
-          <h1 className="text-3xl font-black text-gray-900 mt-1">Live Delivery Tracking Map</h1>
+          <h1 className="text-2xl font-black text-gray-900 mt-1">Live Delivery Tracking</h1>
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl bg-orange-50 px-5 py-3 text-orange-800 ring-1 ring-orange-200">
@@ -183,7 +208,7 @@ export default function LiveOrderTrackingPage() {
       {/* Main Grid: Interactive Map & Progress Timeline */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="overflow-hidden rounded-3xl border border-gray-200 shadow-xl bg-gray-900 h-[450px]">
+          <div className="overflow-hidden rounded-3xl border border-gray-200 shadow-xl bg-gray-900 h-[400px]">
             <DynamicLiveTrackingMap
               restaurantLat={restaurantLat}
               restaurantLng={restaurantLng}
@@ -202,20 +227,30 @@ export default function LiveOrderTrackingPage() {
                 <Bike className="h-7 w-7" />
               </div>
               <div>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
-                  Active Courier
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    isDriverAssigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {isDriverAssigned ? 'Active Courier' : 'Searching for Courier'}
                 </span>
                 <h3 className="text-base font-black text-gray-900 mt-1">{driverName}</h3>
-                <p className="text-xs text-gray-500">Verified Express Partner • {vehicleNumber}</p>
+                <p className="text-xs text-gray-500">
+                  {isDriverAssigned
+                    ? `Verified Express Partner • ${vehicleNumber}`
+                    : 'Kitchen is preparing your food. Courier details will update automatically.'}
+                </p>
               </div>
             </div>
 
-            <a
-              href={`tel:${driverPhone}`}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700"
-            >
-              <Phone className="h-4 w-4" /> Call Delivery Partner
-            </a>
+            {isDriverAssigned && driverPhone && (
+              <a
+                href={`tel:${driverPhone}`}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700"
+              >
+                <Phone className="h-4 w-4" /> Call Delivery Partner
+              </a>
+            )}
           </div>
         </div>
 
