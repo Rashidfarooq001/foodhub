@@ -96,8 +96,11 @@ export class OrdersService {
     }
 
 
-    // 1. Validate restaurant
+    // 1. Validate restaurant open & status
     await this.validation.validateRestaurantOpen(dto.restaurantId);
+
+    // 1.1 Validate delivery radius (server-side security check)
+    await this.validation.validateDeliveryRadius(dto.restaurantId, dto.deliveryAddress);
 
     // 2. Validate items & inventory
     await this.validation.validateItemsAvailable(dto.items);

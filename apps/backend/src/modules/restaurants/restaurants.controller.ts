@@ -72,6 +72,18 @@ export class RestaurantsController {
     return this.restaurantsService.updateDeliveryMode(id, deliveryMode);
   }
 
+  @Patch(':id/delivery-radius')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Update restaurant delivery radius in km (Admin Only)' })
+  async updateDeliveryRadius(
+    @Param('id') id: string,
+    @Body('deliveryRadius') deliveryRadius: number,
+  ) {
+    return this.restaurantsService.updateDeliveryRadius(id, deliveryRadius);
+  }
+
   @Get(':id/delivery-staff')
   @ApiOperation({ summary: 'List delivery staff for restaurant self delivery' })
   async getDeliveryStaff(@Param('id') id: string) {

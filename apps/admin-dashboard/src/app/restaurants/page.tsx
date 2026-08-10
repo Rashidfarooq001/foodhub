@@ -12,6 +12,7 @@ interface Restaurant {
   email?: string;
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   deliveryMode?: 'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY';
+  deliveryRadius?: number;
   avgRating?: number;
   owner?: {
     profile?: {
@@ -64,6 +65,21 @@ export default function AdminRestaurantsPage() {
       if (!res.ok) {
         fetchRestaurants();
       }
+    } catch {
+      fetchRestaurants();
+    }
+  };
+
+  const handleUpdateRadius = async (id: string, deliveryRadius: number) => {
+    setRestaurants((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, deliveryRadius } : r)),
+    );
+
+    try {
+      await adminFetch(`/restaurants/${id}/delivery-radius`, {
+        method: 'PATCH',
+        body: JSON.stringify({ deliveryRadius }),
+      });
     } catch {
       fetchRestaurants();
     }
@@ -180,6 +196,7 @@ export default function AdminRestaurantsPage() {
                 <th className="px-6 py-4">Restaurant</th>
                 <th className="px-6 py-4">Owner</th>
                 <th className="px-6 py-4">Delivery Mode</th>
+                <th className="px-6 py-4">Delivery Radius</th>
                 <th className="px-6 py-4">Rating</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Actions</th>
@@ -188,11 +205,11 @@ export default function AdminRestaurantsPage() {
             <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">Loading restaurants...</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading restaurants...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">No restaurants registered yet. Click &quot;Add Restaurant&quot; above to onboard one.</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">No restaurants registered yet. Click &quot;Add Restaurant&quot; above to onboard one.</td>
                 </tr>
               ) : (
                 filtered.map((r) => (
@@ -209,6 +226,21 @@ export default function AdminRestaurantsPage() {
                       }`}>
                         {r?.deliveryMode === 'RESTAURANT_SELF_DELIVERY' ? 'Self Delivery' : 'FoodHub Fleet'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <select
+                        value={r?.deliveryRadius || 15}
+                        onChange={(e) => r?.id && handleUpdateRadius(r.id, parseFloat(e.target.value))}
+                        className="rounded-xl border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                      >
+                        <option value={5}>5 km</option>
+                        <option value={10}>10 km</option>
+                        <option value={15}>15 km (Default)</option>
+                        <option value={20}>20 km</option>
+                        <option value={25}>25 km</option>
+                        <option value={30}>30 km</option>
+                        <option value={50}>50 km</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 font-black text-amber-600">★ {r?.avgRating || 4.8}/5</td>
                     <td className="px-6 py-4">

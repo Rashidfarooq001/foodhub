@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface CustomerAddressItem {
   id: string;
-  label: string; // Home, Work, Other
+  label: string; // Home, Work, Other, Current Location
   addressLine1: string;
   addressLine2?: string;
   landmark?: string;
@@ -25,38 +25,14 @@ interface AddressState {
   removeAddress: (id: string) => void;
   setSelectedAddress: (id: string) => void;
   getSelectedAddress: () => CustomerAddressItem | null;
+  clearAddresses: () => void;
 }
 
 export const useAddressStore = create<AddressState>()(
   persist(
     (set, get) => ({
-      addresses: [
-        {
-          id: 'addr-1',
-          label: 'Home',
-          addressLine1: 'Flat 402, Green Valley Apartments',
-          addressLine2: 'Indiranagar 100ft Road',
-          city: 'Bengaluru',
-          state: 'Karnataka',
-          postalCode: '560038',
-          latitude: 12.9716,
-          longitude: 77.5946,
-          isDefault: true,
-        },
-        {
-          id: 'addr-2',
-          label: 'Work',
-          addressLine1: 'Tech Park Tower B, 5th Floor',
-          addressLine2: 'Outer Ring Road, Marathahalli',
-          city: 'Bengaluru',
-          state: 'Karnataka',
-          postalCode: '560103',
-          latitude: 12.9352,
-          longitude: 77.6946,
-          isDefault: false,
-        },
-      ],
-      selectedAddressId: 'addr-1',
+      addresses: [],
+      selectedAddressId: null,
 
       setAddresses: (addresses) =>
         set({
@@ -70,22 +46,28 @@ export const useAddressStore = create<AddressState>()(
           const item = { ...newAddr, id };
           return {
             addresses: [...state.addresses.filter((a) => a.id !== id), item],
-            selectedAddressId: state.selectedAddressId || id,
+            selectedAddressId: id,
           };
         }),
 
       removeAddress: (id) =>
-        set((state) => ({
-          addresses: state.addresses.filter((a) => a.id !== id),
-          selectedAddressId: state.selectedAddressId === id ? null : state.selectedAddressId,
-        })),
+        set((state) => {
+          const updated = state.addresses.filter((a) => a.id !== id);
+          return {
+            addresses: updated,
+            selectedAddressId: state.selectedAddressId === id ? (updated[0]?.id || null) : state.selectedAddressId,
+          };
+        }),
 
       setSelectedAddress: (id) => set({ selectedAddressId: id }),
 
       getSelectedAddress: () => {
         const { addresses, selectedAddressId } = get();
+        if (!selectedAddressId) return addresses[0] || null;
         return addresses.find((a) => a.id === selectedAddressId) || addresses[0] || null;
       },
+
+      clearAddresses: () => set({ addresses: [], selectedAddressId: null }),
     }),
     {
       name: 'foodhub-customer-addresses',

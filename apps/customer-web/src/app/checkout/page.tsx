@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   MapPin,
   CreditCard,
-  ShieldCheck,
   ArrowRight,
   CheckCircle2,
   MessageSquare,
@@ -47,7 +46,8 @@ function calculateHaversineDistance(
     lon1 === undefined || lon1 === null ||
     lat2 === undefined || lat2 === null ||
     lon2 === undefined || lon2 === null ||
-    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)
+    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2) ||
+    (lat1 === 0 && lon1 === 0) || (lat2 === 0 && lon2 === 0)
   ) {
     return null;
   }
@@ -114,11 +114,11 @@ export default function CheckoutPage() {
   const [newHouseNo, setNewHouseNo] = useState('');
   const [newArea, setNewArea] = useState('');
   const [newLandmark, setNewLandmark] = useState('');
-  const [newCity, setNewCity] = useState('Bengaluru');
-  const [newState, setNewState] = useState('Karnataka');
-  const [newPinCode, setNewPinCode] = useState('560038');
-  const [newLat, setNewLat] = useState<number>(12.9716);
-  const [newLng, setNewLng] = useState<number>(77.5946);
+  const [newCity, setNewCity] = useState('');
+  const [newState, setNewState] = useState('');
+  const [newPinCode, setNewPinCode] = useState('');
+  const [newLat, setNewLat] = useState<number | null>(null);
+  const [newLng, setNewLng] = useState<number | null>(null);
 
   const selectedAddress = getSelectedAddress();
 
@@ -132,10 +132,13 @@ export default function CheckoutPage() {
         const res = await fetch(`${API_BASE}/restaurants/${restId}`);
         if (res.ok) {
           const data = await res.json();
+          const lat = typeof data.latitude === 'number' ? data.latitude : parseFloat(data.latitude);
+          const lng = typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
+
           setRestaurantData({
-            latitude: data.latitude ?? null,
-            longitude: data.longitude ?? null,
-            deliveryRadius: data.deliveryRadius ?? 5.0,
+            latitude: !isNaN(lat) && lat !== 0 ? lat : null,
+            longitude: !isNaN(lng) && lng !== 0 ? lng : null,
+            deliveryRadius: data.deliveryRadius ? Number(data.deliveryRadius) : 15.0,
           });
         }
       } catch {
@@ -163,7 +166,7 @@ export default function CheckoutPage() {
         : 50
       : 35;
 
-  const maxRadiusKm = restaurantData?.deliveryRadius ?? 5.0;
+  const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
   const isDeliveryEligible =
     realDistanceKm === null || realDistanceKm <= maxRadiusKm;
 
@@ -194,9 +197,11 @@ export default function CheckoutPage() {
         setNewLat(lat);
         setNewLng(lng);
 
-        // Attempt reverse geocoding via OpenStreetMap Nominatim API
-        let reverseCity = 'Bengaluru';
-        let reverseArea = `GPS Pin (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+        // Reverse geocoding via OpenStreetMap Nominatim API
+        let reverseCity = '';
+        let reverseState = '';
+        let reversePin = '';
+        let reverseArea = `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
 
         try {
           const geoRes = await fetch(
@@ -206,9 +211,19 @@ export default function CheckoutPage() {
             const geoData = await geoRes.json();
             if (geoData.address) {
               reverseCity =
-                geoData.address.city || geoData.address.town || geoData.address.county || 'Bengaluru';
+                geoData.address.city ||
+                geoData.address.town ||
+                geoData.address.village ||
+                geoData.address.county ||
+                geoData.address.state_district ||
+                '';
+              reverseState = geoData.address.state || '';
+              reversePin = geoData.address.postcode || '';
               reverseArea =
-                geoData.address.suburb || geoData.address.neighbourhood || geoData.address.road || reverseArea;
+                geoData.address.suburb ||
+                geoData.address.neighbourhood ||
+                geoData.address.road ||
+                reverseArea;
             }
           }
         } catch {
@@ -219,10 +234,10 @@ export default function CheckoutPage() {
           id: `addr-gps-${Date.now()}`,
           label: 'Current Location',
           addressLine1: reverseArea,
-          addressLine2: `GPS Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`,
-          city: reverseCity,
-          state: 'Karnataka',
-          postalCode: '560038',
+          addressLine2: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          city: reverseCity || 'Local Area',
+          state: reverseState,
+          postalCode: reversePin,
           latitude: lat,
           longitude: lng,
           isDefault: true,
@@ -263,11 +278,11 @@ export default function CheckoutPage() {
       addressLine1: newHouseNo.trim(),
       addressLine2: newArea.trim(),
       landmark: newLandmark.trim() || undefined,
-      city: newCity.trim() || 'Bengaluru',
-      state: newState.trim() || 'Karnataka',
-      postalCode: newPinCode.trim() || '560038',
-      latitude: newLat,
-      longitude: newLng,
+      city: newCity.trim() || 'City',
+      state: newState.trim() || '',
+      postalCode: newPinCode.trim() || '',
+      latitude: newLat ?? 0,
+      longitude: newLng ?? 0,
       isDefault: false,
     };
 
@@ -278,6 +293,11 @@ export default function CheckoutPage() {
     setNewHouseNo('');
     setNewArea('');
     setNewLandmark('');
+    setNewCity('');
+    setNewState('');
+    setNewPinCode('');
+    setNewLat(null);
+    setNewLng(null);
   };
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -402,8 +422,8 @@ export default function CheckoutPage() {
         addressLine2: selectedAddress.addressLine2 || '',
         landmark: selectedAddress.landmark || '',
         city: selectedAddress.city,
-        state: selectedAddress.state || 'Karnataka',
-        postalCode: selectedAddress.postalCode || '560038',
+        state: selectedAddress.state || '',
+        postalCode: selectedAddress.postalCode || '',
         latitude: selectedAddress.latitude,
         longitude: selectedAddress.longitude,
       };
@@ -414,7 +434,7 @@ export default function CheckoutPage() {
       const fullInstruction = [
         instructions.trim(),
         tipAmount > 0 ? `Driver Tip: ₹${tipAmount}` : '',
-        realDistanceKm !== null ? `Calculated Distance: ${realDistanceKm} km` : '',
+        realDistanceKm !== null ? `Distance: ${realDistanceKm} km` : '',
       ]
         .filter(Boolean)
         .join(' | ');
@@ -664,7 +684,7 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* LEFT COLUMN: Delivery Location & Options */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Delivery Address Card with Real Location Controls */}
+              {/* Delivery Address Card */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
@@ -693,71 +713,99 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Address Selection Cards */}
-                <div className="space-y-2">
-                  {addresses.map((addr) => {
-                    const isSelected = selectedAddressId === addr.id;
-                    const addrDist = calculateHaversineDistance(
-                      addr.latitude,
-                      addr.longitude,
-                      restaurantData?.latitude,
-                      restaurantData?.longitude,
-                    );
-                    const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
-
-                    return (
-                      <div
-                        key={addr.id}
-                        onClick={() => setSelectedAddress(addr.id)}
-                        className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
-                          isSelected
-                            ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500/20'
-                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                        }`}
+                {/* Address Selection / Empty State */}
+                {addresses.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-5 text-center space-y-2">
+                    <p className="text-xs font-bold text-gray-700">No saved addresses</p>
+                    <p className="text-[11px] text-gray-400">
+                      Use your real current location or enter a custom delivery address to proceed.
+                    </p>
+                    <div className="flex justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleUseCurrentLocation}
+                        disabled={isLocatingUser}
+                        className="rounded-xl bg-orange-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 disabled:opacity-50 transition"
                       >
-                        <div className="min-w-0 pr-2 space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-900 truncate">
-                              {addr.label}
-                            </span>
-                            {addrDist !== null && (
-                              <span className="text-[10px] font-bold text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded">
-                                {addrDist} km away
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-gray-600 truncate">
-                            {addr.addressLine1}
-                            {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}, {addr.city}
-                          </p>
-                          {addr.landmark && (
-                            <p className="text-[10px] text-gray-400">
-                              Landmark: {addr.landmark}
-                            </p>
-                          )}
-                          <p className="text-[9px] text-gray-400">
-                            GPS: ({addr.latitude.toFixed(4)}, {addr.longitude.toFixed(4)})
-                          </p>
-                          {!addrEligible && (
-                            <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
-                              <AlertTriangle className="h-3 w-3" /> Exceeds delivery radius ({maxRadiusKm} km)
-                            </p>
-                          )}
-                        </div>
+                        Use Current Location
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomAddressModal(true)}
+                        className="rounded-xl bg-gray-200 px-3.5 py-2 text-xs font-bold text-gray-800 hover:bg-gray-300 transition"
+                      >
+                        Enter Custom Address
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {addresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      const addrDist = calculateHaversineDistance(
+                        addr.latitude,
+                        addr.longitude,
+                        restaurantData?.latitude,
+                        restaurantData?.longitude,
+                      );
+                      const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
 
+                      return (
                         <div
-                          className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
+                          key={addr.id}
+                          onClick={() => setSelectedAddress(addr.id)}
+                          className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
                             isSelected
-                              ? 'border-orange-600 bg-orange-600 text-white'
-                              : 'border-gray-300'
+                              ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500/20'
+                              : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                           }`}
                         >
-                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                          <div className="min-w-0 pr-2 space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-900 truncate">
+                                {addr.label}
+                              </span>
+                              {addrDist !== null ? (
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded">
+                                  {addrDist} km away
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                  Distance unavailable
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-600 truncate">
+                              {addr.addressLine1}
+                              {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}
+                              {addr.city ? `, ${addr.city}` : ''}
+                            </p>
+                            {addr.landmark && (
+                              <p className="text-[10px] text-gray-400">
+                                Landmark: {addr.landmark}
+                              </p>
+                            )}
+                            {!addrEligible && (
+                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" /> Exceeds delivery radius ({maxRadiusKm} km)
+                              </p>
+                            )}
+                          </div>
+
+                          <div
+                            className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
+                              isSelected
+                                ? 'border-orange-600 bg-orange-600 text-white'
+                                : 'border-gray-300'
+                            }`}
+                          >
+                            {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Selected Address Preview & Real Distance Status */}
                 {selectedAddress && (
@@ -780,27 +828,43 @@ export default function CheckoutPage() {
 
                     <p className="text-[11px] text-gray-700">
                       <span className="font-semibold">Selected:</span> {selectedAddress.addressLine1}
-                      {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}, {selectedAddress.city} - {selectedAddress.postalCode}
+                      {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
+                      {selectedAddress.city ? `, ${selectedAddress.city}` : ''}
+                      {selectedAddress.postalCode ? ` - ${selectedAddress.postalCode}` : ''}
                     </p>
 
                     <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 pt-1 border-t border-gray-200">
-                      <span>
-                        📍 Customer GPS: ({selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)})
-                      </span>
-                      <span>
-                        🏪 Store GPS:{' '}
-                        {restaurantData?.latitude
-                          ? `(${restaurantData.latitude.toFixed(4)}, ${restaurantData.longitude?.toFixed(4)})`
-                          : 'Unavailable'}
-                      </span>
                       {realDistanceKm !== null ? (
                         <span className="font-bold text-orange-700">
-                          📏 Calculated Real Distance: {realDistanceKm} km
+                          📏 Calculated Distance: {realDistanceKm} km
                         </span>
                       ) : (
-                        <span className="font-bold text-amber-700">Distance unavailable</span>
+                        <span className="font-bold text-amber-700">
+                          Restaurant location unavailable
+                        </span>
                       )}
                     </div>
+
+                    {!isDeliveryEligible && (
+                      <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 space-y-2 mt-2">
+                        <div className="flex items-center gap-1.5 font-black text-rose-700">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <span>Sorry, we're not delivering to this location yet.</span>
+                        </div>
+                        <p className="text-[11px] text-rose-800">
+                          This restaurant currently delivers within {maxRadiusKm} km. (Selected location is {realDistanceKm} km away). We're expanding our delivery area soon!
+                        </p>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowCustomAddressModal(true)}
+                            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition"
+                          >
+                            Change Delivery Address
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -984,9 +1048,13 @@ export default function CheckoutPage() {
                       {restaurantName || 'Selected Kitchen'}
                     </span>
                   </div>
-                  {realDistanceKm !== null && (
+                  {realDistanceKm !== null ? (
                     <span className="text-[10px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
                       {realDistanceKm} km away
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
+                      Distance unavailable
                     </span>
                   )}
                 </div>
@@ -1063,7 +1131,7 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* Fee Breakdown with Real Calculated Delivery Fee */}
+                {/* Fee Breakdown */}
                 <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
@@ -1116,12 +1184,14 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePlaceOrder}
-              disabled={isPlacing || !isDeliveryEligible}
+              disabled={isPlacing || !isDeliveryEligible || !selectedAddress}
               className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
                 {isPlacing
                   ? 'Placing Order...'
+                  : !selectedAddress
+                  ? 'Select Delivery Address'
                   : !isDeliveryEligible
                   ? 'Outside Delivery Radius'
                   : paymentMethod === 'COD'
@@ -1173,7 +1243,7 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Flat 302, Green Valley Apts"
+                    placeholder="e.g. Flat 302, Green Building"
                     value={newHouseNo}
                     onChange={(e) => setNewHouseNo(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
@@ -1185,7 +1255,7 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Main Road, Bandipora / Indiranagar"
+                    placeholder="e.g. Main Road, Bandipora"
                     value={newArea}
                     onChange={(e) => setNewArea(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
@@ -1208,7 +1278,7 @@ export default function CheckoutPage() {
                     <label className="block font-bold text-gray-700 mb-1">City</label>
                     <input
                       type="text"
-                      required
+                      placeholder="e.g. Bandipora"
                       value={newCity}
                       onChange={(e) => setNewCity(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
@@ -1218,7 +1288,7 @@ export default function CheckoutPage() {
                     <label className="block font-bold text-gray-700 mb-1">State</label>
                     <input
                       type="text"
-                      required
+                      placeholder="e.g. J&amp;K"
                       value={newState}
                       onChange={(e) => setNewState(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
@@ -1228,7 +1298,7 @@ export default function CheckoutPage() {
                     <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
                     <input
                       type="text"
-                      required
+                      placeholder="e.g. 193502"
                       value={newPinCode}
                       onChange={(e) => setNewPinCode(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
@@ -1239,7 +1309,11 @@ export default function CheckoutPage() {
                 <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-200 flex items-center justify-between text-[11px]">
                   <div>
                     <span className="font-bold text-gray-700">GPS Coordinates:</span>
-                    <p className="text-gray-500">Lat: {newLat.toFixed(4)}, Lng: {newLng.toFixed(4)}</p>
+                    <p className="text-gray-500">
+                      {newLat !== null && newLng !== null
+                        ? `Lat: ${newLat.toFixed(4)}, Lng: ${newLng.toFixed(4)}`
+                        : 'Not set (will auto-detect on save)'}
+                    </p>
                   </div>
                   <button
                     type="button"

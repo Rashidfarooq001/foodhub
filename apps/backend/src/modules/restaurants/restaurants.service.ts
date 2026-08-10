@@ -536,6 +536,15 @@ export class RestaurantsService {
     });
   }
 
+  async updateDeliveryRadius(id: string, deliveryRadius: number) {
+    await this.findRestaurantById(id);
+    const updated = await this.prisma.restaurant.update({
+      where: { id },
+      data: { deliveryRadius: Number(deliveryRadius) },
+    });
+    return serializePrisma(updated);
+  }
+
   async getDeliveryStaff(restaurantId: string) {
     const staff = await this.prisma.restaurantDeliveryStaff.findMany({
       where: { restaurantId },

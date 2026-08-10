@@ -25,6 +25,51 @@ export class OrdersValidationService {
     }
   }
 
+  async validateDeliveryRadius(restaurantId: string, deliveryAddress: any): Promise<number> {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+    });
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+
+    const restLat = Number(restaurant.latitude);
+    const restLng = Number(restaurant.longitude);
+    const radiusKm = Number(restaurant.deliveryRadius ?? 15.0);
+
+    if (!restLat || !restLng || (restLat === 0 && restLng === 0) || isNaN(restLat) || isNaN(restLng)) {
+      throw new BadRequestException('Restaurant location unavailable for delivery calculation.');
+    }
+
+    const custLat = deliveryAddress?.latitude ? Number(deliveryAddress.latitude) : null;
+    const custLng = deliveryAddress?.longitude ? Number(deliveryAddress.longitude) : null;
+
+    if (custLat === null || custLng === null || (custLat === 0 && custLng === 0) || isNaN(custLat) || isNaN(custLng)) {
+      throw new BadRequestException('Customer delivery location coordinates are required for delivery check.');
+    }
+
+    // Haversine distance in km
+    const R = 6371;
+    const dLat = ((custLat - restLat) * Math.PI) / 180;
+    const dLon = ((custLng - restLng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((restLat * Math.PI) / 180) *
+        Math.cos((custLat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distanceKm = Math.round(R * c * 100) / 100;
+
+    if (distanceKm > radiusKm) {
+      throw new BadRequestException(
+        `Your selected delivery location (${distanceKm} km away) is outside this restaurant's delivery area of ${radiusKm} km.`,
+      );
+    }
+
+    return distanceKm;
+  }
+
   async validateItemsAvailable(
     items: Array<{ foodItemId: string; quantity: number }>,
   ): Promise<void> {

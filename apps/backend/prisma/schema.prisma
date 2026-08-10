@@ -411,7 +411,7 @@ model Restaurant {
   addressLine    String           @map("address_line")
   latitude       Float
   longitude      Float
-  deliveryRadius Float            @default(5.0) @map("delivery_radius") // km — Phase 14
+  deliveryRadius Float            @default(15.0) @map("delivery_radius") // km — Configurable delivery radius (default 15 km)
   deliveryMode   DeliveryMode     @default(FOODHUB_DELIVERY) @map("delivery_mode")
   status         RestaurantStatus @default(PENDING_APPROVAL)
   isOpen         Boolean          @default(true) @map("is_open")
