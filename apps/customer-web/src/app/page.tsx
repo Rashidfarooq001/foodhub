@@ -2,27 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Search, Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { HeroBanner } from '../components/home/HeroBanner';
-import { CategorySlider } from '../components/home/CategorySlider';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
-import { FoodCard } from '../components/food/FoodCard';
-import { RestaurantData, FoodItemData, ActiveOrderTrackingData, normalizeRestaurantData } from '../data/mock-data';
-import { useSettingsStore } from '../stores/use-settings-store';
+import { RestaurantData, normalizeRestaurantData } from '../data/mock-data';
 import { useAuthStore } from '../stores/use-auth-store';
-import { Sparkles, Clock, ArrowRight, Flame } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { useRouter } from 'next/navigation';
 
 const API_BASE = getApiBaseUrl();
 
 export default function CustomerHomePage() {
-  const { isVegOnly } = useSettingsStore();
   const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'rating' | 'deliveryTime' | 'price'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
-  const [activeOrder, setActiveOrder] = useState<ActiveOrderTrackingData | null>(null);
+  const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch restaurants
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
@@ -30,20 +30,20 @@ export default function CustomerHomePage() {
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.restaurants ?? [];
-          const normalized = list.map(normalizeRestaurantData);
-          setRestaurants(normalized);
+          setRestaurants(list.map(normalizeRestaurantData));
         }
-      } catch (err) {
-        console.error('[TRACE CustomerApp] Fetch error:', err);
+      } catch {
+        // offline / error — show empty state
       } finally {
         setIsLoading(false);
       }
     };
     fetchRestaurants();
-    const interval = setInterval(fetchRestaurants, 5000);
+    const interval = setInterval(fetchRestaurants, 30000); // slower polling
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch active order (authenticated only)
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchActiveOrder = async () => {
@@ -53,140 +53,135 @@ export default function CustomerHomePage() {
           ? { Authorization: `Bearer ${accessToken}` }
           : {};
         const res = await fetch(`${API_BASE}/orders/active`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setActiveOrder(data ?? null);
-        } else {
-          setActiveOrder(null);
-        }
+        setActiveOrder(res.ok ? await res.json() : null);
       } catch {
-        // No active order
+        // no active order
       }
     };
     fetchActiveOrder();
   }, [isAuthenticated]);
 
-  // Filter and sort restaurants
-  let filteredRestaurants = [...restaurants];
-  if (isVegOnly) {
-    filteredRestaurants = filteredRestaurants.filter((r) => {
-      if (!r.foodItems || r.foodItems.length === 0) return true;
-      return r.foodItems.some((f) => f.isVeg);
-    });
-  }
-  if (activeFilter === 'rating') {
-    filteredRestaurants.sort((a, b) => b.avgRating - a.avgRating);
-  } else if (activeFilter === 'deliveryTime') {
-    filteredRestaurants.sort((a, b) => a.deliveryTimeMins - b.deliveryTimeMins);
-  } else if (activeFilter === 'price') {
-    filteredRestaurants.sort((a, b) => a.priceForTwo - b.priceForTwo);
+  // Filter & sort
+  let filtered = [...restaurants];
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        (r.cuisines || []).some((c) => c.toLowerCase().includes(q)),
+    );
   }
 
-  const allFoodItems: FoodItemData[] = restaurants.flatMap((r) => r.foodItems ?? []);
-  const skeletonCards = Array.from({ length: 3 });
+  if (activeFilter === 'rating') filtered.sort((a, b) => b.avgRating - a.avgRating);
+  else if (activeFilter === 'deliveryTime') filtered.sort((a, b) => a.deliveryTimeMins - b.deliveryTimeMins);
+  else if (activeFilter === 'price') filtered.sort((a, b) => a.priceForTwo - b.priceForTwo);
+
+  const skeletons = [0, 1, 2];
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-12 w-full max-w-full min-w-0">
-      {/* Active Order Live Banner (Only for Authenticated Users with Active Orders) */}
-      {isAuthenticated && activeOrder && (
-        <div className="flex flex-col items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-orange-600 to-amber-600 p-5 text-white shadow-xl sm:flex-row sm:px-8 w-full max-w-full min-w-0">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shrink-0">
-              <Clock className="h-6 w-6 animate-pulse" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-white/30 px-2.5 py-0.5 text-[10px] font-black uppercase">
-                  Order {activeOrder.orderNumber}
-                </span>
-                <span className="text-xs font-bold text-amber-200">
-                  Arriving in {activeOrder.etaMins} mins
-                </span>
+    <div className="w-full max-w-full min-w-0">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+        {/* ─── Active Order Banner ─────────────────────────── */}
+        {isAuthenticated && activeOrder && (
+          <div className="flex flex-col gap-3 rounded-2xl bg-orange-600 p-4 text-white sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <Clock className="h-5 w-5 shrink-0 animate-pulse" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-orange-200">Order #{activeOrder.orderNumber}</p>
+                <p className="text-sm font-black truncate">
+                  {activeOrder.driverName
+                    ? `Out for delivery with ${activeOrder.driverName}`
+                    : 'Your order is on its way!'}
+                  {activeOrder.etaMins ? ` · ~${activeOrder.etaMins} mins` : ''}
+                </p>
               </div>
-              <p className="text-sm sm:text-base font-black truncate">Out For Delivery with {activeOrder.driverName}</p>
             </div>
+            <Link
+              href={`/orders/${activeOrder.orderId}/track`}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-black text-orange-700 hover:bg-gray-100 shrink-0"
+            >
+              Track Order <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <Link
-            href={`/orders/${activeOrder.orderId}/track`}
-            className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-xs font-black text-orange-700 shadow-md hover:bg-gray-100 shrink-0"
+        )}
+
+        {/* ─── Mobile Search Box ───────────────────────────── */}
+        <div className="w-full min-w-0">
+          <div
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer hover:border-orange-300 hover:bg-white transition md:hidden"
+            onClick={() => router.push('/search')}
           >
-            Track Live Map <ArrowRight className="h-4 w-4" />
-          </Link>
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <span className="text-sm text-gray-400">Search restaurants or food</span>
+          </div>
+          {/* Desktop: inline search with filter */}
+          <div className="hidden md:flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search restaurants or food"
+              className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            />
+          </div>
         </div>
-      )}
 
-      {/* Hero Banner Carousel */}
-      <HeroBanner />
+        {/* ─── Hero Banner ─────────────────────────────────── */}
+        <HeroBanner />
 
-      {/* Food Categories Slider */}
-      <CategorySlider />
-
-      {/* Restaurants Section */}
-      <div className="space-y-6 w-full max-w-full min-w-0">
-        <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
-              Top Restaurants Nearby {isLoading ? '' : `(${filteredRestaurants.length})`}
+        {/* ─── Restaurants Section ─────────────────────────── */}
+        <div className="space-y-4 w-full min-w-0">
+          {/* Section header + filters */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xl font-bold text-gray-900">
+              Top Restaurants Nearby
+              {!isLoading && (
+                <span className="ml-2 text-sm font-normal text-gray-400">
+                  ({filtered.length})
+                </span>
+              )}
             </h2>
-            <p className="text-xs text-gray-500">Handpicked kitchens with fast 30-min dispatch</p>
+
+            <div className="flex flex-wrap gap-1.5">
+              {(['all', 'rating', 'deliveryTime', 'price'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                    activeFilter === f
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {f === 'all' ? 'All' : f === 'rating' ? '★ Top Rated' : f === 'deliveryTime' ? '⚡ Fast' : '₹ Price'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Quick Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {(['all', 'rating', 'deliveryTime', 'price'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setActiveFilter(f)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                  activeFilter === f
-                    ? 'bg-orange-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f === 'all' ? 'All' : f === 'rating' ? '★ Top Rated' : f === 'deliveryTime' ? '⚡ Fast Delivery' : '₹ Cost Low-High'}
-              </button>
-            ))}
+          {/* Restaurant Grid */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 w-full min-w-0">
+            {isLoading
+              ? skeletons.map((i) => (
+                  <div key={i} className="h-64 animate-pulse rounded-2xl bg-gray-100 w-full" />
+                ))
+              : filtered.length > 0
+              ? filtered.map((r) => <RestaurantCard key={r.id} restaurant={r} />)
+              : (
+                <div className="col-span-1 sm:col-span-2 lg:col-span-3 rounded-2xl border border-gray-100 bg-white p-10 text-center">
+                  <Sparkles className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                  <p className="text-sm font-bold text-gray-600">No restaurants found</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {searchQuery ? 'Try a different search.' : 'Check back soon — new restaurants are joining daily.'}
+                  </p>
+                </div>
+              )}
           </div>
-        </div>
-
-        {/* Restaurant Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 w-full max-w-full min-w-0">
-          {isLoading
-            ? skeletonCards.map((_, i) => (
-                <div key={i} className="h-72 animate-pulse rounded-3xl bg-gray-100" />
-              ))
-            : filteredRestaurants.length > 0
-            ? filteredRestaurants.map((rest) => (
-                <RestaurantCard key={rest.id} restaurant={rest} />
-              ))
-            : (
-              <div className="col-span-1 sm:col-span-2 lg:col-span-3 rounded-3xl border border-gray-100 bg-white p-12 text-center">
-                <Sparkles className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-                <p className="text-base font-bold text-gray-700">No restaurants found nearby</p>
-                <p className="text-xs text-gray-400 mt-1">Check back soon — new restaurants are joining FoodHub daily.</p>
-              </div>
-            )}
         </div>
       </div>
-
-      {/* Featured Food Items Section */}
-      {allFoodItems.length > 0 && (
-        <div className="space-y-6 w-full max-w-full min-w-0">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-4">
-            <Flame className="h-6 w-6 text-orange-600 shrink-0" />
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Trending Bestsellers</h2>
-              <p className="text-xs text-gray-500">Most ordered dishes in your locality right now</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 w-full max-w-full min-w-0">
-            {allFoodItems.map((food) => (
-              <FoodCard key={food.id} food={food} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

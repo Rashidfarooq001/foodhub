@@ -125,13 +125,13 @@ export default function OrderHistoryPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-gray-900">Your Orders</h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Track live food deliveries, view order history &amp; repeat your favorite meals
+            <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Track live orders, view history &amp; reorder
             </p>
           </div>
 
@@ -266,12 +266,17 @@ export default function OrderHistoryPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <p className="text-xs text-gray-600 font-medium">
-                      <span className="font-bold text-gray-900">{ord.itemCount} Items:</span> {ord.itemsSummary}
-                    </p>
-                    <span className="text-lg font-black text-gray-900">₹{ord.totalAmount.toFixed(2)}</span>
-                  </div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-gray-600 font-medium">
+                          <span className="font-bold text-gray-900">{ord.itemCount} Items:</span> {ord.itemsSummary}
+                        </p>
+                        <p className="text-xs text-gray-400 capitalize">
+                          {(ord.paymentMethod || 'Online').replace(/_/g, ' ')}
+                        </p>
+                      </div>
+                      <span className="text-base font-black text-gray-900">₹{ord.totalAmount.toFixed(2)}</span>
+                    </div>
 
                   {ord.cancellationReason && (
                     <div className="rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-800 border border-rose-200">

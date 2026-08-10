@@ -2,38 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-inter: 'Inter', sans-serif;
-}
-
-*,
-::before,
-::after {
-  box-sizing: border-box;
-}
-
+/* Prevent horizontal overflow at all breakpoints */
 html,
 body {
-  max-width: 100%;
   overflow-x: hidden;
   width: 100%;
-  margin: 0;
-  padding: 0;
+  max-width: 100%;
 }
 
-body {
-  font-family: var(--font-inter);
-  background-color: #f8fafc;
-  color: #0f172a;
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+/* Ensure all images and elements respect viewport */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  min-width: 0;
 }

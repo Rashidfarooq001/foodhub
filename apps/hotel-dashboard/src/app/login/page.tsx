@@ -17,9 +17,9 @@ export default function HotelLoginPage() {
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
 
   // Form states
-  const [identity, setIdentity] = useState('owner@spicegarden.com');
-  const [password, setPassword] = useState('RestaurantPass123!');
-  const [phone, setPhone] = useState('9876543210');
+  const [identity, setIdentity] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
 
   const [error, setError] = useState('');
@@ -100,6 +100,27 @@ export default function HotelLoginPage() {
     setError('');
     setIsLoading(true);
 
+    // ─── STEP 1: Pre-validate hotel account BEFORE opening MSG91 widget ──────────
+    // This gives clear UX feedback: pending approval, not registered, wrong role, etc.
+    try {
+      const preCheckRes = await fetch(`${API_BASE}/auth/check-hotel-phone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanDigits }),
+      });
+      const preCheckData = await preCheckRes.json().catch(() => ({}));
+      if (!preCheckRes.ok) {
+        setError(preCheckData.message || 'Hotel account verification failed. Please check your phone number.');
+        setIsLoading(false);
+        return;
+      }
+    } catch {
+      setError('Unable to reach FoodHub server. Please check your connection.');
+      setIsLoading(false);
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
     const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
     const identifier = formatIdentifier(phone);
@@ -144,6 +165,7 @@ export default function HotelLoginPage() {
     setCooldown(30);
     setIsLoading(false);
   };
+
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();

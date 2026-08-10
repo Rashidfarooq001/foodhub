@@ -5,27 +5,21 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { PartnerHeader } from './PartnerHeader';
 import {
-  MapPin,
   Search,
   ShoppingBag,
   User,
   LogOut,
-  ChevronDown,
-  Sparkles,
-  Heart,
-  Wallet,
-  Clock,
   Menu as MenuIcon,
   X,
   LogIn,
   UserPlus,
-  Tag,
-  Grid,
+  Home,
+  Clock,
+  CreditCard,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/use-cart-store';
-import { useAddressStore } from '../../stores/use-address-store';
-import { useSettingsStore } from '../../stores/use-settings-store';
 import { CartDrawer } from '../cart/CartDrawer';
 
 export const Navbar: React.FC = () => {
@@ -34,261 +28,186 @@ export const Navbar: React.FC = () => {
 
   const { user, isAuthenticated, logout } = useAuthStore();
   const { getItemCount } = useCartStore();
-  const { getSelectedAddress } = useAddressStore();
-  const { isVegOnly, toggleVegOnly } = useSettingsStore();
 
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const activeAddress = getSelectedAddress();
   const itemCount = getItemCount();
 
+  // Use partner header on partner routes
   if (pathname?.startsWith('/restaurant/register') || pathname?.startsWith('/driver/register')) {
     return <PartnerHeader />;
   }
 
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const handleLogout = () => {
+    logout();
+    closeMenu();
+    setIsProfileOpen(false);
+    router.push('/login');
+  };
+
+  // Initials avatar for logged-in user
+  const initials = user
+    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
+    : 'U';
+
   return (
     <>
-      <header className="sticky top-0 z-40 w-full max-w-full border-b border-gray-100 bg-white/95 backdrop-blur-md transition-all">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
-          {/* Left: Brand Logo & Address Selector */}
-          <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-            <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
-              <div className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-gray-900">
-                Food<span className="text-orange-600">Hub</span>
-              </span>
-            </Link>
+      <header className="sticky top-0 z-40 w-full border-b border-gray-100 bg-white">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 md:h-16">
 
-            {/* Address Selector Trigger */}
-            <button
-              onClick={() => router.push('/addresses')}
-              className="hidden items-center gap-2 rounded-xl bg-gray-50 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 sm:flex"
-            >
-              <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
-              <div className="max-w-[180px] text-left">
-                <span className="block text-xs font-bold text-gray-900 truncate">
-                  {activeAddress?.label || 'Select Location'}
-                </span>
-                <span className="block truncate text-xs text-gray-500">
-                  {activeAddress ? `${activeAddress.addressLine1}, ${activeAddress.city}` : 'Add delivery address'}
-                </span>
-              </div>
-              <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
-            </button>
-          </div>
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-1.5 shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-600 text-white">
+              <span className="text-sm font-black">F</span>
+            </div>
+            <span className="text-xl font-black tracking-tight text-gray-900">
+              Food<span className="text-orange-600">Hub</span>
+            </span>
+          </Link>
 
-          {/* Center: Search Trigger */}
-          <div className="hidden flex-1 max-w-md px-6 md:block">
+          {/* Desktop Search — hidden on mobile */}
+          <div className="hidden flex-1 max-w-sm mx-6 md:block">
             <div
               onClick={() => router.push('/search')}
-              className="relative flex cursor-pointer items-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-400 transition hover:border-orange-300 hover:bg-white hover:shadow-md"
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400 hover:border-orange-300 hover:bg-white transition"
             >
-              <Search className="mr-3 h-4 w-4 text-gray-400 shrink-0" />
-              <span className="truncate">Search for biryani, pizza, burgers...</span>
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="truncate">Search restaurants or food</span>
             </div>
           </div>
 
-          {/* Right Actions: Veg Toggle, Cart, Profile / Login */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {/* Veg Only Toggle */}
-            <button
-              onClick={toggleVegOnly}
-              className={`flex items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 sm:px-3 py-1.5 text-xs font-bold transition ${
-                isVegOnly
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-              }`}
-              title="Toggle Vegetarian Only Mode"
-            >
-              <span
-                className={`flex h-3 w-3 items-center justify-center rounded-sm border shrink-0 ${
-                  isVegOnly ? 'border-emerald-600 bg-emerald-600' : 'border-emerald-600'
-                }`}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-              </span>
-              <span className="hidden sm:inline">VEG ONLY</span>
-            </button>
+          {/* Right Actions */}
+          <div className="flex items-center gap-2 shrink-0">
 
-            {/* Cart Button Drawer Trigger */}
+            {/* Cart */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative flex h-9 sm:h-11 items-center gap-1.5 sm:gap-2 rounded-xl sm:rounded-2xl bg-orange-500 px-3 sm:px-4 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600"
+              className="relative flex h-9 items-center gap-1.5 rounded-xl bg-orange-600 px-3 text-sm font-bold text-white hover:bg-orange-700 transition"
+              aria-label="Open cart"
             >
-              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <ShoppingBag className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Cart</span>
               {itemCount > 0 && (
-                <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-white text-[10px] sm:text-xs font-black text-orange-600">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-black text-orange-600">
                   {itemCount}
                 </span>
               )}
             </button>
 
-            {/* Profile Dropdown or Unauthenticated Login/Signup Buttons */}
+            {/* Desktop: Sign In / Profile Dropdown */}
             {isAuthenticated && user ? (
-              <div className="relative">
+              <div className="relative hidden md:block">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-1.5 rounded-2xl border border-gray-200 p-1 sm:p-1.5 hover:bg-gray-50"
+                  className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-1.5 hover:bg-gray-50 transition"
                 >
-                  <img
-                    src={user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
-                    alt={user.firstName}
-                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover"
-                  />
-                  <span className="hidden text-sm font-bold text-gray-800 lg:inline">
-                    {user.firstName}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.firstName || 'Profile'}
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-xs font-black text-orange-700">
+                      {initials}
+                    </span>
+                  )}
+                  <span className="text-sm font-bold text-gray-800">{user.firstName}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
                 </button>
 
-                {/* Dropdown Menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50">
-                    <div className="border-b border-gray-100 p-3">
-                      <p className="text-sm font-bold text-gray-900">{user.firstName} {user.lastName}</p>
-                      <p className="text-xs text-gray-500">{user.phone}</p>
-                    </div>
-                    <div className="py-1">
-                      <Link
-                        href="/profile"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                      >
-                        <User className="h-4 w-4" /> Profile &amp; Settings
-                      </Link>
-                      <Link
-                        href="/orders"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                      >
-                        <Clock className="h-4 w-4" /> Order History
-                      </Link>
-                      <Link
-                        href="/wallet"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                      >
-                        <Wallet className="h-4 w-4" /> FoodHub Wallet
-                      </Link>
-                      <Link
-                        href="/wishlist"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                      >
-                        <Heart className="h-4 w-4" /> Wishlist
-                      </Link>
-                    </div>
-                    <div className="border-t border-gray-100 pt-1">
-                      <button
-                        onClick={() => {
-                          logout();
-                          setIsProfileOpen(false);
-                          router.push('/login');
-                        }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
-                      >
-                        <LogOut className="h-4 w-4" /> Sign Out
-                      </button>
-                    </div>
+                  <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
+                    <Link href="/" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                      <Home className="h-4 w-4" /> Home
+                    </Link>
+                    <Link href="/orders" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                      <Clock className="h-4 w-4" /> My Orders
+                    </Link>
+                    <Link href="/wallet" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                      <CreditCard className="h-4 w-4" /> Payment History
+                    </Link>
+                    <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                      <User className="h-4 w-4" /> Profile
+                    </Link>
+                    <div className="my-1 border-t border-gray-100" />
+                    <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50">
+                      <LogOut className="h-4 w-4" /> Sign Out
+                    </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="hidden items-center gap-2 sm:flex">
-                <Link
-                  href="/login"
-                  className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 transition hover:border-orange-500 hover:text-orange-600"
-                >
-                  Login
+              <div className="hidden items-center gap-2 md:flex">
+                <Link href="/login" className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:border-orange-500 hover:text-orange-600 transition">
+                  Sign In
                 </Link>
-                <Link
-                  href="/signup"
-                  className="rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
-                >
+                <Link href="/signup" className="rounded-xl bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-700 transition">
                   Sign Up
                 </Link>
               </div>
             )}
 
-            {/* Mobile Hamburger Menu Toggle */}
+            {/* Hamburger — mobile only */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-xl border border-gray-200 p-1.5 sm:p-2 text-gray-600 md:hidden"
-              aria-label="Toggle Navigation Menu"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="rounded-xl border border-gray-200 p-2 text-gray-600 md:hidden"
+              aria-label="Toggle menu"
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <MenuIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+              {isMenuOpen ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Menu Panel */}
-        {isMobileMenuOpen && (
-          <div className="border-b border-gray-200 bg-white p-4 shadow-xl md:hidden w-full max-w-full">
+        {isMenuOpen && (
+          <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden w-full">
             {isAuthenticated && user ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                  <img
-                    src={user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
-                    alt={user.firstName}
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
+              <div className="space-y-1">
+                {/* User info */}
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-2">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.firstName || 'Profile'} className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-sm font-black text-orange-700">
+                      {initials}
+                    </span>
+                  )}
                   <div>
                     <p className="text-sm font-bold text-gray-900">{user.firstName} {user.lastName}</p>
                     <p className="text-xs text-gray-500">{user.phone}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-                  <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                    <User className="h-4 w-4 text-orange-500" /> Profile
-                  </Link>
-                  <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                    <Clock className="h-4 w-4 text-orange-500" /> Orders
-                  </Link>
-                  <Link href="/wallet" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                    <Wallet className="h-4 w-4 text-orange-500" /> Wallet
-                  </Link>
-                  <Link href="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                    <Heart className="h-4 w-4 text-orange-500" /> Wishlist
-                  </Link>
+                <Link href="/" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                  <Home className="h-4 w-4 text-orange-500" /> Home
+                </Link>
+                <Link href="/orders" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                  <Clock className="h-4 w-4 text-orange-500" /> My Orders
+                </Link>
+                <Link href="/wallet" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                  <CreditCard className="h-4 w-4 text-orange-500" /> Payment History
+                </Link>
+                <Link href="/profile" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
+                  <User className="h-4 w-4 text-orange-500" /> Profile
+                </Link>
+                <div className="pt-1 border-t border-gray-100 mt-1">
+                  <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </button>
                 </div>
-                <button
-                  onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-600 hover:bg-rose-100"
-                >
-                  <LogOut className="h-4 w-4" /> Sign Out
-                </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Link
-                    href="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-gray-100 p-3 text-xs font-bold text-gray-900 transition hover:bg-gray-200"
-                  >
-                    <LogIn className="h-4 w-4 text-orange-600" /> Login
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 p-3 text-xs font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-700"
-                  >
-                    <UserPlus className="h-4 w-4" /> Sign Up
-                  </Link>
-                </div>
-                <div className="border-t border-gray-100 pt-2 space-y-1">
-                  <Link href="/categories" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50">
-                    <Grid className="h-4 w-4 text-orange-500" /> Browse Categories
-                  </Link>
-                  <Link href="/coupons" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50">
-                    <Tag className="h-4 w-4 text-orange-500" /> Coupons &amp; Offers
-                  </Link>
-                </div>
+              <div className="space-y-2">
+                <Link href="/login" onClick={closeMenu} className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50">
+                  <LogIn className="h-4 w-4 text-orange-600" /> Sign In
+                </Link>
+                <Link href="/signup" onClick={closeMenu} className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-bold text-white hover:bg-orange-700">
+                  <UserPlus className="h-4 w-4" /> Sign Up
+                </Link>
               </div>
             )}
           </div>

@@ -53,6 +53,17 @@ export class AuthController {
   }
 
   @Public()
+  @Post('check-hotel-phone')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Pre-validate phone for Hotel Dashboard OTP login (checks restaurant owner + approval status)' })
+  @ApiResponse({ status: 200, description: 'Authorized restaurant owner phone, proceed with OTP' })
+  @ApiResponse({ status: 401, description: 'No hotel account, wrong role, pending approval, or suspended' })
+  async checkHotelPhone(@Body('phone') phone: string) {
+    return this.authService.checkHotelPhone(phone);
+  }
+
+
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Public Customer Registration (name, address, phone, password)' })

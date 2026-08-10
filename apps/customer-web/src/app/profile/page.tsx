@@ -194,11 +194,16 @@ export default function ProfilePage() {
     }
   };
 
+  // Initials helper
+  const initials = user
+    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
+    : 'U';
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-gray-900">Your Account Settings</h1>
-        <p className="text-xs text-gray-500">Manage your profile picture, personal details &amp; password credentials</p>
+        <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+        <p className="text-sm text-gray-500">Manage your personal details and password</p>
       </div>
 
       {errorMsg && (
@@ -219,40 +224,43 @@ export default function ProfilePage() {
       <div className="flex gap-2 border-b border-gray-100 pb-3">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
             activeTab === 'profile'
-              ? 'bg-orange-600 text-white shadow'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
+              ? 'bg-orange-600 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <User className="h-4 w-4" /> Profile &amp; Avatar
+          <User className="h-4 w-4" /> Profile
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
             activeTab === 'security'
-              ? 'bg-orange-600 text-white shadow'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
+              ? 'bg-orange-600 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <KeyRound className="h-4 w-4" /> Password &amp; Security
+          <KeyRound className="h-4 w-4" /> Security
         </button>
       </div>
 
       {/* TAB 1: PROFILE */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm space-y-6">
+        <form onSubmit={handleSaveProfile} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-5">
           {/* Avatar Upload */}
-          <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-100 pb-6">
+          <div className="flex flex-col sm:flex-row items-center gap-5 border-b border-gray-100 pb-5">
             <div className="relative shrink-0">
-              <img
-                src={
-                  avatarPreview ||
-                  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
-                }
-                alt="Profile Avatar"
-                className="h-28 w-28 rounded-full object-cover border-4 border-orange-500 shadow-md"
-              />
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Profile Avatar"
+                  className="h-24 w-24 rounded-full object-cover border-4 border-orange-500 shadow-md"
+                />
+              ) : (
+                <div className="h-24 w-24 rounded-full border-4 border-orange-200 bg-orange-100 flex items-center justify-center">
+                  <span className="text-2xl font-black text-orange-600">{initials}</span>
+                </div>
+              )}
               <label
                 htmlFor="customer-avatar-upload"
                 className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-orange-600 text-white shadow-lg hover:bg-orange-700 transition"
@@ -349,7 +357,7 @@ export default function ProfilePage() {
 
       {/* TAB 2: SECURITY & PASSWORD CHANGE */}
       {activeTab === 'security' && (
-        <form onSubmit={handleChangePassword} className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm space-y-6">
+        <form onSubmit={handleChangePassword} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-5">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Change Account Password</h2>
             <p className="text-xs text-gray-500">Update your login password credentials</p>

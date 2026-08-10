@@ -125,6 +125,95 @@ export class AuthService {
     return { available: true, message: 'Phone number is available for registration.' };
   }
 
+  /**
+   * Pre-validate a phone number for Hotel Dashboard OTP login.
+   * Called BEFORE triggering MSG91 so we can show proper UX errors upfront.
+   * Returns { status: 'authorized' | 'pending' | 'not_found', message }
+   */
+  async checkHotelPhone(rawPhone: string) {
+    if (!rawPhone) {
+      throw new BadRequestException('Phone number is required');
+    }
+    const cleanDigits = rawPhone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+    const user = await this.usersService.findUserByPhone(formattedPhone);
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'No authorized hotel account found for this phone number. Please complete restaurant registration first.',
+      );
+    }
+
+    const allowedHotelRoles: string[] = [
+      UserRole.RESTAURANT_OWNER,
+      UserRole.RESTAURANT_MANAGER,
+      UserRole.RESTAURANT_STAFF,
+    ];
+
+    if (!allowedHotelRoles.includes(user.role)) {
+      throw new UnauthorizedException(
+        'This phone number is not registered as a Merchant Partner. Please use the Merchant Registration form.',
+      );
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your merchant account has been disabled. Please contact support.');
+    }
+
+    // Check restaurant approval status
+    let restaurantStatus: string | null = null;
+
+    // Try via restaurantStaff relation (already included by findUserByPhone)
+    const staffRestaurant = (user as any).restaurantStaff?.[0]?.restaurant;
+    if (staffRestaurant) {
+      restaurantStatus = staffRestaurant.status;
+    }
+
+    if (!restaurantStatus && user.role === UserRole.RESTAURANT_OWNER) {
+      const restaurant = await (this.usersService as any).prisma.restaurant.findFirst({
+        where: { ownerId: user.id },
+        select: { status: true, name: true },
+      });
+      restaurantStatus = restaurant?.status ?? null;
+    }
+
+    if (restaurantStatus === 'PENDING_APPROVAL') {
+      throw new UnauthorizedException(
+        'Your restaurant application is currently pending admin approval. You will be notified once it is approved.',
+      );
+    }
+
+    if (restaurantStatus === 'REJECTED') {
+      throw new UnauthorizedException(
+        'Your restaurant application has been rejected by FoodHub admin. Please contact support.',
+      );
+    }
+
+    if (restaurantStatus === 'SUSPENDED') {
+      throw new UnauthorizedException(
+        'Your restaurant account has been suspended. Please contact FoodHub support.',
+      );
+    }
+
+    if (!restaurantStatus) {
+      this.logger.warn(`[checkHotelPhone] No restaurant found for RESTAURANT_OWNER user=${user.id}`);
+      throw new UnauthorizedException(
+        'No restaurant found linked to your account. Please complete restaurant registration.',
+      );
+    }
+
+    this.logger.log(`[checkHotelPhone] Authorized: user=${user.id}, role=${user.role}, restaurantStatus=${restaurantStatus}`);
+    return {
+      authorized: true,
+      message: 'Hotel account verified. Proceeding with OTP.',
+    };
+  }
+
+
+
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
