@@ -141,7 +141,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleCheckout = () => {
     onClose();
-    router.push('/checkout');
+    router.push('/cart');
   };
 
   return (

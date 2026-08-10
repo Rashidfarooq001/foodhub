@@ -469,12 +469,27 @@ export default function OrderDetailsPage() {
                       <RotateCcw className="h-4 w-4" /> Reorder Meal
                     </button>
 
-                    <button
-                      onClick={() => setShowReviewModal(true)}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 py-3 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
-                    >
-                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Rate &amp; Review Store
-                    </button>
+                    {order.restaurantReviews && order.restaurantReviews.length > 0 ? (
+                      <div className="rounded-2xl bg-amber-50/80 p-4 border border-amber-200 text-xs space-y-1.5 text-left">
+                        <div className="flex items-center justify-between font-bold text-amber-950">
+                          <span>Your Review</span>
+                          <span className="flex items-center gap-1 text-amber-600 font-black">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            {order.restaurantReviews[0].rating} / 5
+                          </span>
+                        </div>
+                        <p className="text-gray-700 italic font-medium">
+                          "{order.restaurantReviews[0].comment}"
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowReviewModal(true)}
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 py-3 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
+                      >
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Rate &amp; Review Store
+                      </button>
+                    )}
                   </>
                 )}
 

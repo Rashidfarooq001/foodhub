@@ -783,6 +783,19 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       },
     });
 
+    // Recalculate and update restaurant's aggregate avgRating in database
+    const ratingStats = await this.prisma.restaurantReview.aggregate({
+      where: { restaurantId: order.restaurantId },
+      _avg: { rating: true },
+    });
+
+    if (ratingStats._avg.rating !== null && ratingStats._avg.rating !== undefined) {
+      await this.prisma.restaurant.update({
+        where: { id: order.restaurantId },
+        data: { avgRating: Math.round(ratingStats._avg.rating * 10) / 10 },
+      });
+    }
+
     return serializePrisma(review);
   }
 

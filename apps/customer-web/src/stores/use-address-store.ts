@@ -8,6 +8,7 @@ export interface CustomerAddressItem {
   label: string; // Home, Work, Other
   addressLine1: string;
   addressLine2?: string;
+  landmark?: string;
   city: string;
   state: string;
   postalCode: string;

@@ -151,25 +151,57 @@ export default function LiveOrderTrackingPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-      {/* Order Confirmed Banner */}
-      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Explicit Location Status Banner (STATE A, B, C, D) */}
+      <div
+        className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+          order.status === 'DELIVERED'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : isDriverAssigned && driverLoc
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : isDriverAssigned
+            ? 'bg-blue-50 border-blue-200 text-blue-900'
+            : 'bg-amber-50 border-amber-200 text-amber-900'
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-lg">
-            ✓
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-lg text-white ${
+              order.status === 'DELIVERED'
+                ? 'bg-emerald-600'
+                : isDriverAssigned && driverLoc
+                ? 'bg-emerald-600'
+                : isDriverAssigned
+                ? 'bg-blue-600'
+                : 'bg-amber-600'
+            }`}
+          >
+            {order.status === 'DELIVERED' ? '✓' : isDriverAssigned ? '🚴' : '⏳'}
           </div>
           <div>
-            <p className="text-xs font-bold text-emerald-900">Order Confirmed • #{order.orderNumber}</p>
-            <p className="text-sm font-black text-emerald-950">Your order has been placed successfully!</p>
-            {!isDriverAssigned && (
-              <p className="text-xs text-emerald-700 mt-0.5">
-                Live tracking will become fully active once your delivery partner is assigned.
-              </p>
-            )}
+            <p className="text-xs font-bold">Order #{order.orderNumber}</p>
+            <p className="text-sm font-black">
+              {order.status === 'DELIVERED'
+                ? 'Order Delivered'
+                : isDriverAssigned && driverLoc
+                ? `Out for delivery with ${driverName}`
+                : isDriverAssigned
+                ? `Delivery partner assigned (${driverName})`
+                : 'Waiting for delivery partner'}
+            </p>
+            <p className="text-xs mt-0.5 opacity-90">
+              {order.status === 'DELIVERED'
+                ? 'Thank you for ordering with FoodHub!'
+                : isDriverAssigned && driverLoc
+                ? 'Live location active on map below.'
+                : isDriverAssigned
+                ? 'Delivery partner assigned. Live location will appear shortly.'
+                : 'Kitchen is preparing your order. Partner will be assigned soon.'}
+            </p>
           </div>
         </div>
         <button
           onClick={() => router.push('/orders')}
-          className="shrink-0 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition"
+          className="shrink-0 rounded-xl bg-white px-3.5 py-2 text-xs font-bold border border-gray-300 hover:bg-gray-50 transition text-gray-800"
         >
           View All Orders
         </button>

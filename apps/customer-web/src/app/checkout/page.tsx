@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -14,13 +15,17 @@ import {
   Store,
   Check,
   HeartHandshake,
-  Sparkles,
   Smartphone,
   Banknote,
+  Navigation,
+  Plus,
+  Compass,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 
 import { useCartStore } from '../../stores/use-cart-store';
-import { useAddressStore } from '../../stores/use-address-store';
+import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-store';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -29,6 +34,35 @@ const API_BASE = getApiBaseUrl();
 
 const isUUID = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+
+// Haversine Distance Helper (in Kilometers)
+function calculateHaversineDistance(
+  lat1?: number | null,
+  lon1?: number | null,
+  lat2?: number | null,
+  lon2?: number | null,
+): number | null {
+  if (
+    lat1 === undefined || lat1 === null ||
+    lon1 === undefined || lon1 === null ||
+    lat2 === undefined || lat2 === null ||
+    lon2 === undefined || lon2 === null ||
+    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)
+  ) {
+    return null;
+  }
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10; // Round to 1 decimal place
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -40,7 +74,6 @@ export default function CheckoutPage() {
     removeCoupon,
     getSubtotal,
     getPackagingFee,
-    getDeliveryFee,
     getTaxAmount,
     getDiscountAmount,
     getWalletAppliedAmount,
@@ -48,8 +81,16 @@ export default function CheckoutPage() {
     clearCart,
   } = useCartStore();
 
-  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress } = useAddressStore();
+  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress } =
+    useAddressStore();
   const { user, accessToken } = useAuthStore();
+
+  // Restaurant details state (real coordinates & radius)
+  const [restaurantData, setRestaurantData] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+    deliveryRadius: number;
+  } | null>(null);
 
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'COD'>('UPI');
   const [instructions, setInstructions] = useState('');
@@ -64,15 +105,180 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
+  // Custom Address Modal Form state
+  const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
+  const [isLocatingUser, setIsLocatingUser] = useState(false);
+  const [locationStatusMsg, setLocationStatusMsg] = useState<string | null>(null);
+
+  const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
+  const [newHouseNo, setNewHouseNo] = useState('');
+  const [newArea, setNewArea] = useState('');
+  const [newLandmark, setNewLandmark] = useState('');
+  const [newCity, setNewCity] = useState('Bengaluru');
+  const [newState, setNewState] = useState('Karnataka');
+  const [newPinCode, setNewPinCode] = useState('560038');
+  const [newLat, setNewLat] = useState<number>(12.9716);
+  const [newLng, setNewLng] = useState<number>(77.5946);
+
   const selectedAddress = getSelectedAddress();
+
+  // Fetch real restaurant coordinates from backend API
+  useEffect(() => {
+    const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+    if (!restId) return;
+
+    const fetchRestaurantDetails = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/restaurants/${restId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRestaurantData({
+            latitude: data.latitude ?? null,
+            longitude: data.longitude ?? null,
+            deliveryRadius: data.deliveryRadius ?? 5.0,
+          });
+        }
+      } catch {
+        /* offline */
+      }
+    };
+    fetchRestaurantDetails();
+  }, [items]);
+
+  // Calculate real customer <-> restaurant distance
+  const realDistanceKm = calculateHaversineDistance(
+    selectedAddress?.latitude,
+    selectedAddress?.longitude,
+    restaurantData?.latitude,
+    restaurantData?.longitude,
+  );
+
+  // Determine delivery fee dynamically based on real distance
+  const dynamicDeliveryFee =
+    realDistanceKm !== null
+      ? realDistanceKm <= 3.0
+        ? 25
+        : realDistanceKm <= 7.0
+        ? 35
+        : 50
+      : 35;
+
+  const maxRadiusKm = restaurantData?.deliveryRadius ?? 5.0;
+  const isDeliveryEligible =
+    realDistanceKm === null || realDistanceKm <= maxRadiusKm;
+
   const subtotal = getSubtotal();
   const packagingFee = getPackagingFee();
-  const deliveryFee = getDeliveryFee();
   const tax = getTaxAmount();
   const discount = getDiscountAmount();
   const walletApplied = getWalletAppliedAmount();
-  const baseGrandTotal = getGrandTotal();
-  const finalPayableTotal = baseGrandTotal + tipAmount;
+  const baseGrandTotal =
+    subtotal + packagingFee + dynamicDeliveryFee + tax - discount - walletApplied;
+  const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
+
+  // Real-Time Geolocation Handler
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatusMsg('Geolocation is not supported by your browser device.');
+      return;
+    }
+
+    setIsLocatingUser(true);
+    setLocationStatusMsg('Acquiring real-time GPS coordinates...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        setNewLat(lat);
+        setNewLng(lng);
+
+        // Attempt reverse geocoding via OpenStreetMap Nominatim API
+        let reverseCity = 'Bengaluru';
+        let reverseArea = `GPS Pin (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+          );
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.address) {
+              reverseCity =
+                geoData.address.city || geoData.address.town || geoData.address.county || 'Bengaluru';
+              reverseArea =
+                geoData.address.suburb || geoData.address.neighbourhood || geoData.address.road || reverseArea;
+            }
+          }
+        } catch {
+          /* reverse geocode fallback */
+        }
+
+        const newCreatedAddr: CustomerAddressItem = {
+          id: `addr-gps-${Date.now()}`,
+          label: 'Current Location',
+          addressLine1: reverseArea,
+          addressLine2: `GPS Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`,
+          city: reverseCity,
+          state: 'Karnataka',
+          postalCode: '560038',
+          latitude: lat,
+          longitude: lng,
+          isDefault: true,
+        };
+
+        addAddress(newCreatedAddr);
+        setSelectedAddress(newCreatedAddr.id);
+        setIsLocatingUser(false);
+        setLocationStatusMsg(null);
+      },
+      (err) => {
+        setIsLocatingUser(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationStatusMsg(
+            'Location permission denied. Please enter a custom delivery address below.',
+          );
+          setShowCustomAddressModal(true);
+        } else {
+          setLocationStatusMsg('Unable to retrieve device position. Please enter address manually.');
+          setShowCustomAddressModal(true);
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  // Save Custom Address Handler
+  const handleSaveCustomAddress = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHouseNo.trim() || !newArea.trim()) {
+      alert('Please enter House/Flat No and Area/Locality.');
+      return;
+    }
+
+    const createdAddr: CustomerAddressItem = {
+      id: `addr-custom-${Date.now()}`,
+      label: newAddrLabel,
+      addressLine1: newHouseNo.trim(),
+      addressLine2: newArea.trim(),
+      landmark: newLandmark.trim() || undefined,
+      city: newCity.trim() || 'Bengaluru',
+      state: newState.trim() || 'Karnataka',
+      postalCode: newPinCode.trim() || '560038',
+      latitude: newLat,
+      longitude: newLng,
+      isDefault: false,
+    };
+
+    addAddress(createdAddr);
+    setSelectedAddress(createdAddr.id);
+    setShowCustomAddressModal(false);
+    // reset form
+    setNewHouseNo('');
+    setNewArea('');
+    setNewLandmark('');
+  };
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -153,11 +359,22 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!selectedAddress) {
+      setPaymentError('Please select or add a delivery address.');
+      return;
+    }
+
+    if (!isDeliveryEligible && realDistanceKm !== null) {
+      setPaymentError(
+        `Selected address is ${realDistanceKm} km away, which exceeds the store delivery radius of ${maxRadiusKm} km.`,
+      );
+      return;
+    }
+
     setIsPlacing(true);
     setPaymentError(null);
 
     try {
-      // 1. Validate restaurantId
       const cartStoreRestId = useCartStore.getState().restaurantId;
       const cartRestaurantId = cartStoreRestId || items[0]?.restaurantId;
 
@@ -165,43 +382,39 @@ export default function CheckoutPage() {
         throw new Error('Restaurant information is missing from cart.');
       }
 
-      // 2. Build backend items payload
       const itemsPayload = items.map((item) => {
         const foodId = item.foodItemId || item.id;
         return {
           foodItemId: isUUID(foodId) ? foodId : item.id,
           quantity: item.quantity,
-          addonsJson: item.addons && item.addons.length > 0
-            ? item.addons.map((a) => ({ addonId: a.id, name: a.name, price: a.price }))
-            : undefined,
+          addonsJson:
+            item.addons && item.addons.length > 0
+              ? item.addons.map((a) => ({ addonId: a.id, name: a.name, price: a.price }))
+              : undefined,
         };
       });
 
-      // 3. Build delivery address payload
-      const addressPayload = selectedAddress
-        ? {
-            label: selectedAddress.label,
-            street: selectedAddress.addressLine1,
-            city: selectedAddress.city,
-            state: selectedAddress.state || 'Karnataka',
-            zipCode: selectedAddress.postalCode || '560038',
-            latitude: selectedAddress.latitude || 12.9716,
-            longitude: selectedAddress.longitude || 77.5946,
-          }
-        : {
-            street: '100 Ft Road, Indiranagar',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            zipCode: '560038',
-            latitude: 12.9716,
-            longitude: 77.5946,
-          };
+      // Pass selected customer address with exact real coordinates
+      const addressPayload = {
+        label: selectedAddress.label,
+        street: selectedAddress.addressLine1,
+        addressLine1: selectedAddress.addressLine1,
+        addressLine2: selectedAddress.addressLine2 || '',
+        landmark: selectedAddress.landmark || '',
+        city: selectedAddress.city,
+        state: selectedAddress.state || 'Karnataka',
+        postalCode: selectedAddress.postalCode || '560038',
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+      };
 
-      const validPaymentMethod = paymentMethod === 'COD' ? 'COD' : (paymentMethod === 'CARD' ? 'CARD' : 'UPI');
+      const validPaymentMethod =
+        paymentMethod === 'COD' ? 'COD' : paymentMethod === 'CARD' ? 'CARD' : 'UPI';
 
       const fullInstruction = [
         instructions.trim(),
-        tipAmount > 0 ? `Driver Tip included: ₹${tipAmount}` : '',
+        tipAmount > 0 ? `Driver Tip: ₹${tipAmount}` : '',
+        realDistanceKm !== null ? `Calculated Distance: ${realDistanceKm} km` : '',
       ]
         .filter(Boolean)
         .join(' | ');
@@ -215,7 +428,6 @@ export default function CheckoutPage() {
         useWallet: walletApplied > 0,
       };
 
-      // 4. Send API POST /api/v1/orders
       const orderRes = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: {
@@ -236,7 +448,7 @@ export default function CheckoutPage() {
       const createdOrder = await orderRes.json();
       const orderId = createdOrder.id;
 
-      // 5. CASH ON DELIVERY (COD) FLOW
+      // CASH ON DELIVERY (COD) FLOW
       if (paymentMethod === 'COD') {
         clearCart();
         setIsPlacing(false);
@@ -244,17 +456,15 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 6. ONLINE PAYMENT FLOW (Razorpay)
+      // ONLINE PAYMENT FLOW (Razorpay)
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) {
         setIsPlacing(false);
-        setPaymentError(`Order #${createdOrder.orderNumber || orderId} created! Gateway SDK failed to load, opening tracking.`);
         clearCart();
         router.push(`/orders/${orderId}/track`);
         return;
       }
 
-      // Extract numeric total amount safely
       let parsedAmount = finalPayableTotal;
       if (createdOrder.totalAmount !== undefined && createdOrder.totalAmount !== null) {
         if (typeof createdOrder.totalAmount === 'number') {
@@ -273,11 +483,6 @@ export default function CheckoutPage() {
         parsedAmount = finalPayableTotal;
       }
 
-      if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error('Invalid payment amount');
-      }
-
-      // Call backend to create Razorpay payment order
       const pmtRes = await fetch(`${API_BASE}/payments/create`, {
         method: 'POST',
         headers: {
@@ -324,25 +529,18 @@ export default function CheckoutPage() {
               blocks: {
                 upi: {
                   name: 'Scan & Pay',
-                  instruments: [
-                    {
-                      method: 'upi',
-                      flows: ['qr'],
-                    },
-                  ],
+                  instruments: [{ method: 'upi', flows: ['qr'] }],
                 },
               },
               sequence: ['block.upi'],
-              preferences: {
-                show_default_blocks: false,
-              },
+              preferences: { show_default_blocks: false },
             },
           },
         }),
 
         handler: async function (response: any) {
           try {
-            const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
+            await fetch(`${API_BASE}/payments/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -354,13 +552,8 @@ export default function CheckoutPage() {
                 razorpaySignature: response.razorpay_signature,
               }),
             });
-
-            if (!verifyRes.ok) {
-              const verifyErr = await verifyRes.json().catch(() => ({}));
-              console.error('Payment verification failed:', verifyErr);
-            }
-          } catch (err: any) {
-            console.error('Payment verification exception:', err);
+          } catch {
+            /* ignore */
           } finally {
             clearCart();
             setIsPlacing(false);
@@ -378,9 +571,7 @@ export default function CheckoutPage() {
           email: user?.email || '',
           contact: user?.phone || '',
         },
-        theme: {
-          color: '#ea580c',
-        },
+        theme: { color: '#ea580c' },
       };
 
       const rzp = new (window as any).Razorpay(options);
@@ -431,7 +622,7 @@ export default function CheckoutPage() {
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/cart')}
               className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-gray-900 transition"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -441,11 +632,14 @@ export default function CheckoutPage() {
             <div className="w-8" />
           </div>
 
-          {/* Stepper Progress */}
+          {/* Stepper Progress: Cart > Payment */}
           <div className="mx-auto max-w-4xl mt-2 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-400">
-            <span className="text-gray-500">Cart</span>
-            <span>&gt;</span>
-            <span className="text-gray-500">Details</span>
+            <Link
+              href="/cart"
+              className="text-gray-500 hover:text-gray-900 transition hover:underline"
+            >
+              Cart
+            </Link>
             <span>&gt;</span>
             <span className="font-bold text-orange-600 underline decoration-2 underline-offset-4">
               Payment
@@ -460,50 +654,155 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {locationStatusMsg && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-800">
+              ℹ️ {locationStatusMsg}
+            </div>
+          )}
+
           {/* Main 2-Column Responsive Container */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            
-            {/* LEFT COLUMN: Details & Payment Methods */}
+            {/* LEFT COLUMN: Delivery Location & Options */}
             <div className="lg:col-span-7 space-y-4">
-              
-              {/* Delivery Address */}
+              {/* Delivery Address Card with Real Location Controls */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
                     <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
                     <span>Delivery Address</span>
                   </div>
+
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isLocatingUser}
+                      className="flex items-center gap-1 rounded-xl bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50"
+                    >
+                      <Navigation className={`h-3 w-3 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                      <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomAddressModal(true)}
+                      className="flex items-center gap-1 rounded-xl bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-200 transition"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Custom Address</span>
+                    </button>
+                  </div>
                 </div>
 
+                {/* Address Selection Cards */}
                 <div className="space-y-2">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      onClick={() => setSelectedAddress(addr.id)}
-                      className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
-                        selectedAddressId === addr.id
-                          ? 'border-orange-500 bg-orange-50/30'
-                          : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                      }`}
-                    >
-                      <div className="min-w-0 pr-2">
-                        <span className="text-xs font-bold text-gray-900 block truncate">{addr.label}</span>
-                        <p className="text-[11px] text-gray-500 truncate">
-                          {addr.addressLine1}, {addr.city}
-                        </p>
-                      </div>
+                  {addresses.map((addr) => {
+                    const isSelected = selectedAddressId === addr.id;
+                    const addrDist = calculateHaversineDistance(
+                      addr.latitude,
+                      addr.longitude,
+                      restaurantData?.latitude,
+                      restaurantData?.longitude,
+                    );
+                    const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
+
+                    return (
                       <div
-                        className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
-                          selectedAddressId === addr.id
-                            ? 'border-orange-600 bg-orange-600 text-white'
-                            : 'border-gray-300'
+                        key={addr.id}
+                        onClick={() => setSelectedAddress(addr.id)}
+                        className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
+                          isSelected
+                            ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500/20'
+                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                         }`}
                       >
-                        {selectedAddressId === addr.id && <Check className="h-3 w-3 stroke-[3]" />}
+                        <div className="min-w-0 pr-2 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-900 truncate">
+                              {addr.label}
+                            </span>
+                            {addrDist !== null && (
+                              <span className="text-[10px] font-bold text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded">
+                                {addrDist} km away
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-600 truncate">
+                            {addr.addressLine1}
+                            {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}, {addr.city}
+                          </p>
+                          {addr.landmark && (
+                            <p className="text-[10px] text-gray-400">
+                              Landmark: {addr.landmark}
+                            </p>
+                          )}
+                          <p className="text-[9px] text-gray-400">
+                            GPS: ({addr.latitude.toFixed(4)}, {addr.longitude.toFixed(4)})
+                          </p>
+                          {!addrEligible && (
+                            <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" /> Exceeds delivery radius ({maxRadiusKm} km)
+                            </p>
+                          )}
+                        </div>
+
+                        <div
+                          className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
+                            isSelected
+                              ? 'border-orange-600 bg-orange-600 text-white'
+                              : 'border-gray-300'
+                          }`}
+                        >
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {/* Selected Address Preview & Real Distance Status */}
+                {selectedAddress && (
+                  <div className="rounded-xl bg-gray-100/70 p-3 text-xs space-y-1.5 border border-gray-200">
+                    <div className="flex items-center justify-between font-bold text-gray-900">
+                      <span className="flex items-center gap-1">
+                        <Compass className="h-3.5 w-3.5 text-orange-600" />
+                        <span>Address Preview</span>
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                          isDeliveryEligible
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {isDeliveryEligible ? 'Eligible' : 'Outside Radius'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-gray-700">
+                      <span className="font-semibold">Selected:</span> {selectedAddress.addressLine1}
+                      {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}, {selectedAddress.city} - {selectedAddress.postalCode}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 pt-1 border-t border-gray-200">
+                      <span>
+                        📍 Customer GPS: ({selectedAddress.latitude.toFixed(4)}, {selectedAddress.longitude.toFixed(4)})
+                      </span>
+                      <span>
+                        🏪 Store GPS:{' '}
+                        {restaurantData?.latitude
+                          ? `(${restaurantData.latitude.toFixed(4)}, ${restaurantData.longitude?.toFixed(4)})`
+                          : 'Unavailable'}
+                      </span>
+                      {realDistanceKm !== null ? (
+                        <span className="font-bold text-orange-700">
+                          📏 Calculated Real Distance: {realDistanceKm} km
+                        </span>
+                      ) : (
+                        <span className="font-bold text-amber-700">Distance unavailable</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Delivery Instructions */}
@@ -587,7 +886,6 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {/* UPI */}
                   <div
                     onClick={() => setPaymentMethod('UPI')}
                     className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
@@ -616,7 +914,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* CARD */}
                   <div
                     onClick={() => setPaymentMethod('CARD')}
                     className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
@@ -645,7 +942,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* COD */}
                   <div
                     onClick={() => setPaymentMethod('COD')}
                     className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
@@ -680,7 +976,7 @@ export default function CheckoutPage() {
             {/* RIGHT COLUMN: Order Summary Card & Coupon */}
             <div className="lg:col-span-5 space-y-4">
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                {/* Restaurant Name */}
+                {/* Restaurant Name & Real Distance */}
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <Store className="h-4 w-4 text-orange-600 shrink-0" />
@@ -688,6 +984,11 @@ export default function CheckoutPage() {
                       {restaurantName || 'Selected Kitchen'}
                     </span>
                   </div>
+                  {realDistanceKm !== null && (
+                    <span className="text-[10px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
+                      {realDistanceKm} km away
+                    </span>
+                  )}
                 </div>
 
                 {/* Items Breakdown */}
@@ -762,15 +1063,15 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* Fee Breakdown */}
+                {/* Fee Breakdown with Real Calculated Delivery Fee */}
                 <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
                     <span>₹{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Delivery Fee</span>
-                    <span>₹{deliveryFee}</span>
+                    <span>Delivery Fee ({realDistanceKm !== null ? `${realDistanceKm} km` : 'Standard'})</span>
+                    <span>₹{dynamicDeliveryFee}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Taxes &amp; Fees</span>
@@ -802,7 +1103,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -816,12 +1116,14 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePlaceOrder}
-              disabled={isPlacing}
+              disabled={isPlacing || !isDeliveryEligible}
               className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
                 {isPlacing
                   ? 'Placing Order...'
+                  : !isDeliveryEligible
+                  ? 'Outside Delivery Radius'
                   : paymentMethod === 'COD'
                   ? `Place Order • ₹${finalPayableTotal}`
                   : `Place Order & Pay • ₹${finalPayableTotal}`}
@@ -830,6 +1132,143 @@ export default function CheckoutPage() {
             </button>
           </div>
         </div>
+
+        {/* CUSTOM ADDRESS FORM MODAL */}
+        {showCustomAddressModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-lg font-black text-gray-900">Enter Custom Delivery Address</h3>
+                <button
+                  onClick={() => setShowCustomAddressModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomAddress} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Save Address As</label>
+                  <div className="flex gap-2">
+                    {(['Home', 'Work', 'Other'] as const).map((lbl) => (
+                      <button
+                        key={lbl}
+                        type="button"
+                        onClick={() => setNewAddrLabel(lbl)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                          newAddrLabel === lbl
+                            ? 'bg-orange-600 text-white border-orange-600'
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">House / Flat / Building No.*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Flat 302, Green Valley Apts"
+                    value={newHouseNo}
+                    onChange={(e) => setNewHouseNo(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Area / Locality / Street*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Main Road, Bandipora / Indiranagar"
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Landmark (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Near XYZ Hospital / Clock Tower"
+                    value={newLandmark}
+                    onChange={(e) => setNewLandmark(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCity}
+                      onChange={(e) => setNewCity(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">State</label>
+                    <input
+                      type="text"
+                      required
+                      value={newState}
+                      onChange={(e) => setNewState(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
+                    <input
+                      type="text"
+                      required
+                      value={newPinCode}
+                      onChange={(e) => setNewPinCode(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-200 flex items-center justify-between text-[11px]">
+                  <div>
+                    <span className="font-bold text-gray-700">GPS Coordinates:</span>
+                    <p className="text-gray-500">Lat: {newLat.toFixed(4)}, Lng: {newLng.toFixed(4)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    className="rounded-lg bg-orange-100 px-2 py-1 text-orange-700 font-bold hover:bg-orange-200"
+                  >
+                    Auto-Fill GPS
+                  </button>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomAddressModal(false)}
+                    className="px-4 py-2 font-bold text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-orange-600 px-5 py-2 font-bold text-white shadow hover:bg-orange-700"
+                  >
+                    Save &amp; Select Address
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </CustomerAuthGuard>
   );
