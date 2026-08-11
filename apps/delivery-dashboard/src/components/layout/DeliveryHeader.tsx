@@ -7,6 +7,8 @@ import { Bell, Wallet, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../common/ThemeToggle';
 
+import { getImageUrl } from '@foodhub/config';
+
 interface DeliveryHeaderProps {
   onOpenMobileMenu?: () => void;
 }
@@ -77,13 +79,17 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
         {/* Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-100 pl-2 sm:pl-4 shrink-0">
           <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-            alt="Driver"
+            src={getImageUrl(user?.avatarUrl)}
+            alt={user?.name || 'Driver'}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
+            }}
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-emerald-500"
           />
           <div className="hidden md:block text-left">
             <span className="block text-xs font-bold text-gray-900 truncate max-w-[120px]">
-              {user?.name || user?.email || 'Vikram Singh'}
+              {user?.name || user?.email || 'Courier Partner'}
             </span>
             <span className="block text-[10px] text-emerald-600 font-bold">{user?.role || 'DELIVERY_PARTNER'}</span>
           </div>

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Bell, Search, Power, LogOut, Menu } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { useRouter } from 'next/navigation';
-
+import { getImageUrl } from '@foodhub/config';
 import { ThemeToggle } from '../common/ThemeToggle';
 
 interface HotelHeaderProps {
@@ -72,13 +72,17 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
         {/* Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-100 pl-2 sm:pl-4 shrink-0">
           <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-            alt="Owner"
+            src={getImageUrl(user?.avatarUrl)}
+            alt={user?.name || 'Owner'}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
+            }}
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-orange-500"
           />
           <div className="hidden md:block text-left">
             <span className="block text-xs font-bold text-gray-900 truncate max-w-[120px]">
-              {user?.name || user?.email || 'Spice Garden Owner'}
+              {user?.name || user?.email || 'Merchant Owner'}
             </span>
             <span className="block text-[10px] text-orange-600 font-bold">{user?.role || 'RESTAURANT_OWNER'}</span>
           </div>
