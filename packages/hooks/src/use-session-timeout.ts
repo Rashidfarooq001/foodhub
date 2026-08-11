@@ -230,13 +230,28 @@ export function useSessionTimeout({
     };
   }, [isAuthenticated, handleLeave, handleReturn]);
 
-  // 3. User Activity Listener (Resets departure timer when active inside dashboard)
+  // 3. In-Page Inactivity Listener (Triggers auto-logout after timeoutMs of inactivity)
   useEffect(() => {
     if (typeof window === 'undefined' || !isAuthenticated) return;
 
     const currentPath = getCurrentPathname();
     const isProtected = checkProtected(currentPath);
     if (!isProtected) return;
+
+    const resetInactivityTimer = () => {
+      if (localStorage.getItem(storageKey)) {
+        localStorage.removeItem(storageKey);
+      }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      timerRef.current = setTimeout(() => {
+        performAutoLogout();
+      }, timeoutMs);
+    };
+
+    // Initialize timer on protected page load
+    resetInactivityTimer();
 
     let activityThrottleTimer: any = null;
 
@@ -245,13 +260,7 @@ export function useSessionTimeout({
 
       activityThrottleTimer = setTimeout(() => {
         activityThrottleTimer = null;
-        if (localStorage.getItem(storageKey)) {
-          localStorage.removeItem(storageKey);
-        }
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
+        resetInactivityTimer();
       }, 2000);
     };
 
@@ -263,13 +272,17 @@ export function useSessionTimeout({
 
     return () => {
       if (activityThrottleTimer) clearTimeout(activityThrottleTimer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       window.removeEventListener('mousemove', handleUserActivity);
       window.removeEventListener('mousedown', handleUserActivity);
       window.removeEventListener('keydown', handleUserActivity);
       window.removeEventListener('touchstart', handleUserActivity);
       window.removeEventListener('scroll', handleUserActivity);
     };
-  }, [isAuthenticated, checkProtected, storageKey]);
+  }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
 
   return {
     performAutoLogout,

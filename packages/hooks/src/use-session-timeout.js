@@ -188,7 +188,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
             window.removeEventListener('pagehide', handleLeave);
         };
     }, [isAuthenticated, handleLeave, handleReturn]);
-    // 3. User Activity Listener (Resets departure timer when active inside dashboard)
+    // 3. In-Page Inactivity Listener (Triggers auto-logout after timeoutMs of inactivity)
     (0, react_1.useEffect)(() => {
         if (typeof window === 'undefined' || !isAuthenticated)
             return;
@@ -196,19 +196,26 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         const isProtected = checkProtected(currentPath);
         if (!isProtected)
             return;
+        const resetInactivityTimer = () => {
+            if (localStorage.getItem(storageKey)) {
+                localStorage.removeItem(storageKey);
+            }
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+            timerRef.current = setTimeout(() => {
+                performAutoLogout();
+            }, timeoutMs);
+        };
+        // Initialize timer on protected page load
+        resetInactivityTimer();
         let activityThrottleTimer = null;
         const handleUserActivity = () => {
             if (activityThrottleTimer)
                 return;
             activityThrottleTimer = setTimeout(() => {
                 activityThrottleTimer = null;
-                if (localStorage.getItem(storageKey)) {
-                    localStorage.removeItem(storageKey);
-                }
-                if (timerRef.current) {
-                    clearTimeout(timerRef.current);
-                    timerRef.current = null;
-                }
+                resetInactivityTimer();
             }, 2000);
         };
         window.addEventListener('mousemove', handleUserActivity);
@@ -219,13 +226,17 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         return () => {
             if (activityThrottleTimer)
                 clearTimeout(activityThrottleTimer);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
             window.removeEventListener('mousemove', handleUserActivity);
             window.removeEventListener('mousedown', handleUserActivity);
             window.removeEventListener('keydown', handleUserActivity);
             window.removeEventListener('touchstart', handleUserActivity);
             window.removeEventListener('scroll', handleUserActivity);
         };
-    }, [isAuthenticated, checkProtected, storageKey]);
+    }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
     return {
         performAutoLogout,
     };

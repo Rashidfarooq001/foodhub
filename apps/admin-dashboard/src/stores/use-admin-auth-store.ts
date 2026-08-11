@@ -26,7 +26,7 @@ interface AdminAuthState {
 }
 
 const DEV_ADMIN_USER: AdminUserProfile = {
-  id: 'admin-super-dev',
+  id: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5',
   email: 'www.rashidreshi2005@gmail.com',
   role: 'SUPER_ADMIN',
   name: 'Rashid Reshi',
