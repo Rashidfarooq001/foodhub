@@ -22,6 +22,22 @@ export default function CustomerHomePage() {
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          // Geolocation unavailable or denied - remains null (displays "Distance unavailable")
+        },
+        { timeout: 5000 },
+      );
+    }
+  }, []);
+
   // Fetch restaurants
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -30,7 +46,7 @@ export default function CustomerHomePage() {
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.restaurants ?? [];
-          setRestaurants(list.map(normalizeRestaurantData));
+          setRestaurants(list.map((r: any) => normalizeRestaurantData(r, userLocation)));
         }
       } catch {
         // offline / error — show empty state
@@ -41,7 +57,7 @@ export default function CustomerHomePage() {
     fetchRestaurants();
     const interval = setInterval(fetchRestaurants, 30000); // slower polling
     return () => clearInterval(interval);
-  }, []);
+  }, [userLocation]);
 
   // Fetch active order (authenticated only)
   useEffect(() => {
@@ -74,8 +90,8 @@ export default function CustomerHomePage() {
   }
 
   if (activeFilter === 'rating') filtered.sort((a, b) => b.avgRating - a.avgRating);
-  else if (activeFilter === 'deliveryTime') filtered.sort((a, b) => a.deliveryTimeMins - b.deliveryTimeMins);
-  else if (activeFilter === 'price') filtered.sort((a, b) => a.priceForTwo - b.priceForTwo);
+  else if (activeFilter === 'deliveryTime') filtered.sort((a, b) => (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999));
+  else if (activeFilter === 'price') filtered.sort((a, b) => (a.priceForTwo || 9999) - (b.priceForTwo || 9999));
 
   const skeletons = [0, 1, 2];
 

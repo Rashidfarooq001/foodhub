@@ -64,14 +64,24 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-[11px] sm:text-xs text-gray-600">
           <div className="flex items-center gap-1 font-medium">
             <Clock className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-            <span>{restaurant.deliveryTimeMins} mins</span>
+            <span>
+              {restaurant.deliveryTimeMins && restaurant.deliveryTimeMins > 0
+                ? `${restaurant.deliveryTimeMins} mins`
+                : 'Time unavailable'}
+            </span>
           </div>
           <div className="flex items-center gap-1 font-medium">
             <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-            <span>{restaurant.distanceKm} km away</span>
+            <span>
+              {restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && restaurant.distanceKm > 0
+                ? `${restaurant.distanceKm} km away`
+                : 'Distance unavailable'}
+            </span>
           </div>
           <div className="font-bold text-gray-900">
-            ₹{restaurant.priceForTwo} for two
+            {restaurant.priceForTwo && restaurant.priceForTwo > 0
+              ? `₹${restaurant.priceForTwo} for two`
+              : 'Price not available'}
           </div>
         </div>
       </div>

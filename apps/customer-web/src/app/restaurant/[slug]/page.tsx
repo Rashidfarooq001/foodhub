@@ -153,7 +153,11 @@ export default function RestaurantDetailPage() {
               <div>
                 <div className="flex items-center gap-1 text-base font-black text-white">
                   <Clock className="h-5 w-5 text-orange-400" />
-                  <span>{restaurant.deliveryTimeMins || 30}m</span>
+                  <span>
+                    {restaurant.deliveryTimeMins && restaurant.deliveryTimeMins > 0
+                      ? `${restaurant.deliveryTimeMins}m`
+                      : 'Time unavailable'}
+                  </span>
                 </div>
                 <p className="text-[10px] text-gray-300">
                   Radius: {restaurant.deliveryRadius ? `${restaurant.deliveryRadius} km` : '15 km'}

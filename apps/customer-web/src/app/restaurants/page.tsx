@@ -47,8 +47,8 @@ export default function AllRestaurantsPage() {
     return matchesSearch && matchesCuisine;
   }).sort((a, b) => {
     if (sortBy === 'rating') return b.avgRating - a.avgRating;
-    if (sortBy === 'deliveryTime') return a.deliveryTimeMins - b.deliveryTimeMins;
-    if (sortBy === 'price') return a.priceForTwo - b.priceForTwo;
+    if (sortBy === 'deliveryTime') return (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999);
+    if (sortBy === 'price') return (a.priceForTwo || 9999) - (b.priceForTwo || 9999);
     return 0;
   });
 

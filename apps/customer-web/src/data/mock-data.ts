@@ -57,10 +57,10 @@ export interface RestaurantData {
   cuisines: string[];
   avgRating: number;
   ratingCount: number;
-  deliveryTimeMins: number;
+  deliveryTimeMins?: number;
   deliveryRadius?: number;
-  distanceKm: number;
-  priceForTwo: number;
+  distanceKm?: number;
+  priceForTwo?: number;
   bannerUrl: string;
   logoUrl: string;
   isOpen: boolean;
@@ -107,6 +107,7 @@ export interface ActiveOrderTrackingData {
 }
 
 import { getImageUrl } from '@foodhub/config';
+import { calculateHaversineDistance } from '@foodhub/utils';
 
 export function safeNumber(val: any, defaultVal = 0): number {
   if (val === null || val === undefined) return defaultVal;
@@ -125,7 +126,10 @@ export function safeNumber(val: any, defaultVal = 0): number {
   return defaultVal;
 }
 
-export function normalizeRestaurantData(raw: any): RestaurantData {
+export function normalizeRestaurantData(
+  raw: any,
+  userCoords?: { lat: number; lng: number } | null,
+): RestaurantData {
   const r = raw || {};
   let foodItems: FoodItemData[] = [];
 
@@ -180,6 +184,38 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
   const avgRatingVal = r.avgRating ? safeNumber(r.avgRating) : 0;
   const ratingCountVal = r.ratingCount ? safeNumber(r.ratingCount) : (r._count?.reviews || (Array.isArray(r.reviews) ? r.reviews.length : 0));
 
+  // 1. Calculate priceForTwo from backend or average food item prices
+  let priceForTwo: number | undefined = undefined;
+  if (r.priceForTwo !== undefined && r.priceForTwo !== null && safeNumber(r.priceForTwo) > 0) {
+    priceForTwo = safeNumber(r.priceForTwo);
+  } else if (r.costForTwo !== undefined && r.costForTwo !== null && safeNumber(r.costForTwo) > 0) {
+    priceForTwo = safeNumber(r.costForTwo);
+  } else if (foodItems.length > 0) {
+    const avgPrice = foodItems.reduce((sum, item) => sum + item.price, 0) / foodItems.length;
+    priceForTwo = Math.max(100, Math.round((avgPrice * 2) / 50) * 50);
+  }
+
+  // 2. Latitude & Longitude
+  const restLat = r.latitude ? safeNumber(r.latitude) : 0;
+  const restLng = r.longitude ? safeNumber(r.longitude) : 0;
+
+  // 3. Distance & Delivery Time
+  let distanceKm: number | undefined = undefined;
+  let deliveryTimeMins: number | undefined = undefined;
+
+  if (r.distanceKm !== undefined && r.distanceKm !== null && safeNumber(r.distanceKm) > 0) {
+    distanceKm = Math.round(safeNumber(r.distanceKm) * 10) / 10;
+  } else if (userCoords && userCoords.lat && userCoords.lng && restLat !== 0 && restLng !== 0) {
+    const rawDist = calculateHaversineDistance(userCoords.lat, userCoords.lng, restLat, restLng);
+    distanceKm = Math.round(rawDist * 10) / 10;
+  }
+
+  if (r.deliveryTimeMins !== undefined && r.deliveryTimeMins !== null && safeNumber(r.deliveryTimeMins) > 0) {
+    deliveryTimeMins = safeNumber(r.deliveryTimeMins);
+  } else if (distanceKm !== undefined && distanceKm !== null) {
+    deliveryTimeMins = Math.max(15, Math.round(20 + distanceKm * 3));
+  }
+
   return {
     id: String(r.id || `rest-${Math.random()}`),
     slug: String(r.slug || r.id || 'restaurant'),
@@ -189,17 +225,17 @@ export function normalizeRestaurantData(raw: any): RestaurantData {
     cuisines,
     avgRating: avgRatingVal,
     ratingCount: ratingCountVal,
-    deliveryTimeMins: r.deliveryTimeMins ? safeNumber(r.deliveryTimeMins) : 30,
+    deliveryTimeMins,
     deliveryRadius: r.deliveryRadius ? safeNumber(r.deliveryRadius) : 15.0,
-    distanceKm: r.distanceKm ? safeNumber(r.distanceKm) : 0,
-    priceForTwo: r.priceForTwo ? safeNumber(r.priceForTwo) : 350,
+    distanceKm,
+    priceForTwo,
     bannerUrl: r.bannerUrl ? getImageUrl(r.bannerUrl) : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     logoUrl: r.logoUrl ? getImageUrl(r.logoUrl) : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
     isOpen: r.isOpen ?? true,
     fssaiLicense: r.licenseFssai || r.fssaiLicense || '',
     discountBadge: r.discountBadge || '',
-    latitude: r.latitude ? safeNumber(r.latitude) : 0,
-    longitude: r.longitude ? safeNumber(r.longitude) : 0,
+    latitude: restLat,
+    longitude: restLng,
     foodItems,
   };
 }
