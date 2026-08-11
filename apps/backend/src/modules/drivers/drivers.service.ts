@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../database/prisma.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
 import { UserRole, DriverStatus, VehicleType } from '@prisma/client';
+import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -10,9 +11,9 @@ export class DriversService {
 
   /** Admin direct creation OR Driver self registration */
   async createDriver(dto: CreateDriverDto, isApprovedByAdmin = true) {
-    const phone = dto.phone;
+    const canonicalPhone = normalizeIndianPhone(dto.phone);
     const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ phone }, { email: dto.email || '' }] },
+      where: { OR: [{ phone: canonicalPhone }, { email: dto.email || '' }] },
     });
 
     if (existing) {
@@ -24,7 +25,7 @@ export class DriversService {
 
     const user = await this.prisma.user.create({
       data: {
-        phone,
+        phone: canonicalPhone,
         email: dto.email,
         passwordHash,
         role: UserRole.DELIVERY_PARTNER,

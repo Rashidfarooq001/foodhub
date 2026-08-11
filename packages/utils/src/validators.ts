@@ -1,6 +1,37 @@
+export function normalizeIndianPhone(input: string): string {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Enter a valid 10-digit Indian mobile number.');
+  }
+
+  let cleaned = input.trim().replace(/[\s\-\(\)]/g, '');
+
+  if (cleaned.startsWith('+91')) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.startsWith('+')) {
+    cleaned = cleaned.substring(1);
+  }
+
+  if (cleaned.startsWith('91') && cleaned.length === 12) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = cleaned.substring(1);
+  }
+
+  const indianMobileRegex = /^[6-9]\d{9}$/;
+  if (!indianMobileRegex.test(cleaned)) {
+    throw new Error('Enter a valid 10-digit Indian mobile number.');
+  }
+
+  return cleaned;
+}
+
 export function isValidIndianPhone(phone: string): boolean {
-  const phoneRegex = /^[6-9]\d{9}$/;
-  return phoneRegex.test(phone.replace(/[\s-+]/g, '').slice(-10));
+  try {
+    normalizeIndianPhone(phone);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function isValidFssai(license: string): boolean {

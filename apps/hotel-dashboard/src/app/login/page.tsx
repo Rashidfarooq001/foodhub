@@ -48,9 +48,22 @@ export default function HotelLoginPage() {
       return;
     }
 
-    const payload = cleanIdentity.includes('@')
-      ? { email: cleanIdentity, password, targetRole: 'HOTEL' }
-      : { phone: cleanIdentity, password, targetRole: 'HOTEL' };
+    let payload: any;
+    if (cleanIdentity.includes('@')) {
+      payload = { email: cleanIdentity.toLowerCase(), password, targetRole: 'HOTEL' };
+    } else {
+      const cleanDigits = cleanIdentity.replace(/\D/g, '');
+      const rawDigits = cleanDigits.startsWith('91') && cleanDigits.length === 12
+        ? cleanDigits.substring(2)
+        : cleanDigits;
+
+      if (rawDigits.length !== 10 || !/^[6-9]\d{9}$/.test(rawDigits)) {
+        setError('Enter a valid 10-digit Indian mobile number.');
+        setIsLoading(false);
+        return;
+      }
+      payload = { phone: rawDigits, password, targetRole: 'HOTEL' };
+    }
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
@@ -125,17 +138,24 @@ export default function HotelLoginPage() {
           {/* Registered Phone Number */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              Registered Phone Number
+              Registered Phone Number / Email
             </label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
               <input
                 type="text"
                 required
                 value={identity}
-                onChange={(e) => setIdentity(e.target.value)}
-                placeholder="Enter registered 10-digit mobile (+91...) or email"
-                className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val.includes('@')) {
+                    setIdentity(val.replace(/\D/g, '').slice(0, 10));
+                  } else {
+                    setIdentity(val);
+                  }
+                }}
+                placeholder="7006298759 or email"
+                className="w-full rounded-2xl border border-gray-200 py-3.5 pl-14 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
               />
             </div>
           </div>

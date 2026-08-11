@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
+import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -16,11 +17,7 @@ export class RestaurantsService {
     const rawPassword = dto.password || 'RestaurantPass123!';
     const passwordHash = await bcrypt.hash(rawPassword, 12);
     
-    const cleanDigits = (dto.phone || '').replace(/\D/g, '');
-    const phone = cleanDigits.length >= 10
-      ? (cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`)
-      : dto.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-
+    const canonicalPhone = normalizeIndianPhone(dto.phone);
     const email = (dto.email || `owner_${Date.now()}@foodhub.com`).trim().toLowerCase();
     const ownerName = dto.ownerName || dto.name + ' Owner';
 
@@ -33,6 +30,7 @@ export class RestaurantsService {
         await tx.user.update({
           where: { id: ownerId },
           data: {
+            phone: canonicalPhone,
             role: UserRole.RESTAURANT_OWNER,
             ...(dto.password ? { passwordHash } : {}),
             isVerified: true,
@@ -40,11 +38,11 @@ export class RestaurantsService {
           },
         });
       } else {
-        const phoneFormats: string[] = [phone];
-        if (cleanDigits.length >= 10) {
-          const tenDigits = cleanDigits.slice(-10);
-          phoneFormats.push(tenDigits, `+91${tenDigits}`, `91${tenDigits}`);
-        }
+        const phoneFormats: string[] = [
+          canonicalPhone,
+          `+91${canonicalPhone}`,
+          `91${canonicalPhone}`,
+        ];
         const uniqueFormats = Array.from(new Set(phoneFormats));
 
         const existingUser = await tx.user.findFirst({
@@ -66,7 +64,7 @@ export class RestaurantsService {
           await tx.user.update({
             where: { id: existingUser.id },
             data: {
-              phone,
+              phone: canonicalPhone,
               role: UserRole.RESTAURANT_OWNER,
               ...(dto.password ? { passwordHash } : {}),
               isVerified: true,
@@ -77,7 +75,7 @@ export class RestaurantsService {
           const nameParts = ownerName.split(' ');
           const newUser = await tx.user.create({
             data: {
-              phone,
+              phone: canonicalPhone,
               email,
               passwordHash,
               role: UserRole.RESTAURANT_OWNER,
@@ -119,7 +117,7 @@ export class RestaurantsService {
           ownerId,
           name: dto.name,
           slug,
-          phone: dto.phone || phone,
+          phone: canonicalPhone,
           email: dto.email || email,
           licenseFssai:
             dto.fssaiLicense ||
@@ -193,7 +191,7 @@ export class RestaurantsService {
       return {
         restaurant,
         ownerId,
-        phone,
+        phone: canonicalPhone,
         email,
         generatedPassword: rawPassword,
       };

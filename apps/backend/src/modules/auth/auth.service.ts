@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { normalizeIndianPhone } from '@foodhub/utils';
 import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
 import { SessionService } from '../sessions/session.service';
@@ -581,17 +582,16 @@ export class AuthService {
     }
     const user = await this.usersService.findUserByPhoneOrEmail(input);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials or account disabled');
+      throw new UnauthorizedException('Invalid phone number or password.');
     }
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is disabled. Please contact support.');
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials entered');
+      throw new UnauthorizedException('Invalid phone number or password.');
     }
-
 
     // Portal-specific role enforcement: reject if the caller declared a targetRole
     // that does not match the account's actual role
@@ -620,7 +620,6 @@ export class AuthService {
       }
     }
 
-
     let restaurant: any = null;
     if (
       user.role === UserRole.RESTAURANT_OWNER ||
@@ -636,7 +635,14 @@ export class AuthService {
 
       if (rObj) {
         if (rObj.status === 'PENDING_APPROVAL') {
-          throw new UnauthorizedException('Your restaurant application is currently pending admin approval.');
+          throw new UnauthorizedException('Your restaurant application is pending admin approval.');
+        }
+        if (rObj.status === 'REJECTED') {
+          const reason = rObj.rejectionReason ? `: ${rObj.rejectionReason}` : '';
+          throw new UnauthorizedException(`Your restaurant application was rejected${reason}. Please contact support.`);
+        }
+        if (rObj.status === 'SUSPENDED') {
+          throw new UnauthorizedException('Your restaurant account has been suspended. Please contact support.');
         }
         if (rObj.status === 'REJECTED') {
           throw new UnauthorizedException('Your restaurant registration has not been approved.');
@@ -733,13 +739,8 @@ export class AuthService {
       throw new BadRequestException('Registered phone number is required');
     }
 
-    const cleanDigits = dto.phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
-      throw new BadRequestException('Please enter a valid 10-digit mobile number');
-    }
-    const requestedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
-
-    let phoneToVerify = requestedPhone;
+    const canonicalPhone = normalizeIndianPhone(dto.phone);
+    let phoneToVerify = canonicalPhone;
 
     if (dto.accessToken) {
       const msg91Data = await this.otpService.verifyAccessToken(dto.accessToken);
@@ -760,23 +761,19 @@ export class AuthService {
         throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
       }
 
-      phoneToVerify = rawMobile.startsWith('+')
-        ? rawMobile
-        : rawMobile.length === 10
-        ? `+91${rawMobile}`
-        : `+${rawMobile}`;
+      phoneToVerify = normalizeIndianPhone(rawMobile);
 
-      if (phoneToVerify !== requestedPhone) {
-        this.logger.error(`[Backend ForgotPassword] Phone mismatch! Requested: ${requestedPhone}, Verified by MSG91: ${phoneToVerify}`);
+      if (phoneToVerify !== canonicalPhone) {
+        this.logger.error(`[Backend ForgotPassword] Phone mismatch! Requested: ${canonicalPhone}, Verified by MSG91: ${phoneToVerify}`);
         throw new BadRequestException('MSG91 verified phone does not match requested password reset phone.');
       }
     } else if (dto.otp) {
-      await this.otpService.verifyOtp(requestedPhone, dto.otp);
+      await this.otpService.verifyOtp(canonicalPhone, dto.otp);
     } else {
       throw new BadRequestException('MSG91 access token or OTP code is required');
     }
 
-    const user = await this.usersService.findUserByPhone(phoneToVerify);
+    const user = await this.usersService.findUserByPhone(canonicalPhone);
     if (!user || !user.isActive) {
       throw new BadRequestException('No active user account found for this phone number');
     }

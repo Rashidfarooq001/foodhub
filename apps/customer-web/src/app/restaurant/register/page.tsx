@@ -76,12 +76,24 @@ export default function RestaurantRegisterPage() {
     setIsSubmitting(true);
     setError('');
 
+    const cleanDigits = form.phone.replace(/\D/g, '');
+    const rawDigits = cleanDigits.startsWith('91') && cleanDigits.length === 12
+      ? cleanDigits.substring(2)
+      : cleanDigits;
+
+    if (rawDigits.length !== 10 || !/^[6-9]\d{9}$/.test(rawDigits)) {
+      setError('Enter a valid 10-digit Indian mobile number.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          phone: rawDigits,
           cuisines: form.cuisines.split(',').map((c) => c.trim()),
         }),
       });
@@ -172,16 +184,23 @@ export default function RestaurantRegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Mobile Phone *</label>
-              <input
-                type="tel"
-                name="phone"
-                required
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="+919876543210"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-              />
+              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Mobile Number *</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+                <input
+                  type="tel"
+                  name="phone"
+                  required
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm((prev) => ({ ...prev, phone: clean }));
+                  }}
+                  placeholder="7006298759"
+                  className="w-full rounded-2xl border border-gray-200 py-2.5 pl-14 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Owner Email Address *</label>

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../database/prisma.service';
 import { UserRole } from '@prisma/client';
 import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
+import { normalizeIndianPhone } from '@foodhub/utils';
 
 @Injectable()
 export class UsersService {
@@ -18,23 +19,22 @@ export class UsersService {
       });
     }
 
-    const cleanDigits = cleanInput.replace(/\D/g, '');
-    const phoneFormats: string[] = [cleanInput];
-
-    if (cleanDigits.length >= 10) {
-      const tenDigits = cleanDigits.slice(-10);
-      phoneFormats.push(
-        tenDigits,
-        `+91${tenDigits}`,
-        `91${tenDigits}`,
-      );
+    let canonicalPhone: string;
+    try {
+      canonicalPhone = normalizeIndianPhone(cleanInput);
+    } catch {
+      return null;
     }
 
-    const uniqueFormats = Array.from(new Set(phoneFormats));
+    const formatsToMatch = [
+      canonicalPhone,
+      `+91${canonicalPhone}`,
+      `91${canonicalPhone}`,
+    ];
 
     return this.prisma.user.findFirst({
       where: {
-        OR: uniqueFormats.map((p) => ({ phone: p })),
+        OR: formatsToMatch.map((p) => ({ phone: p })),
       },
       include: { profile: true, restaurantStaff: { include: { restaurant: true } } },
     });
@@ -43,7 +43,6 @@ export class UsersService {
   async findUserByPhoneOrEmail(input: string) {
     return this.findUserByPhone(input);
   }
-
 
   async findUserById(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -59,6 +58,8 @@ export class UsersService {
   }
 
   async createUser(phone: string, passwordHash: string, role: UserRole = UserRole.CUSTOMER) {
+    const canonicalPhone = normalizeIndianPhone(phone);
+
     if (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) {
       const existingAdminCount = await this.prisma.user.count({
         where: { OR: [{ role: UserRole.ADMIN }, { role: UserRole.SUPER_ADMIN }] },
@@ -70,14 +71,14 @@ export class UsersService {
 
     return this.prisma.user.create({
       data: {
-        phone,
+        phone: canonicalPhone,
         passwordHash,
         role,
         isVerified: true,
         profile: {
           create: {
             firstName: 'Customer',
-            lastName: phone.slice(-4),
+            lastName: canonicalPhone.slice(-4),
           },
         },
       },

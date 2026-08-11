@@ -148,15 +148,22 @@ export default function DriverRegisterPage() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                required
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="+919876543210"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
-              />
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+                <input
+                  type="tel"
+                  name="phone"
+                  required
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm((prev) => ({ ...prev, phone: clean }));
+                  }}
+                  placeholder="7006298759"
+                  className="w-full rounded-2xl border border-gray-200 py-2.5 pl-14 pr-4 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
