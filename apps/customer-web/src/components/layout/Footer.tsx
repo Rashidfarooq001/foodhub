@@ -32,14 +32,12 @@ export const Footer: React.FC = () => {
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm mb-6">
           <Link href="/support" className="hover:text-orange-400 transition">Help</Link>
           <Link href="/support" className="hover:text-orange-400 transition">Contact</Link>
-          <a
-            href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'https://foodhub-hotel-dashboard.vercel.app'}/partner/register`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/partner"
             className="font-bold text-orange-400 hover:text-orange-300 transition"
           >
             Become a Partner
-          </a>
+          </Link>
           <a href="#" className="hover:text-orange-400 transition">Privacy</a>
           <a href="#" className="hover:text-orange-400 transition">Terms</a>
         </div>

@@ -18,6 +18,23 @@ const PUBLIC_ROUTES = [
 
 export function DeliveryAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublicRoute =
+    !activePath ||
+    activePath === '' ||
+    PUBLIC_ROUTES.some(
+      (route) => activePath === route || activePath.startsWith(route),
+    );
+
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT DeliveryLayout / Session Timeout / Loading Shell
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
+  }
+
+  return <ProtectedDeliveryAuthWrapper activePath={activePath}>{children}</ProtectedDeliveryAuthWrapper>;
+}
+
+function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
   const router = useRouter();
   const { isAuthenticated, accessToken, logout, updateUser } = useDeliveryAuthStore();
 
@@ -69,19 +86,6 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
       .catch(() => {});
     return () => { alive = false; };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
-
-  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute =
-    !activePath ||
-    activePath === '' ||
-    PUBLIC_ROUTES.some(
-      (route) => activePath === route || activePath.startsWith(route),
-    );
-
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT DeliveryLayout / Sidebar / Header / Loading Shell
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
-  }
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted || !hydrated) {

@@ -17,6 +17,23 @@ const PUBLIC_ROUTES = [
 
 export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublicRoute =
+    !activePath ||
+    activePath === '' ||
+    PUBLIC_ROUTES.some(
+      (route) => activePath === route || activePath.startsWith(route),
+    );
+
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Session Timeout / Loading Shell
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
+  }
+
+  return <ProtectedAdminAuthWrapper activePath={activePath}>{children}</ProtectedAdminAuthWrapper>;
+}
+
+function ProtectedAdminAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
   const router = useRouter();
   const { isAuthenticated, accessToken, logout, updateUser } = useAdminAuthStore();
 
@@ -76,19 +93,6 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
       isMounted = false;
     };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
-
-  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute =
-    !activePath ||
-    activePath === '' ||
-    PUBLIC_ROUTES.some(
-      (route) => activePath === route || activePath.startsWith(route),
-    );
-
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Sidebar / Header / Loading Shell
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
-  }
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted || !hydrated) {

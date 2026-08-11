@@ -20,6 +20,23 @@ const PUBLIC_ROUTES = [
 
 export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublicRoute =
+    !activePath ||
+    activePath === '' ||
+    PUBLIC_ROUTES.some(
+      (route) => activePath === route || activePath.startsWith(route),
+    );
+
+  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout, Session Timeout, or Auth Restoration
+  if (isPublicRoute) {
+    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
+  }
+
+  return <ProtectedHotelAuthWrapper activePath={activePath}>{children}</ProtectedHotelAuthWrapper>;
+}
+
+function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
   const router = useRouter();
   const { isAuthenticated, user, accessToken, logout, updateUser } = useHotelAuthStore();
 
@@ -78,22 +95,9 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     return () => { alive = false; };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
-  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute =
-    !activePath ||
-    activePath === '' ||
-    PUBLIC_ROUTES.some(
-      (route) => activePath === route || activePath.startsWith(route),
-    );
-
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout / Sidebar / Header / Loading Shell
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
-  }
-
   // Fetch latest restaurant approval status when user is authenticated on protected route
   useEffect(() => {
-    if (!isAuthenticated || !user || !mounted || isPublicRoute) return;
+    if (!isAuthenticated || !user || !mounted) return;
 
     let isMounted = true;
     const fetchStatus = async () => {
@@ -117,7 +121,7 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, user, accessToken, mounted, pathname, isPublicRoute]);
+  }, [isAuthenticated, user, accessToken, mounted]);
 
   // Initial Auth Loading State (Clean screen, NO sidebar flash)
   if (!mounted || !hydrated) {
