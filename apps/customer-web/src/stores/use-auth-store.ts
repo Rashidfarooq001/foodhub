@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { isAuthEnabled } from '@foodhub/config';
 import { useCartStore } from './use-cart-store';
+import { useAddressStore } from './use-address-store';
 
 export interface UserProfile {
   id: string;
@@ -61,11 +62,13 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem('foodhub-customer-auth');
           localStorage.removeItem('foodhub-customer-cart');
           localStorage.removeItem('foodhub-cart-storage');
+          localStorage.removeItem('foodhub-customer-addresses');
           localStorage.removeItem('foodhub-customer-address');
           sessionStorage.clear();
         }
         try {
           useCartStore.getState().clearCart();
+          useAddressStore.getState().clearAddresses();
         } catch {
           /* ignore */
         }

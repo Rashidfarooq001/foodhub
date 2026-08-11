@@ -231,7 +231,7 @@ export default function CheckoutPage() {
         }
 
         const newCreatedAddr: CustomerAddressItem = {
-          id: `addr-gps-${Date.now()}`,
+          id: 'current-location',
           label: 'Current Location',
           addressLine1: reverseArea,
           addressLine2: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
         };
 
         addAddress(newCreatedAddr);
-        setSelectedAddress(newCreatedAddr.id);
+        setSelectedAddress('current-location');
         setIsLocatingUser(false);
         setLocationStatusMsg(null);
       },

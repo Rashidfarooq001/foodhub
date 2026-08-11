@@ -42,10 +42,18 @@ export const useAddressStore = create<AddressState>()(
 
       addAddress: (newAddr) =>
         set((state) => {
-          const id = (newAddr as any).id || `addr-${Date.now()}`;
-          const item = { ...newAddr, id };
+          const rawId = (newAddr as any).id;
+          const isCurrentLoc = rawId === 'current-location' || newAddr.label === 'Current Location';
+          const id = isCurrentLoc ? 'current-location' : (rawId || `addr-${Date.now()}`);
+          const item: CustomerAddressItem = { ...newAddr, id, label: isCurrentLoc ? 'Current Location' : newAddr.label };
+
+          // Filter out existing address with same ID or same Current Location label to prevent duplicates
+          const filtered = state.addresses.filter(
+            (a) => a.id !== id && !(isCurrentLoc && a.label === 'Current Location'),
+          );
+
           return {
-            addresses: [...state.addresses.filter((a) => a.id !== id), item],
+            addresses: [...filtered, item],
             selectedAddressId: id,
           };
         }),
