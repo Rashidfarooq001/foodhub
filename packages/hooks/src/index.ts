@@ -1,12 +1,12 @@
 'use client';
 
-export * from './use-theme';
-export * from './use-local-storage';
-export * from './use-debounce';
-export * from './use-media-query';
-export * from './use-pagination';
-export * from './use-infinite-scroll';
-export * from './use-modal';
-export * from './use-disclosure';
-export * from './use-msg91-widget';
-export * from './use-session-timeout';
+export * from './use-theme.js';
+export * from './use-local-storage.js';
+export * from './use-debounce.js';
+export * from './use-media-query.js';
+export * from './use-pagination.js';
+export * from './use-infinite-scroll.js';
+export * from './use-modal.js';
+export * from './use-disclosure.js';
+export * from './use-msg91-widget.js';
+export * from './use-session-timeout.js';
