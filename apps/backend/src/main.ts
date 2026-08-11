@@ -17,10 +17,11 @@ async function bootstrap() {
   // Logger
   app.useLogger(app.get(Logger));
 
-  // Security
+  // Security (Allow cross-origin image loading for Vercel frontends)
   app.use(
     helmet({
-      contentSecurityPolicy: process.env.NODE_ENV === 'production',
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
       crossOriginEmbedderPolicy: false,
     }),
   );
@@ -34,6 +35,7 @@ async function bootstrap() {
     setHeaders: (res: any) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('Cache-Control', 'public, max-age=86400');
     },
   };
