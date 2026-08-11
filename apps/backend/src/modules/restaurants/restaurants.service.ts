@@ -118,17 +118,15 @@ export class RestaurantsService {
           name: dto.name,
           slug,
           phone: canonicalPhone,
-          email: dto.email || email,
           licenseFssai:
             dto.fssaiLicense ||
             `FSSAI-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           gstin:
             dto.gstin ||
             `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          addressLine:
-            fullAddress || dto.address || 'Bengaluru, India',
-          latitude: dto.latitude || 12.9716,
-          longitude: dto.longitude || 77.5946,
+          addressLine: fullAddress || dto.address || 'Location Pending',
+          latitude: typeof dto.latitude === 'number' && !isNaN(dto.latitude) ? dto.latitude : 0,
+          longitude: typeof dto.longitude === 'number' && !isNaN(dto.longitude) ? dto.longitude : 0,
           bannerUrl: dto.bannerUrl || dto.logoUrl,
           menuUrl: dto.menuUrl,
           fssaiUrl: dto.fssaiUrl,

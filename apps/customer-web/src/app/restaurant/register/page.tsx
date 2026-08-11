@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, FileText, Image as ImageIcon } from 'lucide-react';
+import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, FileText, Image as ImageIcon, Navigation } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
@@ -52,10 +52,12 @@ export default function RestaurantRegisterPage() {
     bannerUrl: '',
     promoVideoUrl: '',
     address: '',
-    city: 'Bengaluru',
-    state: 'Karnataka',
+    city: '',
+    state: '',
     country: 'India',
-    pin: '560038',
+    pin: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     cuisines: 'North Indian, Biryani',
     bankName: '',
     accountNumber: '',
@@ -66,6 +68,62 @@ export default function RestaurantRegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [isLocatingOwner, setIsLocatingOwner] = useState(false);
+  const [locationStatusMsg, setLocationStatusMsg] = useState<string | null>(null);
+
+  const handleGetOwnerLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatusMsg('Geolocation is not supported by your browser device. Please enter address manually.');
+      return;
+    }
+
+    setIsLocatingOwner(true);
+    setLocationStatusMsg('Acquiring real-time GPS coordinates...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        setForm((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+        }));
+
+        try {
+          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.address) {
+              const detectedCity = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.county || geoData.address.state_district || '';
+              const detectedState = geoData.address.state || '';
+              const detectedPin = geoData.address.postcode || '';
+              const detectedRoad = geoData.address.suburb || geoData.address.neighbourhood || geoData.address.road || '';
+
+              setForm((prev) => ({
+                ...prev,
+                city: detectedCity || prev.city,
+                state: detectedState || prev.state,
+                pin: detectedPin || prev.pin,
+                address: detectedRoad ? `${detectedRoad}, ${detectedCity}` : prev.address,
+              }));
+            }
+          }
+        } catch {
+          /* geocode fallback */
+        }
+
+        setIsLocatingOwner(false);
+        setLocationStatusMsg(`GPS Location captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      },
+      (err) => {
+        setIsLocatingOwner(false);
+        setLocationStatusMsg('Location permission denied or unavailable. Please enable location or enter address manually.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -292,10 +350,115 @@ export default function RestaurantRegisterPage() {
           </div>
         </div>
 
-        {/* Step 3: Restaurant Media & Brand Assets */}
+        {/* Step 3: Store Physical Location & GPS Geolocation */}
+        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center gap-2 text-base font-bold text-gray-900">
+              <MapPin className="h-5 w-5 text-orange-600" /> 3. Store Physical Location &amp; GPS Coordinates
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGetOwnerLocation}
+              disabled={isLocatingOwner}
+              className="flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 disabled:opacity-50 transition"
+            >
+              <Navigation className={`h-3.5 w-3.5 ${isLocatingOwner ? 'animate-spin' : ''}`} />
+              <span>{isLocatingOwner ? 'Locating...' : 'Use Current Location'}</span>
+            </button>
+          </div>
+
+          {locationStatusMsg && (
+            <div className={`rounded-2xl p-3 text-xs font-bold border ${
+              locationStatusMsg.includes('captured')
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-amber-50 text-amber-900 border-amber-200'
+            }`}>
+              ℹ️ {locationStatusMsg}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-gray-700 mb-1">Full Street Address *</label>
+              <input
+                type="text"
+                name="address"
+                required
+                value={form.address}
+                onChange={handleChange}
+                placeholder="Door No, Street Name, Area / Locality"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">City / Area *</label>
+              <input
+                type="text"
+                name="city"
+                required
+                value={form.city}
+                onChange={handleChange}
+                placeholder="Sopore / Srinagar / City Name"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">State / PIN Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  placeholder="State"
+                  className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+                <input
+                  type="text"
+                  name="pin"
+                  value={form.pin}
+                  onChange={handleChange}
+                  placeholder="PIN Code"
+                  className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">GPS Latitude Coordinate</label>
+              <input
+                type="number"
+                step="any"
+                name="latitude"
+                value={form.latitude ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, latitude: parseFloat(e.target.value) || null }))}
+                placeholder="e.g. 34.3868"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-mono font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">GPS Longitude Coordinate</label>
+              <input
+                type="number"
+                step="any"
+                name="longitude"
+                value={form.longitude ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, longitude: parseFloat(e.target.value) || null }))}
+                placeholder="e.g. 74.5221"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-mono font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 4: Restaurant Media & Brand Assets */}
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <ImageIcon className="h-5 w-5 text-orange-600" /> 3. Store Brand Assets &amp; Promotional Video
+            <ImageIcon className="h-5 w-5 text-orange-600" /> 4. Store Brand Assets &amp; Promotional Video
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <MediaUploader
