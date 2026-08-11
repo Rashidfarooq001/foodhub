@@ -6,8 +6,8 @@ import { Store, Bike, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react
 import { getApiBaseUrl, getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export default function PartnerLandingPage() {
-  const hotelRegUrl = `${getHotelDashboardUrl()}/partner/register`;
-  const deliveryRegUrl = `${getDeliveryDashboardUrl()}/partner/register`;
+  const hotelRegUrl = '/restaurant/register';
+  const deliveryRegUrl = '/driver/register';
 
   return (
     <div className="min-h-screen bg-gray-900 px-4 py-16 text-white flex flex-col items-center justify-center">

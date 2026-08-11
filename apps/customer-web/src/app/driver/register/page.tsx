@@ -96,7 +96,7 @@ export default function DriverRegisterPage() {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-900 space-y-2">
           <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
           <p className="text-xs text-emerald-700">
-            Thank you for applying as a FoodHub Courier Partner. Our operations team will verify your license and vehicle details. Once approved, you can log in to your Delivery Partner App.
+            Thank you for registering with FoodHub. Our team will review your application and reach you within 24 hours.
           </p>
         </div>
         <Link
