@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UtensilsCrossed, Lock, Phone, ArrowRight, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
@@ -19,6 +19,17 @@ export default function HotelLoginPage() {
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpiredSession, setIsExpiredSession] = useState(false);
+
+  // Safely check query params after hydration to prevent Next.js SSR hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setIsExpiredSession(true);
+      }
+    }
+  }, []);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +107,7 @@ export default function HotelLoginPage() {
         </div>
 
         {/* Session Expired Banner */}
-        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+        {isExpiredSession && (
           <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
             ⚠️ Your session has expired. Please log in again.
           </div>

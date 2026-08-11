@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Lock, ArrowRight, AlertCircle, HelpCircle, KeyRound, CheckCircle2, Calendar, UserCheck } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
@@ -34,6 +34,16 @@ export default function AdminLoginPage() {
   // Feedback State
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpiredSession, setIsExpiredSession] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setIsExpiredSession(true);
+      }
+    }
+  }, []);
 
   // 1. Handle Admin Two-Password Login
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -227,7 +237,7 @@ export default function AdminLoginPage() {
               </p>
             </div>
 
-            {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+            {isExpiredSession && (
               <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
                 ⚠️ Your session has expired. Please log in again.
               </div>

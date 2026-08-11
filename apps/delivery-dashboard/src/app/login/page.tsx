@@ -24,6 +24,16 @@ export default function DeliveryLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [isExpiredSession, setIsExpiredSession] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setIsExpiredSession(true);
+      }
+    }
+  }, []);
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -241,7 +251,7 @@ export default function DeliveryLoginPage() {
         </div>
 
         {/* Session Expired Banner */}
-        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
+        {isExpiredSession && (
           <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
             ⚠️ Your session has expired. Please log in again.
           </div>
