@@ -104,9 +104,6 @@ export default function HotelLoginPage() {
           <p className="text-xs text-gray-500 font-medium">
             Sign in to manage kitchen orders, KDS &amp; menus
           </p>
-          <div className="rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-[10px] font-mono font-bold text-orange-700 text-center">
-            FOODHUB BUILD TEST: 716ea42 (VERCEL PRODUCTION MARKER)
-          </div>
         </div>
 
         {/* Session Expired Banner */}
