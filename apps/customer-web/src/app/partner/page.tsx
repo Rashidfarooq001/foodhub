@@ -3,16 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { Store, Bike, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export default function PartnerLandingPage() {
-  const hotelRegUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL
-    ? `${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL}/partner/register`
-    : '/restaurant/register';
-
-  const deliveryRegUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL
-    ? `${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL}/partner/register`
-    : '/driver/register';
+  const hotelRegUrl = `${getHotelDashboardUrl()}/partner/register`;
+  const deliveryRegUrl = `${getDeliveryDashboardUrl()}/partner/register`;
 
   return (
     <div className="min-h-screen bg-gray-900 px-4 py-16 text-white flex flex-col items-center justify-center">

@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Sparkles, Building2, ShieldCheck, PhoneCall, Mail } from 'lucide-react';
+import { getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export const PartnerFooter: React.FC = () => {
   return (
@@ -28,8 +29,8 @@ export const PartnerFooter: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li><Link href="/restaurant/register" className="hover:text-orange-400">Restaurant Registration</Link></li>
               <li><Link href="/driver/register" className="hover:text-orange-400">Courier Fleet Registration</Link></li>
-              <li><a href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'http://localhost:3001'}/login`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Merchant Login</a></li>
-              <li><a href={`${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL || 'http://localhost:3002'}/login`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Courier Login</a></li>
+              <li><a href={`${getHotelDashboardUrl()}/login`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Merchant Login</a></li>
+              <li><a href={`${getDeliveryDashboardUrl()}/login`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-400">Courier Login</a></li>
             </ul>
           </div>
 

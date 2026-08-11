@@ -223,7 +223,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Reset OTP dispatched' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const input = (dto.phone || dto.email || '').trim();
-    return this.authService.forgotPassword(input);
+    return this.authService.forgotPassword(input, dto.targetRole);
   }
 
   @Public()

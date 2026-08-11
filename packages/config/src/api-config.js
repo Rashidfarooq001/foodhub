@@ -9,6 +9,9 @@ exports.API_CONFIG = void 0;
 exports.getApiBaseUrl = getApiBaseUrl;
 exports.getWsBaseUrl = getWsBaseUrl;
 exports.getImageUrl = getImageUrl;
+exports.getHotelDashboardUrl = getHotelDashboardUrl;
+exports.getDeliveryDashboardUrl = getDeliveryDashboardUrl;
+exports.getAdminDashboardUrl = getAdminDashboardUrl;
 function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
     let url;
@@ -86,11 +89,50 @@ function getImageUrl(url) {
     // Fallback relative path
     return `${serverOrigin}/${cleanUrl.replace(/^\/+/, '')}`;
 }
+function getHotelDashboardUrl() {
+    const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
+    if (envUrl && envUrl.trim())
+        return envUrl.trim().replace(/\/+$/, '');
+    if (typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:3001';
+    }
+    return 'https://foodhub-hotel-dashboard.vercel.app';
+}
+function getDeliveryDashboardUrl() {
+    const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
+    if (envUrl && envUrl.trim())
+        return envUrl.trim().replace(/\/+$/, '');
+    if (typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:3002';
+    }
+    return 'https://foodhub-delivery-dashboard.vercel.app';
+}
+function getAdminDashboardUrl() {
+    const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
+    if (envUrl && envUrl.trim())
+        return envUrl.trim().replace(/\/+$/, '');
+    if (typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:3003';
+    }
+    return 'https://foodhub-admin-dashboard.vercel.app';
+}
 exports.API_CONFIG = {
     get baseUrl() {
         return getApiBaseUrl();
     },
     get wsUrl() {
         return getWsBaseUrl();
+    },
+    get hotelDashboardUrl() {
+        return getHotelDashboardUrl();
+    },
+    get deliveryDashboardUrl() {
+        return getDeliveryDashboardUrl();
+    },
+    get adminDashboardUrl() {
+        return getAdminDashboardUrl();
     },
 };

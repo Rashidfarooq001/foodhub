@@ -11,4 +11,9 @@ export class ForgotPasswordDto {
   @IsOptional()
   @IsString()
   email?: string;
+
+  @ApiPropertyOptional({ example: 'HOTEL', description: 'Target portal role (HOTEL, DELIVERY, CUSTOMER)' })
+  @IsOptional()
+  @IsString()
+  targetRole?: string;
 }

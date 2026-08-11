@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Sparkles, Building2, Bike, HelpCircle, LogIn, ChevronDown } from 'lucide-react';
+import { getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export const PartnerHeader: React.FC = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -54,7 +55,7 @@ export const PartnerHeader: React.FC = () => {
                 </div>
                 <div className="py-1 space-y-1">
                   <a
-                    href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'http://localhost:3001'}/login`}
+                    href={`${getHotelDashboardUrl()}/login`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 hover:bg-orange-50 hover:text-orange-600"
@@ -66,7 +67,7 @@ export const PartnerHeader: React.FC = () => {
                     </div>
                   </a>
                   <a
-                    href={`${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL || 'http://localhost:3002'}/login`}
+                    href={`${getDeliveryDashboardUrl()}/login`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 hover:bg-emerald-50 hover:text-emerald-600"

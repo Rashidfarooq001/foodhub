@@ -689,7 +689,7 @@ export class AuthService {
     return this.tokenService.rotateRefreshToken(refreshToken);
   }
 
-  async forgotPassword(input: string) {
+  async forgotPassword(input: string, targetRole?: string) {
     const rawInput = (input || '').trim();
     if (!rawInput) {
       throw new BadRequestException('Phone number or email is required');
@@ -698,6 +698,24 @@ export class AuthService {
     if (!user || !user.isActive) {
       // Security standard: generic success response to prevent account enumeration
       return { message: 'If registered, password reset OTP instructions have been sent.' };
+    }
+
+    if (targetRole) {
+      const normalizedTarget = targetRole.toUpperCase().trim();
+      if (normalizedTarget === 'HOTEL') {
+        const allowedHotelRoles: string[] = [
+          UserRole.RESTAURANT_OWNER,
+          UserRole.RESTAURANT_MANAGER,
+          UserRole.RESTAURANT_STAFF,
+        ];
+        if (!allowedHotelRoles.includes(user.role)) {
+          throw new UnauthorizedException('No authorized restaurant account found for this phone number.');
+        }
+      } else if (normalizedTarget === 'DELIVERY') {
+        if (user.role !== UserRole.DELIVERY_PARTNER) {
+          throw new UnauthorizedException('No authorized delivery partner account found for this phone number.');
+        }
+      }
     }
 
     // Trigger OTP sending

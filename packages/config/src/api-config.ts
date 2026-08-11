@@ -104,12 +104,60 @@ export function getImageUrl(url?: string | null): string {
 }
 
 
+export function getHotelDashboardUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
+  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://localhost:3001';
+  }
+  return 'https://foodhub-hotel-dashboard.vercel.app';
+}
+
+export function getDeliveryDashboardUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
+  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://localhost:3002';
+  }
+  return 'https://foodhub-delivery-dashboard.vercel.app';
+}
+
+export function getAdminDashboardUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
+  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://localhost:3003';
+  }
+  return 'https://foodhub-admin-dashboard.vercel.app';
+}
+
 export const API_CONFIG = {
   get baseUrl(): string {
     return getApiBaseUrl();
   },
   get wsUrl(): string {
     return getWsBaseUrl();
+  },
+  get hotelDashboardUrl(): string {
+    return getHotelDashboardUrl();
+  },
+  get deliveryDashboardUrl(): string {
+    return getDeliveryDashboardUrl();
+  },
+  get adminDashboardUrl(): string {
+    return getAdminDashboardUrl();
   },
 };
 
