@@ -20,19 +20,37 @@ export class StorageService {
       throw new BadRequestException('No file uploaded');
     }
 
-    const imageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    const videoMimes = ['video/mp4', 'video/quicktime', 'video/webm'];
+    const imageMimes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/jpg',
+      'image/pjpeg',
+      'image/x-png',
+      'image/gif',
+      'application/octet-stream',
+    ];
+    const videoMimes = [
+      'video/mp4',
+      'video/quicktime',
+      'video/webm',
+      'video/x-matroska',
+      'video/avi',
+      'video/mpeg',
+      'video/3gpp',
+      'application/octet-stream',
+    ];
 
-    if (acceptType === 'image' && !imageMimes.includes(file.mimetype)) {
+    if (acceptType === 'image' && !imageMimes.includes(file.mimetype) && !file.mimetype.startsWith('image/')) {
       throw new BadRequestException('Invalid image format. Allowed formats: JPG, JPEG, PNG, WEBP');
     }
 
-    if (acceptType === 'video' && !videoMimes.includes(file.mimetype)) {
+    if (acceptType === 'video' && !videoMimes.includes(file.mimetype) && !file.mimetype.startsWith('video/')) {
       throw new BadRequestException('Invalid video format. Allowed formats: MP4, MOV, WEBM');
     }
 
-    const isVideo = videoMimes.includes(file.mimetype);
-    const maxSize = isVideo ? 100 * 1024 * 1024 : 5 * 1024 * 1024;
+    const isVideo = acceptType === 'video' || file.mimetype.startsWith('video/');
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
 
     if (file.size > maxSize) {
       const sizeMb = (maxSize / (1024 * 1024)).toFixed(0);

@@ -76,11 +76,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         onChange(data.url);
       } else {
         const errData = await res.json().catch(() => ({}));
-        setError(errData.message || 'File upload failed. Please try again.');
+        setError(errData.message || 'File upload failed. Please check format and file size.');
         setPreviewUrl(null);
       }
-    } catch {
-      setError('Network error uploading file. Ensure backend is running.');
+    } catch (err: any) {
+      console.error('[MediaUploader] Upload request failed:', err);
+      setError(err?.message ? `Upload failed: ${err.message}` : 'Network error uploading file. Please try again.');
       setPreviewUrl(null);
     } finally {
       setIsUploading(false);

@@ -173,4 +173,9 @@ export class CreateRestaurantDto {
   @IsString()
   @IsOptional()
   panNumber?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/videos/promo.mp4' })
+  @IsString()
+  @IsOptional()
+  promoVideoUrl?: string;
 }
