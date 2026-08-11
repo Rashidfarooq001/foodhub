@@ -14,24 +14,22 @@ exports.getDeliveryDashboardUrl = getDeliveryDashboardUrl;
 exports.getAdminDashboardUrl = getAdminDashboardUrl;
 function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
-    let url;
-    if (envUrl) {
-        url = envUrl.trim().replace(/\/+$/, '');
+    if (envUrl &&
+        envUrl.trim() &&
+        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
+        let url = envUrl.trim().replace(/\/+$/, '');
+        url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
+        if (!url.endsWith('/api/v1')) {
+            url = `${url}/api/v1`;
+        }
+        return url;
     }
-    else if (typeof window !== 'undefined' &&
+    if (process.env.NODE_ENV !== 'production' &&
+        typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        url = 'http://localhost:4000/api/v1';
+        return 'http://localhost:4000/api/v1';
     }
-    else {
-        url = 'https://foodhub-backend-enq2.onrender.com/api/v1';
-    }
-    // Collapse any repeated /api/v1 suffixes in env var settings down to a single /api/v1
-    url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
-    // Ensure base URL ends with /api/v1 exactly once
-    if (!url.endsWith('/api/v1')) {
-        url = `${url}/api/v1`;
-    }
-    return url;
+    return 'https://foodhub-backend-enq2.onrender.com/api/v1';
 }
 function getWsBaseUrl() {
     const envWsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.PUBLIC_WS_URL;
@@ -61,7 +59,8 @@ function getImageUrl(url) {
     const serverOrigin = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
     // Handle any upload URL (localhost or production domain) when running in local development environment
     if (cleanUrl.includes('/uploads/')) {
-        if (typeof window !== 'undefined' &&
+        if (process.env.NODE_ENV !== 'production' &&
+            typeof window !== 'undefined' &&
             (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             const match = cleanUrl.match(/\/uploads\/(.+)$/);
             if (match && match[1]) {
@@ -91,9 +90,13 @@ function getImageUrl(url) {
 }
 function getHotelDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
-    if (envUrl && envUrl.trim())
+    if (envUrl &&
+        envUrl.trim() &&
+        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
-    if (typeof window !== 'undefined' &&
+    }
+    if (process.env.NODE_ENV !== 'production' &&
+        typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         return 'http://localhost:3001';
     }
@@ -101,9 +104,13 @@ function getHotelDashboardUrl() {
 }
 function getDeliveryDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
-    if (envUrl && envUrl.trim())
+    if (envUrl &&
+        envUrl.trim() &&
+        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
-    if (typeof window !== 'undefined' &&
+    }
+    if (process.env.NODE_ENV !== 'production' &&
+        typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         return 'http://localhost:3002';
     }
@@ -111,9 +118,13 @@ function getDeliveryDashboardUrl() {
 }
 function getAdminDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
-    if (envUrl && envUrl.trim())
+    if (envUrl &&
+        envUrl.trim() &&
+        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
-    if (typeof window !== 'undefined' &&
+    }
+    if (process.env.NODE_ENV !== 'production' &&
+        typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         return 'http://localhost:3003';
     }

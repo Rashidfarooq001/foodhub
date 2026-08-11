@@ -7,27 +7,28 @@
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
 
-  let url: string;
-  if (envUrl) {
-    url = envUrl.trim().replace(/\/+$/, '');
-  } else if (
+  if (
+    envUrl &&
+    envUrl.trim() &&
+    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+  ) {
+    let url = envUrl.trim().replace(/\/+$/, '');
+    url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
+    if (!url.endsWith('/api/v1')) {
+      url = `${url}/api/v1`;
+    }
+    return url;
+  }
+
+  if (
+    process.env.NODE_ENV !== 'production' &&
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ) {
-    url = 'http://localhost:4000/api/v1';
-  } else {
-    url = 'https://foodhub-backend-enq2.onrender.com/api/v1';
+    return 'http://localhost:4000/api/v1';
   }
 
-  // Collapse any repeated /api/v1 suffixes in env var settings down to a single /api/v1
-  url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
-
-  // Ensure base URL ends with /api/v1 exactly once
-  if (!url.endsWith('/api/v1')) {
-    url = `${url}/api/v1`;
-  }
-
-  return url;
+  return 'https://foodhub-backend-enq2.onrender.com/api/v1';
 }
 
 export function getWsBaseUrl(): string {
@@ -67,6 +68,7 @@ export function getImageUrl(url?: string | null): string {
   // Handle any upload URL (localhost or production domain) when running in local development environment
   if (cleanUrl.includes('/uploads/')) {
     if (
+      process.env.NODE_ENV !== 'production' &&
       typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ) {
@@ -106,9 +108,16 @@ export function getImageUrl(url?: string | null): string {
 
 export function getHotelDashboardUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
-  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+  if (
+    envUrl &&
+    envUrl.trim() &&
+    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+  ) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
 
   if (
+    process.env.NODE_ENV !== 'production' &&
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ) {
@@ -119,9 +128,16 @@ export function getHotelDashboardUrl(): string {
 
 export function getDeliveryDashboardUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
-  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+  if (
+    envUrl &&
+    envUrl.trim() &&
+    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+  ) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
 
   if (
+    process.env.NODE_ENV !== 'production' &&
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ) {
@@ -132,9 +148,16 @@ export function getDeliveryDashboardUrl(): string {
 
 export function getAdminDashboardUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
-  if (envUrl && envUrl.trim()) return envUrl.trim().replace(/\/+$/, '');
+  if (
+    envUrl &&
+    envUrl.trim() &&
+    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+  ) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
 
   if (
+    process.env.NODE_ENV !== 'production' &&
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ) {
