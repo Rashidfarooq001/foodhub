@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, CheckCircle2, MessageSquare } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
 function StarRating({
   label,
@@ -61,59 +62,83 @@ export default function OrderReviewPage() {
     }
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://foodhub-backend-enq2.onrender.com/api/v1';
+      const apiBase = getApiBaseUrl();
       const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+
+      if (!token) {
+        alert('Please log in to submit a review.');
+        setSubmitting(false);
+        return;
+      }
 
       // 1. Fetch order details to retrieve restaurantId and driverId
       const orderRes = await fetch(`${apiBase}/orders/${params.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (orderRes.ok) {
-        const order = await orderRes.json();
-        const restaurantId = order?.restaurantId || order?.restaurant?.id;
-        const driverId = order?.assignedFoodhubDriverId || order?.assignedRestaurantDriverId || order?.driver?.id;
+      if (!orderRes.ok) {
+        const errData = await orderRes.json().catch(() => ({}));
+        alert(errData.message || 'Unable to retrieve order details for review.');
+        setSubmitting(false);
+        return;
+      }
 
-        // 2. Submit Restaurant Review
-        if (restaurantId) {
-          await fetch(`${apiBase}/reviews/restaurant`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              orderId: params.id,
-              restaurantId,
-              rating: restaurantRating,
-              comment: restaurantComment || undefined,
-              isAnonymous,
-            }),
-          }).catch(() => {});
-        }
+      const order = await orderRes.json();
+      const restaurantId = order?.restaurantId || order?.restaurant?.id;
+      const driverId = order?.assignedFoodhubDriverId || order?.assignedRestaurantDriverId || order?.driver?.id;
 
-        // 3. Submit Driver Review
-        if (driverId) {
-          await fetch(`${apiBase}/reviews/driver`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              orderId: params.id,
-              driverId,
-              rating: driverRating,
-              comment: driverComment || undefined,
-            }),
-          }).catch(() => {});
+      // 2. Submit Restaurant Review
+      let reviewSuccess = false;
+      if (restaurantId) {
+        const revRes = await fetch(`${apiBase}/reviews/restaurant`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            orderId: params.id,
+            restaurantId,
+            rating: restaurantRating,
+            comment: restaurantComment || undefined,
+            isAnonymous,
+          }),
+        });
+
+        if (revRes.ok) {
+          reviewSuccess = true;
+        } else {
+          const revErr = await revRes.json().catch(() => ({}));
+          alert(revErr.message || 'Failed to submit restaurant review.');
+          setSubmitting(false);
+          return;
         }
       }
+
+      // 3. Submit Driver Review
+      if (driverId) {
+        await fetch(`${apiBase}/reviews/driver`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            orderId: params.id,
+            driverId,
+            rating: driverRating,
+            comment: driverComment || undefined,
+          }),
+        }).catch(() => {});
+      }
+
+      if (reviewSuccess || !restaurantId) {
+        setSubmitted(true);
+      }
     } catch {
-      /* fallback graceful completion */
+      alert('Network error submitting review. Please try again.');
     } finally {
       setSubmitting(false);
-      setSubmitted(true);
     }
   };
 

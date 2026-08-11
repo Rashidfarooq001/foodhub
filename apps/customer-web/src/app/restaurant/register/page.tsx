@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, FileText, Image as ImageIcon } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
@@ -44,6 +44,10 @@ export default function RestaurantRegisterPage() {
     description: '',
     gstin: '',
     fssaiLicense: '',
+    fssaiUrl: '',
+    panNumber: '',
+    panUrl: '',
+    menuUrl: '',
     logoUrl: '',
     bannerUrl: '',
     promoVideoUrl: '',
@@ -122,40 +126,25 @@ export default function RestaurantRegisterPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
       <div className="text-center space-y-2">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-          <UtensilsCrossed className="h-8 w-8" />
+          <Store className="h-8 w-8" />
         </div>
-        <h1 className="text-3xl font-black text-gray-900">Partner With FoodHub</h1>
+        <h1 className="text-3xl font-black text-gray-900">Partner with FoodHub</h1>
         <p className="text-xs text-gray-500 max-w-md mx-auto">
-          Expand your restaurant reach, get instant online orders, and manage kitchen operations seamlessly
+          Expand your restaurant business with thousands of online orders every day
         </p>
       </div>
 
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-xs text-blue-900 flex items-center justify-between gap-4">
-        <div>
-          <span className="font-bold block">Already created by Super Admin?</span>
-          <span className="text-blue-700">Admin-onboarded restaurants do not need to register. You can log in directly using your assigned credentials.</span>
-        </div>
-        <a
-          href={`${process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL || 'http://localhost:3001'}/login`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700"
-        >
-          Merchant Login
-        </a>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
-          ⚠️ {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-600">
+            {error}
+          </div>
+        )}
+
         {/* Step 1: Restaurant Info */}
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <Store className="h-5 w-5 text-orange-600" /> 1. Restaurant &amp; Owner Profile
+            <Store className="h-5 w-5 text-orange-600" /> 1. Restaurant &amp; Owner Details
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -166,7 +155,7 @@ export default function RestaurantRegisterPage() {
                 required
                 value={form.name}
                 onChange={handleChange}
-                placeholder="e.g. Royal Biryani House"
+                placeholder="Spice Garden Restaurant"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
@@ -178,26 +167,14 @@ export default function RestaurantRegisterPage() {
                 required
                 value={form.ownerName}
                 onChange={handleChange}
-                placeholder="Owner name"
+                placeholder="Ananya Verma"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Email *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Mobile Phone *</label>
               <input
-                type="email"
-                name="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                placeholder="owner@restaurant.com"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Phone *</label>
-              <input
-                type="text"
+                type="tel"
                 name="phone"
                 required
                 value={form.phone}
@@ -207,17 +184,38 @@ export default function RestaurantRegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Create Password *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Owner Email Address *</label>
+              <input
+                type="email"
+                name="email"
+                required
+                value={form.email}
+                onChange={handleChange}
+                placeholder="ananya@example.com"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-gray-700 mb-1">Create Account Password *</label>
               <input
                 type="password"
                 name="password"
                 required
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Password for login"
+                placeholder="Password for logging into Merchant Dashboard"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Step 2: Licenses & Legal Compliance Documents */}
+        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
+            <FileText className="h-5 w-5 text-orange-600" /> 2. Licenses &amp; Compliance Verification Documents
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">FSSAI License Number *</label>
               <input
@@ -226,52 +224,52 @@ export default function RestaurantRegisterPage() {
                 required
                 value={form.fssaiLicense}
                 onChange={handleChange}
-                placeholder="14-digit FSSAI No."
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Step 2: Address & Business */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <MapPin className="h-5 w-5 text-orange-600" /> 2. Store Location &amp; Cuisines
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-700 mb-1">Full Street Address *</label>
-              <input
-                type="text"
-                name="address"
-                required
-                value={form.address}
-                onChange={handleChange}
-                placeholder="Door No, Street Name, Area"
+                placeholder="14-digit FSSAI License No"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">City</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">GSTIN Number (Optional)</label>
               <input
                 type="text"
-                name="city"
-                value={form.city}
+                name="gstin"
+                value={form.gstin}
                 onChange={handleChange}
+                placeholder="29ABCDE1234F1Z5"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Cuisines Offered</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">PAN Card Number</label>
               <input
                 type="text"
-                name="cuisines"
-                value={form.cuisines}
+                name="panNumber"
+                value={form.panNumber}
                 onChange={handleChange}
-                placeholder="North Indian, Chinese, Fast Food"
+                placeholder="ABCDE1234F"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 pt-2">
+            <MediaUploader
+              label="FSSAI License Certificate Document *"
+              acceptType="any"
+              value={form.fssaiUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, fssaiUrl: url }))}
+            />
+            <MediaUploader
+              label="PAN Card Document *"
+              acceptType="any"
+              value={form.panUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, panUrl: url }))}
+            />
+            <MediaUploader
+              label="Restaurant Menu Card / Catalog *"
+              acceptType="any"
+              value={form.menuUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, menuUrl: url }))}
+            />
           </div>
         </div>
 

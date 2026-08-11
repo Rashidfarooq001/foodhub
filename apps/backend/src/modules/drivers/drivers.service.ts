@@ -58,6 +58,22 @@ export class DriversService {
       });
     }
 
+    // Save Driver documents (Driving License, Vehicle RC, Aadhaar / ID Proof)
+    const docsToCreate: Array<{ documentType: string; documentUrl: string }> = [];
+    if (dto.licenseUrl) docsToCreate.push({ documentType: 'DL', documentUrl: dto.licenseUrl });
+    if (dto.rcUrl) docsToCreate.push({ documentType: 'RC', documentUrl: dto.rcUrl });
+    if (dto.idProofUrl) docsToCreate.push({ documentType: 'AADHAAR', documentUrl: dto.idProofUrl });
+
+    for (const doc of docsToCreate) {
+      await this.prisma.driverDocument.create({
+        data: {
+          driverId: driver.id,
+          documentType: doc.documentType,
+          documentUrl: doc.documentUrl,
+        },
+      });
+    }
+
     return { ...driver, user };
   }
 
@@ -70,6 +86,7 @@ export class DriversService {
           include: { profile: true },
         },
         vehicles: true,
+        documents: true,
       },
     });
   }
@@ -82,6 +99,7 @@ export class DriversService {
           include: { profile: true },
         },
         vehicles: true,
+        documents: true,
       },
     });
   }

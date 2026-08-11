@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
+import { getImageUrl } from '@foodhub/config';
 
 interface PendingDriverApplication {
   id: string;
@@ -16,6 +17,11 @@ interface PendingDriverApplication {
       lastName?: string;
     };
   };
+  documents?: Array<{
+    documentType: string;
+    documentUrl: string;
+    isVerified: boolean;
+  }>;
 }
 
 export default function AdminDriverApprovalPage() {
@@ -48,6 +54,11 @@ export default function AdminDriverApprovalPage() {
         fetchApplications();
       }
     } catch { /* offline */ }
+  };
+
+  const getDocUrl = (app: PendingDriverApplication, type: string): string | null => {
+    const doc = app.documents?.find((d) => d.documentType === type);
+    return doc?.documentUrl ? getImageUrl(doc.documentUrl) : null;
   };
 
   return (
@@ -88,6 +99,60 @@ export default function AdminDriverApprovalPage() {
                 <span className="text-xs font-bold text-gray-600">DL: {app.licenseNumber}</span>
               </div>
 
+              {/* Courier Verification Documents */}
+              <div className="rounded-2xl bg-indigo-50/60 p-4 border border-indigo-100 space-y-2">
+                <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">
+                  Courier Verification Documents
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <span className="block font-semibold text-indigo-700 mb-1">Driving License Photo</span>
+                    {getDocUrl(app, 'DL') ? (
+                      <a
+                        href={getDocUrl(app, 'DL')!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      >
+                        Preview DL Document
+                      </a>
+                    ) : (
+                      <span className="text-indigo-400 font-bold">Document Pending</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block font-semibold text-indigo-700 mb-1">Vehicle RC Document</span>
+                    {getDocUrl(app, 'RC') ? (
+                      <a
+                        href={getDocUrl(app, 'RC')!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      >
+                        Preview RC Document
+                      </a>
+                    ) : (
+                      <span className="text-indigo-400 font-bold">Document Pending</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block font-semibold text-indigo-700 mb-1">Aadhaar / ID Proof</span>
+                    {getDocUrl(app, 'AADHAAR') ? (
+                      <a
+                        href={getDocUrl(app, 'AADHAAR')!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      >
+                        Preview ID Document
+                      </a>
+                    ) : (
+                      <span className="text-indigo-400 font-bold">Document Pending</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-3">
                 <button
                   onClick={() => handleAction(app.id, true)}
@@ -100,12 +165,6 @@ export default function AdminDriverApprovalPage() {
                   className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100"
                 >
                   <XCircle className="h-4 w-4" /> Reject Driver
-                </button>
-                <button
-                  onClick={() => alert('Request sent for updated Driving License & RC photo copies.')}
-                  className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100"
-                >
-                  <HelpCircle className="h-4 w-4" /> Request More Info
                 </button>
               </div>
             </div>

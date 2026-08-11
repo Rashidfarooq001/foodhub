@@ -62,4 +62,19 @@ export class CreateDriverDto {
   @IsString()
   @IsOptional()
   upiId?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/dl-1.pdf' })
+  @IsString()
+  @IsOptional()
+  licenseUrl?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/rc-1.pdf' })
+  @IsString()
+  @IsOptional()
+  rcUrl?: string;
+
+  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/aadhaar-1.pdf' })
+  @IsString()
+  @IsOptional()
+  idProofUrl?: string;
 }

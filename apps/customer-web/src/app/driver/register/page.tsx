@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Bike, User, MapPin, CreditCard, CheckCircle2, ArrowRight, FileText } from 'lucide-react';
+import { MediaUploader } from '../../../components/common/MediaUploader';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -43,6 +44,9 @@ export default function DriverRegisterPage() {
     vehicleType: 'MOTORCYCLE',
     vehicleNumber: '',
     address: '',
+    licenseUrl: '',
+    rcUrl: '',
+    idProofUrl: '',
     bankName: '',
     accountNumber: '',
     ifsc: '',
@@ -181,10 +185,10 @@ export default function DriverRegisterPage() {
           </div>
         </div>
 
-        {/* Step 2: Vehicle & Driving License */}
+        {/* Step 2: Vehicle & Driving License Documents */}
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Driving License
+            <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Verification Documents
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -235,6 +239,26 @@ export default function DriverRegisterPage() {
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 pt-2">
+            <MediaUploader
+              label="Driving License Photo/PDF *"
+              acceptType="any"
+              value={form.licenseUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, licenseUrl: url }))}
+            />
+            <MediaUploader
+              label="Vehicle RC Photo/PDF *"
+              acceptType="any"
+              value={form.rcUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, rcUrl: url }))}
+            />
+            <MediaUploader
+              label="Aadhaar / ID Proof Document *"
+              acceptType="any"
+              value={form.idProofUrl}
+              onChange={(url) => setForm((prev) => ({ ...prev, idProofUrl: url }))}
+            />
           </div>
         </div>
 

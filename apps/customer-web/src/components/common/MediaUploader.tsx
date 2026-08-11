@@ -10,7 +10,7 @@ const API_BASE = getApiBaseUrl();
 interface MediaUploaderProps {
   value?: string;
   onChange: (url: string) => void;
-  acceptType?: 'image' | 'video';
+  acceptType?: 'image' | 'video' | 'any';
   label?: string;
   helperText?: string;
 }
