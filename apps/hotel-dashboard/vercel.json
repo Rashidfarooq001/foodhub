@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ../.. && pnpm --filter=hotel-dashboard build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}

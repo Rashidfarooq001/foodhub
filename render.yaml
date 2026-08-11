@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: foodhub-backend
+    env: node
+    plan: free
+    buildCommand: pnpm --filter backend build
+    startCommand: pnpm --filter backend start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
