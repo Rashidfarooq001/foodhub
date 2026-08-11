@@ -58,7 +58,9 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
       updateUser: (profile) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...profile } : DEV_ADMIN_USER,
+          user: state.user
+            ? { ...state.user, ...profile }
+            : ({ ...DEV_ADMIN_USER, ...profile } as AdminUserProfile),
         })),
 
       logout: () => {

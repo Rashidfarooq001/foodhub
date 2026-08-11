@@ -166,17 +166,17 @@ export default function AdminAccountSettingsPage() {
 
       const updatedProfile = data?.profile;
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const savedAvatarUrl = updatedProfile?.avatarUrl !== undefined ? updatedProfile.avatarUrl : finalAvatarUrl;
+
       updateUser({
         firstName: updatedProfile?.firstName || firstName.trim(),
         lastName: updatedProfile?.lastName || lastName.trim(),
         name: fullName,
-        avatarUrl: updatedProfile?.avatarUrl ?? (finalAvatarUrl || undefined),
+        avatarUrl: savedAvatarUrl || undefined,
       });
 
       setSelectedAvatarFile(null);
-      if (updatedProfile?.avatarUrl) {
-        setAvatarPreview(updatedProfile.avatarUrl);
-      }
+      setAvatarPreview(savedAvatarUrl || null);
 
       showNotification('Admin profile updated successfully!');
     } catch (err: any) {
