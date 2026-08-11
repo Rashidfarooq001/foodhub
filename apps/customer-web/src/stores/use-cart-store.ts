@@ -69,7 +69,7 @@ export const useCartStore = create<CartState>()(
       packagingFeeRate: 15,
       appliedCoupon: null,
       useWalletBalance: false,
-      walletBalance: 250,
+      walletBalance: 0,
 
       addItem: (newItem) => {
         const { items, restaurantId } = get();

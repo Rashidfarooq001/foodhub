@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import * as compression from 'compression';
 import * as express from 'express';
 import * as path from 'path';
+import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { PrismaService } from './modules/database/prisma.service';
 
@@ -31,6 +32,10 @@ async function bootstrap() {
 
   // Uploads (served on both /uploads and /api/v1/uploads with CORS & Caching headers)
   const uploadsPath = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+
   const staticOptions = {
     setHeaders: (res: any) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -39,8 +44,44 @@ async function bootstrap() {
       res.setHeader('Cache-Control', 'public, max-age=86400');
     },
   };
+
   app.use('/uploads', express.static(uploadsPath, staticOptions));
   app.use('/api/v1/uploads', express.static(uploadsPath, staticOptions));
+
+  // Persistent Media Fallback: If disk file was wiped by container restart, restore from PostgreSQL DB
+  const handleDbMediaFallback = async (req: any, res: any, next: any) => {
+    try {
+      const filename = path.basename(req.path || '');
+      if (!filename || filename === '/' || filename === 'uploads') return next();
+
+      const diskFilePath = path.join(uploadsPath, filename);
+      if (fs.existsSync(diskFilePath)) return next();
+
+      const prisma = app.get(PrismaService);
+      const setting = await prisma.systemSetting.findUnique({
+        where: { key: `media_file_${filename}` },
+      });
+
+      if (setting && setting.value) {
+        const parsed = JSON.parse(setting.value);
+        if (parsed.base64) {
+          const buffer = Buffer.from(parsed.base64, 'base64');
+          fs.writeFileSync(diskFilePath, buffer);
+          res.setHeader('Content-Type', parsed.mimeType || 'image/jpeg');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(buffer);
+        }
+      }
+    } catch {
+      /* ignore and let 404 handler take over */
+    }
+    next();
+  };
+
+  app.use('/uploads', handleDbMediaFallback);
+  app.use('/api/v1/uploads', handleDbMediaFallback);
 
 
 

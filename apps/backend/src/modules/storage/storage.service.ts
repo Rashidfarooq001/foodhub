@@ -1,13 +1,14 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class StorageService {
   private readonly uploadDir = path.join(process.cwd(), 'uploads');
   private readonly logger = new Logger(StorageService.name);
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
@@ -41,15 +42,41 @@ export class StorageService {
     return true;
   }
 
-  saveUploadedFile(file: any) {
+  async saveUploadedFile(file: any) {
     const ext = path.extname(file.originalname || '.jpg');
     const uniqueFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     const filePath = path.join(this.uploadDir, uniqueFilename);
 
+    let fileBuffer: Buffer | null = null;
+
     if (file.buffer) {
+      fileBuffer = file.buffer;
       fs.writeFileSync(filePath, file.buffer);
     } else if (file.path && fs.existsSync(file.path)) {
+      fileBuffer = fs.readFileSync(file.path);
       fs.copyFileSync(file.path, filePath);
+    }
+
+    // Persist file binary in PostgreSQL database to survive ephemeral container restarts
+    if (fileBuffer && this.prisma) {
+      try {
+        const base64Data = fileBuffer.toString('base64');
+        const mediaRecordValue = JSON.stringify({
+          mimeType: file.mimetype || 'image/jpeg',
+          base64: base64Data,
+        });
+
+        await (this.prisma as any).systemSetting.upsert({
+          where: { key: `media_file_${uniqueFilename}` },
+          update: { value: mediaRecordValue },
+          create: {
+            key: `media_file_${uniqueFilename}`,
+            value: mediaRecordValue,
+          },
+        });
+      } catch (err: any) {
+        this.logger.warn(`[Persistent Media Storage] DB backup notice: ${err?.message}`);
+      }
     }
 
     this.logger.log(
