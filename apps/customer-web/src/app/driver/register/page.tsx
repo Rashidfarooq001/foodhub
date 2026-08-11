@@ -40,7 +40,7 @@ export default function DriverRegisterPage() {
     email: '',
     password: '',
     licenseNumber: '',
-    vehicleType: 'BIKE',
+    vehicleType: 'MOTORCYCLE',
     vehicleNumber: '',
     address: '',
     bankName: '',
@@ -92,7 +92,7 @@ export default function DriverRegisterPage() {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-900 space-y-2">
           <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
           <p className="text-xs text-emerald-700">
-            Thank you for applying to join the FoodHub Delivery Fleet. Our onboarding team will verify your driving license and RC. Once approved, you can log in to your Delivery Dashboard to receive trips.
+            Thank you for applying as a FoodHub Courier Partner. Our operations team will verify your license and vehicle details. Once approved, you can log in to your Delivery Partner App.
           </p>
         </div>
         <Link
@@ -111,38 +111,23 @@ export default function DriverRegisterPage() {
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
           <Bike className="h-8 w-8" />
         </div>
-        <h1 className="text-3xl font-black text-gray-900">Join FoodHub Delivery Fleet</h1>
+        <h1 className="text-3xl font-black text-gray-900">Become a Delivery Partner</h1>
         <p className="text-xs text-gray-500 max-w-md mx-auto">
-          Earn competitive payouts, weekly bonuses, and flexible duty hours delivering meals in your city
+          Earn competitive payouts per delivery with weekly settlements and flexible working hours
         </p>
       </div>
 
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-xs text-blue-900 flex items-center justify-between gap-4">
-        <div>
-          <span className="font-bold block">Already created by Super Admin?</span>
-          <span className="text-blue-700">Admin-onboarded drivers do not need to register. You can log in directly using your assigned credentials.</span>
-        </div>
-        <a
-          href={`${process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL || 'http://localhost:3002'}/login`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700"
-        >
-          Courier Login
-        </a>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
-          ⚠️ {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Step 1: Personal Info */}
+        {error && (
+          <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-600">
+            {error}
+          </div>
+        )}
+
+        {/* Step 1: Personal Information */}
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <User className="h-5 w-5 text-emerald-600" /> 1. Personal &amp; Account Details
+            <User className="h-5 w-5 text-emerald-600" /> 1. Personal Details
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -153,30 +138,31 @@ export default function DriverRegisterPage() {
                 required
                 value={form.name}
                 onChange={handleChange}
-                placeholder="e.g. Vikram Singh"
+                placeholder="Ramesh Kumar"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Phone Number *</label>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 required
                 value={form.phone}
                 onChange={handleChange}
-                placeholder="+919876500999"
+                placeholder="+919876543210"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
               <input
                 type="email"
                 name="email"
+                required
                 value={form.email}
                 onChange={handleChange}
-                placeholder="driver@foodhub.com"
+                placeholder="driver@example.com"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
@@ -221,9 +207,9 @@ export default function DriverRegisterPage() {
                 onChange={handleChange}
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               >
-                <option value="BIKE">Motorcycle / Bike</option>
+                <option value="MOTORCYCLE">Motorcycle / Bike</option>
                 <option value="SCOOTER">Scooter</option>
-                <option value="ELECTRIC_BIKE">EV Two Wheeler</option>
+                <option value="EV_SCOOTER">EV Two Wheeler</option>
                 <option value="BICYCLE">Bicycle</option>
               </select>
             </div>

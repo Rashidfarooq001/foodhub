@@ -25,14 +25,6 @@ interface AdminAuthState {
   logout: () => void;
 }
 
-const DEV_ADMIN_USER: AdminUserProfile = {
-  id: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5',
-  email: 'www.rashidreshi2005@gmail.com',
-  role: 'SUPER_ADMIN',
-  name: 'Rashid Reshi',
-  phone: '+917006298795',
-};
-
 const getInitialAuthState = () => {
   return {
     user: null,
@@ -58,9 +50,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
       updateUser: (profile) =>
         set((state) => ({
-          user: state.user
-            ? { ...state.user, ...profile }
-            : ({ ...DEV_ADMIN_USER, ...profile } as AdminUserProfile),
+          user: state.user ? { ...state.user, ...profile } : null,
         })),
 
       logout: () => {

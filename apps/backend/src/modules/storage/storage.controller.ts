@@ -39,7 +39,7 @@ export class StorageController {
     }
 
     this.storageService.validateFile(file, type || 'any');
-    return this.storageService.saveUploadedFile(file);
+    return await this.storageService.saveUploadedFile(file);
   }
 
   @Delete('file/:filename')

@@ -75,6 +75,7 @@ export class StorageService {
           },
         });
       } catch (err: any) {
+        console.error('[Persistent Media Storage] DB backup error:', err);
         this.logger.warn(`[Persistent Media Storage] DB backup notice: ${err?.message}`);
       }
     }
