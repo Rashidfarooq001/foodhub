@@ -1226,4 +1226,49 @@ export class AuthService {
       message: 'Admin password reset successfully. Please log in with your new credentials.',
     };
   }
+
+  async changeAdminSecurityQuestions(
+    userId: string,
+    dto: { currentPassword1: string; newDob: string; newFavoritePerson: string },
+  ) {
+    const user = await this.usersService.findUserById(userId);
+
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Only Admin / Super Admin can change security recovery questions.');
+    }
+
+    const currentP1 = (dto.currentPassword1 || '').trim();
+    if (!currentP1) {
+      throw new BadRequestException('Current Admin Password 1 is required to authorize this change.');
+    }
+
+    const isP1Valid = await bcrypt.compare(currentP1, user.password1Hash || user.passwordHash);
+    if (!isP1Valid) {
+      throw new UnauthorizedException('Invalid current Admin password.');
+    }
+
+    const cleanDob = (dto.newDob || '').trim();
+    const cleanPerson = (dto.newFavoritePerson || '').trim().toLowerCase();
+
+    if (!cleanDob || !cleanPerson) {
+      throw new BadRequestException('Both new Date of Birth and new Favorite Person are required.');
+    }
+
+    const dobHash = await bcrypt.hash(cleanDob, 10);
+    const personHash = await bcrypt.hash(cleanPerson, 10);
+
+    await (this.usersService as any).prisma.user.update({
+      where: { id: user.id },
+      data: {
+        adminDobHash: dobHash,
+        adminFavoritePersonHash: personHash,
+      },
+    });
+
+    this.logger.log(`[Admin Security Settings] Recovery questions updated successfully for Admin ID=${user.id}.`);
+    return {
+      success: true,
+      message: 'Admin password recovery security questions updated successfully.',
+    };
+  }
 }

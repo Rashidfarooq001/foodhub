@@ -13,6 +13,9 @@ import {
   Lock,
   KeyRound,
   ShieldCheck,
+  HelpCircle,
+  Calendar,
+  UserCheck,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
@@ -20,11 +23,10 @@ import { adminFetch } from '../../utils/admin-fetch';
 
 const API_BASE = getApiBaseUrl();
 
-
 export default function AdminAccountSettingsPage() {
   const { user, accessToken, updateUser } = useAdminAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'account'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'security-questions' | 'account'>('profile');
 
   // Profile State
   const [firstName, setFirstName] = useState(user?.firstName || 'Rashid');
@@ -35,6 +37,13 @@ export default function AdminAccountSettingsPage() {
   // Two-Password Change State
   const [newPassword1, setNewPassword1] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
+
+  // Security Questions State
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [currentPassword1, setCurrentPassword1] = useState('');
+  const [newDob, setNewDob] = useState('');
+  const [newFavoritePerson, setNewFavoritePerson] = useState('');
+  const [confirmFavoritePerson, setConfirmFavoritePerson] = useState('');
 
   // Feedback & Loading State
   const [loading, setLoading] = useState(false);
@@ -119,7 +128,6 @@ export default function AdminAccountSettingsPage() {
     try {
       let finalAvatarUrl: string | null = user?.avatarUrl || null;
 
-      // 1. Upload newly selected avatar file if present
       if (selectedAvatarFile) {
         const formData = new FormData();
         formData.append('file', selectedAvatarFile);
@@ -140,7 +148,6 @@ export default function AdminAccountSettingsPage() {
         finalAvatarUrl = null;
       }
 
-      // 2. Update profile record via authenticated admin session
       const payload: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -178,7 +185,6 @@ export default function AdminAccountSettingsPage() {
       setLoading(false);
     }
   };
-
 
   // Save Two-Password Changes
   const handleSaveTwoPasswords = async (e: React.FormEvent) => {
@@ -230,6 +236,56 @@ export default function AdminAccountSettingsPage() {
     }
   };
 
+  // Save Security Recovery Questions Changes
+  const handleSaveSecurityQuestions = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentPassword1.trim()) {
+      showNotification('Current Admin Password 1 is required.', true);
+      return;
+    }
+    if (!newDob) {
+      showNotification('Please select new Date of Birth.', true);
+      return;
+    }
+    if (!newFavoritePerson.trim()) {
+      showNotification('Please enter new Favorite Person.', true);
+      return;
+    }
+    if (newFavoritePerson.trim() !== confirmFavoritePerson.trim()) {
+      showNotification('New Favorite Person and Confirm Favorite Person do not match.', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await adminFetch('/auth/admin/change-security-questions', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          currentPassword1: currentPassword1.trim(),
+          newDob: newDob.trim(),
+          newFavoritePerson: newFavoritePerson.trim(),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update security recovery questions');
+      }
+
+      setCurrentPassword1('');
+      setNewDob('');
+      setNewFavoritePerson('');
+      setConfirmFavoritePerson('');
+      setShowSecurityModal(false);
+      showNotification('Admin password recovery security questions updated successfully!');
+    } catch (err: any) {
+      showNotification(err.message || 'Failed to update security questions', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-5xl">
       {/* Header Banner */}
@@ -242,7 +298,7 @@ export default function AdminAccountSettingsPage() {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Manage your administrator profile picture, display name, and two-password credentials
+            Manage administrator profile, credentials, and password recovery security questions
           </p>
         </div>
       </div>
@@ -267,6 +323,7 @@ export default function AdminAccountSettingsPage() {
         {[
           { id: 'profile', label: 'Profile & Avatar', icon: User },
           { id: 'passwords', label: 'Password 1 & Password 2', icon: Key },
+          { id: 'security-questions', label: 'Recovery Questions', icon: HelpCircle },
           { id: 'account', label: 'Security & Role Details', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -296,7 +353,6 @@ export default function AdminAccountSettingsPage() {
             <p className="text-xs text-gray-500">Update your public display name and avatar picture</p>
           </div>
 
-          {/* Avatar Upload */}
           <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-100 pb-8">
             <div className="relative shrink-0">
               <img
@@ -353,7 +409,6 @@ export default function AdminAccountSettingsPage() {
             </div>
           </div>
 
-          {/* Name Details */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">First Name</label>
@@ -457,7 +512,135 @@ export default function AdminAccountSettingsPage() {
         </form>
       )}
 
-      {/* TAB 3: ACCOUNT & ROLE SUMMARY */}
+      {/* TAB 3: PASSWORD RECOVERY QUESTIONS */}
+      {activeTab === 'security-questions' && (
+        <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Password Recovery Questions</h2>
+            <p className="text-xs text-gray-500">
+              Configure security information used to recover Admin credentials via Forgot Password workflow.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-5 space-y-2">
+              <div className="flex items-center gap-2 text-gray-700 font-bold text-xs uppercase tracking-wider">
+                <Calendar className="h-4 w-4 text-purple-600" />
+                <span>Question 1: Date of Birth</span>
+              </div>
+              <p className="text-sm font-mono font-bold text-gray-900">••/••/••••</p>
+              <p className="text-[10px] text-gray-400 font-semibold">Stored securely as salted bcrypt hash</p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-5 space-y-2">
+              <div className="flex items-center gap-2 text-gray-700 font-bold text-xs uppercase tracking-wider">
+                <UserCheck className="h-4 w-4 text-purple-600" />
+                <span>Question 2: Favorite Person</span>
+              </div>
+              <p className="text-sm font-mono font-bold text-gray-900">••••••••</p>
+              <p className="text-[10px] text-gray-400 font-semibold">Stored securely as salted bcrypt hash</p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-start">
+            <button
+              type="button"
+              onClick={() => setShowSecurityModal(!showSecurityModal)}
+              className="flex items-center gap-2 rounded-2xl bg-purple-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-purple-700 transition"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span>Change Recovery Questions</span>
+            </button>
+          </div>
+
+          {showSecurityModal && (
+            <form onSubmit={handleSaveSecurityQuestions} className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 space-y-5">
+              <div className="border-b border-purple-100 pb-3">
+                <h3 className="text-sm font-black text-purple-900 uppercase tracking-wider">Update Security Information</h3>
+                <p className="text-xs text-purple-700 font-medium">Requires current Admin Password 1 authorization</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-700 mb-1 tracking-wider">
+                  Current Admin Password 1 <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  maxLength={16}
+                  value={currentPassword1}
+                  onChange={(e) => setCurrentPassword1(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter current 16-digit Password 1"
+                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-mono font-bold tracking-widest text-gray-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-700 mb-1 tracking-wider">
+                    New Date of Birth <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newDob}
+                    onChange={(e) => setNewDob(e.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-gray-700 mb-1 tracking-wider">
+                    New Favorite Person <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newFavoritePerson}
+                    onChange={(e) => setNewFavoritePerson(e.target.value)}
+                    placeholder="Enter new favorite person"
+                    className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-700 mb-1 tracking-wider">
+                  Confirm Favorite Person <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={confirmFavoritePerson}
+                  onChange={(e) => setConfirmFavoritePerson(e.target.value)}
+                  placeholder="Re-enter new favorite person"
+                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSecurityModal(false)}
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-2xl bg-purple-600 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-purple-700 disabled:opacity-50 transition"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{loading ? 'Saving Changes...' : 'Save Security Questions'}</span>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: ACCOUNT & ROLE SUMMARY */}
       {activeTab === 'account' && (
         <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-8">
           <div>

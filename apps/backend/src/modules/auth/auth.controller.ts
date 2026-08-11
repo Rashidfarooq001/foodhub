@@ -30,6 +30,7 @@ import {
   AdminTwoPasswordLoginDto,
   AdminVerifySecurityQuestionsDto,
   AdminResetPasswordDto,
+  AdminChangeSecurityQuestionsDto,
 } from './dto/admin-login.dto';
 import { AdminChangePasswordsDto } from './dto/admin-change-passwords.dto';
 import { Public } from './decorators/public.decorator';
@@ -160,6 +161,19 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async resetAdminPasswordWithToken(@Body() dto: AdminResetPasswordDto) {
     return this.authService.resetAdminPasswordWithToken(dto);
+  }
+
+  @Patch('admin/change-security-questions')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Admin Password Recovery Security Questions (Requires Current Password 1)' })
+  @ApiResponse({ status: 200, description: 'Security questions updated successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  async changeAdminSecurityQuestions(
+    @CurrentUser('id') userId: string,
+    @Body() dto: AdminChangeSecurityQuestionsDto,
+  ) {
+    return this.authService.changeAdminSecurityQuestions(userId, dto);
   }
 
   @Public()

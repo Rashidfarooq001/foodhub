@@ -78,10 +78,13 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     return () => { alive = false; };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
-  const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => currentPath === route || currentPath.startsWith(route),
-  );
+  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublicRoute =
+    !activePath ||
+    activePath === '' ||
+    PUBLIC_ROUTES.some(
+      (route) => activePath === route || activePath.startsWith(route),
+    );
 
   // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout / Sidebar / Header / Loading Shell
   if (isPublicRoute) {
@@ -125,9 +128,9 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Protected Route Unauthenticated Guard: Redirect to /login
+  // Protected Route Unauthenticated Guard: Redirect to /login if NOT on public route
   if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && activePath !== '/login' && !activePath.startsWith('/login')) {
       router.push('/login');
     }
     return (

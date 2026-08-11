@@ -77,10 +77,13 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
-  const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => currentPath === route || currentPath.startsWith(route),
-  );
+  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublicRoute =
+    !activePath ||
+    activePath === '' ||
+    PUBLIC_ROUTES.some(
+      (route) => activePath === route || activePath.startsWith(route),
+    );
 
   // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Sidebar / Header / Loading Shell
   if (isPublicRoute) {
@@ -91,19 +94,19 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   if (!mounted || !hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
       </div>
     );
   }
 
-  // Protected Route Unauthenticated Guard: Redirect to /login
+  // Protected Route Unauthenticated Guard: Redirect to /login if NOT on public route
   if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && activePath !== '/login' && !activePath.startsWith('/login')) {
       router.push('/login');
     }
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
       </div>
     );
   }

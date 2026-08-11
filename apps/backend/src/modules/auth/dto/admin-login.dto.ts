@@ -45,3 +45,20 @@ export class AdminResetPasswordDto {
   @Matches(/^\d{8}$/, { message: 'Password 2 must be exactly 8 numeric digits' })
   newPassword2!: string;
 }
+
+export class AdminChangeSecurityQuestionsDto {
+  @ApiProperty({ example: '9999888877776666', description: 'Current Admin Password 1 for verification' })
+  @IsString()
+  @IsNotEmpty()
+  currentPassword1!: string;
+
+  @ApiProperty({ example: '2005-01-01', description: 'New Date of Birth YYYY-MM-DD' })
+  @IsString()
+  @IsNotEmpty()
+  newDob!: string;
+
+  @ApiProperty({ example: 'Rahul', description: 'New Favorite Person' })
+  @IsString()
+  @IsNotEmpty()
+  newFavoritePerson!: string;
+}
