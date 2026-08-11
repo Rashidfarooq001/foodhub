@@ -125,8 +125,8 @@ export class RestaurantsService {
             dto.gstin ||
             `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           addressLine: fullAddress || dto.address || 'Location Pending',
-          latitude: typeof dto.latitude === 'number' && !isNaN(dto.latitude) ? dto.latitude : 0,
-          longitude: typeof dto.longitude === 'number' && !isNaN(dto.longitude) ? dto.longitude : 0,
+          latitude: dto.latitude != null ? Number(dto.latitude) : null,
+longitude: dto.longitude != null ? Number(dto.longitude) : null,
           bannerUrl: dto.bannerUrl || dto.logoUrl,
           menuUrl: dto.menuUrl,
           fssaiUrl: dto.fssaiUrl,

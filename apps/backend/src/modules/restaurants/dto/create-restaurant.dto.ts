@@ -7,7 +7,7 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
+import { Type } from 'class-transformer';
 export class CreateRestaurantDto {
   @ApiPropertyOptional({ example: 'uuid-of-owner-user' })
   @IsString()
@@ -84,16 +84,17 @@ export class CreateRestaurantDto {
   @IsOptional()
   pin?: string;
 
-  @ApiPropertyOptional({ example: 12.9716 })
-  @IsNumber()
-  @IsOptional()
-  latitude?: number;
+ @ApiPropertyOptional({ example: 12.9716 })
+@IsNumber()
+@IsOptional()
+@Type(() => Number)
+latitude?: number;
 
-  @ApiPropertyOptional({ example: 77.5946 })
-  @IsNumber()
-  @IsOptional()
-  longitude?: number;
-
+@ApiPropertyOptional({ example: 77.5946 })
+@IsNumber()
+@IsOptional()
+@Type(() => Number)
+longitude?: number;
   @ApiPropertyOptional({ example: '09:00' })
   @IsString()
   @IsOptional()

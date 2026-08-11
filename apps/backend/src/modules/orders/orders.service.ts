@@ -538,13 +538,12 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     if (!activeOrder) return null;
 
     const deliveryAddress: any = activeOrder.deliveryAddress || {};
-    const restaurantLat = activeOrder.restaurant.latitude || 12.9716;
-    const restaurantLng = activeOrder.restaurant.longitude || 77.5946;
-    const customerLat = deliveryAddress.latitude || 12.9780;
-    const customerLng = deliveryAddress.longitude || 77.6400;
-    const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
-    const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
-
+const restaurantLat = activeOrder.restaurant.latitude;
+const restaurantLng = activeOrder.restaurant.longitude;
+const customerLat = deliveryAddress?.latitude;
+const customerLng = deliveryAddress?.longitude;
+const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
+const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
     // Calculate ETA (mins) based on distance
     const distKm = Math.sqrt(
       Math.pow((customerLat - driverLat) * 111, 2) +
@@ -702,13 +701,12 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     }
 
     const deliveryAddress: any = order.deliveryAddress || {};
-    const restaurantLat = order.restaurant.latitude || 12.9716;
-    const restaurantLng = order.restaurant.longitude || 77.5946;
-    const customerLat = deliveryAddress.latitude || 12.9780;
-    const customerLng = deliveryAddress.longitude || 77.6400;
-    const driverLat = order.tracking?.currentLat || restaurantLat + 0.002;
-    const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
-
+const restaurantLat = order.restaurant.latitude;
+const restaurantLng = order.restaurant.longitude;
+const customerLat = deliveryAddress?.latitude;
+const customerLng = deliveryAddress?.longitude;
+const driverLat = order.tracking?.currentLat || restaurantLat + 0.002;
+const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
     const distKm = Math.sqrt(
       Math.pow((customerLat - driverLat) * 111, 2) +
       Math.pow((customerLng - driverLng) * 111, 2),
