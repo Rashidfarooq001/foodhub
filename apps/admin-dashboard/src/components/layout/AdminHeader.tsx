@@ -79,6 +79,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
             title="Open Account Settings"
           >
             <img
+              key={user?.avatarUrl || 'admin-avatar-default'}
               src={getImageUrl(user?.avatarUrl)}
               alt={user?.name || 'Admin'}
               onError={(e) => {

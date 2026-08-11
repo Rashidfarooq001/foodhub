@@ -72,6 +72,7 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
         {/* Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-100 pl-2 sm:pl-4 shrink-0">
           <img
+            key={user?.avatarUrl || 'hotel-avatar-default'}
             src={getImageUrl(user?.avatarUrl)}
             alt={user?.name || 'Owner'}
             onError={(e) => {
