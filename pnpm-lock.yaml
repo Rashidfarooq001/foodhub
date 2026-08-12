@@ -298,6 +298,9 @@ importers:
       '@foodhub/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@geoapify/geocoder-autocomplete':
+        specifier: ^3.1.0
+        version: 3.1.0
       '@geoapify/react-geocoder-autocomplete':
         specifier: ^3.1.0
         version: 3.1.0(@geoapify/geocoder-autocomplete@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
