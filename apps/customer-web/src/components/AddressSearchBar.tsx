@@ -15,26 +15,29 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return null; 
-
   return (
     <div style={{ width: '100%', padding: '10px 0' }}>
-      <GeoapifyContext apiKey={process.env.NEXT_PUBLIC_GEOAPIFY_KEY!}>
-        <GeoapifyGeocoderAutocomplete 
-          placeholder="Search for your street or area..."
-          placeSelect={(value: any) => {
-            if (value && onAddressSelect) {
-              onAddressSelect({ 
-                address: value.properties.formatted, 
-                lat: value.properties.lat, 
-                lng: value.properties.lon 
-              });
-            }
-          }}
-          limit={5}
-          filterByCountryCode={['in']} /* <-- THIS RESTRICTS SEARCH TO INDIA */
-        />
-      </GeoapifyContext>
+      {/* Rendering the context only after mount fixes the React #418 error! */}
+      {isMounted && (
+        <GeoapifyContext apiKey={process.env.NEXT_PUBLIC_GEOAPIFY_KEY!}>
+          <GeoapifyGeocoderAutocomplete 
+            placeholder="Search area (e.g., Watlab, Sopore)..."
+            placeSelect={(value: any) => {
+              if (value && onAddressSelect) {
+                onAddressSelect({ 
+                  address: value.properties.formatted, 
+                  lat: value.properties.lat, 
+                  lng: value.properties.lon 
+                });
+              }
+            }}
+            limit={5}
+            filterByCountryCode={['in']}
+            // Prioritize results near Sopore/Bandipora coordinates
+            biasByProximity={{ lon: 74.64, lat: 34.33 }} 
+          />
+        </GeoapifyContext>
+      )}
     </div>
   );
 }
