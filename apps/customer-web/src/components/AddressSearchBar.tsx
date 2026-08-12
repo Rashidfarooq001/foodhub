@@ -16,7 +16,6 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
   // 3. This stops the React #418 Hydration Error
   if (!isMounted) return null; 
 
