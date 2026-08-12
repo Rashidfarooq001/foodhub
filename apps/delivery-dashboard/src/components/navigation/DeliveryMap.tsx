@@ -30,9 +30,11 @@ export const DeliveryMap: React.FC<Props> = ({
     if (!leafletMap.current) {
       leafletMap.current = L.map(mapRef.current).setView([driverLat, driverLng], 14);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(leafletMap.current);
+      L.tileLayer('https://apis.mappls.com/advancedmaps/v1/{apiKey}/tile/{z}/{x}/{y}.png', {
+        attribution: '&copy; Mappls / MapmyIndia',
+        maxZoom: 19,
+        apiKey: process.env.NEXT_PUBLIC_MAPPLS_API_KEY || 'mappls',
+      } as any).addTo(leafletMap.current);
     }
 
     const map = leafletMap.current;

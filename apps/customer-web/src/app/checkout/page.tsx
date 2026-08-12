@@ -206,25 +206,14 @@ export default function CheckoutPage() {
 
         try {
           const geoRes = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+            `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
           );
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            if (geoData.address) {
-              reverseCity =
-                geoData.address.city ||
-                geoData.address.town ||
-                geoData.address.village ||
-                geoData.address.county ||
-                geoData.address.state_district ||
-                '';
-              reverseState = geoData.address.state || '';
-              reversePin = geoData.address.postcode || '';
-              reverseArea =
-                geoData.address.suburb ||
-                geoData.address.neighbourhood ||
-                geoData.address.road ||
-                reverseArea;
+            if (typeof geoData === 'string') {
+              reverseArea = geoData;
+            } else if (geoData.address || geoData.displayName) {
+              reverseArea = geoData.address || geoData.displayName;
             }
           }
         } catch {

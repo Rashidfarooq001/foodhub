@@ -14,10 +14,16 @@ export declare function getImageUrl(url?: string | null): string;
 export declare function getHotelDashboardUrl(): string;
 export declare function getDeliveryDashboardUrl(): string;
 export declare function getAdminDashboardUrl(): string;
+export declare function getMapplsApiKey(): string;
+export declare function getMapplsClientId(): string;
+export declare function getMapplsClientSecret(): string;
 export declare const API_CONFIG: {
     readonly baseUrl: string;
     readonly wsUrl: string;
     readonly hotelDashboardUrl: string;
     readonly deliveryDashboardUrl: string;
     readonly adminDashboardUrl: string;
+    readonly mapplsApiKey: string;
+    readonly mapplsClientId: string;
+    readonly mapplsClientSecret: string;
 };

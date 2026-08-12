@@ -166,6 +166,18 @@ export function getAdminDashboardUrl(): string {
   return 'https://foodhub-admin-dashboard.vercel.app';
 }
 
+export function getMapplsApiKey(): string {
+  return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+}
+
+export function getMapplsClientId(): string {
+  return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
+}
+
+export function getMapplsClientSecret(): string {
+  return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_SECRET || process.env.MAPPLS_CLIENT_SECRET || '';
+}
+
 export const API_CONFIG = {
   get baseUrl(): string {
     return getApiBaseUrl();
@@ -181,6 +193,15 @@ export const API_CONFIG = {
   },
   get adminDashboardUrl(): string {
     return getAdminDashboardUrl();
+  },
+  get mapplsApiKey(): string {
+    return getMapplsApiKey();
+  },
+  get mapplsClientId(): string {
+    return getMapplsClientId();
+  },
+  get mapplsClientSecret(): string {
+    return getMapplsClientSecret();
   },
 };
 

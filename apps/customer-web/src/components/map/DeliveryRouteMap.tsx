@@ -48,10 +48,11 @@ export default function DeliveryRouteMap({
 
       map = L.map(mapElRef.current).setView([centerLat, centerLng], 13);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom:     19,
-      }).addTo(map);
+      L.tileLayer('https://apis.mappls.com/advancedmaps/v1/{apiKey}/tile/{z}/{x}/{y}.png', {
+        attribution: '© Mappls / MapmyIndia',
+        maxZoom: 19,
+        apiKey: process.env.NEXT_PUBLIC_MAPPLS_API_KEY || 'mappls',
+      } as any).addTo(map);
 
       // Restaurant marker
       const restIcon = L.divIcon({

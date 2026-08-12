@@ -12,6 +12,9 @@ exports.getImageUrl = getImageUrl;
 exports.getHotelDashboardUrl = getHotelDashboardUrl;
 exports.getDeliveryDashboardUrl = getDeliveryDashboardUrl;
 exports.getAdminDashboardUrl = getAdminDashboardUrl;
+exports.getMapplsApiKey = getMapplsApiKey;
+exports.getMapplsClientId = getMapplsClientId;
+exports.getMapplsClientSecret = getMapplsClientSecret;
 function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
     if (envUrl &&
@@ -130,6 +133,15 @@ function getAdminDashboardUrl() {
     }
     return 'https://foodhub-admin-dashboard.vercel.app';
 }
+function getMapplsApiKey() {
+    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+}
+function getMapplsClientId() {
+    return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
+}
+function getMapplsClientSecret() {
+    return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_SECRET || process.env.MAPPLS_CLIENT_SECRET || '';
+}
 exports.API_CONFIG = {
     get baseUrl() {
         return getApiBaseUrl();
@@ -145,5 +157,14 @@ exports.API_CONFIG = {
     },
     get adminDashboardUrl() {
         return getAdminDashboardUrl();
+    },
+    get mapplsApiKey() {
+        return getMapplsApiKey();
+    },
+    get mapplsClientId() {
+        return getMapplsClientId();
+    },
+    get mapplsClientSecret() {
+        return getMapplsClientSecret();
     },
 };

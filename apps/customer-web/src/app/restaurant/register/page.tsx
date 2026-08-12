@@ -92,21 +92,14 @@ export default function RestaurantRegisterPage() {
         }));
 
         try {
-          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          const geoRes = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            if (geoData.address) {
-              const detectedCity = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.county || geoData.address.state_district || '';
-              const detectedState = geoData.address.state || '';
-              const detectedPin = geoData.address.postcode || '';
-              const detectedRoad = geoData.address.suburb || geoData.address.neighbourhood || geoData.address.road || '';
-
+            const addrText = typeof geoData === 'string' ? geoData : (geoData.address || geoData.displayName || '');
+            if (addrText) {
               setForm((prev) => ({
                 ...prev,
-                city: detectedCity || prev.city,
-                state: detectedState || prev.state,
-                pin: detectedPin || prev.pin,
-                address: detectedRoad ? `${detectedRoad}, ${detectedCity}` : prev.address,
+                address: addrText,
               }));
             }
           }

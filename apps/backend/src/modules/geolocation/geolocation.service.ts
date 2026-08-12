@@ -40,8 +40,7 @@ export interface DistanceResult {
   etaMinutes:  number;
 }
 
-const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
-const AVG_SPEED_KMH  = 20; // urban delivery speed
+const AVG_SPEED_KMH = 20; // urban delivery speed
 
 @Injectable()
 export class GeolocationService {
@@ -49,34 +48,56 @@ export class GeolocationService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Forward geocoding — search address string → coordinates */
+  private get MapplsKey(): string {
+    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+  }
+
+  /** Forward geocoding — search address string → coordinates via Mappls API */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
-    const url = `${NOMINATIM_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`;
+    const key = this.MapplsKey;
+    if (!key) {
+      this.logger.warn('Mappls API key is missing. Address search requires MAPPLS_API_KEY.');
+    }
+    const url = key
+      ? `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`
+      : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`;
+
     try {
-      const res  = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-      const data = (await res.json()) as Array<Record<string, unknown>>;
-      return data.map((item) => ({
-        lat:         parseFloat(item['lat'] as string),
-        lng:         parseFloat(item['lon'] as string),
-        displayName: item['display_name'] as string,
-        placeId:     String(item['place_id']),
-      }));
+      const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const results = Array.isArray(data) ? data : (data.copopResults || data.results || []);
+
+      return results.map((item: any) => ({
+        lat: parseFloat(item.latitude || item.lat || '0'),
+        lng: parseFloat(item.longitude || item.lng || item.lon || '0'),
+        displayName: item.formattedAddress || item.display_name || item.placeName || query,
+        placeId: String(item.eLoc || item.place_id || item.id || Date.now()),
+      })).filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0);
     } catch (err) {
-      this.logger.error('Nominatim search failed', err);
+      this.logger.error('Mappls address search failed', err);
       return [];
     }
   }
 
-  /** Reverse geocoding — coordinates → address string */
+  /** Reverse geocoding — coordinates → address string via Mappls API */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
-    const url = `${NOMINATIM_BASE}/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const key = this.MapplsKey;
+    const url = key
+      ? `https://apis.mappls.com/advancedmaps/v1/${key}/rev_geocode?lat=${lat}&lng=${lng}`
+      : `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+
     try {
-      const res  = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-      const data = (await res.json()) as Record<string, unknown>;
-      return (data['display_name'] as string) ?? 'Unknown location';
+      const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+      if (!res.ok) return 'Location address unavailable';
+      const data = await res.json();
+      if (data.results && data.results[0] && data.results[0].formatted_address) {
+        return data.results[0].formatted_address;
+      }
+      return data.display_name ?? 'Location address unavailable';
     } catch (err) {
-      this.logger.error('Nominatim reverse geocode failed', err);
-      return 'Unknown location';
+      this.logger.error('Mappls reverse geocode failed', err);
+      return 'Location address unavailable';
     }
   }
 

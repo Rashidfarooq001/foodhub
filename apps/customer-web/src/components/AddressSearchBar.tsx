@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Search, Loader2 } from 'lucide-react';
 
+import { getApiBaseUrl } from '@foodhub/config';
+
 interface AddressSearchBarProps {
   onAddressSelect?: (data: { address: string; lat: number; lng: number }) => void;
 }
@@ -23,10 +25,13 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
       
       setLoading(true);
       try {
-        const res = await fetch(`/api/mappls/search?query=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data.suggestedLocations || []);
-        setIsOpen(true);
+        const apiBase = getApiBaseUrl();
+        const res = await fetch(`${apiBase}/geolocation/search?query=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(Array.isArray(data) ? data : (data.suggestedLocations || []));
+          setIsOpen(true);
+        }
       } catch (err) {
         console.error("Mappls Search Error:", err);
       } finally {
@@ -67,31 +72,39 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
       
       {isOpen && results.length > 0 && (
         <ul className="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-gray-100 bg-white py-1 shadow-xl text-xs">
-          {results.map((place, idx) => (
-            <li
-              key={idx}
-              onClick={() => {
-                const fullAddress = `${place.placeName}, ${place.placeAddress}`;
-                setQuery(place.placeName);
-                setIsOpen(false);
-                
-                if (onAddressSelect) {
-                  onAddressSelect({
-                    address: fullAddress,
-                    lat: place.latitude,
-                    lng: place.longitude,
-                  });
-                }
-              }}
-              className="cursor-pointer px-3 py-2.5 hover:bg-orange-50 flex items-start gap-2.5 transition-colors border-b border-gray-50 last:border-0"
-            >
-              <MapPin className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-black text-gray-900">{place.placeName}</span>
-                <span className="text-[10px] leading-tight text-gray-500">{place.placeAddress}</span>
-              </div>
-            </li>
-          ))}
+          {results.map((place, idx) => {
+            const displayName = place.displayName || place.placeName || 'Selected Location';
+            const subtitle = place.placeAddress || place.displayName || '';
+            const itemLat = parseFloat(place.lat ?? place.latitude ?? 0);
+            const itemLng = parseFloat(place.lng ?? place.longitude ?? 0);
+
+            return (
+              <li
+                key={idx}
+                onClick={() => {
+                  setQuery(displayName);
+                  setIsOpen(false);
+                  
+                  if (onAddressSelect && itemLat !== 0 && itemLng !== 0) {
+                    onAddressSelect({
+                      address: displayName,
+                      lat: itemLat,
+                      lng: itemLng,
+                    });
+                  }
+                }}
+                className="cursor-pointer px-3 py-2.5 hover:bg-orange-50 flex items-start gap-2.5 transition-colors border-b border-gray-50 last:border-0"
+              >
+                <MapPin className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-black text-gray-900">{displayName}</span>
+                  {subtitle && subtitle !== displayName && (
+                    <span className="text-[10px] leading-tight text-gray-500">{subtitle}</span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

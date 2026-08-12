@@ -1,2 +1,2 @@
-export * from './constants';
-export * from './api-config';
+export * from './constants.js';
+export * from './api-config.js';

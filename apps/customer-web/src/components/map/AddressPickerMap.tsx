@@ -66,24 +66,29 @@ export default function AddressPickerMap({
       map = L.map(mapElRef.current).setView([initialLat, initialLng], 15);
       mapRef.current = map;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom:     19,
-      }).addTo(map);
+      L.tileLayer('https://apis.mappls.com/advancedmaps/v1/{apiKey}/tile/{z}/{x}/{y}.png', {
+        attribution: '© Mappls / MapmyIndia',
+        maxZoom: 19,
+        apiKey: process.env.NEXT_PUBLIC_MAPPLS_API_KEY || 'mappls',
+      } as any).addTo(map);
 
       marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
       markerRef.current = marker;
 
-      // Reverse geocode on drag end
+      // Reverse geocode on drag end via backend Mappls service
       marker.on('dragend', async () => {
         const pos = marker.getLatLng();
         setMarkerLat(pos.lat);
         setMarkerLng(pos.lng);
-        const res     = await fetch(`${API_BASE}/geo/reverse?lat=${pos.lat}&lng=${pos.lng}`);
-        const data    = await res.json();
-        const address = data.address ?? '';
-        setSelectedAddr(address);
-        onAddressSelected({ lat: pos.lat, lng: pos.lng, displayName: address });
+        try {
+          const res = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${pos.lat}&lng=${pos.lng}`);
+          const data = await res.json();
+          const address = typeof data === 'string' ? data : (data.address || data.displayName || '');
+          setSelectedAddr(address);
+          onAddressSelected({ lat: pos.lat, lng: pos.lng, displayName: address });
+        } catch {
+          /* reverse geocode fallback */
+        }
       });
 
       // Click to move marker
@@ -92,11 +97,15 @@ export default function AddressPickerMap({
         marker.setLatLng([lat, lng]);
         setMarkerLat(lat);
         setMarkerLng(lng);
-        const res     = await fetch(`${API_BASE}/geo/reverse?lat=${lat}&lng=${lng}`);
-        const data    = await res.json();
-        const address = data.address ?? '';
-        setSelectedAddr(address);
-        onAddressSelected({ lat, lng, displayName: address });
+        try {
+          const res = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
+          const data = await res.json();
+          const address = typeof data === 'string' ? data : (data.address || data.displayName || '');
+          setSelectedAddr(address);
+          onAddressSelected({ lat, lng, displayName: address });
+        } catch {
+          /* reverse geocode fallback */
+        }
       });
     }
 
@@ -108,9 +117,9 @@ export default function AddressPickerMap({
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const res  = await fetch(`${API_BASE}/geo/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${API_BASE}/geolocation/search?query=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setSuggestions(data);
+      setSuggestions(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
@@ -139,12 +148,16 @@ export default function AddressPickerMap({
         mapRef.current.setView([lat, lng], 16);
         markerRef.current.setLatLng([lat, lng]);
       }
-      const res     = await fetch(`${API_BASE}/geo/reverse?lat=${lat}&lng=${lng}`);
-      const data    = await res.json();
-      const address = data.address ?? '';
-      setSelectedAddr(address);
-      setQuery(address);
-      onAddressSelected({ lat, lng, displayName: address });
+      try {
+        const res = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
+        const data = await res.json();
+        const address = typeof data === 'string' ? data : (data.address || data.displayName || '');
+        setSelectedAddr(address);
+        setQuery(address);
+        onAddressSelected({ lat, lng, displayName: address });
+      } catch {
+        onAddressSelected({ lat, lng, displayName: 'Current Location' });
+      }
     });
   };
 
