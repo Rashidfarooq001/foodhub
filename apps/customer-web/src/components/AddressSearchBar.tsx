@@ -4,19 +4,17 @@ import { useEffect, useState } from 'react';
 import { GeoapifyGeocoderAutocomplete, GeoapifyContext } from '@geoapify/react-geocoder-autocomplete';
 import '@geoapify/geocoder-autocomplete/styles/minimal.css'; 
 
-// 1. This interface tells TypeScript exactly what properties to expect
 interface AddressSearchBarProps {
   onAddressSelect?: (data: { address: string; lat: number; lng: number }) => void;
 }
 
-// 2. We pass those properties into the component here
 export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  // 3. This stops the React #418 Hydration Error
+
   if (!isMounted) return null; 
 
   return (
@@ -34,6 +32,7 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
             }
           }}
           limit={5}
+          filterByCountryCode={['in']} /* <-- THIS RESTRICTS SEARCH TO INDIA */
         />
       </GeoapifyContext>
     </div>
