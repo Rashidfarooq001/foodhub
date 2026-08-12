@@ -17,6 +17,7 @@
     "@foodhub/types": "workspace:*",
     "@foodhub/ui": "workspace:*",
     "@foodhub/utils": "workspace:*",
+    "@geoapify/react-geocoder-autocomplete": "^3.1.0",
     "@tanstack/react-query": "^5.62.7",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",

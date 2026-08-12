@@ -28,6 +28,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
+import AddressSearchBar from '@/components/AddressSearchBar';
 
 const API_BASE = getApiBaseUrl();
 
@@ -1250,16 +1251,22 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Area / Locality / Street*</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Main Road, Bandipora"
-                    value={newArea}
-                    onChange={(e) => setNewArea(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
+              <div>
+                  <label className="block font-bold text-gray-700 mb-1">Search Area / Locality / Street*</label>
+                  
+                  <AddressSearchBar 
+                    onAddressSelect={(locationData) => {
+                      setNewArea(locationData.address);
+                      setNewLat(locationData.lat);
+                      setNewLng(locationData.lng);
+                    }} 
                   />
+
+                  {newArea && (
+                    <p className="mt-1 text-[10px] text-emerald-600 font-bold">
+                      ✓ Selected: {newArea}
+                    </p>
+                  )}
                 </div>
 
                 <div>
