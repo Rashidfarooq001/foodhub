@@ -188,6 +188,65 @@ export class OrdersService {
       platformContributionMargin: quote.platformContributionMargin,
     };
 
+    // Construct authoritative immutable deliveryAddress snapshot
+    const rawAddress: any = dto.deliveryAddress || {};
+
+    let formattedAddressText = '';
+    if (typeof rawAddress === 'string') {
+      formattedAddressText = rawAddress;
+    } else if (rawAddress.formattedAddress) {
+      formattedAddressText = rawAddress.formattedAddress;
+    } else if (rawAddress.addressLine1) {
+      formattedAddressText = [
+        rawAddress.addressLine1,
+        rawAddress.addressLine2,
+        rawAddress.landmark ? `Landmark: ${rawAddress.landmark}` : null,
+        rawAddress.city,
+        rawAddress.state ? `${rawAddress.state}${rawAddress.postalCode ? ` - ${rawAddress.postalCode}` : ''}` : null,
+      ].filter(Boolean).join(', ');
+    } else if (rawAddress.placeName) {
+      formattedAddressText = rawAddress.placeName;
+    } else {
+      formattedAddressText = 'Kehnusa, Bandipora, Jammu & Kashmir';
+    }
+
+    const placeNameText = typeof rawAddress === 'object' && rawAddress.placeName
+      ? rawAddress.placeName
+      : (formattedAddressText.split(',')[0] || 'Delivery Address');
+
+    const latitudeNum = typeof rawAddress === 'object' && typeof rawAddress.latitude === 'number'
+      ? rawAddress.latitude
+      : ((dto as any).latitude || (dto as any).lat || 34.4646738);
+
+    const longitudeNum = typeof rawAddress === 'object' && typeof rawAddress.longitude === 'number'
+      ? rawAddress.longitude
+      : ((dto as any).longitude || (dto as any).lng || 74.577908);
+
+    const locationSourceText = typeof rawAddress === 'object' && rawAddress.locationSource
+      ? rawAddress.locationSource
+      : ((dto as any).locationSource || 'PLACE_SEARCH');
+
+    const distanceKmNum = typeof rawAddress === 'object' && typeof rawAddress.distanceKm === 'number'
+      ? rawAddress.distanceKm
+      : (quote.distanceKm || (dto as any).distanceKm || 3);
+
+    const deliveryAddressSnapshot = {
+      placeName: placeNameText,
+      formattedAddress: formattedAddressText,
+      addressLine1: typeof rawAddress === 'object' ? (rawAddress.addressLine1 || placeNameText) : formattedAddressText,
+      addressLine2: typeof rawAddress === 'object' ? (rawAddress.addressLine2 || '') : '',
+      landmark: typeof rawAddress === 'object' ? (rawAddress.landmark || '') : '',
+      city: typeof rawAddress === 'object' ? (rawAddress.city || 'Bandipora') : 'Bandipora',
+      state: typeof rawAddress === 'object' ? (rawAddress.state || 'Jammu & Kashmir') : 'Jammu & Kashmir',
+      postalCode: typeof rawAddress === 'object' ? (rawAddress.postalCode || '') : '',
+      latitude: latitudeNum,
+      longitude: longitudeNum,
+      locationSource: locationSourceText,
+      verificationStatus: 'VERIFIED',
+      distanceKm: distanceKmNum,
+      deliveryFee: quote.customerDeliveryFee,
+    };
+
     // 7. Create order in transaction
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
@@ -203,7 +262,7 @@ export class OrdersService {
           discountAmount,
           totalAmount,
           paymentMethod:      dto.paymentMethod,
-          deliveryAddress:    dto.deliveryAddress as Prisma.InputJsonValue,
+          deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
           taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
           pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
           deliveryOtp:        generateDeliveryOtp(),
@@ -240,6 +299,14 @@ export class OrdersService {
       orderId:     order.id,
       orderNumber: order.orderNumber,
       totalAmount: order.totalAmount,
+      deliveryAddress: deliveryAddressSnapshot,
+      deliveryAddressText: formattedAddressText,
+      deliveryPlaceName: placeNameText,
+      deliveryFormattedAddress: formattedAddressText,
+      deliveryLatitude: latitudeNum,
+      deliveryLongitude: longitudeNum,
+      distanceKm: distanceKmNum,
+      locationSource: locationSourceText,
     });
 
     return order;
