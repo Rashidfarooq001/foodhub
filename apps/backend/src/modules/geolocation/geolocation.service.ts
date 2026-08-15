@@ -357,8 +357,30 @@ export class GeolocationService {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query1)}&format=json&limit=5&countrycodes=in`,
       `https://photon.komoot.io/api/?q=${encodeURIComponent(query2)}&limit=5`,
     ];
+    const KASHMIR_LOCALITY_MAP: Record<string, { lat: number; lng: number; name: string; display: string; city: string; state: string }> = {
+      kehnusa: { lat: 34.4646738, lng: 74.577908, name: 'Kehnusa', display: 'Kehnusa, Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
+      aloosa: { lat: 34.4875676, lng: 74.1025259, name: 'Aloosa', display: 'Aloosa, Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
+      sopore: { lat: 34.2869124, lng: 74.4625673, name: 'Sopore', display: 'Sopore, Baramulla, Jammu & Kashmir, India', city: 'Baramulla', state: 'Jammu & Kashmir' },
+      bandipora: { lat: 34.4232433, lng: 74.635965, name: 'Bandipora', display: 'Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
+      srinagar: { lat: 34.0747444, lng: 74.8204443, name: 'Srinagar', display: 'Srinagar, Jammu & Kashmir, India', city: 'Srinagar', state: 'Jammu & Kashmir' },
+    };
 
     const results: PlaceSearchResult[] = [];
+
+    const kashMatch = KASHMIR_LOCALITY_MAP[clean.toLowerCase()];
+    if (kashMatch) {
+      results.push({
+        placeId: `place-${kashMatch.lat.toFixed(4)}-${kashMatch.lng.toFixed(4)}`,
+        placeName: kashMatch.name,
+        formattedAddress: kashMatch.display,
+        latitude: kashMatch.lat,
+        longitude: kashMatch.lng,
+        locality: kashMatch.name,
+        city: kashMatch.city,
+        state: kashMatch.state,
+        confidence: 1.0,
+      });
+    }
 
     for (const url of urls) {
       try {
