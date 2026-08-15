@@ -252,10 +252,13 @@ export default function CheckoutPage() {
   // Save Custom Address Handler
   const handleSaveCustomAddress = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newArea.trim() || newLat === null || newLng === null || isNaN(newLat) || isNaN(newLng) || (newLat === 0 && newLng === 0)) {
-      setLocationStatusMsg('Please search and select a delivery address.');
+    if (!newArea.trim()) {
+      setLocationStatusMsg('Please enter your complete delivery address manually.');
       return;
     }
+
+    const latToSave = newLat !== null && !isNaN(newLat) && newLat !== 0 ? newLat : 34.3868;
+    const lngToSave = newLng !== null && !isNaN(newLng) && newLng !== 0 ? newLng : 74.5221;
 
     const createdAddr: CustomerAddressItem = {
       id: `addr-custom-${Date.now()}`,
@@ -263,11 +266,11 @@ export default function CheckoutPage() {
       addressLine1: newArea.trim(),
       addressLine2: newLandmark.trim() || '',
       landmark: newLandmark.trim() || undefined,
-      city: newCity.trim() || '',
-      state: newState.trim() || '',
+      city: newCity.trim() || 'Sopore',
+      state: newState.trim() || 'Jammu and Kashmir',
       postalCode: newPinCode.trim() || '',
-      latitude: newLat,
-      longitude: newLng,
+      latitude: latToSave,
+      longitude: lngToSave,
       isDefault: false,
     };
 
@@ -1224,100 +1227,108 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* 3 Clear Options: 1. Typed Search, 2. GPS, 3. Manual Map */}
-                <div className="space-y-3 pt-1">
-                  {/* Option 1: Search address or location by typing */}
+                {/* Manual Address Fields */}
+                <div className="space-y-3">
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1 text-xs">🔍 Search Address by Typing</label>
-                    <AddressSearchBar 
-                      onAddressSelect={(locationData) => {
-                        setNewArea(locationData.address);
-                        setNewLat(locationData.lat);
-                        setNewLng(locationData.lng);
-                        setLocationStatusMsg(null);
-                      }} 
+                    <label className="block font-bold text-gray-700 mb-1">
+                      Address <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newArea}
+                      onChange={(e) => setNewArea(e.target.value)}
+                      placeholder="Enter your complete delivery address manually..."
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                     />
                   </div>
 
-                  <div className="flex items-center gap-3 my-1">
-                    <div className="h-px flex-1 bg-gray-200" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">OR</span>
-                    <div className="h-px flex-1 bg-gray-200" />
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Landmark (Optional)</label>
+                    <input
+                      type="text"
+                      value={newLandmark}
+                      onChange={(e) => setNewLandmark(e.target.value)}
+                      placeholder="Nearby landmark (optional)"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {/* Option 2: Use Current Location */}
-                    <button
-                      type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isLocatingUser}
-                      className="p-3 rounded-2xl border-2 border-orange-100 bg-orange-50/70 hover:bg-orange-100/80 transition flex items-center gap-2.5 text-left group"
-                    >
-                      <div className="h-8 w-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                        {isLocatingUser ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-white" />
-                        ) : (
-                          <Navigation className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-black text-gray-900 text-xs block">📍 Use Current GPS</span>
-                        <span className="text-[10px] text-gray-600 font-medium">Detect automatically</span>
-                      </div>
-                    </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={newCity}
+                        onChange={(e) => setNewCity(e.target.value)}
+                        placeholder="City (e.g. Sopore)"
+                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
+                      <input
+                        type="text"
+                        value={newPinCode}
+                        onChange={(e) => setNewPinCode(e.target.value)}
+                        placeholder="PIN Code"
+                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
 
-                    {/* Option 3: Choose Location on Map */}
-                    <button
-                      type="button"
-                      onClick={() => setCustomLocationMode(customLocationMode === 'MAP' ? 'NONE' : 'MAP')}
-                      className={`p-3 rounded-2xl border-2 transition flex items-center gap-2.5 text-left group ${
-                        customLocationMode === 'MAP'
-                          ? 'border-orange-500 bg-orange-50/40'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  {/* Manual Map Coordinate Picker Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setCustomLocationMode(customLocationMode === 'MAP' ? 'NONE' : 'MAP')}
+                    className={`w-full p-3 rounded-2xl border-2 transition flex items-center justify-between group ${
+                      customLocationMode === 'MAP'
+                        ? 'border-orange-500 bg-orange-50/40'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                         <MapPin className="h-4 w-4" />
                       </div>
-                      <div>
-                        <span className="font-black text-gray-900 text-xs block">📌 Choose on Map</span>
-                        <span className="text-[10px] text-gray-600 font-medium">Pick pin on map</span>
+                      <div className="text-left">
+                        <span className="font-black text-gray-900 text-xs block">📍 Choose Location on Map</span>
+                        <span className="text-[10px] text-gray-600 font-medium">Select exact delivery pin coordinates</span>
                       </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Map Picker when Custom Location Mode is active */}
-                {customLocationMode === 'MAP' && (
-                  <div className="pt-2">
-                    <AddressPickerMap
-                      initialLat={newLat || 34.3868}
-                      initialLng={newLng || 74.5221}
-                      onAddressSelected={(locationData) => {
-                        setNewArea(locationData.displayName);
-                        setNewLat(locationData.lat);
-                        setNewLng(locationData.lng);
-                        setLocationStatusMsg(null);
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Selected Location Card Display */}
-                {newArea && (
-                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                      <span>Selected Location:</span>
                     </div>
-                    <p className="text-emerald-950 font-semibold text-xs leading-relaxed">{newArea}</p>
-                    {newLat !== null && newLng !== null && (
-                      <p className="text-[10px] text-emerald-700 font-mono pt-0.5">
-                        Coordinates: {newLat.toFixed(4)}, {newLng.toFixed(4)}
-                      </p>
-                    )}
-                  </div>
-                )}
+                    <span className="text-xs font-bold text-orange-600">
+                      {customLocationMode === 'MAP' ? 'Close Map' : 'Open Map'}
+                    </span>
+                  </button>
+
+                  {/* Map Picker Component */}
+                  {customLocationMode === 'MAP' && (
+                    <div className="pt-1">
+                      <AddressPickerMap
+                        initialLat={newLat || 34.3868}
+                        initialLng={newLng || 74.5221}
+                        onAddressSelected={(locationData) => {
+                          setNewLat(locationData.lat);
+                          setNewLng(locationData.lng);
+                          setLocationStatusMsg(null);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Selected Coordinates Status */}
+                  {newLat !== null && newLng !== null && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span>Map Location Selected</span>
+                      </div>
+                      <span className="font-mono text-[11px] text-emerald-700 font-semibold">
+                        {newLat.toFixed(5)}, {newLng.toFixed(5)}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {locationStatusMsg && (
                   <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">

@@ -178,37 +178,27 @@ export default function AddressPickerMap({
       <div className="flex items-center justify-between rounded-xl bg-orange-50 px-3.5 py-2.5 text-xs text-orange-900 border border-orange-100">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
-          <span className="font-semibold text-gray-800">Tap or drag pin to select exact delivery point</span>
+          <span className="font-semibold text-gray-800">Tap or drag pin to select exact delivery coordinates</span>
         </div>
-        <button
-          type="button"
-          onClick={handleCurrentLocation}
-          className="flex items-center gap-1 font-bold text-orange-700 hover:text-orange-800 bg-white px-2.5 py-1 rounded-lg shadow-xs border border-orange-200"
-        >
-          <Navigation className="h-3.5 w-3.5 text-orange-600" />
-          <span>My GPS</span>
-        </button>
       </div>
 
       {/* Map Container */}
-      <div ref={mapElRef} className="h-72 w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm z-0" />
+      <div ref={mapElRef} className="h-64 w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm z-0" />
 
-      {/* Selected Address Preview Chip */}
-      {selectedAddr ? (
-        <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs">
-          <MapPin className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-gray-900 leading-snug">{selectedAddr}</span>
-            {markerLat !== 0 && markerLng !== 0 && (
-              <span className="text-[10px] text-gray-500 font-mono">
-                Coordinates: {markerLat.toFixed(4)}, {markerLng.toFixed(4)}
-              </span>
-            )}
+      {/* Selected Coordinates Preview Chip */}
+      {markerLat !== 0 && markerLng !== 0 ? (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-900">
+          <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Location Selected:</span>
+            <span className="font-mono text-[11px] text-emerald-700 font-semibold">
+              {markerLat.toFixed(5)}, {markerLng.toFixed(5)}
+            </span>
           </div>
         </div>
       ) : (
         <div className="text-center text-xs text-gray-400 py-1 font-medium">
-          Move pin on map to set delivery address
+          Move pin on map to select delivery coordinates
         </div>
       )}
     </div>
