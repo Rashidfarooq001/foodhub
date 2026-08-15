@@ -5,7 +5,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface CustomerAddressItem {
   id: string;
-  label: string; // Home, Work, Other, Current Location
+  label: string; // Home, Work, Other, Current Location, Place Search
+  placeName?: string;
   addressLine1: string;
   addressLine2?: string;
   landmark?: string;
@@ -14,6 +15,9 @@ export interface CustomerAddressItem {
   postalCode: string;
   latitude?: number | null;
   longitude?: number | null;
+  locationSource?: 'CURRENT_GPS' | 'PLACE_SEARCH' | 'SAVED_ADDRESS';
+  verificationStatus?: 'VERIFIED' | 'FAILED' | 'UNVERIFIED';
+  accuracyMeters?: number | null;
   isDefault: boolean;
 }
 
@@ -45,7 +49,13 @@ export const useAddressStore = create<AddressState>()(
           const rawId = (newAddr as any).id;
           const isCurrentLoc = rawId === 'current-location' || newAddr.label === 'Current Location';
           const id = isCurrentLoc ? 'current-location' : (rawId || `addr-${Date.now()}`);
-          const item: CustomerAddressItem = { ...newAddr, id, label: isCurrentLoc ? 'Current Location' : newAddr.label };
+          const item: CustomerAddressItem = {
+            ...newAddr,
+            id,
+            label: isCurrentLoc ? 'Current Location' : newAddr.label,
+            locationSource: newAddr.locationSource || (isCurrentLoc ? 'CURRENT_GPS' : 'PLACE_SEARCH'),
+            verificationStatus: newAddr.verificationStatus || 'VERIFIED',
+          };
 
           // Filter out existing address with same ID or same Current Location label to prevent duplicates
           const filtered = state.addresses.filter(

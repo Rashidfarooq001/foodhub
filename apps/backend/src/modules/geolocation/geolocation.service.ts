@@ -53,6 +53,18 @@ export interface DetailedGeocodeResult {
   reason?: string;
 }
 
+export interface PlaceSearchResult {
+  placeId: string;
+  placeName: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+  locality?: string;
+  city?: string;
+  state?: string;
+  confidence: number;
+}
+
 export interface NearbyRestaurant {
   id:           string;
   name:         string;
@@ -330,32 +342,99 @@ export class GeolocationService {
     };
   }
 
+  /** Place-Name Location Search (e.g. Kehnusa, Aloosa, Sopore, Bandipora) */
+  async searchPlaceByName(placeName: string): Promise<PlaceSearchResult[]> {
+    const clean = placeName.trim();
+    if (!clean) return [];
+
+    const query1 = clean.toLowerCase().includes('jammu') || clean.toLowerCase().includes('kashmir')
+      ? clean
+      : `${clean}, Jammu and Kashmir, India`;
+    const query2 = `${clean}, India`;
+
+    const urls = [
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query1)}&limit=5`,
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query1)}&format=json&limit=5&countrycodes=in`,
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query2)}&limit=5`,
+    ];
+
+    const results: PlaceSearchResult[] = [];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        let items: any[] = [];
+        if (data.features && Array.isArray(data.features)) {
+          items = data.features.map((f: any) => ({
+            lat: parseFloat(f.geometry?.coordinates?.[1]),
+            lng: parseFloat(f.geometry?.coordinates?.[0]),
+            name: f.properties?.name || clean,
+            display: [f.properties?.name, f.properties?.city || f.properties?.county || f.properties?.district, f.properties?.state, 'India'].filter(Boolean).join(', '),
+            locality: f.properties?.name || '',
+            city: f.properties?.city || f.properties?.county || '',
+            state: f.properties?.state || '',
+          }));
+        } else if (Array.isArray(data)) {
+          items = data.map((item: any) => ({
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+            name: item.display_name?.split(',')[0] || clean,
+            display: item.display_name,
+            locality: item.address?.village || item.address?.suburb || item.display_name?.split(',')[0] || '',
+            city: item.address?.city || item.address?.county || item.address?.district || '',
+            state: item.address?.state || 'Jammu and Kashmir',
+          }));
+        }
+
+        for (const item of items) {
+          if (isNaN(item.lat) || isNaN(item.lng) || item.lat === 0 || item.lng === 0) continue;
+          if (item.lat < 8 || item.lat > 38 || item.lng < 68 || item.lng > 98) continue;
+
+          const exists = results.some((r) => Math.abs(r.latitude - item.lat) < 0.005 && Math.abs(r.longitude - item.lng) < 0.005);
+          if (exists) continue;
+
+          let confidence = 0.8;
+          const normName = normalizeText(item.name);
+          const normClean = normalizeText(clean);
+          if (normName.includes(normClean) || normClean.includes(normName)) {
+            confidence += 0.15;
+          }
+
+          results.push({
+            placeId: `place-${item.lat.toFixed(4)}-${item.lng.toFixed(4)}`,
+            placeName: item.name || clean,
+            formattedAddress: item.display,
+            latitude: item.lat,
+            longitude: item.lng,
+            locality: item.locality,
+            city: item.city,
+            state: item.state,
+            confidence,
+          });
+        }
+      } catch (e: any) {
+        this.logger.warn(`[PLACE_SEARCH] Search error on ${url}: ${e.message}`);
+      }
+    }
+
+    return results.sort((a, b) => b.confidence - a.confidence);
+  }
+
   /** Forward geocoding & autosuggest search */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
     const cleanQuery = query.trim();
     if (!cleanQuery) return [];
 
-    const structuredRes = await this.geocodeStructuredAddress({
-      houseNumber: '1',
-      areaLocality: cleanQuery,
-      landmark: 'Main Road',
-      city: 'Sopore',
-      state: 'Jammu and Kashmir',
-      postalCode: '193201',
-    });
-
-    if (structuredRes.success && structuredRes.latitude && structuredRes.longitude) {
-      return [
-        {
-          lat: structuredRes.latitude,
-          lng: structuredRes.longitude,
-          displayName: structuredRes.displayName || cleanQuery,
-          placeId: `geo-${structuredRes.latitude}-${structuredRes.longitude}`,
-        },
-      ];
-    }
-
-    return [];
+    const places = await this.searchPlaceByName(cleanQuery);
+    return places.map((p) => ({
+      lat: p.latitude,
+      lng: p.longitude,
+      displayName: p.formattedAddress,
+      placeId: p.placeId,
+    }));
   }
 
   /** Mappls Location Autosuggest — returns normalized FoodHub structure */

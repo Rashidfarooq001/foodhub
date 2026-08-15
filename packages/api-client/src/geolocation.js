@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchLocationAutosuggest = fetchLocationAutosuggest;
+exports.searchPlacesByName = searchPlacesByName;
 exports.forwardGeocodeStructuredAddress = forwardGeocodeStructuredAddress;
 exports.forwardGeocodeAddress = forwardGeocodeAddress;
 const axios_client_1 = require("./axios-client");
@@ -33,15 +34,37 @@ async function fetchLocationAutosuggest(query, signal) {
         return [];
     }
 }
+async function searchPlacesByName(query, signal) {
+    const clean = query?.trim();
+    if (!clean)
+        return [];
+    try {
+        const res = await (0, helpers_1.getRequest)(axios_client_1.apiClient, `/geolocation/search-place?q=${encodeURIComponent(clean)}&query=${encodeURIComponent(clean)}`, { signal });
+        if (Array.isArray(res))
+            return res;
+        return res?.places || [];
+    }
+    catch (err) {
+        console.error('[API_CLIENT] Search places by name error:', err);
+        return [];
+    }
+}
 async function forwardGeocodeStructuredAddress(payload, signal) {
     try {
         const res = await axios_client_1.apiClient.post('/geolocation/forward-geocode', payload, { signal });
-        if (res.data?.success && typeof res.data.latitude === 'number' && typeof res.data.longitude === 'number') {
-            return res.data;
+        const data = res.data;
+        const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
+        const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
+        if (data?.success && typeof lat === 'number' && typeof lng === 'number') {
+            return {
+                ...data,
+                latitude: lat,
+                longitude: lng,
+            };
         }
         return {
             success: false,
-            message: res.data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+            message: data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
         };
     }
     catch (err) {

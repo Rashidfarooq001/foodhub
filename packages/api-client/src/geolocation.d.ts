@@ -12,6 +12,18 @@ export interface GeolocationAutosuggestResponse {
     suggestions: GeolocationSuggestion[];
 }
 export declare function fetchLocationAutosuggest(query: string, signal?: AbortSignal): Promise<GeolocationSuggestion[]>;
+export interface PlaceSearchResultItem {
+    placeId: string;
+    placeName: string;
+    formattedAddress: string;
+    latitude: number;
+    longitude: number;
+    locality?: string;
+    city?: string;
+    state?: string;
+    confidence: number;
+}
+export declare function searchPlacesByName(query: string, signal?: AbortSignal): Promise<PlaceSearchResultItem[]>;
 export interface ForwardGeocodeResponse {
     success: boolean;
     latitude?: number;

@@ -19,6 +19,7 @@ import {
   Plus,
   AlertTriangle,
   X,
+  Search,
 } from 'lucide-react';
 
 import { useCartStore } from '../../stores/use-cart-store';
@@ -26,7 +27,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import { fetchPricingConfig, forwardGeocodeAddress, forwardGeocodeStructuredAddress, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
+import { fetchPricingConfig, forwardGeocodeAddress, forwardGeocodeStructuredAddress, searchPlacesByName, PlaceSearchResultItem, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -202,20 +203,15 @@ export default function CheckoutPage() {
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
-  const [newHouseNo, setNewHouseNo] = useState('');
-  const [newArea, setNewArea] = useState('');
-  const [newLandmark, setNewLandmark] = useState('');
-  const [newCity, setNewCity] = useState('');
-  const [newState, setNewState] = useState('');
-  const [newPinCode, setNewPinCode] = useState('');
-
-  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
-  const [geocodingError, setGeocodingError] = useState<string | null>(null);
-
   const [isLocatingUser, setIsLocatingUser] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  // OPTION 1 — Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
+  const [placeSearchInput, setPlaceSearchInput] = useState('');
+  const [isSearchingPlace, setIsSearchingPlace] = useState(false);
+  const [placeCandidates, setPlaceCandidates] = useState<PlaceSearchResultItem[]>([]);
+  const [placeSearchError, setPlaceSearchError] = useState<string | null>(null);
+
+  // MODE 1 — Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation is not supported by your browser device.');
@@ -229,8 +225,15 @@ export default function CheckoutPage() {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy;
 
-        let reverseArea = `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+        if (accuracy > 500) {
+          setLocationError('Location accuracy is low. Please move to an open area and try again.');
+          setIsLocatingUser(false);
+          return;
+        }
+
+        let reverseArea = 'Current Location';
 
         try {
           const geoRes = await fetch(
@@ -238,7 +241,7 @@ export default function CheckoutPage() {
           );
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            if (typeof geoData === 'string') {
+            if (typeof geoData === 'string' && !geoData.includes('unavailable')) {
               reverseArea = geoData;
             } else if (geoData.address || geoData.displayName) {
               reverseArea = geoData.address || geoData.displayName;
@@ -251,13 +254,16 @@ export default function CheckoutPage() {
         const gpsAddr: CustomerAddressItem = {
           id: 'current-location',
           label: 'Current Location',
+          placeName: reverseArea.split(',')[0] || 'Current Location',
           addressLine1: reverseArea,
-          addressLine2: `GPS Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
           city: 'Current Location',
           state: 'GPS',
           postalCode: '',
           latitude: lat,
           longitude: lng,
+          locationSource: 'CURRENT_GPS',
+          verificationStatus: 'VERIFIED',
+          accuracyMeters: accuracy,
           isDefault: true,
         };
 
@@ -268,84 +274,55 @@ export default function CheckoutPage() {
       (err) => {
         setIsLocatingUser(false);
         if (err.code === err.PERMISSION_DENIED) {
-          setLocationError('Location permission denied. Please allow location access or choose Manual Address.');
+          setLocationError('Location permission denied. Please allow location access or search by place name.');
         } else {
-          setLocationError('Unable to acquire current location. Please try again or choose Manual Address.');
+          setLocationError('Unable to acquire current location. Please try again or search by place name.');
         }
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
 
-  // OPTION 2 — Save Manual Text Address Handler (Mappls Forward Geocoding — NO GPS, NO MAP)
-  const handleSaveCustomAddress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setGeocodingError(null);
-
-    const houseNo = newHouseNo.trim();
-    const area = newArea.trim();
-    const city = newCity.trim();
-    const state = newState.trim();
-    const landmark = newLandmark.trim();
-    const pinCode = newPinCode.trim();
-
-    if (!houseNo || !area || !landmark || !city || !state || !/^\d{6}$/.test(pinCode)) {
-      setGeocodingError('Please fill in all 6 required address fields with a valid 6-digit PIN code.');
-      return;
-    }
-
-    setIsGeocodingAddress(true);
-
-    const addressQuery = [houseNo, area, landmark, city, state, pinCode].filter(Boolean).join(', ');
-    const fullLine1 = `${houseNo}, ${area}`;
-    const finalLabel = newAddrLabel === 'Other' && customLabelInput.trim() ? customLabelInput.trim() : newAddrLabel;
-
+  // MODE 2 — Place-Name Location Search Handler
+  const handlePerformPlaceSearch = async (query: string) => {
+    const clean = query.trim();
+    if (!clean) return;
+    setIsSearchingPlace(true);
+    setPlaceSearchError(null);
     try {
-      const geoResult = await forwardGeocodeStructuredAddress({
-        houseNumber: houseNo,
-        areaLocality: area,
-        landmark: landmark,
-        city: city,
-        state: state,
-        postalCode: pinCode,
-      });
-
-      if (geoResult.success && typeof geoResult.latitude === 'number' && typeof geoResult.longitude === 'number') {
-        const createdAddr: CustomerAddressItem = {
-          id: `addr-manual-${Date.now()}`,
-          label: finalLabel,
-          addressLine1: fullLine1,
-          addressLine2: area,
-          landmark: landmark || undefined,
-          city: city,
-          state: state,
-          postalCode: pinCode || '',
-          latitude: geoResult.latitude,
-          longitude: geoResult.longitude,
-          isDefault: false,
-        };
-
-        addAddress(createdAddr);
-        setSelectedAddress(createdAddr.id);
-        setShowCustomAddressModal(false);
-
-        // Reset form
-        setNewHouseNo('');
-        setNewArea('');
-        setNewLandmark('');
-        setNewCity('');
-        setNewState('');
-        setNewPinCode('');
-        setCustomLabelInput('');
-        setGeocodingError(null);
-      } else {
-        setGeocodingError(geoResult.message || "Couldn't determine the location of this address. Please check your address details and try again.");
+      const results = await searchPlacesByName(clean);
+      setPlaceCandidates(results);
+      if (results.length === 0) {
+        setPlaceSearchError(`No matching locations found for "${clean}". Please check the place name and try again.`);
       }
     } catch {
-      setGeocodingError("Couldn't determine the location of this address. Please check your address details and try again.");
+      setPlaceSearchError('Unable to search location. Please try again.');
     } finally {
-      setIsGeocodingAddress(false);
+      setIsSearchingPlace(false);
     }
+  };
+
+  const handleSelectPlaceCandidate = (candidate: PlaceSearchResultItem) => {
+    const newAddr: CustomerAddressItem = {
+      id: `addr-place-${Date.now()}`,
+      label: candidate.placeName,
+      placeName: candidate.placeName,
+      addressLine1: candidate.formattedAddress,
+      city: candidate.city || 'Jammu & Kashmir',
+      state: candidate.state || 'Jammu & Kashmir',
+      postalCode: '',
+      latitude: candidate.latitude,
+      longitude: candidate.longitude,
+      locationSource: 'PLACE_SEARCH',
+      verificationStatus: 'VERIFIED',
+      isDefault: false,
+    };
+
+    addAddress(newAddr);
+    setSelectedAddress(newAddr.id);
+    setShowCustomAddressModal(false);
+    setPlaceSearchInput('');
+    setPlaceCandidates([]);
   };
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -1265,16 +1242,22 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* MANUAL ADDRESS FORM MODAL (FORM <-> MAP) */}
+        {/* PLACE-NAME LOCATION SEARCH MODAL (MODE 2 — NO MAP, NO 6-FIELD FORM) */}
         {showCustomAddressModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-base font-black text-gray-900">
-                  Add Delivery Address
-                </h3>
+                <div>
+                  <h3 className="text-base font-black text-gray-900">
+                    Change Delivery Location
+                  </h3>
+                  <p className="text-[11px] font-medium text-gray-500">
+                    Search for a village, locality, town, or city in Jammu &amp; Kashmir
+                  </p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => setShowCustomAddressModal(false)}
                   className="text-gray-400 hover:text-gray-600 rounded-full p-1"
                 >
@@ -1282,161 +1265,90 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* MANUAL ADDRESS TEXT FORM ONLY */}
-              <form onSubmit={handleSaveCustomAddress} className="space-y-3.5 text-xs">
-                {/* Save Address As */}
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1.5">Save Address As</label>
-                  <div className="flex gap-2">
-                    {(['Home', 'Work', 'Other'] as const).map((lbl) => (
+              {/* PLACE NAME SEARCH FORM */}
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={placeSearchInput}
+                    onChange={(e) => setPlaceSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handlePerformPlaceSearch(placeSearchInput);
+                      }
+                    }}
+                    placeholder="Enter place name (e.g. Kehnusa, Aloosa, Sopore, Bandipora)..."
+                    className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-medium text-gray-900 focus:border-orange-500 focus:bg-white focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handlePerformPlaceSearch(placeSearchInput)}
+                    disabled={isSearchingPlace || !placeSearchInput.trim()}
+                    className="rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition shrink-0"
+                  >
+                    {isSearchingPlace ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
+
+                {/* Popular J&K Location Quick Pills */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Quick Suggestions</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Kehnusa', 'Aloosa', 'Watlab', 'Sopore', 'Bandipora', 'Baramulla'].map((place) => (
                       <button
-                        key={lbl}
+                        key={place}
                         type="button"
-                        onClick={() => setNewAddrLabel(lbl)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
-                          newAddrLabel === lbl
-                            ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
-                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                        }`}
+                        onClick={() => {
+                          setPlaceSearchInput(place);
+                          handlePerformPlaceSearch(place);
+                        }}
+                        className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-700 hover:bg-orange-100 hover:text-orange-700 transition"
                       >
-                        {lbl}
+                        {place}
                       </button>
                     ))}
                   </div>
-
-                  {newAddrLabel === 'Other' && (
-                    <input
-                      type="text"
-                      value={customLabelInput}
-                      onChange={(e) => setCustomLabelInput(e.target.value)}
-                      placeholder="Enter custom label (e.g. Gym, Friend's House)"
-                      className="mt-2 w-full rounded-xl border border-gray-200 px-3.5 py-2 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50"
-                    />
-                  )}
                 </div>
 
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    House / Flat / Building <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newHouseNo}
-                    onChange={(e) => setNewHouseNo(e.target.value)}
-                    placeholder="Enter house/flat/building"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    Area / Locality <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newArea}
-                    onChange={(e) => setNewArea(e.target.value)}
-                    placeholder="Enter area/locality"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    Landmark <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newLandmark}
-                    onChange={(e) => setNewLandmark(e.target.value)}
-                    placeholder="Near Main Road / School / Masjid"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      City / Town <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newCity}
-                      onChange={(e) => setNewCity(e.target.value)}
-                      placeholder="Enter city/town"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      State / UT <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newState}
-                      onChange={(e) => setNewState(e.target.value)}
-                      placeholder="e.g. Jammu & Kashmir"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    PIN / Postal Code <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={newPinCode}
-                    onChange={(e) => setNewPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6-digit PIN code"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                  />
-                </div>
-
-                {geocodingError && (
+                {placeSearchError && (
                   <div className="rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-700 border border-rose-200 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                    <span>{geocodingError}</span>
+                    <span>{placeSearchError}</span>
                   </div>
                 )}
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    disabled={isGeocodingAddress}
-                    onClick={() => {
-                      setShowCustomAddressModal(false);
-                      setGeocodingError(null);
-                    }}
-                    className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      isGeocodingAddress ||
-                      !newHouseNo.trim() ||
-                      !newArea.trim() ||
-                      !newLandmark.trim() ||
-                      !newCity.trim() ||
-                      !newState.trim() ||
-                      !/^\d{6}$/.test(newPinCode.trim())
-                    }
-                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 disabled:opacity-40 transition flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <span>{isGeocodingAddress ? 'Verifying address location...' : 'Save Address'}</span>
-                  </button>
-                </div>
-              </form>
+                {/* Candidate Selection List */}
+                {placeCandidates.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">
+                      Select Verified Location ({placeCandidates.length})
+                    </span>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {placeCandidates.map((cand) => (
+                        <button
+                          key={cand.placeId}
+                          type="button"
+                          onClick={() => handleSelectPlaceCandidate(cand)}
+                          className="w-full text-left p-3.5 rounded-2xl border border-gray-100 bg-gray-50/60 hover:border-orange-500 hover:bg-orange-50/40 transition space-y-1 group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-gray-900 group-hover:text-orange-600">
+                              {cand.placeName}
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Verified Place
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
+                            {cand.formattedAddress}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

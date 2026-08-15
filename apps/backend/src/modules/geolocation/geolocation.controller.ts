@@ -18,6 +18,20 @@ class ValidateRadiusDto {
 export class GeolocationController {
   constructor(private readonly geo: GeolocationService) {}
 
+  @Get(['search-place', 'place-search'])
+  @ApiOperation({ summary: 'Place-Name location search (e.g. Kehnusa, Aloosa, Sopore, Bandipora)' })
+  @ApiQuery({ name: 'q', required: false, description: 'Place search query' })
+  @ApiQuery({ name: 'query', required: false, description: 'Place search query' })
+  async searchPlace(
+    @Query('q') q?: string,
+    @Query('query') query?: string,
+  ) {
+    const searchTerm = query || q || '';
+    if (!searchTerm.trim()) return { places: [] };
+    const places = await this.geo.searchPlaceByName(searchTerm.trim());
+    return { places };
+  }
+
   @Get(['autosuggest', 'search'])
   @ApiOperation({ summary: 'Mappls Location Autosuggest & Search API' })
   @ApiQuery({ name: 'q', required: false, description: 'Address search query' })

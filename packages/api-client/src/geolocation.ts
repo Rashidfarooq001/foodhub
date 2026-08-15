@@ -51,6 +51,38 @@ export async function fetchLocationAutosuggest(
   }
 }
 
+export interface PlaceSearchResultItem {
+  placeId: string;
+  placeName: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+  locality?: string;
+  city?: string;
+  state?: string;
+  confidence: number;
+}
+
+export async function searchPlacesByName(
+  query: string,
+  signal?: AbortSignal,
+): Promise<PlaceSearchResultItem[]> {
+  const clean = query?.trim();
+  if (!clean) return [];
+  try {
+    const res = await getRequest<{ places?: PlaceSearchResultItem[] } | PlaceSearchResultItem[]>(
+      apiClient,
+      `/geolocation/search-place?q=${encodeURIComponent(clean)}&query=${encodeURIComponent(clean)}`,
+      { signal },
+    );
+    if (Array.isArray(res)) return res;
+    return res?.places || [];
+  } catch (err: any) {
+    console.error('[API_CLIENT] Search places by name error:', err);
+    return [];
+  }
+}
+
 export interface ForwardGeocodeResponse {
   success: boolean;
   latitude?: number;
@@ -84,12 +116,20 @@ export async function forwardGeocodeStructuredAddress(
       payload,
       { signal },
     );
-    if (res.data?.success && typeof res.data.latitude === 'number' && typeof res.data.longitude === 'number') {
-      return res.data;
+    const data: any = res.data;
+    const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
+    const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
+
+    if (data?.success && typeof lat === 'number' && typeof lng === 'number') {
+      return {
+        ...data,
+        latitude: lat,
+        longitude: lng,
+      };
     }
     return {
       success: false,
-      message: res.data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+      message: data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
     };
   } catch (err: any) {
     // Fallback to GET endpoint
