@@ -45,53 +45,62 @@ export default function HotelDashboardPage() {
  
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [me, setMe] = useState<any>(null);
 
- useEffect(() => {
-  if (!accessToken) {
-    console.warn('No access token');
-    setIsLoading(false);
-    return;
-  }
-
-  const fetchAll = async () => {
-    try {
-      const [statsRes, ordersRes] = await Promise.all([
-        fetch(`${API_BASE}/analytics/restaurant`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }),
-
-        fetch(`${API_BASE}/orders?status=PENDING,PREPARING`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }),
-      ]);
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-
-        setQueue(
-          Array.isArray(ordersData)
-            ? ordersData
-            : ordersData.orders ?? [],
-        );
-      }
-    } catch (err) {
-      console.error('Dashboard loading failed:', err);
-    } finally {
+  useEffect(() => {
+    if (!accessToken) {
+      console.warn('No access token');
       setIsLoading(false);
+      return;
     }
-  };
 
-  fetchAll();
-}, [accessToken, setQueue]);
+    const fetchAll = async () => {
+      try {
+        const meRes = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setMe(meData);
+        }
+
+        const [statsRes, ordersRes] = await Promise.all([
+          fetch(`${API_BASE}/analytics/restaurant`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+
+          fetch(`${API_BASE}/orders?status=PENDING,PREPARING`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+        ]);
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+
+          setQueue(
+            Array.isArray(ordersData)
+              ? ordersData
+              : ordersData.orders ?? [],
+          );
+        }
+      } catch (err) {
+        console.error('Dashboard loading failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, [accessToken, setQueue]);
 
   const kpi = {
     todayRevenue: stats?.todayRevenue ?? 0,
@@ -102,8 +111,21 @@ export default function HotelDashboardPage() {
     avgRating: stats?.avgRating ?? 0,
     totalReviews: stats?.totalReviews ?? 0,
     weeklyRevenueData: stats?.weeklyRevenueData ?? [],
-  };  return (
+  };
+
+  const isPendingApproval = me?.restaurant?.status === 'PENDING_APPROVAL';
+
+  return (
     <div className="space-y-8">
+      {isPendingApproval && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="font-black text-amber-800 uppercase tracking-wider text-[10px] block">Application Status</span>
+            <span>Your restaurant application for <strong>{me?.restaurant?.name || 'your restaurant'}</strong> is currently pending admin review.</span>
+          </div>
+          <span className="rounded-xl bg-amber-200 px-3 py-1 text-[11px] font-black text-amber-900">PENDING APPROVAL</span>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">

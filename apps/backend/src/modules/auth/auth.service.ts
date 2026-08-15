@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
@@ -13,7 +13,9 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-phone.dto';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '@prisma/client';
+import { RegisterRestaurantOwnerDto } from './dto/register-restaurant-owner.dto';
+import { RegisterDeliveryPartnerDto } from './dto/register-delivery-partner.dto';
+import { UserRole, RestaurantStatus, DriverStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -192,12 +194,6 @@ export class AuthService {
       restaurantStatus = restaurant?.status ?? null;
     }
 
-    if (restaurantStatus === 'PENDING_APPROVAL') {
-      throw new UnauthorizedException(
-        'Your restaurant application is currently pending admin approval. You will be notified once it is approved.',
-      );
-    }
-
     if (restaurantStatus === 'REJECTED') {
       throw new UnauthorizedException(
         'Your restaurant registration has not been approved.',
@@ -282,6 +278,266 @@ export class AuthService {
     };
   }
 
+  async registerRestaurantOwner(dto: RegisterRestaurantOwnerDto, ipAddress?: string, userAgent?: string) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const cleanDigits = dto.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    }
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+    const cleanEmail = dto.email.trim().toLowerCase();
+
+    const existingUser = await (this.usersService as any).prisma.user.findFirst({
+      where: { OR: [{ phone: formattedPhone }, { email: cleanEmail }] },
+    });
+    if (existingUser) {
+      throw new BadRequestException('An account with this phone number or email already exists. Please login.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const nameParts = dto.name.trim().split(' ');
+    const firstName = nameParts[0] || 'Owner';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const slug = dto.restaurantName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+    const fullAddress = [dto.addressLine, dto.city, dto.state, dto.postalCode].filter(Boolean).join(', ');
+
+    const result = await (this.usersService as any).prisma.$transaction(async (tx: any) => {
+      const user = await tx.user.create({
+        data: {
+          phone: formattedPhone,
+          email: cleanEmail,
+          passwordHash,
+          role: UserRole.RESTAURANT_OWNER,
+          isVerified: true,
+          isActive: true,
+          profile: {
+            create: {
+              firstName,
+              lastName,
+            },
+          },
+        },
+        include: { profile: true },
+      });
+
+      const restaurant = await tx.restaurant.create({
+        data: {
+          ownerId: user.id,
+          name: dto.restaurantName,
+          slug,
+          phone: formattedPhone,
+          email: cleanEmail,
+          licenseFssai: dto.fssaiNumber || `FSSAI-${Date.now()}`,
+          gstin: dto.gstin || `GST-${Date.now()}`,
+          addressLine: fullAddress || dto.addressLine,
+          latitude: dto.latitude != null ? Number(dto.latitude) : 34.3868,
+          longitude: dto.longitude != null ? Number(dto.longitude) : 74.5221,
+          status: RestaurantStatus.PENDING_APPROVAL,
+          isOpen: false,
+        },
+      });
+
+      await tx.restaurantStaff.create({
+        data: {
+          restaurantId: restaurant.id,
+          userId: user.id,
+          designation: 'Owner',
+        },
+      });
+
+      return { user, restaurant };
+    });
+
+    const session = await this.sessionService.createSession(result.user.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(
+      { ...result.user, restaurantId: result.restaurant.id },
+      session.id,
+    );
+
+    this.logger.log(`[Restaurant Registration] Registered owner user=${result.user.id}, restaurant=${result.restaurant.id}`);
+
+    return {
+      user: {
+        id: result.user.id,
+        phone: result.user.phone,
+        email: result.user.email,
+        role: result.user.role,
+        profile: result.user.profile,
+        restaurant: {
+          id: result.restaurant.id,
+          name: result.restaurant.name,
+          slug: result.restaurant.slug,
+          status: result.restaurant.status,
+        },
+        restaurantId: result.restaurant.id,
+      },
+      tokens,
+      message: 'Restaurant owner account created successfully. Application is pending admin approval.',
+    };
+  }
+
+  async registerDeliveryPartner(dto: RegisterDeliveryPartnerDto, ipAddress?: string, userAgent?: string) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const cleanDigits = dto.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    }
+    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
+    const cleanEmail = dto.email.trim().toLowerCase();
+
+    const existingUser = await (this.usersService as any).prisma.user.findFirst({
+      where: { OR: [{ phone: formattedPhone }, { email: cleanEmail }] },
+    });
+    if (existingUser) {
+      throw new BadRequestException('An account with this phone number or email already exists. Please login.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const nameParts = dto.name.trim().split(' ');
+    const firstName = nameParts[0] || 'Driver';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const result = await (this.usersService as any).prisma.$transaction(async (tx: any) => {
+      const user = await tx.user.create({
+        data: {
+          phone: formattedPhone,
+          email: cleanEmail,
+          passwordHash,
+          role: UserRole.DELIVERY_PARTNER,
+          isVerified: true,
+          isActive: true,
+          profile: {
+            create: {
+              firstName,
+              lastName,
+            },
+          },
+        },
+        include: { profile: true },
+      });
+
+      const driver = await tx.driver.create({
+        data: {
+          userId: user.id,
+          licenseNumber: dto.licenseNumber || `DL-${Date.now()}`,
+          isApproved: false,
+          status: DriverStatus.OFFLINE,
+        },
+      });
+
+      const vehicle = await tx.driverVehicle.create({
+        data: {
+          driverId: driver.id,
+          vehicleType: dto.vehicleType,
+          vehicleNumber: dto.vehicleNumber,
+          model: 'Delivery Vehicle',
+        },
+      });
+
+      return { user, driver: { ...driver, vehicles: [vehicle] } };
+    });
+
+    const session = await this.sessionService.createSession(result.user.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(result.user, session.id);
+
+    this.logger.log(`[Delivery Partner Registration] Registered driver user=${result.user.id}, driver=${result.driver.id}`);
+
+    return {
+      user: {
+        id: result.user.id,
+        phone: result.user.phone,
+        email: result.user.email,
+        role: result.user.role,
+        profile: result.user.profile,
+        driver: {
+          id: result.driver.id,
+          status: result.driver.status,
+          isApproved: result.driver.isApproved,
+          licenseNumber: result.driver.licenseNumber,
+          vehicles: result.driver.vehicles,
+        },
+        driverId: result.driver.id,
+      },
+      tokens,
+      message: 'Delivery partner account created successfully. Application is under admin review.',
+    };
+  }
+
+  async getMe(userId: string) {
+    const user = await (this.usersService as any).prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        customer: true,
+        driver: {
+          include: {
+            vehicles: true,
+            documents: true,
+          },
+        },
+        restaurantStaff: {
+          include: {
+            restaurant: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User account not found');
+    }
+
+    let restaurantObj = user.restaurantStaff?.[0]?.restaurant || null;
+    if (!restaurantObj && user.role === UserRole.RESTAURANT_OWNER) {
+      restaurantObj = await (this.usersService as any).prisma.restaurant.findFirst({
+        where: { ownerId: user.id },
+      });
+    }
+
+    const restaurant = restaurantObj
+      ? {
+          id: restaurantObj.id,
+          name: restaurantObj.name,
+          slug: restaurantObj.slug,
+          phone: restaurantObj.phone,
+          email: restaurantObj.email,
+          status: restaurantObj.status,
+          isOpen: restaurantObj.isOpen,
+          deliveryMode: restaurantObj.deliveryMode,
+        }
+      : null;
+
+    return {
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      isVerified: user.isVerified,
+      profile: user.profile,
+      customer: user.customer,
+      driver: user.driver
+        ? {
+            id: user.driver.id,
+            status: user.driver.status,
+            isApproved: user.driver.isApproved,
+            licenseNumber: user.driver.licenseNumber,
+            vehicles: user.driver.vehicles,
+          }
+        : null,
+      driverId: user.driver?.id || null,
+      restaurant,
+      restaurantId: restaurant?.id || null,
+    };
+  }
+
   private async enforceUserRoleAndStatus(user: any, targetRole?: string) {
     const normalizedTarget = (targetRole || 'CUSTOMER').toUpperCase();
 
@@ -330,11 +586,6 @@ export class AuthService {
       }
 
       if (rObj) {
-        if (rObj.status === 'PENDING_APPROVAL') {
-          throw new UnauthorizedException(
-            'Your restaurant application is currently pending admin approval.',
-          );
-        }
         if (rObj.status === 'REJECTED') {
           throw new UnauthorizedException(
             'Your restaurant application has been rejected by FoodHub admin.',
@@ -634,9 +885,6 @@ export class AuthService {
       }
 
       if (rObj) {
-        if (rObj.status === 'PENDING_APPROVAL') {
-          throw new UnauthorizedException('Your restaurant application is pending admin approval.');
-        }
         if (rObj.status === 'REJECTED') {
           const reason = rObj.rejectionReason ? `: ${rObj.rejectionReason}` : '';
           throw new UnauthorizedException(`Your restaurant application was rejected${reason}. Please contact support.`);

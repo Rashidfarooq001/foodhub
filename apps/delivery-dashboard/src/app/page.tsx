@@ -12,13 +12,36 @@ export default function DeliveryDashboardPage() {
   const [stats, setStats] = useState<DriverStats | null>(null);
   const [currentDelivery, setCurrentDelivery] = useState<DeliveryJob | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [me, setMe] = useState<any>(null);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub-delivery-auth') : null;
+    let accessToken: string | null = null;
+    if (token) {
+      try {
+        const parsed = JSON.parse(token);
+        accessToken = parsed.state?.accessToken || parsed.accessToken || null;
+      } catch {
+        /* parse fallback */
+      }
+    }
+
     const fetchAll = async () => {
       try {
+        if (accessToken) {
+          const meRes = await fetch(`${API_BASE}/auth/me`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            setMe(meData);
+          }
+        }
+
+        const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
         const [statsRes, deliveryRes] = await Promise.all([
-          fetch(`${API_BASE}/delivery/stats`),
-          fetch(`${API_BASE}/delivery/current`),
+          fetch(`${API_BASE}/delivery/stats`, { headers }),
+          fetch(`${API_BASE}/delivery/current`, { headers }),
         ]);
         if (statsRes.ok) {
           const data = await statsRes.json();
@@ -45,8 +68,19 @@ export default function DeliveryDashboardPage() {
     totalRatings: stats?.totalRatings ?? 0,
   };
 
+  const isUnderReview = me?.driver && me.driver.isApproved === false;
+
   return (
     <div className="space-y-8">
+      {isUnderReview && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="font-black text-amber-800 uppercase tracking-wider text-[10px] block">Application Status</span>
+            <span>Your delivery partner application is currently under admin review (isApproved=false).</span>
+          </div>
+          <span className="rounded-xl bg-amber-200 px-3 py-1 text-[11px] font-black text-amber-900">UNDER REVIEW</span>
+        </div>
+      )}
       {/* Driver Welcome Header */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-gray-100 pb-4">
         <div>

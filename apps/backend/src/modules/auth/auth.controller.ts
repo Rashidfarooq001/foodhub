@@ -18,6 +18,8 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterRestaurantOwnerDto } from './dto/register-restaurant-owner.dto';
+import { RegisterDeliveryPartnerDto } from './dto/register-delivery-partner.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -78,6 +80,36 @@ export class AuthController {
     const ip = req.ip || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
     return this.authService.register(dto, ip, ua);
+  }
+
+  @Public()
+  @Post('register/restaurant-owner')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Public Restaurant Owner Registration (Owner + Restaurant details)' })
+  @ApiResponse({ status: 201, description: 'Restaurant owner registered successfully (pending admin approval)' })
+  async registerRestaurantOwner(@Body() dto: RegisterRestaurantOwnerDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.registerRestaurantOwner(dto, ip, ua);
+  }
+
+  @Public()
+  @Post('register/delivery-partner')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Public Delivery Partner Registration (Driver + Vehicle details)' })
+  @ApiResponse({ status: 201, description: 'Delivery partner registered successfully (under admin review)' })
+  async registerDeliveryPartner(@Body() dto: RegisterDeliveryPartnerDto, @Req() req: Request) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    return this.authService.registerDeliveryPartner(dto, ip, ua);
+  }
+
+  @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current authenticated user session, profile, and linked restaurant/driver context' })
+  @ApiResponse({ status: 200, description: 'Current authenticated context retrieved successfully' })
+  async getMe(@CurrentUser('id') userId: string) {
+    return this.authService.getMe(userId);
   }
 
   @Public()

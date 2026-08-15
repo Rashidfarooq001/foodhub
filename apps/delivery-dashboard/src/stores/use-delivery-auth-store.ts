@@ -12,6 +12,8 @@ export interface DeliveryUserProfile {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
+  driverId?: string;
+  isApproved?: boolean;
 }
 
 interface DeliveryAuthState {

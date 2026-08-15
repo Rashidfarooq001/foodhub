@@ -400,35 +400,23 @@ export default function RestaurantPartnerRegisterPage() {
 
     try {
       const payload = {
-        name: form.name.trim(),
-        ownerName: form.ownerName.trim(),
+        name: form.ownerName.trim() || form.name.trim(),
         phone: `+91${form.phone.replace(/\D/g, '')}`,
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        fssaiLicense: form.fssaiLicense.trim(),
-        panNumber: form.panNumber.trim() || 'PAN-PENDING',
-        address: form.address.trim() || 'Restaurant Address',
-        city: form.city,
-        state: form.state,
-        country: form.country,
-        pin: form.pin,
-        latitude: form.latitude,
-        longitude: form.longitude,
-        cuisines: form.cuisines.split(',').map((c) => c.trim()),
-        openingHours: form.openingHours,
-        closingHours: form.closingHours,
-        logoUrl: form.logoUrl || form.bannerUrl,
-        bannerUrl: form.bannerUrl || form.logoUrl,
-        menuUrl: form.menuUrl,
-        fssaiUrl: form.fssaiUrl,
-        panUrl: form.panUrl,
-        bankName: form.bankName,
-        accountNumber: form.accountNumber,
-        ifsc: form.ifsc,
-        upiId: form.upiId,
+        confirmPassword: form.confirmPassword,
+        restaurantName: form.name.trim(),
+        addressLine: form.address.trim() || 'Restaurant Address',
+        city: form.city || 'Bandipora',
+        state: form.state || 'Jammu & Kashmir',
+        postalCode: form.pin || '193502',
+        latitude: form.latitude ?? 34.3868,
+        longitude: form.longitude ?? 74.5221,
+        fssaiNumber: form.fssaiLicense.trim() || undefined,
+        gstin: form.panNumber.trim() || undefined,
       };
 
-      const res = await fetch(`${API_BASE}/restaurants`, {
+      const res = await fetch(`${API_BASE}/auth/register/restaurant-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -436,6 +424,10 @@ export default function RestaurantPartnerRegisterPage() {
 
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        if (data.tokens?.accessToken) {
+          localStorage.setItem('foodhub_hotel_token', data.tokens.accessToken);
+          localStorage.setItem('foodhub_hotel_refresh_token', data.tokens.refreshToken || '');
+        }
         setSubmitted(true);
       } else {
         throw new Error(data.message || 'Failed to submit application. Please check form details.');

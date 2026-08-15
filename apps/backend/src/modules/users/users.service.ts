@@ -57,6 +57,80 @@ export class UsersService {
     return user;
   }
 
+  async findAllUsersForAdmin(roleFilter?: string, search?: string, page = 1, limit = 50) {
+    const where: any = {};
+    if (roleFilter && roleFilter.toUpperCase() !== 'ALL') {
+      where.role = roleFilter.toUpperCase() as any;
+    }
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { phone: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { profile: { firstName: { contains: q, mode: 'insensitive' } } },
+        { profile: { lastName: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          profile: true,
+          customer: true,
+          driver: { include: { vehicles: true } },
+          restaurantStaff: { include: { restaurant: true } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      users: users.map((u) => ({
+        id: u.id,
+        phone: u.phone,
+        email: u.email,
+        role: u.role,
+        isActive: u.isActive,
+        isVerified: u.isVerified,
+        createdAt: u.createdAt,
+        profile: u.profile,
+        driver: u.driver,
+        restaurant: u.restaurantStaff?.[0]?.restaurant || null,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateUserStatusByAdmin(userId: string, isActive: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+      include: { profile: true },
+    });
+
+    return {
+      id: updated.id,
+      phone: updated.phone,
+      email: updated.email,
+      role: updated.role,
+      isActive: updated.isActive,
+      message: `User account ${isActive ? 'activated' : 'deactivated'} successfully`,
+    };
+  }
+
   async createUser(phone: string, passwordHash: string, role: UserRole = UserRole.CUSTOMER) {
     const canonicalPhone = normalizeIndianPhone(phone);
 
