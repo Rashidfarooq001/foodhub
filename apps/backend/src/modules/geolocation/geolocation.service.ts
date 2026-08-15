@@ -55,29 +55,66 @@ export class GeolocationService {
   /** Forward geocoding — search address string → coordinates via Mappls API */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
     const key = this.MapplsKey;
-    if (!key) {
-      this.logger.warn('Mappls API key is missing. Address search requires MAPPLS_API_KEY.');
-    }
-    const url = key
-      ? `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`
-      : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`;
+    this.logger.log(`[MAPPLS_PROXY] query="${query}" keyConfigured=${Boolean(key)}`);
 
+    const urls = key
+      ? [
+          `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`,
+          `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(query)}`,
+        ]
+      : [
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
+        ];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+        this.logger.log(`[MAPPLS_PROXY] url=${url} status=${res.status}`);
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        const rawList = Array.isArray(data)
+          ? data
+          : (data.copopResults || data.results || data.suggestedLocations || []);
+
+        const mapped = rawList
+          .map((item: any) => {
+            const lat = parseFloat(item.latitude || item.lat || item.location?.lat || '0');
+            const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || '0');
+            const name = item.formattedAddress || item.display_name || item.placeName || item.placeAddress || query;
+            const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
+
+            return { lat, lng, displayName: name, placeId };
+          })
+          .filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0 && !isNaN(item.lat) && !isNaN(item.lng));
+
+        if (mapped.length > 0) {
+          this.logger.log(`[MAPPLS_PROXY] Found ${mapped.length} results for query "${query}"`);
+          return mapped;
+        }
+      } catch (err) {
+        this.logger.error(`[MAPPLS_PROXY] Fetch error for url=${url}`, err);
+      }
+    }
+
+    // Fallback search via OSM if Mappls key is unconfigured or returned empty
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-      if (!res.ok) return [];
-      const data = await res.json();
-      const results = Array.isArray(data) ? data : (data.copopResults || data.results || []);
-
-      return results.map((item: any) => ({
-        lat: parseFloat(item.latitude || item.lat || '0'),
-        lng: parseFloat(item.longitude || item.lng || item.lon || '0'),
-        displayName: item.formattedAddress || item.display_name || item.placeName || query,
-        placeId: String(item.eLoc || item.place_id || item.id || Date.now()),
-      })).filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0);
-    } catch (err) {
-      this.logger.error('Mappls address search failed', err);
-      return [];
+      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`;
+      const res = await fetch(osmUrl, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+      if (res.ok) {
+        const data = (await res.json()) as Array<Record<string, unknown>>;
+        return data.map((item) => ({
+          lat: parseFloat(item['lat'] as string),
+          lng: parseFloat(item['lon'] as string),
+          displayName: item['display_name'] as string,
+          placeId: String(item['place_id']),
+        })).filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0);
+      }
+    } catch {
+      /* fallback */
     }
+
+    return [];
   }
 
   /** Reverse geocoding — coordinates → address string via Mappls API */

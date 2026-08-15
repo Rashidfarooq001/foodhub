@@ -257,28 +257,29 @@ export default function CheckoutPage() {
   // Save Custom Address Handler
   const handleSaveCustomAddress = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newHouseNo.trim() || !newArea.trim()) {
-      alert('Please enter House/Flat No and Area/Locality.');
+    if (!newArea.trim() || newLat === null || newLng === null || isNaN(newLat) || isNaN(newLng) || (newLat === 0 && newLng === 0)) {
+      setLocationStatusMsg('Please search and select a delivery address.');
       return;
     }
 
     const createdAddr: CustomerAddressItem = {
       id: `addr-custom-${Date.now()}`,
       label: newAddrLabel,
-      addressLine1: newHouseNo.trim(),
-      addressLine2: newArea.trim(),
+      addressLine1: newArea.trim(),
+      addressLine2: newLandmark.trim() || '',
       landmark: newLandmark.trim() || undefined,
-      city: newCity.trim() || 'City',
+      city: newCity.trim() || '',
       state: newState.trim() || '',
       postalCode: newPinCode.trim() || '',
-      latitude: newLat ?? 0,
-      longitude: newLng ?? 0,
+      latitude: newLat,
+      longitude: newLng,
       isDefault: false,
     };
 
     addAddress(createdAddr);
     setSelectedAddress(createdAddr.id);
     setShowCustomAddressModal(false);
+    setLocationStatusMsg(null);
     // reset form
     setNewHouseNo('');
     setNewArea('');
@@ -1207,18 +1208,18 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveCustomAddress} className="space-y-3 text-xs">
+              <form onSubmit={handleSaveCustomAddress} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Save Address As</label>
+                  <label className="block font-bold text-gray-700 mb-1.5">Save Address As</label>
                   <div className="flex gap-2">
                     {(['Home', 'Work', 'Other'] as const).map((lbl) => (
                       <button
                         key={lbl}
                         type="button"
                         onClick={() => setNewAddrLabel(lbl)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition border ${
                           newAddrLabel === lbl
-                            ? 'bg-orange-600 text-white border-orange-600'
+                            ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
@@ -1229,108 +1230,72 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">House / Flat / Building No.*</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Flat 302, Green Building"
-                    value={newHouseNo}
-                    onChange={(e) => setNewHouseNo(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-
-              <div>
-                  <label className="block font-bold text-gray-700 mb-1">Search Area / Locality / Street*</label>
-                  
+                  <label className="block font-bold text-gray-700 mb-1">Search Delivery Address</label>
                   <AddressSearchBar 
                     onAddressSelect={(locationData) => {
                       setNewArea(locationData.address);
                       setNewLat(locationData.lat);
                       setNewLng(locationData.lng);
+                      setLocationStatusMsg(null);
                     }} 
                   />
 
-                  {newArea && (
-                    <p className="mt-1 text-[10px] text-emerald-600 font-bold">
-                      ✓ Selected: {newArea}
+                  {newArea ? (
+                    <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100 space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <span>Selected Address:</span>
+                      </div>
+                      <p className="text-emerald-900 font-medium leading-relaxed">{newArea}</p>
+                      {newLat !== null && newLng !== null && (
+                        <p className="text-[10px] text-emerald-600 font-mono pt-0.5">
+                          Coordinates: {newLat.toFixed(4)}, {newLng.toFixed(4)}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Type locality, landmark, or street name (e.g. Watlab, Bandipora, Sopore)
                     </p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Landmark (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Near XYZ Hospital / Clock Tower"
-                    value={newLandmark}
-                    onChange={(e) => setNewLandmark(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 font-medium focus:border-orange-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">City</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Bandipora"
-                      value={newCity}
-                      onChange={(e) => setNewCity(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">State</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. J&amp;K"
-                      value={newState}
-                      onChange={(e) => setNewState(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 193502"
-                      value={newPinCode}
-                      onChange={(e) => setNewPinCode(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 p-2 font-medium focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-200 flex items-center justify-between text-[11px]">
-                  <div>
-                    <span className="font-bold text-gray-700">GPS Coordinates:</span>
-                    <p className="text-gray-500">
-                      {newLat !== null && newLng !== null
-                        ? `Lat: ${newLat.toFixed(4)}, Lng: ${newLng.toFixed(4)}`
-                        : 'Not set (will auto-detect on save)'}
-                    </p>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-orange-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-gray-800 text-xs">Or Use Device GPS</span>
+                      <p className="text-[10px] text-gray-500">Detect current location automatically</p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={handleUseCurrentLocation}
-                    className="rounded-lg bg-orange-100 px-2 py-1 text-orange-700 font-bold hover:bg-orange-200"
+                    disabled={isLocatingUser}
+                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
                   >
-                    Auto-Fill GPS
+                    {isLocatingUser ? 'Locating...' : 'Use Current GPS'}
                   </button>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                {locationStatusMsg && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p>{locationStatusMsg}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => setShowCustomAddressModal(false)}
-                    className="px-4 py-2 font-bold text-gray-600"
+                    className="px-4 py-2 font-bold text-gray-600 hover:text-gray-900"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-xl bg-orange-600 px-5 py-2 font-bold text-white shadow hover:bg-orange-700"
+                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition"
                   >
                     Save &amp; Select Address
                   </button>
