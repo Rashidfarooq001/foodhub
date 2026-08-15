@@ -52,69 +52,70 @@ export class GeolocationService {
     return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
   }
 
-  /** Forward geocoding — search address string → coordinates via Mappls API */
+  /** Forward geocoding — search address string → coordinates via Mappls / Geolocation API */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
     const key = this.MapplsKey;
-    this.logger.log(`[MAPPLS_PROXY] query="${query}" keyConfigured=${Boolean(key)}`);
+    const cleanQuery = query.trim();
+    this.logger.log(`[MAPPLS_PROXY] query="${cleanQuery}" keyConfigured=${Boolean(key)}`);
 
-    const urls = key
-      ? [
-          `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`,
-          `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(query)}`,
-        ]
-      : [
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
-        ];
+    // Append J&K region bias if not explicitly provided in the query string
+    const hasRegion = /kashmir|jammu|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama|ganderbal/i.test(cleanQuery);
+    const searchTerms = hasRegion
+      ? [cleanQuery]
+      : [`${cleanQuery}, Jammu and Kashmir`, cleanQuery];
 
-    for (const url of urls) {
-      try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-        this.logger.log(`[MAPPLS_PROXY] url=${url} status=${res.status}`);
-        if (!res.ok) continue;
+    const allMappedResults: GeocodeResult[] = [];
 
-        const data = await res.json();
-        const rawList = Array.isArray(data)
-          ? data
-          : (data.copopResults || data.results || data.suggestedLocations || []);
+    for (const term of searchTerms) {
+      const urls = key
+        ? [
+            `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(term)}`,
+            `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(term)}`,
+          ]
+        : [
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=5&countrycodes=in`,
+          ];
 
-        const mapped = rawList
-          .map((item: any) => {
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const rawList = Array.isArray(data)
+            ? data
+            : (data.copopResults || data.results || data.suggestedLocations || []);
+
+          for (const item of rawList) {
             const lat = parseFloat(item.latitude || item.lat || item.location?.lat || '0');
             const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || '0');
-            const name = item.formattedAddress || item.display_name || item.placeName || item.placeAddress || query;
+            const name = item.formattedAddress || item.display_name || item.placeName || item.placeAddress || term;
             const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
 
-            return { lat, lng, displayName: name, placeId };
-          })
-          .filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0 && !isNaN(item.lat) && !isNaN(item.lng));
-
-        if (mapped.length > 0) {
-          this.logger.log(`[MAPPLS_PROXY] Found ${mapped.length} results for query "${query}"`);
-          return mapped;
+            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
+              // Avoid duplicate placeId or exact coordinates
+              if (!allMappedResults.some((r) => r.placeId === placeId || (Math.abs(r.lat - lat) < 0.0001 && Math.abs(r.lng - lng) < 0.0001))) {
+                allMappedResults.push({ lat, lng, displayName: name, placeId });
+              }
+            }
+          }
+        } catch (err) {
+          this.logger.error(`[MAPPLS_PROXY] Fetch error for url=${url}`, err);
         }
-      } catch (err) {
-        this.logger.error(`[MAPPLS_PROXY] Fetch error for url=${url}`, err);
       }
     }
 
-    // Fallback search via OSM if Mappls key is unconfigured or returned empty
-    try {
-      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`;
-      const res = await fetch(osmUrl, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-      if (res.ok) {
-        const data = (await res.json()) as Array<Record<string, unknown>>;
-        return data.map((item) => ({
-          lat: parseFloat(item['lat'] as string),
-          lng: parseFloat(item['lon'] as string),
-          displayName: item['display_name'] as string,
-          placeId: String(item['place_id']),
-        })).filter((item: GeocodeResult) => item.lat !== 0 && item.lng !== 0);
-      }
-    } catch {
-      /* fallback */
-    }
+    // Sort results so Jammu & Kashmir / Kashmir locations appear at the TOP
+    allMappedResults.sort((a, b) => {
+      const isJK_A = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(a.displayName) || (a.lat >= 32.0 && a.lat <= 36.0);
+      const isJK_B = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(b.displayName) || (b.lat >= 32.0 && b.lat <= 36.0);
+      if (isJK_A && !isJK_B) return -1;
+      if (!isJK_A && isJK_B) return 1;
+      return 0;
+    });
 
-    return [];
+    this.logger.log(`[MAPPLS_PROXY] Returning ${allMappedResults.length} sorted results for query "${cleanQuery}"`);
+    return allMappedResults;
   }
 
   /** Reverse geocoding — coordinates → address string via Mappls API */
