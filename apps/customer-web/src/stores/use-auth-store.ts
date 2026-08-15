@@ -26,21 +26,12 @@ interface AuthState {
   logout: () => void;
 }
 
-const DEV_GUEST_USER: UserProfile = {
-  id: 'guest-customer-dev',
-  phone: '+919876543210',
-  role: 'CUSTOMER',
-  firstName: 'Guest',
-  lastName: 'User',
-};
-
 const getInitialAuthState = () => {
-  const authActive = isAuthEnabled();
   return {
-    user: authActive ? null : DEV_GUEST_USER,
-    accessToken: authActive ? null : 'dev-guest-access-token',
-    refreshToken: authActive ? null : 'dev-guest-refresh-token',
-    isAuthenticated: !authActive,
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
   };
 };
 
@@ -54,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
 
       updateUser: (profile) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...profile } : DEV_GUEST_USER,
+          user: state.user ? { ...state.user, ...profile } : null,
         })),
 
       logout: () => {
@@ -72,12 +63,11 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           /* ignore */
         }
-        const authActive = isAuthEnabled();
         set({
-          user: authActive ? null : DEV_GUEST_USER,
-          accessToken: authActive ? null : 'dev-guest-access-token',
-          refreshToken: authActive ? null : 'dev-guest-refresh-token',
-          isAuthenticated: !authActive,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
         });
       },
     }),

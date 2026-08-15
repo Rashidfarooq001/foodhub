@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrdersGateway } from './orders.gateway';
+import { OrderStateMachineService } from './order-state-machine.service';
 import { TaxModule } from '../tax/tax.module';
 import { PricingModule } from '../pricing/pricing.module';
 
@@ -15,7 +16,8 @@ import { PricingModule } from '../pricing/pricing.module';
     OrdersRepository,
     OrdersValidationService,
     OrdersGateway,
+    OrderStateMachineService,
   ],
-  exports:     [OrdersService, OrdersGateway],
+  exports:     [OrdersService, OrdersGateway, OrderStateMachineService],
 })
 export class OrdersModule {}

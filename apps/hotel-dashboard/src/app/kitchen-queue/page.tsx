@@ -78,29 +78,43 @@ export default function KitchenQueuePage() {
     };
   }, [accessToken]);
 
-  const updateOrderStatus = async (
-    orderId: string,
-    status: string,
-  ) => {
-    const res = await fetch(
-      `${API_BASE}/orders/${orderId}/status`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status,
-        }),
+  const acceptOrder = async (orderId: string) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/accept`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) alert('Failed to accept order');
+    await refreshOrders();
+  };
+
+  const rejectOrder = async (orderId: string) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/reject`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-    );
+      body: JSON.stringify({ reason: 'Rejected by restaurant kitchen' }),
+    });
+    if (!res.ok) alert('Failed to reject order');
+    await refreshOrders();
+  };
 
-    if (!res.ok) {
-      alert('Failed to update order');
-      return;
-    }
+  const prepareOrder = async (orderId: string) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/prepare`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) alert('Failed to start preparing order');
+    await refreshOrders();
+  };
 
+  const markReadyOrder = async (orderId: string) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/ready`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) alert('Failed to mark order ready');
     await refreshOrders();
   };
 
@@ -193,189 +207,114 @@ export default function KitchenQueuePage() {
         </div>
 
         <div className="flex gap-2">
-
           <button
-            onClick={() =>
-              updateOrderStatus(
-                order.id,
-                'PREPARING',
-              )
-            }
+            onClick={() => acceptOrder(order.id)}
             className="flex-1 rounded-xl bg-orange-600 py-2.5 text-xs font-bold text-white hover:bg-orange-700"
           >
             Accept
           </button>
-
           <button
-            onClick={() =>
-              updateOrderStatus(
-                order.id,
-                'CANCELLED',
-              )
-            }
+            onClick={() => rejectOrder(order.id)}
             className="rounded-xl border border-rose-200 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
           >
             Reject
           </button>
-
         </div>
-
       </div>
-
     ))}
-
   </div>
-
 </div>
 
 {/* Preparing Orders */}
-
 <div className="rounded-3xl border border-orange-200 bg-orange-50/30 p-5 space-y-4">
-
   <div className="flex items-center justify-between border-b border-orange-200 pb-3">
-
     <h3 className="flex items-center gap-2 text-base font-black text-orange-900">
-
       <Utensils className="h-5 w-5 text-orange-600" />
-
       Cooking ({preparing.length})
-
     </h3>
-
   </div>
 
   <div className="space-y-4">
-
     {preparing.map((order) => (
-
       <div
         key={order.id}
         className="rounded-2xl border border-orange-100 bg-white p-5 shadow-md space-y-3"
       >
-
         <div className="flex items-center justify-between">
-
           <span className="text-sm font-black">
             {order.orderNumber}
           </span>
-
           <span className="rounded-lg bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700">
             Preparing
           </span>
-
         </div>
 
         <div className="space-y-1 border-y border-gray-100 py-3">
-
           {order.items.map((item, idx) => (
-
             <div
               key={idx}
               className="text-xs font-bold"
             >
               {item.quantity} × {item.name}
             </div>
-
           ))}
-
         </div>
 
         <button
-          onClick={() =>
-            updateOrderStatus(
-              order.id,
-              'READY_FOR_PICKUP',
-            )
-          }
+          onClick={() => markReadyOrder(order.id)}
           className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
         >
-          Mark Ready
+          Mark Ready For Pickup
         </button>
-
       </div>
-
     ))}
-
   </div>
+</div>
 
-</div>{/* Ready for Pickup */}
-
+{/* Ready for Pickup */}
 <div className="rounded-3xl border border-emerald-200 bg-emerald-50/30 p-5 space-y-4">
-
   <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
-
     <h3 className="flex items-center gap-2 text-base font-black text-emerald-900">
-
       <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-
       Ready for Driver ({ready.length})
-
     </h3>
-
   </div>
 
   <div className="space-y-4">
-
     {ready.map((order) => (
-
       <div
         key={order.id}
         className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-md space-y-3"
       >
-
         <div className="flex items-center justify-between">
-
           <span className="text-sm font-black">
             {order.orderNumber}
           </span>
-
           <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
-            Awaiting Driver
+            Ready for Pickup
           </span>
-
         </div>
 
         <div className="space-y-1 border-y border-gray-100 py-3">
-
           {order.items.map((item, idx) => (
-
             <div
               key={idx}
               className="flex justify-between text-xs font-medium text-gray-900"
             >
-
               <span>
                 {item.quantity} × {item.name}
               </span>
-
             </div>
-
           ))}
-
         </div>
 
-        <button
-          onClick={() =>
-            updateOrderStatus(
-              order.id,
-              'OUT_FOR_DELIVERY',
-            )
-          }
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-xs font-black text-white shadow-md hover:bg-blue-700"
-        >
-
+        <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 py-2.5 text-xs font-black text-emerald-700 border border-emerald-200">
           <Bike className="h-4 w-4" />
-
-          Order Picked Up
-
-        </button>
-
+          Waiting for Delivery Partner
+        </div>
       </div>
-
     ))}
-
   </div>
-
 </div>
 
       </div>

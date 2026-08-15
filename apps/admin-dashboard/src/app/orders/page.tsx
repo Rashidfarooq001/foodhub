@@ -1,13 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, RotateCcw } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
 
 export default function AdminOrdersPage() {
-  const [orders] = useState([
-    { id: 'o1', orderNumber: 'FH-948210', customer: 'Rahul Sharma', restaurant: 'Spice Garden', amount: 685, status: 'DELIVERED', date: 'Today' },
-    { id: 'o2', orderNumber: 'FH-948211', customer: 'Priya Patel', restaurant: 'Spice Garden', amount: 340, status: 'PREPARING', date: 'Today' },
-  ]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_access_token') : null;
+        const res = await fetch(`${API_BASE}/orders`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setOrders(Array.isArray(data) ? data : data.orders ?? []);
+        }
+      } catch {
+        // Fallback
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -29,27 +50,37 @@ export default function AdminOrdersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
-            {orders.map((o) => (
-              <tr key={o.id} className="hover:bg-gray-50/50">
-                <td className="px-6 py-4 font-black text-gray-900">{o.orderNumber}</td>
-                <td className="px-6 py-4">{o.customer}</td>
-                <td className="px-6 py-4">{o.restaurant}</td>
-                <td className="px-6 py-4 font-black text-gray-900">₹{o.amount}</td>
-                <td className="px-6 py-4">
-                  <span className="rounded-full bg-purple-100 px-3 py-1 text-[10px] font-black text-purple-800">
-                    {o.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => alert(`Initiated full refund of ₹${o.amount} for Order ${o.orderNumber}!`)}
-                    className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                  >
-                    Initiate Refund
-                  </button>
-                </td>
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">Loading platform orders...</td>
               </tr>
-            ))}
+            ) : orders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">No platform orders found.</td>
+              </tr>
+            ) : (
+              orders.map((o) => (
+                <tr key={o.id} className="hover:bg-gray-50/50">
+                  <td className="px-6 py-4 font-black text-gray-900">{o.orderNumber || o.id}</td>
+                  <td className="px-6 py-4">{o.customer?.profile?.firstName || o.customerName || 'Customer'}</td>
+                  <td className="px-6 py-4">{o.restaurant?.name || 'Restaurant'}</td>
+                  <td className="px-6 py-4 font-black text-gray-900">₹{o.totalAmount || o.amount || 0}</td>
+                  <td className="px-6 py-4">
+                    <span className="rounded-full bg-purple-100 px-3 py-1 text-[10px] font-black text-purple-800">
+                      {o.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => alert(`Initiated full refund of ₹${o.totalAmount || o.amount} for Order ${o.orderNumber}!`)}
+                      className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                    >
+                      Initiate Refund
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

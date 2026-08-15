@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RestaurantDriverStatus = exports.DeliveryMode = exports.VehicleType = exports.PaymentMethod = exports.PaymentStatus = exports.OrderStatus = exports.UserRole = void 0;
+exports.RestaurantDriverStatus = exports.DeliveryMode = exports.VehicleType = exports.PaymentMethod = exports.PaymentStatus = exports.DeliveryJobStatus = exports.OrderStatus = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["CUSTOMER"] = "CUSTOMER";
@@ -17,11 +17,24 @@ var OrderStatus;
     OrderStatus["PREPARING"] = "PREPARING";
     OrderStatus["READY_FOR_PICKUP"] = "READY_FOR_PICKUP";
     OrderStatus["DRIVER_ASSIGNED"] = "DRIVER_ASSIGNED";
+    OrderStatus["ARRIVED_AT_RESTAURANT"] = "ARRIVED_AT_RESTAURANT";
+    OrderStatus["PICKED_UP"] = "PICKED_UP";
     OrderStatus["OUT_FOR_DELIVERY"] = "OUT_FOR_DELIVERY";
     OrderStatus["DELIVERED"] = "DELIVERED";
+    OrderStatus["REJECTED"] = "REJECTED";
     OrderStatus["CANCELLED"] = "CANCELLED";
+    OrderStatus["FAILED"] = "FAILED";
     OrderStatus["REFUNDED"] = "REFUNDED";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
+var DeliveryJobStatus;
+(function (DeliveryJobStatus) {
+    DeliveryJobStatus["AVAILABLE"] = "AVAILABLE";
+    DeliveryJobStatus["ASSIGNED"] = "ASSIGNED";
+    DeliveryJobStatus["ARRIVED"] = "ARRIVED";
+    DeliveryJobStatus["PICKED_UP"] = "PICKED_UP";
+    DeliveryJobStatus["DELIVERED"] = "DELIVERED";
+    DeliveryJobStatus["CANCELLED"] = "CANCELLED";
+})(DeliveryJobStatus || (exports.DeliveryJobStatus = DeliveryJobStatus = {}));
 var PaymentStatus;
 (function (PaymentStatus) {
     PaymentStatus["PENDING"] = "PENDING";

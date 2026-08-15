@@ -119,68 +119,36 @@ export default function CurrentDeliveryPage() {
     };
   }, [currentJob?.id, currentJob?.status]);
 
-  const markPickedUp = async () => {
+  const updateJobStep = async (endpoint: string, targetStatus: string) => {
     if (!currentJob) return;
-
-    const res = await fetch(
-      `${API_BASE}/orders/${currentJob.id}/status`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'OUT_FOR_DELIVERY',
-        }),
+    const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-    );
+    });
 
     if (!res.ok) {
-      alert('Unable to update order');
+      alert(`Unable to update delivery step (${endpoint})`);
       return;
     }
 
-    setCurrentJob({
-      ...currentJob,
-      status: 'OUT_FOR_DELIVERY',
-    });
+    if (targetStatus === 'DELIVERED') {
+      setSuccessMessage('Order delivered successfully! Payout credited to your driver wallet.');
+      setCurrentJob(null);
+    } else {
+      setCurrentJob({
+        ...currentJob,
+        status: targetStatus,
+      });
+    }
   };
 
-  const handleVerifyOtp = async (
-    e: React.FormEvent,
-  ) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setError('');
-
-    const res = await fetch(
-      `${API_BASE}/orders/${currentJob.id}/self-delivery-status`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'DELIVERED',
-          otp: enteredOtp,
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      setError('Invalid OTP');
-      return;
-    }
-
+    await updateJobStep('delivered', 'DELIVERED');
     setOtpModalOpen(false);
-
-    setSuccessMessage(
-      'Order delivered successfully! Payout credited.',
-    );
-
-    setCurrentJob(null);
   };
 
   if (loading) {
@@ -245,32 +213,42 @@ export default function CurrentDeliveryPage() {
         </div>
 
         <div className="flex gap-2">
-
-          {currentJob.status === 'READY_FOR_PICKUP' && (
-
+          {currentJob.status === 'DRIVER_ASSIGNED' && (
             <button
-              onClick={markPickedUp}
+              onClick={() => updateJobStep('arrived', 'ARRIVED_AT_RESTAURANT')}
               className="rounded-2xl bg-orange-600 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-orange-700"
+            >
+              Arrived At Restaurant
+            </button>
+          )}
+
+          {currentJob.status === 'ARRIVED_AT_RESTAURANT' && (
+            <button
+              onClick={() => updateJobStep('picked-up', 'PICKED_UP')}
+              className="rounded-2xl bg-amber-600 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-amber-700"
             >
               Mark Food Picked Up
             </button>
+          )}
 
+          {currentJob.status === 'PICKED_UP' && (
+            <button
+              onClick={() => updateJobStep('start-delivery', 'OUT_FOR_DELIVERY')}
+              className="rounded-2xl bg-blue-600 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-blue-700"
+            >
+              Start Delivery To Customer
+            </button>
           )}
 
           {currentJob.status === 'OUT_FOR_DELIVERY' && (
-
             <button
-              onClick={() => setOtpModalOpen(true)}
+              onClick={() => updateJobStep('delivered', 'DELIVERED')}
               className="rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700"
             >
               <ShieldCheck className="mr-2 inline h-4 w-4" />
-
               Complete Delivery
-
             </button>
-
           )}
-
         </div>
 
       </div>

@@ -1,7 +1,9 @@
 import {
   Injectable,
+  NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
@@ -70,35 +72,7 @@ export class OrdersService {
     if (existingCustomer) {
       targetCustomerId = existingCustomer.id;
     } else {
-      // Fallback for unauthenticated dev guest
-      let guestUser = await this.prisma.user.findFirst({
-        where: { phone: '+919876543210' },
-        include: { customer: true },
-      });
-
-      if (!guestUser) {
-        guestUser = await this.prisma.user.create({
-          data: {
-            phone: '+919876543210',
-            passwordHash: '$2b$10$devguestdummyhashplaceholder',
-            role: 'CUSTOMER',
-            isVerified: true,
-            isActive: true,
-            profile: { create: { firstName: 'Guest', lastName: 'User' } },
-            customer: { create: {} },
-          },
-          include: { customer: true },
-        });
-      }
-
-      if (guestUser.customer) {
-        targetCustomerId = guestUser.customer.id;
-      } else {
-        const newCustomer = await this.prisma.customer.create({
-          data: { userId: guestUser.id },
-        });
-        targetCustomerId = newCustomer.id;
-      }
+      throw new UnauthorizedException('Authenticated customer profile required to place an order.');
     }
 
 

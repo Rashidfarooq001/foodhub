@@ -6,6 +6,7 @@ import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiQuery,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import { OrderStateMachineService } from './order-state-machine.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -17,7 +18,10 @@ import { OrderStatus } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly stateMachineService: OrderStateMachineService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get list of orders (filterable by restaurantId & status)' })
@@ -132,14 +136,64 @@ export class OrdersController {
     return this.ordersService.repeatOrder(id);
   }
 
+  @Post(':id/accept')
+  @ApiOperation({ summary: 'Restaurant accepts pending order' })
+  async acceptOrder(@Param('id') id: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.transition(id, OrderStatus.ACCEPTED, actor);
+  }
+
+  @Post(':id/reject')
+  @ApiOperation({ summary: 'Restaurant rejects pending order' })
+  async rejectOrder(@Param('id') id: string, @Body('reason') reason: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.transition(id, OrderStatus.REJECTED, actor, { reason });
+  }
+
+  @Post(':id/prepare')
+  @ApiOperation({ summary: 'Restaurant starts preparing accepted order' })
+  async startPreparingOrder(@Param('id') id: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.transition(id, OrderStatus.PREPARING, actor);
+  }
+
+  @Post(':id/ready')
+  @ApiOperation({ summary: 'Restaurant marks order ready for pickup (creates DeliveryJob)' })
+  async markOrderReady(@Param('id') id: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.transition(id, OrderStatus.READY_FOR_PICKUP, actor);
+  }
+
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Update order status (restaurant / driver / admin)' })
+  @ApiOperation({ summary: 'Update order status via state machine' })
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
-    @Request() req: { user: { id?: string; sub: string } },
+    @Request() req: any,
   ) {
-    return this.ordersService.updateStatus(id, dto, req.user.id || req.user.sub);
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+      driverId: req.user?.driverId,
+    };
+    return this.stateMachineService.transition(id, dto.status as OrderStatus, actor);
   }
 
   @Post(':id/cancel')
@@ -147,9 +201,16 @@ export class OrdersController {
   async cancel(
     @Param('id') id: string,
     @Body() dto: CancelOrderDto,
-    @Request() req: { user: { id?: string; sub: string } },
+    @Request() req: any,
   ) {
-    return this.ordersService.cancelOrder(id, dto, req.user.id || req.user.sub);
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.transition(id, OrderStatus.CANCELLED, actor, {
+      cancellationReason: dto?.reason,
+    });
   }
 
   @Get('customer/:customerId')

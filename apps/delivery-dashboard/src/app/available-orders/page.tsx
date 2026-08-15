@@ -20,7 +20,9 @@ const { accessToken } = useDeliveryAuthStore();
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch(`${API_BASE}/delivery/available`);
+        const res = await fetch(`${API_BASE}/delivery/jobs/available`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
           setAvailableJobs(Array.isArray(data) ? data : data.jobs ?? []);
@@ -32,36 +34,31 @@ const { accessToken } = useDeliveryAuthStore();
       }
     };
     fetchJobs();
-  }, []);
-  const handleAccept = async (job: DeliveryJob) => {
-  const res = await fetch(
-    `${API_BASE}/orders/${job.id}/status`,
-    {
-      method: 'PATCH',
+  }, [accessToken]);
+
+  const handleAccept = async (job: any) => {
+    const res = await fetch(`${API_BASE}/delivery/jobs/${job.id}/accept`, {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        status: 'OUT_FOR_DELIVERY',
-      }),
-    },
-  );
+    });
 
-  if (!res.ok) {
-    alert('Unable to accept delivery');
-    return;
-  }
+    if (!res.ok) {
+      alert('Unable to accept delivery job. It may have been claimed by another rider.');
+      return;
+    }
 
- setAvailableJobs((prev) => prev.filter((j) => j.id !== job.id));
+    setAvailableJobs((prev) => prev.filter((j) => j.id !== job.id));
 
-acceptNewJob({
-  ...job,
-  status: 'OUT_FOR_DELIVERY',
-});
+    acceptNewJob({
+      ...job,
+      status: 'DRIVER_ASSIGNED',
+    });
 
-router.push('/current-delivery');
-};
+    router.push('/current-delivery');
+  };
 
   const handleDecline = (jobId: string) => {
     setAvailableJobs((prev) => prev.filter((j) => j.id !== jobId));

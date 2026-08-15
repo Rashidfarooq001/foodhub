@@ -39,9 +39,13 @@ enum OrderStatus {
   PREPARING
   READY_FOR_PICKUP
   DRIVER_ASSIGNED
+  ARRIVED_AT_RESTAURANT
+  PICKED_UP
   OUT_FOR_DELIVERY
   DELIVERED
+  REJECTED
   CANCELLED
+  FAILED
   REFUNDED
 }
 
@@ -73,6 +77,15 @@ enum DeliveryStatus {
   OFFERED
   ACCEPTED
   ARRIVED_AT_STORE
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryJobStatus {
+  AVAILABLE
+  ASSIGNED
+  ARRIVED
   PICKED_UP
   DELIVERED
   CANCELLED
@@ -772,6 +785,7 @@ model Order {
   refund              OrderRefund?
   payments            Payment[]
   deliveryAssignments DeliveryAssignment[]
+  deliveryJob         DeliveryJob?
   restaurantReviews   RestaurantReview[]
   foodReviews         FoodReview[]
   driverReviews       DriverReview[]
@@ -980,6 +994,7 @@ model Driver {
   locations    DriverLocation[]
   shifts       DriverShift[]
   assignments  DeliveryAssignment[]
+  deliveryJobs DeliveryJob[]
   histories    DeliveryHistory[]
   driverWallet DriverWallet?
   reviews      DriverReview[]
@@ -1056,6 +1071,32 @@ model DeliveryAssignment {
   @@index([orderId])
   @@index([driverId])
   @@map("delivery_assignments")
+}
+
+model DeliveryJob {
+  id                String            @id @default(uuid()) @db.Uuid
+  orderId           String            @unique @map("order_id") @db.Uuid
+  driverId          String?           @map("driver_id") @db.Uuid
+  status            DeliveryJobStatus @default(AVAILABLE)
+  pickupAddressJson Json              @map("pickup_address_json")
+  dropAddressJson   Json              @map("drop_address_json")
+  distanceKm        Float             @default(0.0) @map("distance_km")
+  deliveryFee       Decimal           @default(0.00) @map("delivery_fee") @db.Decimal(8, 2)
+  riderPayout       Decimal           @default(0.00) @map("rider_payout") @db.Decimal(8, 2)
+  offeredAt         DateTime          @default(now()) @map("offered_at")
+  acceptedAt        DateTime?         @map("accepted_at")
+  arrivedAt         DateTime?         @map("arrived_at")
+  pickedAt          DateTime?         @map("picked_at")
+  deliveredAt       DateTime?         @map("delivered_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([driverId])
+  @@map("delivery_jobs")
 }
 
 model DeliveryHistory {
