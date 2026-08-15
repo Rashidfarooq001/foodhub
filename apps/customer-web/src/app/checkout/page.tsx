@@ -26,7 +26,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import { fetchPricingConfig, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
+import { fetchPricingConfig, forwardGeocodeAddress, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -184,6 +184,9 @@ export default function CheckoutPage() {
   const [newState, setNewState] = useState('');
   const [newPinCode, setNewPinCode] = useState('');
 
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [geocodingError, setGeocodingError] = useState<string | null>(null);
+
   const [isLocatingUser, setIsLocatingUser] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -249,48 +252,68 @@ export default function CheckoutPage() {
     );
   };
 
-  // OPTION 2 — Save Manual Text Address Handler (Text Form ONLY — NO MAP, NO GPS, NO FABRICATED COORDS)
-  const handleSaveCustomAddress = (e: React.FormEvent) => {
+  // OPTION 2 — Save Manual Text Address Handler (Mappls Forward Geocoding — NO GPS, NO MAP)
+  const handleSaveCustomAddress = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGeocodingError(null);
+
     const houseNo = newHouseNo.trim();
     const area = newArea.trim();
     const city = newCity.trim();
     const state = newState.trim();
+    const landmark = newLandmark.trim();
+    const pinCode = newPinCode.trim();
 
     if (!houseNo || !area || !city || !state) {
-      alert('Please fill out all required address fields (*).');
+      setGeocodingError('Please fill out all required address fields (*).');
       return;
     }
 
+    setIsGeocodingAddress(true);
+
+    const addressQuery = [houseNo, area, landmark, city, state, pinCode].filter(Boolean).join(', ');
     const fullLine1 = `${houseNo}, ${area}`;
     const finalLabel = newAddrLabel === 'Other' && customLabelInput.trim() ? customLabelInput.trim() : newAddrLabel;
 
-    const createdAddr: CustomerAddressItem = {
-      id: `addr-manual-${Date.now()}`,
-      label: finalLabel,
-      addressLine1: fullLine1,
-      addressLine2: area,
-      landmark: newLandmark.trim() || undefined,
-      city: city,
-      state: state,
-      postalCode: newPinCode.trim() || '',
-      latitude: null,
-      longitude: null,
-      isDefault: false,
-    };
+    try {
+      const geoResult = await forwardGeocodeAddress(addressQuery);
 
-    addAddress(createdAddr);
-    setSelectedAddress(createdAddr.id);
-    setShowCustomAddressModal(false);
+      if (geoResult.success && typeof geoResult.latitude === 'number' && typeof geoResult.longitude === 'number') {
+        const createdAddr: CustomerAddressItem = {
+          id: `addr-manual-${Date.now()}`,
+          label: finalLabel,
+          addressLine1: fullLine1,
+          addressLine2: area,
+          landmark: landmark || undefined,
+          city: city,
+          state: state,
+          postalCode: pinCode || '',
+          latitude: geoResult.latitude,
+          longitude: geoResult.longitude,
+          isDefault: false,
+        };
 
-    // Reset form
-    setNewHouseNo('');
-    setNewArea('');
-    setNewLandmark('');
-    setNewCity('');
-    setNewState('');
-    setNewPinCode('');
-    setCustomLabelInput('');
+        addAddress(createdAddr);
+        setSelectedAddress(createdAddr.id);
+        setShowCustomAddressModal(false);
+
+        // Reset form
+        setNewHouseNo('');
+        setNewArea('');
+        setNewLandmark('');
+        setNewCity('');
+        setNewState('');
+        setNewPinCode('');
+        setCustomLabelInput('');
+        setGeocodingError(null);
+      } else {
+        setGeocodingError(geoResult.message || "Couldn't determine the location of this address. Please check your address details and try again.");
+      }
+    } catch {
+      setGeocodingError("Couldn't determine the location of this address. Please check your address details and try again.");
+    } finally {
+      setIsGeocodingAddress(false);
+    }
   };
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -788,12 +811,12 @@ export default function CheckoutPage() {
                               </span>
                               {isSelected && (
                                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 GPS Verified' : '✍️ Text Address'}
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 Address location verified' : '✍️ Text Address'}
                                 </span>
                               )}
                               {addrDist !== null && (
-                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                                  ~{addrDist} km away
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
+                                  {addrDist} km away • {addrEligible ? '✓ Delivery available' : '✕ Outside delivery area'}
                                 </span>
                               )}
                             </div>
@@ -1333,19 +1356,31 @@ export default function CheckoutPage() {
                   />
                 </div>
 
+                {geocodingError && (
+                  <div className="rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-700 border border-rose-200 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                    <span>{geocodingError}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                   <button
                     type="button"
-                    onClick={() => setShowCustomAddressModal(false)}
-                    className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900"
+                    disabled={isGeocodingAddress}
+                    onClick={() => {
+                      setShowCustomAddressModal(false);
+                      setGeocodingError(null);
+                    }}
+                    className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition"
+                    disabled={isGeocodingAddress}
+                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 disabled:opacity-50 transition flex items-center gap-2"
                   >
-                    Save Address
+                    <span>{isGeocodingAddress ? 'Verifying address location...' : 'Save Address'}</span>
                   </button>
                 </div>
               </form>

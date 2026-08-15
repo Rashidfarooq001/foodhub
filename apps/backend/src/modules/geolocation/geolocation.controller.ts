@@ -31,6 +31,26 @@ export class GeolocationController {
     return this.geo.getAutosuggest(searchTerm.trim());
   }
 
+  @Get(['geocode', 'forward'])
+  @ApiOperation({ summary: 'Forward geocode complete text address to latitude & longitude' })
+  @ApiQuery({ name: 'address', required: true, description: 'Complete address query' })
+  async geocodeAddress(@Query('address') address?: string) {
+    const cleanQuery = address?.trim() || '';
+    if (!cleanQuery) {
+      return { success: false, message: 'Address query is required' };
+    }
+    const results = await this.geo.searchAddress(cleanQuery);
+    if (results && results.length > 0 && typeof results[0].lat === 'number' && typeof results[0].lng === 'number' && results[0].lat !== 0 && results[0].lng !== 0) {
+      return {
+        success: true,
+        latitude: results[0].lat,
+        longitude: results[0].lng,
+        displayName: results[0].displayName,
+      };
+    }
+    return { success: false, message: "Couldn't determine the location of this address." };
+  }
+
   @Get(['reverse', 'reverse-geocode'])
   @ApiOperation({ summary: 'Reverse geocode coordinates to address' })
   @ApiQuery({ name: 'lat' })

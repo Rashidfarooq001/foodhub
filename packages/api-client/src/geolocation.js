@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchLocationAutosuggest = fetchLocationAutosuggest;
+exports.forwardGeocodeAddress = forwardGeocodeAddress;
 const axios_client_1 = require("./axios-client");
 const helpers_1 = require("./helpers");
 async function fetchLocationAutosuggest(query, signal) {
@@ -29,5 +30,33 @@ async function fetchLocationAutosuggest(query, signal) {
         }
         console.error('[API_CLIENT] Geolocation autosuggest fetch error:', err);
         return [];
+    }
+}
+async function forwardGeocodeAddress(addressQuery, signal) {
+    const clean = addressQuery?.trim();
+    if (!clean) {
+        return { success: false, message: 'Address query is required' };
+    }
+    try {
+        const res = await (0, helpers_1.getRequest)(axios_client_1.apiClient, `/geolocation/geocode?address=${encodeURIComponent(clean)}`, { signal });
+        if (res?.success && typeof res.latitude === 'number' && typeof res.longitude === 'number') {
+            return {
+                success: true,
+                latitude: res.latitude,
+                longitude: res.longitude,
+                displayName: res.displayName,
+            };
+        }
+        return {
+            success: false,
+            message: res?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+        };
+    }
+    catch (err) {
+        console.error('[API_CLIENT] Forward geocode error:', err);
+        return {
+            success: false,
+            message: "Couldn't determine the location of this address. Please check your address details and try again.",
+        };
     }
 }

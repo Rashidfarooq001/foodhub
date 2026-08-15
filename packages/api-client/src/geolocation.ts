@@ -50,3 +50,46 @@ export async function fetchLocationAutosuggest(
     return [];
   }
 }
+
+export interface ForwardGeocodeResponse {
+  success: boolean;
+  latitude?: number;
+  longitude?: number;
+  displayName?: string;
+  message?: string;
+}
+
+export async function forwardGeocodeAddress(
+  addressQuery: string,
+  signal?: AbortSignal,
+): Promise<ForwardGeocodeResponse> {
+  const clean = addressQuery?.trim();
+  if (!clean) {
+    return { success: false, message: 'Address query is required' };
+  }
+  try {
+    const res = await getRequest<ForwardGeocodeResponse>(
+      apiClient,
+      `/geolocation/geocode?address=${encodeURIComponent(clean)}`,
+      { signal },
+    );
+    if (res?.success && typeof res.latitude === 'number' && typeof res.longitude === 'number') {
+      return {
+        success: true,
+        latitude: res.latitude,
+        longitude: res.longitude,
+        displayName: res.displayName,
+      };
+    }
+    return {
+      success: false,
+      message: res?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+    };
+  } catch (err: any) {
+    console.error('[API_CLIENT] Forward geocode error:', err);
+    return {
+      success: false,
+      message: "Couldn't determine the location of this address. Please check your address details and try again.",
+    };
+  }
+}
