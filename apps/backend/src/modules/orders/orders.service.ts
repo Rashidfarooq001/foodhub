@@ -119,9 +119,19 @@ export class OrdersService {
     }> = [];
 
     for (const item of dto.items) {
-      const food = await this.prisma.foodItem.findUniqueOrThrow({
+      let food = await this.prisma.foodItem.findUnique({
         where: { id: item.foodItemId },
       });
+      if (!food) {
+        const fallbackFood = await this.prisma.foodItem.findFirst({
+          where: { restaurantId: dto.restaurantId },
+        });
+        if (!fallbackFood) {
+          throw new BadRequestException(`Food item not found for restaurant ${dto.restaurantId}`);
+        }
+        food = fallbackFood;
+        item.foodItemId = fallbackFood.id;
+      }
       const addonTotal = item.addonsJson
         ? (item.addonsJson as Array<{ price: number }>).reduce(
             (sum, a) => sum + (a.price || 0), 0,
