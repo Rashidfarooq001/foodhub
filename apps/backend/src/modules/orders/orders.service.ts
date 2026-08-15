@@ -14,6 +14,8 @@ import { CancelOrderDto } from './dto/cancel-order.dto';
 import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, Prisma } from '@prisma/client';
 
+import { OrderQuoteService } from '../tax/order-quote.service';
+
 /** Generates a unique order number like FH-948210 */
 function generateOrderNumber(): string {
   const num = Math.floor(100000 + Math.random() * 900000);
@@ -32,6 +34,7 @@ export class OrdersService {
     private readonly repo:        OrdersRepository,
     private readonly validation:  OrdersValidationService,
     private readonly gateway:     OrdersGateway,
+    private readonly quoteService: OrderQuoteService,
   ) {}
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
@@ -149,29 +152,43 @@ export class OrdersService {
       );
     }
 
-    // 6. Platform fees
+    // 6. Platform fees & Authoritative Quote Calculation
     const restaurantSetting = await this.prisma.restaurantSetting.findUnique({
       where: { restaurantId: dto.restaurantId },
     });
     const packagingFee = restaurantSetting ? Number(restaurantSetting.packagingFee) : 15;
-    const deliveryFee  = 30;
-    const taxRate      = 0.05;
-    const taxableBase  = subtotal - discountAmount;
-    const taxAmount    = Math.round(taxableBase * taxRate * 100) / 100;
-    const totalAmount  = taxableBase + taxAmount + deliveryFee + packagingFee;
 
-    // 7. Wallet deduction check
-    if (dto.useWallet) {
-      const customer = await this.prisma.customer.findUnique({
-        where: { id: targetCustomerId },
-        include: { user: true },
-      });
-      if (customer) {
-        await this.validation.validateWalletBalance(customer.userId, totalAmount);
-      }
-    }
+    const quote = await this.quoteService.calculateQuote({
+      foodSubtotal: subtotal,
+      distanceKm: (dto as any).distanceKm || 3,
+      discountAmount,
+      packagingFee,
+      tipAmount: (dto as any).tipAmount || 0,
+    });
 
-    // 8. Create order in transaction
+    const deliveryFee = quote.customerDeliveryFee;
+    const taxAmount = quote.totalCustomerTaxes;
+    const totalAmount = quote.customerTotal;
+
+    const pricingSnapshot = {
+      restaurantCommissionPercent: quote.restaurantCommissionPercent,
+      restaurantCommissionAmount: quote.restaurantCommission,
+      platformFee: quote.platformFee,
+      smallOrderThreshold: 200,
+      smallOrderSurcharge: quote.smallOrderFee,
+      customerDeliveryFee: quote.customerDeliveryFee,
+      riderBasePayout: quote.riderBasePay,
+      riderPerKmRate: 6,
+      riderPayout: quote.totalRiderPayout,
+      paymentGatewayCost: quote.paymentGatewayCost,
+      restaurantSettlement: quote.restaurantSettlement,
+      packagingFee,
+      discountAmount,
+      statutoryGstLiability: quote.statutoryGstLiability,
+      platformContributionMargin: quote.platformContributionMargin,
+    };
+
+    // 7. Create order in transaction
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
@@ -187,7 +204,8 @@ export class OrdersService {
           totalAmount,
           paymentMethod:      dto.paymentMethod,
           deliveryAddress:    dto.deliveryAddress as Prisma.InputJsonValue,
-          taxSnapshot:        (dto as any).taxSnapshot ? ((dto as any).taxSnapshot as Prisma.InputJsonValue) : Prisma.JsonNull,
+          taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
+          pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
           deliveryOtp:        generateDeliveryOtp(),
           specialInstruction: dto.specialInstruction,
         },

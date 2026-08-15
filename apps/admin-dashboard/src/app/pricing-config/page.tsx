@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   Calculator,
   RefreshCw,
+  CreditCard,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { adminFetch } from '../../utils/admin-fetch';
@@ -33,21 +34,23 @@ interface PricingConfigForm {
   riderPeakBonus: number;
   riderLongDistanceBonus: number;
   riderBatchBonus: number;
+  paymentGatewayPlanningRate: number;
 }
 
 const DEFAULT_FORM: PricingConfigForm = {
-  restaurantCommissionPercent: 13,
-  customerDeliveryPerKm: 7,
-  minimumCustomerDeliveryFee: 25,
-  platformFee: 10,
-  smallOrderThreshold: 199,
-  smallOrderFee: 10,
-  riderBasePay: 30,
-  riderPerKmPay: 7,
+  restaurantCommissionPercent: 15,
+  customerDeliveryPerKm: 8,
+  minimumCustomerDeliveryFee: 30,
+  platformFee: 5,
+  smallOrderThreshold: 200,
+  smallOrderFee: 15,
+  riderBasePay: 25,
+  riderPerKmPay: 6,
   riderWaitingPay: 0,
   riderPeakBonus: 0,
   riderLongDistanceBonus: 0,
   riderBatchBonus: 0,
+  paymentGatewayPlanningRate: 2,
 };
 
 export default function AdminPricingConfigPage() {
@@ -74,18 +77,19 @@ export default function AdminPricingConfigPage() {
       if (res.ok) {
         const data = await res.json();
         setForm({
-          restaurantCommissionPercent: Number(data.restaurantCommissionPercent ?? 13),
-          customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 7),
-          minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 25),
-          platformFee: Number(data.platformFee ?? 10),
-          smallOrderThreshold: Number(data.smallOrderThreshold ?? 199),
-          smallOrderFee: Number(data.smallOrderFee ?? 10),
-          riderBasePay: Number(data.riderBasePay ?? 30),
-          riderPerKmPay: Number(data.riderPerKmPay ?? 7),
+          restaurantCommissionPercent: Number(data.restaurantCommissionPercent ?? 15),
+          customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 8),
+          minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 30),
+          platformFee: Number(data.platformFee ?? 5),
+          smallOrderThreshold: Number(data.smallOrderThreshold ?? 200),
+          smallOrderFee: Number(data.smallOrderFee ?? 15),
+          riderBasePay: Number(data.riderBasePay ?? 25),
+          riderPerKmPay: Number(data.riderPerKmPay ?? 6),
           riderWaitingPay: Number(data.riderWaitingPay ?? 0),
           riderPeakBonus: Number(data.riderPeakBonus ?? 0),
           riderLongDistanceBonus: Number(data.riderLongDistanceBonus ?? 0),
           riderBatchBonus: Number(data.riderBatchBonus ?? 0),
+          paymentGatewayPlanningRate: Number(data.paymentGatewayPlanningRate ?? 2),
         });
       }
     } catch {
@@ -134,8 +138,9 @@ export default function AdminPricingConfigPage() {
   const simRiderDistancePay = Math.round(simDistanceKm * form.riderPerKmPay * 100) / 100;
   const simRiderPayout = form.riderBasePay + simRiderDistancePay + form.riderWaitingPay + form.riderPeakBonus + form.riderLongDistanceBonus + form.riderBatchBonus + simTip;
 
+  const simPaymentGatewayCost = Math.round(simCustomerTotal * (form.paymentGatewayPlanningRate / 100) * 100) / 100;
   const simPlatformRevenue = simCommission + form.platformFee + simSmallOrderFee + simDeliveryFee;
-  const simPlatformCost = simRiderPayout - simTip;
+  const simPlatformCost = (simRiderPayout - simTip) + simPaymentGatewayCost;
   const simPlatformContribution = Math.round((simPlatformRevenue - simPlatformCost) * 100) / 100;
 
   return (
@@ -150,7 +155,7 @@ export default function AdminPricingConfigPage() {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Configure 3-sided platform pricing (Restaurant Commission, Customer Delivery &amp; Platform Fees, Rider Pay Engine) with PostgreSQL persistence
+            Configure 3-sided platform pricing (15% Restaurant Commission, ₹5 Platform Fee, ₹8/km Delivery, ₹25+₹6/km Rider Pay, ₹15 Small Order Surcharge below ₹200, 2% Gateway Cost)
           </p>
         </div>
 
@@ -192,7 +197,7 @@ export default function AdminPricingConfigPage() {
               </div>
               <div>
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">1. Restaurant Commission</h2>
-                <p className="text-[11px] text-gray-500">Platform take-rate on food subtotal</p>
+                <p className="text-[11px] text-gray-500">Platform take-rate on gross food subtotal</p>
               </div>
             </div>
 
@@ -211,7 +216,7 @@ export default function AdminPricingConfigPage() {
                   className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1 font-medium">Default: 13.0% (Lower commission empowers restaurant growth)</p>
+              <p className="text-[10px] text-gray-400 mt-1 font-medium">Production Default: 15.0% (Calculated strictly on gross food subtotal)</p>
             </div>
           </div>
 
@@ -238,7 +243,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, customerDeliveryPerKm: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹7 / km</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹8 / km</p>
               </div>
 
               <div>
@@ -251,7 +256,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, minimumCustomerDeliveryFee: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹25 minimum</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹30 minimum</p>
               </div>
 
               <div>
@@ -264,7 +269,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, platformFee: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹10 per order</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹5 flat per order</p>
               </div>
 
               <div>
@@ -277,7 +282,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, smallOrderThreshold: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: Below ₹199</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: Below ₹200</p>
               </div>
 
               <div>
@@ -290,7 +295,20 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, smallOrderFee: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹10 fee</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹15 surcharge</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Payment Gateway Planning Rate (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  required
+                  value={form.paymentGatewayPlanningRate}
+                  onChange={(e) => setForm({ ...form, paymentGatewayPlanningRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Default: 2.0% internal cost tracking</p>
               </div>
             </div>
           </div>
@@ -318,7 +336,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, riderBasePay: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹30 per delivery</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹25 per delivery</p>
               </div>
 
               <div>
@@ -331,120 +349,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, riderPerKmPay: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹7 / km</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Rider Waiting Pay (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  value={form.riderWaitingPay}
-                  onChange={(e) => setForm({ ...form, riderWaitingPay: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Waiting time compensation</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Peak / Surge Incentive (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  value={form.riderPeakBonus}
-                  onChange={(e) => setForm({ ...form, riderPeakBonus: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Peak hour surge bonus</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Long Distance Bonus (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  value={form.riderLongDistanceBonus}
-                  onChange={(e) => setForm({ ...form, riderLongDistanceBonus: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Extra bonus for long trips</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Batch Order Bonus (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  value={form.riderBatchBonus}
-                  onChange={(e) => setForm({ ...form, riderBatchBonus: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Bonus for batched orders</p>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 4: STATUTORY GST & TAX RULES MANAGEMENT */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
-                  <ShieldAlert className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">4. Statutory Indian GST Engine Configuration</h2>
-                  <p className="text-[11px] text-gray-500">Sec 9(5) ECO Restaurant Food GST (5%), Platform GST (18%), Commission GST (18%)</p>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full uppercase">
-                Audited &amp; Effective-Dated
-              </span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-2xl bg-teal-50/60 border border-teal-100 flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
-                <div className="text-[11px] text-teal-900 leading-relaxed font-medium">
-                  <span className="font-bold">Sec 9(5) E-Commerce Operator Rule Active:</span> FoodHub collects and remits 5% GST on restaurant food services. Statutory GST collected is tracked as a government liability and is <strong>NEVER counted as FoodHub revenue or profit</strong>.
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Restaurant Food Service GST</span>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-900">Sec 9(5) ECO Rate</span>
-                    <span className="text-sm font-black text-teal-700">5.00%</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 block">Intrastate: CGST 2.5% + SGST 2.5% (SAC 996331)</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Platform Fee GST</span>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-900">IT Platform Access Service</span>
-                    <span className="text-sm font-black text-teal-700">18.00%</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 block">Intrastate: CGST 9.0% + SGST 9.0% (SAC 998314)</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Restaurant Commission GST</span>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-900">Merchant Service GST</span>
-                    <span className="text-sm font-black text-teal-700">18.00%</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 block">Applied to 13% commission income (SAC 998314)</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Customer Rider Tip GST</span>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-900">Gratuity Pass-Through</span>
-                    <span className="text-sm font-black text-emerald-700">EXEMPT (0%)</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 block">100% passed to rider without platform deduction</span>
-                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹6 / km</p>
               </div>
             </div>
           </div>
@@ -531,7 +436,7 @@ export default function AdminPricingConfigPage() {
                 <span className="font-bold text-gray-900">₹{form.platformFee}</span>
               </div>
               <div className="pt-2 flex justify-between">
-                <span className="text-gray-600">Small Order Fee</span>
+                <span className="text-gray-600">Small Order Surcharge</span>
                 <span className="font-bold text-gray-900">₹{simSmallOrderFee}</span>
               </div>
               <div className="pt-2 flex justify-between">
@@ -549,7 +454,7 @@ export default function AdminPricingConfigPage() {
               </div>
 
               <div className="pt-3 flex justify-between text-indigo-700">
-                <span className="font-medium">Rider Base + Distance Pay</span>
+                <span className="font-medium">Rider Base + Distance Pay (₹{form.riderBasePay} + ₹{simRiderDistancePay})</span>
                 <span className="font-bold">₹{form.riderBasePay + simRiderDistancePay}</span>
               </div>
               <div className="pt-2 flex justify-between text-indigo-900">
@@ -557,12 +462,17 @@ export default function AdminPricingConfigPage() {
                 <span className="font-bold">₹{simRiderPayout}</span>
               </div>
 
+              <div className="pt-2 flex justify-between text-gray-600">
+                <span>Payment Gateway Cost ({form.paymentGatewayPlanningRate}%)</span>
+                <span className="font-bold">₹{simPaymentGatewayCost}</span>
+              </div>
+
               {/* Final Contribution Margin Card */}
               <div className={`pt-3 p-4 rounded-2xl border ${simPlatformContribution >= 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider block">FoodHub Contribution Margin</span>
-                    <span className="text-xs font-medium">Revenue (₹{simPlatformRevenue}) - Delivery Cost (₹{simPlatformCost})</span>
+                    <span className="text-xs font-medium">Revenue (₹{simPlatformRevenue}) - Direct Costs (₹{simPlatformCost})</span>
                   </div>
                   <span className="text-xl font-black">
                     {simPlatformContribution >= 0 ? `+₹${simPlatformContribution}` : `-₹${Math.abs(simPlatformContribution)}`}

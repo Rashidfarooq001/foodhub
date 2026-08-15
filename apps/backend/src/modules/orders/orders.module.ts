@@ -4,10 +4,11 @@ import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrdersGateway } from './orders.gateway';
-import { DatabaseModule } from '../database/database.module';
+import { TaxModule } from '../tax/tax.module';
+import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
-  imports:     [DatabaseModule],
+  imports:     [TaxModule, PricingModule],
   controllers: [OrdersController],
   providers:   [
     OrdersService,

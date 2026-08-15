@@ -11,6 +11,7 @@ export interface PricingConfigData {
     riderPeakBonus: number;
     riderLongDistanceBonus: number;
     riderBatchBonus: number;
+    paymentGatewayPlanningRate: number;
 }
 export declare const DEFAULT_PRICING_CONFIG_DATA: PricingConfigData;
 export declare function fetchPricingConfig(): Promise<PricingConfigData>;

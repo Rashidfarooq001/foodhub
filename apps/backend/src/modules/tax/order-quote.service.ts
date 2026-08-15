@@ -39,6 +39,7 @@ export interface OrderQuoteResult {
   riderTip: number;
   totalRiderPayout: number;
 
+  paymentGatewayCost: number;
   statutoryGstLiability: number;
   platformOperatingRevenue: number;
   platformContributionMargin: number;
@@ -72,7 +73,7 @@ export class OrderQuoteService {
       Math.round(rawDeliveryFee * 100) / 100,
     );
 
-    // 2. Platform Fee & Small Order Fee
+    // 2. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
     const platformFee = config.platformFee;
     const smallOrderFee = foodSubtotal > 0 && foodSubtotal < config.smallOrderThreshold ? config.smallOrderFee : 0;
 
@@ -131,7 +132,7 @@ export class OrderQuoteService {
       ) / 100,
     );
 
-    // 5. Merchant Settlement & Commission GST
+    // 5. Merchant Settlement & Commission GST (Commission = 15% of foodSubtotal)
     const restaurantCommissionPercent = config.restaurantCommissionPercent;
     const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
 
@@ -149,7 +150,7 @@ export class OrderQuoteService {
       (foodSubtotal + packagingFee - restaurantCommission - restaurantCommissionGst) * 100,
     ) / 100;
 
-    // 6. Rider Payout
+    // 6. Rider Payout (₹25 base + ₹6/km)
     const riderBasePay = config.riderBasePay;
     const riderDistancePay = Math.round(distanceKm * config.riderPerKmPay * 100) / 100;
     const riderTip = tipAmount; // 100% pass-through
@@ -157,14 +158,17 @@ export class OrderQuoteService {
       (riderBasePay + riderDistancePay + config.riderWaitingPay + config.riderPeakBonus + config.riderLongDistanceBonus + config.riderBatchBonus + riderTip) * 100,
     ) / 100;
 
-    // 7. Core Accounting Isolation (Government GST is EXCLUDED from FoodHub profit!)
+    // 7. Payment Gateway Internal Cost (Default 2% planning rate)
+    const paymentGatewayCost = Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100;
+
+    // 8. Core Accounting Isolation (Government GST is EXCLUDED from FoodHub operating profit!)
     const statutoryGstLiability = Math.round((restaurantFoodGst + platformFeeGst + smallOrderFeeGst + deliveryFeeGst) * 100) / 100;
     const platformOperatingRevenue = Math.round(
       (restaurantCommission + platformFee + smallOrderFee + customerDeliveryFee) * 100,
     ) / 100;
 
     const riderDirectCost = totalRiderPayout - riderTip;
-    const platformContributionMargin = Math.round((platformOperatingRevenue - riderDirectCost) * 100) / 100;
+    const platformContributionMargin = Math.round((platformOperatingRevenue - riderDirectCost - paymentGatewayCost) * 100) / 100;
 
     return {
       foodSubtotal,
@@ -193,6 +197,7 @@ export class OrderQuoteService {
       riderTip,
       totalRiderPayout,
 
+      paymentGatewayCost,
       statutoryGstLiability,
       platformOperatingRevenue,
       platformContributionMargin,

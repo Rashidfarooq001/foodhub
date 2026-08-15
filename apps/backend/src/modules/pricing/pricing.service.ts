@@ -14,21 +14,23 @@ export interface PricingConfigDto {
   riderPeakBonus: number;
   riderLongDistanceBonus: number;
   riderBatchBonus: number;
+  paymentGatewayPlanningRate: number;
 }
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
-  restaurantCommissionPercent: 13.0,
-  customerDeliveryPerKm: 7.0,
-  minimumCustomerDeliveryFee: 25.0,
-  platformFee: 10.0,
-  smallOrderThreshold: 199.0,
-  smallOrderFee: 10.0,
-  riderBasePay: 30.0,
-  riderPerKmPay: 7.0,
+  restaurantCommissionPercent: 15.0,
+  customerDeliveryPerKm: 8.0,
+  minimumCustomerDeliveryFee: 30.0,
+  platformFee: 5.0,
+  smallOrderThreshold: 200.0,
+  smallOrderFee: 15.0,
+  riderBasePay: 25.0,
+  riderPerKmPay: 6.0,
   riderWaitingPay: 0.0,
   riderPeakBonus: 0.0,
   riderLongDistanceBonus: 0.0,
   riderBatchBonus: 0.0,
+  paymentGatewayPlanningRate: 2.0,
 };
 
 @Injectable()
@@ -70,6 +72,7 @@ export class PricingService {
         riderPeakBonus: Number(configRecord.riderPeakBonus),
         riderLongDistanceBonus: Number(configRecord.riderLongDistanceBonus),
         riderBatchBonus: Number(configRecord.riderBatchBonus),
+        paymentGatewayPlanningRate: Number(configRecord.paymentGatewayPlanningRate ?? 2.0),
       };
 
       this.lastFetchTime = now;
@@ -80,7 +83,7 @@ export class PricingService {
     }
   }
 
-  async updatePricingConfig(dto: Partial<PricingConfigDto>): Promise<PricingConfigDto> {
+  async updatePricingConfig(dto: Partial<PricingConfigDto>, userId?: string): Promise<PricingConfigDto> {
     const current = await this.getActivePricingConfig();
     const updated: PricingConfigDto = {
       restaurantCommissionPercent: dto.restaurantCommissionPercent ?? current.restaurantCommissionPercent,
@@ -95,9 +98,10 @@ export class PricingService {
       riderPeakBonus: dto.riderPeakBonus ?? current.riderPeakBonus,
       riderLongDistanceBonus: dto.riderLongDistanceBonus ?? current.riderLongDistanceBonus,
       riderBatchBonus: dto.riderBatchBonus ?? current.riderBatchBonus,
+      paymentGatewayPlanningRate: dto.paymentGatewayPlanningRate ?? current.paymentGatewayPlanningRate,
     };
 
-    await this.prisma.pricingConfig.create({
+    const newRecord = await this.prisma.pricingConfig.create({
       data: {
         restaurantCommissionPercent: updated.restaurantCommissionPercent,
         customerDeliveryPerKm: updated.customerDeliveryPerKm,
@@ -111,7 +115,20 @@ export class PricingService {
         riderPeakBonus: updated.riderPeakBonus,
         riderLongDistanceBonus: updated.riderLongDistanceBonus,
         riderBatchBonus: updated.riderBatchBonus,
+        paymentGatewayPlanningRate: updated.paymentGatewayPlanningRate,
+        createdBy: userId || 'ADMIN',
+        updatedBy: userId || 'ADMIN',
         isDefault: false,
+      },
+    });
+
+    await this.prisma.pricingConfigAuditLog.create({
+      data: {
+        configId: newRecord.id,
+        changedBy: userId || 'ADMIN',
+        previousValue: current as any,
+        newValue: updated as any,
+        reason: 'Central Pricing Configuration Update from Admin Dashboard',
       },
     });
 
