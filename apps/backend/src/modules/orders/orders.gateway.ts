@@ -35,7 +35,7 @@ export class OrdersGateway
 
   @SubscribeMessage('joinOrder')
   handleJoinOrder(@ConnectedSocket() client: Socket, @MessageBody() data: { orderId: string }): void {
-    if (data?.orderId) {
+    if (data?.orderId && client) {
       client.join(`order:${data.orderId}`);
       this.logger.log(`Client ${client.id} joined order:${data.orderId}`);
     }
@@ -43,7 +43,7 @@ export class OrdersGateway
 
   @SubscribeMessage('joinRestaurant')
   handleJoinRestaurant(@ConnectedSocket() client: Socket, @MessageBody() data: { restaurantId: string }): void {
-    if (data?.restaurantId) {
+    if (data?.restaurantId && client) {
       client.join(`restaurant:${data.restaurantId}`);
       this.logger.log(`Client ${client.id} joined restaurant:${data.restaurantId}`);
     }
@@ -66,30 +66,52 @@ export class OrdersGateway
 
   @SubscribeMessage('joinAdmin')
   handleJoinAdmin(@ConnectedSocket() client: Socket): void {
-    client.join('admin:operations');
-    this.logger.log(`Client ${client.id} joined admin:operations`);
+    if (client) {
+      client.join('admin:operations');
+      this.logger.log(`Client ${client.id} joined admin:operations`);
+    }
   }
 
-  /** Emit an event to all subscribers of a specific order room */
+  /** Emit an event to all subscribers of a specific order room safely */
   emitToOrder(orderId: string, event: OrderEventName, payload: unknown): void {
-    this.server.to(`order:${orderId}`).emit(event, payload);
-    this.server.to('admin:operations').emit(event, payload);
+    try {
+      if (!this.server) return;
+      this.server.to(`order:${orderId}`).emit(event, payload);
+      this.server.to('admin:operations').emit(event, payload);
+    } catch (err: any) {
+      this.logger.warn(`Failed to emit event ${event} to order:${orderId}: ${err?.message || err}`);
+    }
   }
 
-  /** Emit an event to all staff subscribed to a restaurant room */
+  /** Emit an event to all staff subscribed to a restaurant room safely */
   emitToRestaurant(restaurantId: string, event: OrderEventName, payload: unknown): void {
-    this.server.to(`restaurant:${restaurantId}`).emit(event, payload);
-    this.server.to('admin:operations').emit(event, payload);
+    try {
+      if (!this.server) return;
+      this.server.to(`restaurant:${restaurantId}`).emit(event, payload);
+      this.server.to('admin:operations').emit(event, payload);
+    } catch (err: any) {
+      this.logger.warn(`Failed to emit event ${event} to restaurant:${restaurantId}: ${err?.message || err}`);
+    }
   }
 
-  /** Emit an event to a specific driver room */
+  /** Emit an event to a specific driver room safely */
   emitToDriver(driverId: string, event: OrderEventName, payload: unknown): void {
-    this.server.to(`driver:${driverId}`).emit(event, payload);
-    this.server.to('admin:operations').emit(event, payload);
+    try {
+      if (!this.server) return;
+      this.server.to(`driver:${driverId}`).emit(event, payload);
+      this.server.to('admin:operations').emit(event, payload);
+    } catch (err: any) {
+      this.logger.warn(`Failed to emit event ${event} to driver:${driverId}: ${err?.message || err}`);
+    }
   }
 
-  /** Emit an event to all admin operations listeners */
+  /** Emit an event to all admin operations listeners safely */
   emitToAdmin(event: OrderEventName, payload: unknown): void {
-    this.server.to('admin:operations').emit(event, payload);
+    try {
+      if (!this.server) return;
+      this.server.to('admin:operations').emit(event, payload);
+    } catch (err: any) {
+      this.logger.warn(`Failed to emit admin event ${event}: ${err?.message || err}`);
+    }
   }
 }

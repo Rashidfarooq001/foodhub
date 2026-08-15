@@ -26,6 +26,12 @@ export class OrderStateMachineService {
     private readonly ordersGateway: OrdersGateway,
   ) {}
 
+  private isValidUuid(uuid: string | undefined | null): boolean {
+    if (!uuid || typeof uuid !== 'string') return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
   /**
    * Authoritative Order State Transition Guard
    */
@@ -56,6 +62,18 @@ export class OrderStateMachineService {
     // Perform Atomic DB Transaction
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       const now = new Date();
+
+      // Double-action / Conflict Check inside transaction
+      const liveOrder = await tx.order.findUnique({
+        where: { id: order.id },
+        select: { status: true },
+      });
+
+      if (!liveOrder || liveOrder.status !== currentStatus) {
+        throw new ConflictException(
+          `Order status has already been updated to "${liveOrder?.status || 'UNKNOWN'}" by another process.`,
+        );
+      }
 
       // 1. Handle Delivery Job state creation/updates
       let updatedJob: any = null;
@@ -115,7 +133,6 @@ export class OrderStateMachineService {
           throw new ForbiddenException('Only registered delivery partners can accept delivery jobs.');
         }
 
-        // Conditional atomic claim to prevent double booking
         const existingJob = await tx.deliveryJob.findUnique({
           where: { orderId: order.id },
         });
@@ -176,7 +193,7 @@ export class OrderStateMachineService {
       }
 
       // 2. Update Order status
-      const updatedOrder = await tx.order.update({
+      const updatedOrderRecord = await tx.order.update({
         where: { id: order.id },
         data: {
           status: targetStatus,
@@ -191,13 +208,14 @@ export class OrderStateMachineService {
         },
       });
 
-      // 3. Record OrderStatusHistory
+      // 3. Record OrderStatusHistory safely
+      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
       await tx.orderStatusHistory.create({
         data: {
           orderId: order.id,
           fromStatus: currentStatus,
           toStatus: targetStatus,
-          changedBy: actor.userId,
+          changedBy: validActorUserId,
         },
       });
 
@@ -206,14 +224,14 @@ export class OrderStateMachineService {
         data: {
           orderId: order.id,
           status: targetStatus,
-          message: this.getStatusMessage(targetStatus),
+          message: extraData?.reason || this.getStatusMessage(targetStatus),
         },
       });
 
-      return updatedOrder;
+      return updatedOrderRecord;
     });
 
-    // 5. Emit Realtime Events (ONLY AFTER DB TRANSACTION SUCCEEDED)
+    // 5. Emit Realtime Events (SAFELY WRAPPED IN TRY/CATCH AFTER DB SUCCESS)
     this.emitRealtimeEvents(updatedOrder, currentStatus, targetStatus);
 
     return updatedOrder;
@@ -241,8 +259,11 @@ export class OrderStateMachineService {
       role === UserRole.RESTAURANT_MANAGER ||
       role === UserRole.RESTAURANT_STAFF
     ) {
-      if (actor.restaurantId && actor.restaurantId !== order.restaurantId) {
-        throw new ForbiddenException('Access denied. You do not own this restaurant order.');
+      const isOwnerOfRestaurant = order.restaurant?.ownerId === actor.userId;
+      const isStaffOfRestaurant = actor.restaurantId && actor.restaurantId === order.restaurantId;
+
+      if (!isOwnerOfRestaurant && !isStaffOfRestaurant) {
+        throw new ForbiddenException('Access denied. You do not own or manage this restaurant order.');
       }
 
       const allowedTransitions: Record<string, OrderStatus[]> = {
@@ -300,48 +321,54 @@ export class OrderStateMachineService {
   }
 
   /**
-   * Emit Realtime Socket.IO Events
+   * Emit Realtime Socket.IO Events safely without throwing uncaught HTTP 500 exceptions
    */
   private emitRealtimeEvents(order: any, fromStatus: OrderStatus, toStatus: OrderStatus) {
-    const payload = {
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      restaurantId: order.restaurantId,
-      restaurantName: order.restaurant.name,
-      fromStatus,
-      status: toStatus,
-      updatedAt: order.updatedAt,
-      deliveryJob: order.deliveryJob,
-    };
+    try {
+      if (!this.ordersGateway) return;
 
-    // Emit to order room (customer)
-    this.ordersGateway.emitToOrder(order.id, 'order:status-changed' as any, payload);
+      const payload = {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        restaurantId: order.restaurantId,
+        restaurantName: order.restaurant.name,
+        fromStatus,
+        status: toStatus,
+        updatedAt: order.updatedAt,
+        deliveryJob: order.deliveryJob,
+      };
 
-    // Emit to restaurant room
-    this.ordersGateway.emitToRestaurant(order.restaurantId, 'order:status-changed' as any, payload);
+      // Emit to order room (customer)
+      this.ordersGateway.emitToOrder(order.id, 'order:status-changed' as any, payload);
 
-    // Emit to driver if assigned
-    if (order.assignedFoodHubDriverId) {
-      this.ordersGateway.emitToDriver(order.assignedFoodHubDriverId, 'order:status-changed' as any, payload);
+      // Emit to restaurant room
+      this.ordersGateway.emitToRestaurant(order.restaurantId, 'order:status-changed' as any, payload);
+
+      // Emit to driver if assigned
+      if (order.assignedFoodHubDriverId) {
+        this.ordersGateway.emitToDriver(order.assignedFoodHubDriverId, 'order:status-changed' as any, payload);
+      }
+
+      // Specific event triggers
+      if (toStatus === OrderStatus.READY_FOR_PICKUP) {
+        this.ordersGateway.emitToAdmin('delivery:job-available' as any, payload);
+      } else if (toStatus === OrderStatus.DRIVER_ASSIGNED) {
+        this.ordersGateway.emitToOrder(order.id, 'delivery:assigned' as any, payload);
+      } else if (toStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
+        this.ordersGateway.emitToOrder(order.id, 'delivery:arrived' as any, payload);
+      } else if (toStatus === OrderStatus.PICKED_UP) {
+        this.ordersGateway.emitToOrder(order.id, 'delivery:picked-up' as any, payload);
+      } else if (toStatus === OrderStatus.OUT_FOR_DELIVERY) {
+        this.ordersGateway.emitToOrder(order.id, 'delivery:out-for-delivery' as any, payload);
+      } else if (toStatus === OrderStatus.DELIVERED) {
+        this.ordersGateway.emitToOrder(order.id, 'delivery:delivered' as any, payload);
+      }
+
+      // Always notify admin operations
+      this.ordersGateway.emitToAdmin('order:status-changed' as any, payload);
+    } catch (err: any) {
+      this.logger.error(`Failed emitting Socket.IO events for order ${order?.id}: ${err?.message || err}`);
     }
-
-    // Specific event triggers
-    if (toStatus === OrderStatus.READY_FOR_PICKUP) {
-      this.ordersGateway.emitToAdmin('delivery:job-available' as any, payload);
-    } else if (toStatus === OrderStatus.DRIVER_ASSIGNED) {
-      this.ordersGateway.emitToOrder(order.id, 'delivery:assigned' as any, payload);
-    } else if (toStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
-      this.ordersGateway.emitToOrder(order.id, 'delivery:arrived' as any, payload);
-    } else if (toStatus === OrderStatus.PICKED_UP) {
-      this.ordersGateway.emitToOrder(order.id, 'delivery:picked-up' as any, payload);
-    } else if (toStatus === OrderStatus.OUT_FOR_DELIVERY) {
-      this.ordersGateway.emitToOrder(order.id, 'delivery:out-for-delivery' as any, payload);
-    } else if (toStatus === OrderStatus.DELIVERED) {
-      this.ordersGateway.emitToOrder(order.id, 'delivery:delivered' as any, payload);
-    }
-
-    // Always notify admin operations
-    this.ordersGateway.emitToAdmin('order:status-changed' as any, payload);
   }
 
   private getStatusMessage(status: OrderStatus): string {

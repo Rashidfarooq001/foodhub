@@ -84,6 +84,7 @@ export default function HotelOrdersPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Modal States
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
@@ -188,9 +189,22 @@ export default function HotelOrdersPage() {
     };
   }, [accessToken, restaurantId]);
 
+  const showToastError = (status: number, message?: string) => {
+    let msg = 'Order transition failed.';
+    if (status === 400) msg = message || 'Invalid order transition requested.';
+    else if (status === 401) msg = 'Session expired. Please log in again.';
+    else if (status === 403) msg = 'Access denied. You do not have permission to manage this order.';
+    else if (status === 409) msg = 'This order has already been accepted or modified by another user.';
+    else if (status === 500) msg = 'Restaurant order service temporarily failed. Please try again.';
+
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 6000);
+  };
+
   // Transitions
   const handleAcceptOrder = async (orderId: string) => {
     setProcessingId(orderId);
+    setErrorMessage(null);
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/accept`, {
         method: 'POST',
@@ -200,13 +214,13 @@ export default function HotelOrdersPage() {
         },
       });
       if (!res.ok) {
-        const err = await res.json();
-        alert(`Failed to accept order: ${err.message || 'Error occurred'}`);
+        const err = await res.json().catch(() => ({}));
+        showToastError(res.status, err.message);
         return;
       }
       await fetchOrders();
     } catch {
-      alert('Network error accepting order');
+      showToastError(0, 'Network error accepting order');
     } finally {
       setProcessingId(null);
     }
@@ -216,6 +230,7 @@ export default function HotelOrdersPage() {
     if (!rejectingOrder) return;
     const finalReason = rejectionReason === 'Other' ? customRejectionReason || 'Rejected by restaurant' : rejectionReason;
     setProcessingId(rejectingOrder.id);
+    setErrorMessage(null);
     try {
       const res = await fetch(`${API_BASE}/orders/${rejectingOrder.id}/reject`, {
         method: 'POST',
@@ -226,14 +241,14 @@ export default function HotelOrdersPage() {
         body: JSON.stringify({ reason: finalReason }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        alert(`Failed to reject order: ${err.message || 'Error occurred'}`);
+        const err = await res.json().catch(() => ({}));
+        showToastError(res.status, err.message);
         return;
       }
       setRejectingOrder(null);
       await fetchOrders();
     } catch {
-      alert('Network error rejecting order');
+      showToastError(0, 'Network error rejecting order');
     } finally {
       setProcessingId(null);
     }
@@ -241,6 +256,7 @@ export default function HotelOrdersPage() {
 
   const handleStartPreparing = async (orderId: string) => {
     setProcessingId(orderId);
+    setErrorMessage(null);
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/prepare`, {
         method: 'POST',
@@ -250,13 +266,13 @@ export default function HotelOrdersPage() {
         },
       });
       if (!res.ok) {
-        const err = await res.json();
-        alert(`Failed to start preparation: ${err.message || 'Error occurred'}`);
+        const err = await res.json().catch(() => ({}));
+        showToastError(res.status, err.message);
         return;
       }
       await fetchOrders();
     } catch {
-      alert('Network error starting preparation');
+      showToastError(0, 'Network error starting preparation');
     } finally {
       setProcessingId(null);
     }
@@ -264,6 +280,7 @@ export default function HotelOrdersPage() {
 
   const handleMarkReady = async (orderId: string) => {
     setProcessingId(orderId);
+    setErrorMessage(null);
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/ready`, {
         method: 'POST',
@@ -273,13 +290,13 @@ export default function HotelOrdersPage() {
         },
       });
       if (!res.ok) {
-        const err = await res.json();
-        alert(`Failed to mark order ready: ${err.message || 'Error occurred'}`);
+        const err = await res.json().catch(() => ({}));
+        showToastError(res.status, err.message);
         return;
       }
       await fetchOrders();
     } catch {
-      alert('Network error marking ready');
+      showToastError(0, 'Network error marking ready');
     } finally {
       setProcessingId(null);
     }
@@ -396,6 +413,19 @@ export default function HotelOrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* Error Toast Notification Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-800 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button onClick={() => setErrorMessage(null)} className="text-rose-500 hover:text-rose-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
