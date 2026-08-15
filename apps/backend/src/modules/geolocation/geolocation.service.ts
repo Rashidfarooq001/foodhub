@@ -152,22 +152,30 @@ export class GeolocationService {
       };
     }
 
-    // Construct 4 controlled query tiers
+    // Construct 6 controlled query tiers with strong locality preservation
     const tier1 = cleanAddressQuery([house, area, landmark, city, state, postalCode, 'India']);
     const tier2 = cleanAddressQuery([area, landmark, city, state, postalCode, 'India']);
-    const tier3 = cleanAddressQuery([city, state, postalCode, 'India']);
-    const tier4 = cleanAddressQuery([postalCode, state, 'India']);
+    const tier3 = cleanAddressQuery([area, city, state, 'India']);
+    const tier4 = cleanAddressQuery([area, state, 'India']);
+    const tier5 = cleanAddressQuery([area, postalCode, 'India']);
+    const tier6 = cleanAddressQuery([city, state, postalCode, 'India']);
 
     const queryTiers = [
-      { tier: 1, query: tier1 },
-      { tier: 2, query: tier2 },
-      { tier: 3, query: tier3 },
-      { tier: 4, query: tier4 },
+      { tier: 1, query: tier1, requiresAreaMatch: false },
+      { tier: 2, query: tier2, requiresAreaMatch: false },
+      { tier: 3, query: tier3, requiresAreaMatch: false },
+      { tier: 4, query: tier4, requiresAreaMatch: false },
+      { tier: 5, query: tier5, requiresAreaMatch: false },
+      { tier: 6, query: tier6, requiresAreaMatch: true },
     ].filter((q) => q.query.length > 5);
 
     this.logger.log(`[GEOCODING_ENGINE] Geocoding structured address: house="${house}" area="${area}" landmark="${landmark}" city="${city}" pincode="${postalCode}"`);
 
-    for (const { tier, query } of queryTiers) {
+    const normalizedArea = normalizeText(area);
+    const normalizedCity = normalizeText(city);
+    const normalizedState = normalizeText(state);
+
+    for (const { tier, query, requiresAreaMatch } of queryTiers) {
       const urls = key
         ? [
             `https://search.mappls.com/search/address/geocode?address=${encodeURIComponent(query)}`,
@@ -190,7 +198,7 @@ export class GeolocationService {
             : (data.copResults || data.results || data.suggestedLocations || data.data || []);
 
           if (rawList && rawList.length > 0) {
-            // Evaluate candidates to rank and match against PIN / City / State constraints
+            // Evaluate candidates to rank and match against PIN / City / State / Locality constraints
             for (const item of rawList) {
               const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
               const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
@@ -202,8 +210,12 @@ export class GeolocationService {
 
               const displayName = item.formattedAddress || item.display_name || item.placeAddress || item.placeName || query;
               const normalizedDisplay = normalizeText(displayName);
-              const normalizedCity = normalizeText(city);
-              const normalizedState = normalizeText(state);
+
+              // Locality Match Check for fallback query tiers
+              if (normalizedArea && requiresAreaMatch && !normalizedDisplay.includes(normalizedArea)) {
+                this.logger.warn(`[GEOCODING_ENGINE] Candidate Locality mismatch on fallback Tier ${tier}: expected="${area}" in "${displayName}"`);
+                continue; // Do NOT accept broad city-center result for a specific village query
+              }
 
               // Extract postal code from candidate if available
               const candPincode = (item.pincode || item.postcode || item.postal_code || '').trim() ||

@@ -148,24 +148,25 @@ export default function CheckoutPage() {
     restaurantData?.longitude,
   );
 
-  // Dynamic delivery fee calculation: MAX(minimumCustomerDeliveryFee, distance * customerDeliveryPerKm)
-  const dynamicDeliveryFee =
-    realDistanceKm !== null
-      ? Math.max(
-          pricingConfig.minimumCustomerDeliveryFee,
-          Math.round(realDistanceKm * pricingConfig.customerDeliveryPerKm * 100) / 100,
-        )
-      : pricingConfig.minimumCustomerDeliveryFee;
+  const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
+
+  // Authoritative delivery fee calculation matching backend formula: 0-3km: ₹30, >3-15km: ₹30 + (dist - 3) * ₹5, >15km: ₹0
+  const dynamicDeliveryFee = orderQuote
+    ? orderQuote.customerDeliveryFee
+    : realDistanceKm !== null && realDistanceKm <= 3.0
+    ? 30.0
+    : realDistanceKm !== null && realDistanceKm <= 15.0
+    ? Math.round((30.0 + (realDistanceKm - 3.0) * 5.0) * 100) / 100
+    : 0;
 
   const platformFee = pricingConfig.platformFee;
   const subtotal = getSubtotal();
   const smallOrderFee = subtotal > 0 && subtotal < pricingConfig.smallOrderThreshold ? pricingConfig.smallOrderFee : 0;
 
   const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
-  const isDeliveryEligible =
-    realDistanceKm === null || realDistanceKm <= maxRadiusKm;
-
-  const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
+  const isDeliveryEligible = orderQuote
+    ? orderQuote.deliveryEligible
+    : realDistanceKm !== null && realDistanceKm <= maxRadiusKm;
 
   useEffect(() => {
     const sub = getSubtotal();

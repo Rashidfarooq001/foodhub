@@ -96,12 +96,18 @@ export class OrderQuoteService {
       }
     }
 
-    // 2. Delivery Fee: MAX(minimumFee, distance * perKm)
-    const rawDeliveryFee = distanceKm * config.customerDeliveryPerKm;
-    const customerDeliveryFee = Math.max(
-      config.minimumCustomerDeliveryFee,
-      Math.round(rawDeliveryFee * 100) / 100,
-    );
+    // 2. Authoritative Delivery Fee Formula
+    // 0-3 km: ₹30 flat fee. >3-15 km: ₹30 + (distance - 3) * ₹5. >15 km: Delivery Unavailable (₹0).
+    let customerDeliveryFee = 0;
+
+    if (!deliveryEligible || distanceKm > 15.0) {
+      deliveryEligible = false;
+      customerDeliveryFee = 0;
+    } else if (distanceKm <= 3.0) {
+      customerDeliveryFee = 30.0;
+    } else {
+      customerDeliveryFee = Math.round((30.0 + (distanceKm - 3.0) * 5.0) * 100) / 100;
+    }
 
     // 2. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
     const platformFee = config.platformFee;
