@@ -488,7 +488,30 @@ export default function CheckoutPage() {
         couponCode: appliedCoupon?.code || undefined,
       };
 
-      console.log('[ORDER REQUEST BEFORE POST]', JSON.stringify(createOrderPayload, null, 2));
+      const forbidden = [
+        'taxSnapshot',
+        'pricingSnapshot',
+        'customerTotal',
+        'customerDeliveryFee',
+        'platformFee',
+        'smallOrderFee',
+        'packagingFee',
+        'distanceKm',
+        'restaurantCommission',
+        'riderPayout',
+        'paymentGatewayCost',
+        'platformContributionMargin',
+      ];
+
+      for (const key of forbidden) {
+        if (key in createOrderPayload) {
+          throw new Error(
+            `INVALID CREATE ORDER PAYLOAD: ${key} must not be sent by customer`
+          );
+        }
+      }
+
+      console.log('FINAL POST /orders PAYLOAD', JSON.stringify(createOrderPayload, null, 2));
 
       const orderRes = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
