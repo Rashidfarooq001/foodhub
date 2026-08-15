@@ -167,7 +167,7 @@ export function getAdminDashboardUrl(): string {
 }
 
 export function getMapplsApiKey(): string {
-  return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+  return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
 }
 
 export function getMapplsClientId(): string {

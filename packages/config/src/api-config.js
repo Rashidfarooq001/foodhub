@@ -134,7 +134,7 @@ function getAdminDashboardUrl() {
     return 'https://foodhub-admin-dashboard.vercel.app';
 }
 function getMapplsApiKey() {
-    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
 }
 function getMapplsClientId() {
     return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';

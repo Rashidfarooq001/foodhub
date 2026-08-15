@@ -49,7 +49,7 @@ export class GeolocationService {
   constructor(private readonly prisma: PrismaService) {}
 
   private get MapplsKey(): string {
-    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
+    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
   }
 
   /** Forward geocoding — search address string → coordinates purely via Mappls / Geocoding REST API */
