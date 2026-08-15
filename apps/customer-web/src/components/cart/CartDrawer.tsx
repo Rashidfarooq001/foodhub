@@ -28,7 +28,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     applyCoupon,
     removeCoupon,
     getSubtotal,
-    getPackagingFee,
     getDiscountAmount,
     fetchCartQuote,
   } = useCartStore();
@@ -65,7 +64,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const subtotal = getSubtotal();
-  const packagingFee = getPackagingFee();
   const discount = getDiscountAmount();
 
   const hasVerifiedLocation = selectedAddress &&
@@ -82,7 +80,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const payableTotal = orderQuote
     ? orderQuote.customerTotal
-    : Math.max(0, subtotal + packagingFee + Math.round(subtotal * 0.05) - discount);
+    : Math.max(0, subtotal + Math.round(subtotal * 0.05) - discount);
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -337,10 +335,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   <div className="flex justify-between text-gray-600">
                     <span>Item Subtotal</span>
                     <span className="font-bold">₹{subtotal}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Packaging Fee</span>
-                    <span>₹{packagingFee}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Fee</span>

@@ -5,7 +5,6 @@ export class CustomerOrderQuoteDto {
   customerDeliveryFee: number;
   platformFee: number;
   smallOrderFee: number;
-  packagingFee: number;
   discountAmount: number;
   tipAmount: number;
 
@@ -28,7 +27,7 @@ export class CustomerOrderQuoteDto {
 /**
  * Sanitizes full 3-sided unit economics into customer-safe DTO.
  * Explicitly excludes: restaurantCommission, restaurantCommissionGst, restaurantSettlement,
- * riderPayout, paymentGatewayCost, statutoryGstLiability, platformContributionMargin.
+ * riderPayout, paymentGatewayCost, statutoryGstLiability, platformContributionMargin, packagingFee.
  */
 export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrderQuoteDto {
   return {
@@ -36,7 +35,6 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     customerDeliveryFee: fullQuote.customerDeliveryFee,
     platformFee: fullQuote.platformFee,
     smallOrderFee: fullQuote.smallOrderFee,
-    packagingFee: fullQuote.packagingFee,
     discountAmount: fullQuote.discountAmount,
     tipAmount: fullQuote.tipAmount,
 

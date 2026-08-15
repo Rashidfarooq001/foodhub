@@ -25,8 +25,6 @@ export interface CartItem {
   restaurantName: string;
 }
 
-export type PackagingFeeType = 'NONE' | 'FLAT' | 'PER_ITEM';
-
 interface AppliedCoupon {
   code: string;
   discountAmount: number;
@@ -36,8 +34,6 @@ interface CartState {
   items: CartItem[];
   restaurantId: string | null;
   restaurantName: string | null;
-  packagingFeeType: PackagingFeeType;
-  packagingFeeRate: number;
   appliedCoupon: AppliedCoupon | null;
   orderQuote: CustomerOrderQuoteData | null;
 
@@ -45,14 +41,12 @@ interface CartState {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
-  setPackagingRule: (type: PackagingFeeType, rate: number) => void;
   applyCoupon: (code: string, discount: number) => void;
   removeCoupon: () => void;
   setOrderQuote: (quote: CustomerOrderQuoteData | null) => void;
   fetchCartQuote: (address?: CustomerAddressItem | null) => Promise<CustomerOrderQuoteData | null>;
 
   getSubtotal: () => number;
-  getPackagingFee: () => number;
   getDeliveryFee: () => number;
   getTaxAmount: () => number;
   getDiscountAmount: () => number;
@@ -66,8 +60,6 @@ export const useCartStore = create<CartState>()(
       items: [],
       restaurantId: null,
       restaurantName: null,
-      packagingFeeType: 'FLAT',
-      packagingFeeRate: 15,
       appliedCoupon: null,
       orderQuote: null,
 
@@ -139,8 +131,6 @@ export const useCartStore = create<CartState>()(
           orderQuote: null,
         }),
 
-      setPackagingRule: (type, rate) => set({ packagingFeeType: type, packagingFeeRate: rate, orderQuote: null }),
-
       applyCoupon: (code, discountAmount) => set({ appliedCoupon: { code, discountAmount }, orderQuote: null }),
 
       removeCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
@@ -156,7 +146,6 @@ export const useCartStore = create<CartState>()(
 
         const restaurantId = get().restaurantId || get().items[0]?.restaurantId || undefined;
         const discountAmount = get().getDiscountAmount();
-        const packagingFee = get().getPackagingFee();
 
         const hasCoords = address?.latitude !== null && address?.latitude !== undefined &&
           address?.longitude !== null && address?.longitude !== undefined;
@@ -170,7 +159,6 @@ export const useCartStore = create<CartState>()(
           longitude: hasCoords ? address!.longitude! : undefined,
           locationSource,
           discountAmount,
-          packagingFee,
         });
 
         if (quote) {
@@ -184,15 +172,6 @@ export const useCartStore = create<CartState>()(
           const addonsTotal = item.addons.reduce((sum, a) => sum + a.price, 0);
           return total + (item.price + addonsTotal) * item.quantity;
         }, 0);
-      },
-
-      getPackagingFee: () => {
-        const itemCount = get().getItemCount();
-        if (itemCount === 0) return 0;
-        const { packagingFeeType, packagingFeeRate } = get();
-        if (packagingFeeType === 'NONE') return 0;
-        if (packagingFeeType === 'PER_ITEM') return packagingFeeRate * itemCount;
-        return packagingFeeRate; // FLAT
       },
 
       getDeliveryFee: () => {
@@ -219,7 +198,6 @@ export const useCartStore = create<CartState>()(
 
         const total =
           subtotal +
-          get().getPackagingFee() +
           get().getTaxAmount() -
           get().getDiscountAmount();
         return Math.max(0, total);

@@ -152,17 +152,17 @@ export class OrdersService {
       );
     }
 
-    // 6. Platform fees & Authoritative Quote Calculation
+    // 6. Platform fees & Authoritative Quote Calculation (Customer Packaging Fee = ₹0)
     const restaurantSetting = await this.prisma.restaurantSetting.findUnique({
       where: { restaurantId: dto.restaurantId },
     });
-    const packagingFee = restaurantSetting ? Number(restaurantSetting.packagingFee) : 15;
+    const internalPackagingCost = restaurantSetting ? Number(restaurantSetting.packagingFee) : 0;
 
     const quote = await this.quoteService.calculateQuote({
       foodSubtotal: subtotal,
       distanceKm: (dto as any).distanceKm || 3,
       discountAmount,
-      packagingFee,
+      packagingFee: 0,
       tipAmount: (dto as any).tipAmount || 0,
     });
 
@@ -182,7 +182,7 @@ export class OrdersService {
       riderPayout: quote.totalRiderPayout,
       paymentGatewayCost: quote.paymentGatewayCost,
       restaurantSettlement: quote.restaurantSettlement,
-      packagingFee,
+      packagingFee: 0,
       discountAmount,
       statutoryGstLiability: quote.statutoryGstLiability,
       platformContributionMargin: quote.platformContributionMargin,
@@ -197,7 +197,7 @@ export class OrdersService {
           restaurantId:       dto.restaurantId,
           status:             OrderStatus.PENDING,
           subtotal,
-          packagingFee,
+          packagingFee:       0,
           deliveryFee,
           taxAmount,
           discountAmount,

@@ -72,7 +72,7 @@ export class OrderQuoteService {
     const foodSubtotal = Math.max(0, req.foodSubtotal || 0);
     const tipAmount = Math.max(0, req.tipAmount || 0);
     const discountAmount = Math.max(0, req.discountAmount || 0);
-    const packagingFee = Math.max(0, req.packagingFee ?? 15.0);
+    const packagingFee = 0.0; // CUSTOMER PACKAGING FEE IS REMOVED COMPLETELY (₹0)
 
     const customerState = req.customerState || 'J&K';
     const restaurantState = req.restaurantState || 'J&K';
@@ -97,21 +97,23 @@ export class OrderQuoteService {
     }
 
     // 2. Authoritative Delivery Fee Formula
-    // Minimum fee: ₹30. Above 6 km: distance * ₹5/km. Max radius: 15 km (15 km = ₹75).
+    // 0–3 km: ₹30 flat fee. >3 km to 15 km: ₹30 + ₹5 × (distanceKm - 3). >15 km: Delivery unavailable (₹0).
     let customerDeliveryFee = 0;
 
     if (!deliveryEligible || distanceKm > 15.0) {
       deliveryEligible = false;
       customerDeliveryFee = 0;
+    } else if (distanceKm <= 3.0) {
+      customerDeliveryFee = 30.0;
     } else {
-      customerDeliveryFee = Math.max(30.0, Math.round(distanceKm * 5.0 * 100) / 100);
+      customerDeliveryFee = Math.round((30.0 + (distanceKm - 3.0) * 5.0) * 100) / 100;
     }
 
-    // 2. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
+    // 3. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
     const platformFee = config.platformFee;
     const smallOrderFee = foodSubtotal > 0 && foodSubtotal < config.smallOrderThreshold ? config.smallOrderFee : 0;
 
-    // 3. Tax Components
+    // 4. Tax Components
     const foodTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'RESTAURANT_FOOD_SERVICE',
       taxableAmount: foodSubtotal,
@@ -158,11 +160,11 @@ export class OrderQuoteService {
       (restaurantFoodGst + platformFeeGst + smallOrderFeeGst + deliveryFeeGst) * 100,
     ) / 100;
 
-    // 4. Customer Total
+    // 5. Customer Total (NO PACKAGING FEE INCLUDED)
     const customerTotal = Math.max(
       0,
       Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + packagingFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
+        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
       ) / 100,
     );
 

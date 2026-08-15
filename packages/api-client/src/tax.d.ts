@@ -18,7 +18,6 @@ export interface CustomerOrderQuoteData {
     customerDeliveryFee: number;
     platformFee: number;
     smallOrderFee: number;
-    packagingFee: number;
     discountAmount: number;
     tipAmount: number;
     distanceKm: number;
@@ -32,6 +31,7 @@ export interface CustomerOrderQuoteData {
     quoteTimestamp: string;
 }
 export interface AdminOrderQuoteData extends CustomerOrderQuoteData {
+    packagingFee: number;
     restaurantCommissionPercent: number;
     restaurantCommission: number;
     restaurantCommissionGst: number;
@@ -56,7 +56,6 @@ export declare function fetchOrderQuote(req: {
     locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS';
     tipAmount?: number;
     discountAmount?: number;
-    packagingFee?: number;
     customerState?: string;
     restaurantState?: string;
 }): Promise<CustomerOrderQuoteData | null>;

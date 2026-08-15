@@ -75,7 +75,6 @@ export default function CheckoutPage() {
     applyCoupon,
     removeCoupon,
     getSubtotal,
-    getPackagingFee,
     getTaxAmount,
     getDiscountAmount,
     getGrandTotal,
@@ -169,7 +168,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     const sub = getSubtotal();
     const disc = getDiscountAmount();
-    const pack = getPackagingFee();
     const dist = realDistanceKm ?? 0;
 
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
@@ -186,7 +184,6 @@ export default function CheckoutPage() {
       locationSource,
       tipAmount: tipAmount,
       discountAmount: disc,
-      packagingFee: pack,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
     }).then((quote) => {
@@ -194,11 +191,10 @@ export default function CheckoutPage() {
     });
   }, [items, selectedAddress, realDistanceKm, tipAmount]);
 
-  const packagingFee = getPackagingFee();
   const tax = orderQuote ? orderQuote.totalCustomerTaxes : getTaxAmount();
   const discount = getDiscountAmount();
   const baseGrandTotal =
-    subtotal + packagingFee + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount;
+    subtotal + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount;
   const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -1197,10 +1193,7 @@ export default function CheckoutPage() {
                       <span>+₹{smallOrderFee}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-600">
-                    <span>Packaging Fee</span>
-                    <span>₹{packagingFee}</span>
-                  </div>
+
                   <div className="space-y-1 py-1">
                     <div className="flex justify-between text-gray-700 font-semibold">
                       <span>Customer Taxes &amp; GST</span>

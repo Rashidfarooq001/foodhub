@@ -33,7 +33,6 @@ export default function CartPage() {
     applyCoupon,
     removeCoupon,
     getSubtotal,
-    getPackagingFee,
     getDeliveryFee,
     getTaxAmount,
     getDiscountAmount,
@@ -46,7 +45,6 @@ export default function CartPage() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const subtotal = getSubtotal();
-  const packagingFee = getPackagingFee();
   const deliveryFee = getDeliveryFee();
   const tax = getTaxAmount();
   const discount = getDiscountAmount();
@@ -288,7 +286,7 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Taxes &amp; Fees</span>
-              <span>₹{tax + packagingFee}</span>
+              <span>₹{tax}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-emerald-600 font-bold">
