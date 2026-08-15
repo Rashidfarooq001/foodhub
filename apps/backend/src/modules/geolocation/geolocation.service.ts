@@ -52,31 +52,32 @@ export class GeolocationService {
     return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
   }
 
-  /** Forward geocoding — search address string → coordinates purely via Mappls / Geocoding REST API */
+  /** Forward geocoding & autosuggest search — via Mappls Autosuggest, Geocode & OSM fallback APIs */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
     const key = this.MapplsKey;
     const cleanQuery = query.trim();
     if (!cleanQuery) return [];
-    this.logger.log(`[MAPPLS_PROXY] query="${cleanQuery}" keyConfigured=${Boolean(key)}`);
 
     const resultsMap = new Map<string, GeocodeResult>();
+    let totalRawCount = 0;
 
-    // Dynamic search terms for Mappls API
-    const hasRegion = /kashmir|jammu|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama|ganderbal/i.test(cleanQuery);
-    const searchTerms = hasRegion
-      ? [cleanQuery]
-      : [`${cleanQuery}, Jammu and Kashmir`, cleanQuery];
+    // Search terms: Query exact user string first, and fallback to region-expanded terms if query is short
+    const searchTerms = [cleanQuery];
+    if (cleanQuery.length >= 2 && !/kashmir|jammu|j&k|india|delhi|mumbai|bangalore/i.test(cleanQuery)) {
+      searchTerms.push(`${cleanQuery}, Jammu and Kashmir`, `${cleanQuery}, India`);
+    }
 
     for (const term of searchTerms) {
       const urls = key
         ? [
+            `https://atlas.mappls.com/api/places/autosuggest?query=${encodeURIComponent(term)}`,
+            `https://apis.mappls.com/advancedmaps/v1/${key}/autosuggest?query=${encodeURIComponent(term)}`,
             `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(term)}`,
             `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(term)}`,
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=10&countrycodes=in&viewbox=73.5,35.5,76.5,32.0`,
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=15&countrycodes=in`,
           ]
         : [
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=10&countrycodes=in&viewbox=73.5,35.5,76.5,32.0`,
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=10&countrycodes=in`,
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=15&countrycodes=in`,
           ];
 
       for (const url of urls) {
@@ -87,18 +88,27 @@ export class GeolocationService {
           const data = await res.json();
           const rawList = Array.isArray(data)
             ? data
-            : (data.copopResults || data.results || data.suggestedLocations || []);
+            : (data.suggestedLocations || data.copopResults || data.results || data.data || []);
+
+          totalRawCount += rawList.length;
 
           for (const item of rawList) {
-            const lat = parseFloat(item.latitude || item.lat || item.location?.lat || '0');
-            const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || '0');
-            const name = item.formattedAddress || item.display_name || item.placeName || item.placeAddress || term;
+            const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
+            const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
+            
+            const rawName = item.placeName || item.locality || item.name || item.formattedAddress || item.display_name || item.placeAddress || term;
+            const rawAddress = item.placeAddress || item.formattedAddress || item.display_name || rawName;
             const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
 
             if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
               const keyName = `${placeId}-${lat.toFixed(4)}-${lng.toFixed(4)}`;
               if (!resultsMap.has(keyName)) {
-                resultsMap.set(keyName, { lat, lng, displayName: name, placeId });
+                resultsMap.set(keyName, {
+                  lat,
+                  lng,
+                  displayName: rawAddress.includes(rawName) ? rawAddress : `${rawName}, ${rawAddress}`,
+                  placeId,
+                });
               }
             }
           }
@@ -110,16 +120,29 @@ export class GeolocationService {
 
     const allMappedResults = Array.from(resultsMap.values());
 
-    // Sort results so Jammu & Kashmir / Kashmir locations appear at the TOP
+    // Soft Ranking & Relevance Prioritization (NO hard filters):
+    // 1. Exact / prefix match on user's query
+    // 2. Soft preference for J&K / Kashmir local places if query is neutral
+    // 3. Keep all valid Indian search results (Delhi, Mumbai, Bangalore, etc.)
+    const qLower = cleanQuery.toLowerCase();
     allMappedResults.sort((a, b) => {
-      const isJK_A = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(a.displayName) || (a.lat >= 32.0 && a.lat <= 36.0);
-      const isJK_B = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(b.displayName) || (b.lat >= 32.0 && b.lat <= 36.0);
+      const aName = a.displayName.toLowerCase();
+      const bName = b.displayName.toLowerCase();
+
+      const aPrefix = aName.startsWith(qLower);
+      const bPrefix = bName.startsWith(qLower);
+      if (aPrefix && !bPrefix) return -1;
+      if (!aPrefix && bPrefix) return 1;
+
+      const isJK_A = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(aName) || (a.lat >= 32.0 && a.lat <= 36.0);
+      const isJK_B = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(bName) || (b.lat >= 32.0 && b.lat <= 36.0);
       if (isJK_A && !isJK_B) return -1;
       if (!isJK_A && isJK_B) return 1;
+
       return 0;
     });
 
-    this.logger.log(`[MAPPLS_PROXY] Returning ${allMappedResults.length} dynamic results for query "${cleanQuery}"`);
+    this.logger.log(`[MAPPLS_DIAGNOSTIC] query="${cleanQuery}" totalRawCount=${totalRawCount} returnedCount=${allMappedResults.length}`);
     return allMappedResults;
   }
 
