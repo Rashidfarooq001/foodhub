@@ -20,6 +20,7 @@ import {
   Plus,
   Compass,
   AlertTriangle,
+  Loader2,
   X,
 } from 'lucide-react';
 
@@ -28,7 +29,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import AddressSearchBar from '@/components/AddressSearchBar';
+import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
 
@@ -180,6 +181,8 @@ export default function CheckoutPage() {
     subtotal + packagingFee + dynamicDeliveryFee + tax - discount - walletApplied;
   const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
 
+  const [customLocationMode, setCustomLocationMode] = useState<'NONE' | 'MAP'>('NONE');
+
   // Real-Time Geolocation Handler
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -198,10 +201,7 @@ export default function CheckoutPage() {
         setNewLat(lat);
         setNewLng(lng);
 
-        // Reverse geocoding via OpenStreetMap Nominatim API
-        let reverseCity = '';
-        let reverseState = '';
-        let reversePin = '';
+        // Reverse geocoding via backend Mappls service
         let reverseArea = `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
 
         try {
@@ -220,21 +220,7 @@ export default function CheckoutPage() {
           /* reverse geocode fallback */
         }
 
-        const newCreatedAddr: CustomerAddressItem = {
-          id: 'current-location',
-          label: 'Current Location',
-          addressLine1: reverseArea,
-          addressLine2: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-          city: reverseCity || 'Local Area',
-          state: reverseState,
-          postalCode: reversePin,
-          latitude: lat,
-          longitude: lng,
-          isDefault: true,
-        };
-
-        addAddress(newCreatedAddr);
-        setSelectedAddress('current-location');
+        setNewArea(reverseArea);
         setIsLocatingUser(false);
         setLocationStatusMsg(null);
       },
@@ -242,12 +228,20 @@ export default function CheckoutPage() {
         setIsLocatingUser(false);
         if (err.code === err.PERMISSION_DENIED) {
           setLocationStatusMsg(
-            'Location permission denied. Please enter a custom delivery address below.',
+            'Location permission was denied. Please enable location access or choose a custom location.',
           );
-          setShowCustomAddressModal(true);
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setLocationStatusMsg(
+            'Unable to detect your current location. Please try again or choose a custom location.',
+          );
+        } else if (err.code === err.TIMEOUT) {
+          setLocationStatusMsg(
+            'Location request timed out. Please try again or choose a custom location.',
+          );
         } else {
-          setLocationStatusMsg('Unable to retrieve device position. Please enter address manually.');
-          setShowCustomAddressModal(true);
+          setLocationStatusMsg(
+            'Unable to detect your current location. Please try again or choose a custom location.',
+          );
         }
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -1229,54 +1223,89 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Search Delivery Address</label>
-                  <AddressSearchBar 
-                    onAddressSelect={(locationData) => {
-                      setNewArea(locationData.address);
-                      setNewLat(locationData.lat);
-                      setNewLng(locationData.lng);
-                      setLocationStatusMsg(null);
-                    }} 
-                  />
-
-                  {newArea ? (
-                    <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100 space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                        <span>Selected Address:</span>
-                      </div>
-                      <p className="text-emerald-900 font-medium leading-relaxed">{newArea}</p>
-                      {newLat !== null && newLng !== null && (
-                        <p className="text-[10px] text-emerald-600 font-mono pt-0.5">
-                          Coordinates: {newLat.toFixed(4)}, {newLng.toFixed(4)}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-[11px] text-gray-400">
-                      Type locality, landmark, or street name (e.g. Watlab, Bandipora, Sopore)
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <Navigation className="h-4 w-4 text-orange-600 shrink-0" />
-                    <div>
-                      <span className="font-bold text-gray-800 text-xs">Or Use Device GPS</span>
-                      <p className="text-[10px] text-gray-500">Detect current location automatically</p>
-                    </div>
-                  </div>
+                {/* Option 1 & Option 2 Buttons */}
+                <div className="space-y-2.5 pt-1">
+                  {/* Option 1: Use Current Location */}
                   <button
                     type="button"
                     onClick={handleUseCurrentLocation}
                     disabled={isLocatingUser}
-                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
+                    className="w-full text-left p-3.5 rounded-2xl border-2 border-orange-100 bg-orange-50/70 hover:bg-orange-100/80 transition flex items-center justify-between group"
                   >
-                    {isLocatingUser ? 'Locating...' : 'Use Current GPS'}
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        {isLocatingUser ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        ) : (
+                          <Navigation className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-black text-gray-900 text-xs block">📍 Use My Current Location</span>
+                        <span className="text-[11px] text-gray-600 font-medium">Automatically detect your location via GPS</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className="flex items-center gap-3 my-1">
+                    <div className="h-px flex-1 bg-gray-200" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">OR</span>
+                    <div className="h-px flex-1 bg-gray-200" />
+                  </div>
+
+                  {/* Option 2: Enter Custom Location via Map */}
+                  <button
+                    type="button"
+                    onClick={() => setCustomLocationMode(customLocationMode === 'MAP' ? 'NONE' : 'MAP')}
+                    className={`w-full text-left p-3.5 rounded-2xl border-2 transition flex items-center justify-between group ${
+                      customLocationMode === 'MAP'
+                        ? 'border-orange-500 bg-orange-50/30'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="font-black text-gray-900 text-xs block">📌 Enter Custom Location</span>
+                        <span className="text-[11px] text-gray-600 font-medium">Select your delivery location on the map</span>
+                      </div>
+                    </div>
                   </button>
                 </div>
+
+                {/* Map Picker when Custom Location Mode is active */}
+                {customLocationMode === 'MAP' && (
+                  <div className="pt-2">
+                    <AddressPickerMap
+                      initialLat={newLat || 34.3868}
+                      initialLng={newLng || 74.5221}
+                      onAddressSelected={(locationData) => {
+                        setNewArea(locationData.displayName);
+                        setNewLat(locationData.lat);
+                        setNewLng(locationData.lng);
+                        setLocationStatusMsg(null);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Selected Location Card Display */}
+                {newArea && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <span>Selected Location:</span>
+                    </div>
+                    <p className="text-emerald-950 font-semibold text-xs leading-relaxed">{newArea}</p>
+                    {newLat !== null && newLng !== null && (
+                      <p className="text-[10px] text-emerald-700 font-mono pt-0.5">
+                        Coordinates: {newLat.toFixed(4)}, {newLng.toFixed(4)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {locationStatusMsg && (
                   <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">

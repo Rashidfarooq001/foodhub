@@ -174,70 +174,41 @@ export default function AddressPickerMap({
 
   return (
     <div className="relative flex flex-col gap-3">
-      {/* Search Bar */}
-      <div className="relative flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            id="address-search-input"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search for an area, street name..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm shadow-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-          />
-          {query && (
-            <button
-              onClick={() => { setQuery(''); setSuggestions([]); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-            >
-              <X className="h-4 w-4 text-gray-400" />
-            </button>
-          )}
+      {/* Map Header / Helper banner */}
+      <div className="flex items-center justify-between rounded-xl bg-orange-50 px-3.5 py-2.5 text-xs text-orange-900 border border-orange-100">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
+          <span className="font-semibold text-gray-800">Tap or drag pin to select exact delivery point</span>
         </div>
         <button
-          id="address-search-btn"
-          onClick={handleSearch}
-          disabled={loading}
-          className="rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow hover:bg-purple-700 disabled:opacity-50"
-        >
-          {loading ? '...' : 'Search'}
-        </button>
-        <button
-          id="current-location-btn"
+          type="button"
           onClick={handleCurrentLocation}
-          title="Use current location"
-          className="rounded-xl border border-gray-200 bg-white p-2.5 shadow hover:bg-gray-50"
+          className="flex items-center gap-1 font-bold text-orange-700 hover:text-orange-800 bg-white px-2.5 py-1 rounded-lg shadow-xs border border-orange-200"
         >
-          <Navigation className="h-4 w-4 text-purple-600" />
+          <Navigation className="h-3.5 w-3.5 text-orange-600" />
+          <span>My GPS</span>
         </button>
       </div>
 
-      {/* Suggestions dropdown */}
-      {suggestions.length > 0 && (
-        <div className="absolute top-14 left-0 right-0 z-50 rounded-2xl border border-gray-100 bg-white shadow-xl">
-          {suggestions.map((s) => (
-            <button
-              key={s.placeId}
-              onClick={() => handleSelect(s)}
-              className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-purple-50 first:rounded-t-2xl last:rounded-b-2xl"
-            >
-              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-500" />
-              <span className="text-xs text-gray-700 leading-snug line-clamp-2">{s.displayName}</span>
-            </button>
-          ))}
+      {/* Map Container */}
+      <div ref={mapElRef} className="h-72 w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm z-0" />
+
+      {/* Selected Address Preview Chip */}
+      {selectedAddr ? (
+        <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs">
+          <MapPin className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-bold text-gray-900 leading-snug">{selectedAddr}</span>
+            {markerLat !== 0 && markerLng !== 0 && (
+              <span className="text-[10px] text-gray-500 font-mono">
+                Coordinates: {markerLat.toFixed(4)}, {markerLng.toFixed(4)}
+              </span>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Map */}
-      <div ref={mapElRef} className="h-72 w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm" />
-
-      {/* Selected address chip */}
-      {selectedAddr && (
-        <div className="flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-2">
-          <MapPin className="h-4 w-4 text-purple-600 flex-shrink-0" />
-          <p className="text-xs text-purple-800 line-clamp-1">{selectedAddr}</p>
+      ) : (
+        <div className="text-center text-xs text-gray-400 py-1 font-medium">
+          Move pin on map to set delivery address
         </div>
       )}
     </div>
