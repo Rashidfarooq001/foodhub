@@ -488,6 +488,8 @@ export default function CheckoutPage() {
         couponCode: appliedCoupon?.code || undefined,
       };
 
+      console.log('[ORDER REQUEST BEFORE POST]', JSON.stringify(createOrderPayload, null, 2));
+
       const orderRes = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: {
