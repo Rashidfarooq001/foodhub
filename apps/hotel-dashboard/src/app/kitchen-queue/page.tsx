@@ -12,6 +12,7 @@ import {
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { useKitchenStore } from '../../stores/use-kitchen-store';
+import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
 
@@ -51,6 +52,31 @@ export default function KitchenQueuePage() {
         : data.orders ?? [],
     );
   };
+
+  React.useEffect(() => {
+    refreshOrders();
+
+    const socketUrl = API_BASE.replace('/api/v1', '');
+    const socket = io(`${socketUrl}/orders`, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      socket.emit('joinRestaurant', { restaurantId: 'active-restaurant' });
+    });
+
+    const handleUpdate = () => {
+      refreshOrders();
+    };
+
+    socket.on('order.created', handleUpdate);
+    socket.on('order.status-changed', handleUpdate);
+    socket.on('status.updated', handleUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken]);
 
   const updateOrderStatus = async (
     orderId: string,

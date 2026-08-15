@@ -21,8 +21,8 @@ export default function NotificationsPage() {
     },
     {
       id: 'n3',
-      title: 'Cashback Credit ₹100 Received',
-      message: 'Your wallet has been credited with ₹100 promotional cashback.',
+      title: 'Discount Credit Received',
+      message: 'Your account has received a ₹100 promotional coupon discount.',
       time: '1 day ago',
       type: 'SYSTEM',
     },

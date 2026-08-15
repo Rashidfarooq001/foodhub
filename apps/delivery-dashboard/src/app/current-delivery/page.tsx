@@ -12,6 +12,7 @@ import {
 
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
+import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
 
@@ -82,6 +83,41 @@ export default function CurrentDeliveryPage() {
 
     loadCurrentJob();
   }, [user, accessToken]);
+
+  // Real Driver GPS streaming during active delivery
+  useEffect(() => {
+    if (!currentJob || currentJob.status !== 'OUT_FOR_DELIVERY') return;
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
+
+    const socketUrl = API_BASE.replace('/api/v1', '');
+    const socket = io(`${socketUrl}/orders`, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      socket.emit('joinOrder', { orderId: currentJob.id });
+    });
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        socket.emit('updateLocation', {
+          orderId: currentJob.id,
+          lat: latitude,
+          lng: longitude,
+        });
+      },
+      (err) => {
+        console.warn('Geolocation watcher warning:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      socket.disconnect();
+    };
+  }, [currentJob?.id, currentJob?.status]);
 
   const markPickedUp = async () => {
     if (!currentJob) return;

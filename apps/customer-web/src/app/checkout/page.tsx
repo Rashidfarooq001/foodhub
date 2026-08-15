@@ -76,7 +76,6 @@ export default function CheckoutPage() {
     getPackagingFee,
     getTaxAmount,
     getDiscountAmount,
-    getWalletAppliedAmount,
     getGrandTotal,
     clearCart,
   } = useCartStore();
@@ -188,9 +187,8 @@ export default function CheckoutPage() {
   const packagingFee = getPackagingFee();
   const tax = orderQuote ? orderQuote.totalCustomerTaxes : getTaxAmount();
   const discount = getDiscountAmount();
-  const walletApplied = getWalletAppliedAmount();
   const baseGrandTotal =
-    subtotal + packagingFee + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount - walletApplied;
+    subtotal + packagingFee + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount;
   const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -482,7 +480,6 @@ export default function CheckoutPage() {
         deliveryAddress: addressPayload,
         paymentMethod: validPaymentMethod,
         specialInstruction: fullInstruction || undefined,
-        useWallet: walletApplied > 0,
         taxSnapshot: orderQuote ? JSON.parse(JSON.stringify(orderQuote)) : undefined,
       };
 
@@ -1199,12 +1196,6 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-emerald-600 font-bold">
                       <span>Promo Discount</span>
                       <span>-₹{discount}</span>
-                    </div>
-                  )}
-                  {walletApplied > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-bold">
-                      <span>Wallet Applied</span>
-                      <span>-₹{walletApplied}</span>
                     </div>
                   )}
                   {tipAmount > 0 && (

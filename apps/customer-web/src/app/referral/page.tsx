@@ -72,13 +72,13 @@ export default function ReferralPage() {
         body: JSON.stringify({ code: applyCode.trim() }),
       });
       if (res.ok) {
-        setApplyMsg('✅ Code applied! ₹30 bonus added to your wallet.');
+        setApplyMsg('✅ Code applied! ₹30 discount coupon added to your account.');
       } else {
         const data = await res.json();
         setApplyMsg(data.message || 'Invalid or expired referral code');
       }
     } catch {
-      setApplyMsg('✅ Code applied! ₹30 bonus added to your wallet.');
+      setApplyMsg('✅ Code applied! ₹30 discount coupon added to your account.');
     } finally {
       setApplying(false);
     }
@@ -142,7 +142,7 @@ export default function ReferralPage() {
           {[
             { step: '1', text: 'Share your unique referral code with friends' },
             { step: '2', text: 'Friend signs up & places their first order' },
-            { step: '3', text: 'You get ₹50 · They get ₹30 in wallet' },
+            { step: '3', text: 'You get ₹50 · They get ₹30 discount coupon' },
           ].map((s) => (
             <div key={s.step} className="flex items-center gap-3">
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-xs font-black text-purple-700">

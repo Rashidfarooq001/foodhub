@@ -22,20 +22,16 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     items,
     restaurantName,
     appliedCoupon,
-    useWalletBalance,
-    walletBalance,
     updateQuantity,
     removeItem,
     clearCart,
     applyCoupon,
     removeCoupon,
-    toggleWallet,
     getSubtotal,
     getPackagingFee,
     getDeliveryFee,
     getTaxAmount,
     getDiscountAmount,
-    getWalletAppliedAmount,
     getGrandTotal,
   } = useCartStore();
 
@@ -65,7 +61,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const deliveryFee = getDeliveryFee();
   const tax = getTaxAmount();
   const discount = getDiscountAmount();
-  const walletApplied = getWalletAppliedAmount();
   const grandTotal = getGrandTotal();
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -301,30 +296,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   )}
                 </div>
 
-
-                {/* Wallet Cashback Application */}
-                <div className="flex items-center justify-between rounded-2xl bg-gray-50 p-4 border border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <Wallet className="h-5 w-5 text-emerald-600" />
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">FoodHub Wallet</p>
-                      <p className="text-[10px] text-gray-500">Available: ₹{walletBalance}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={toggleWallet}
-                    className={`h-6 w-11 rounded-full p-1 transition ${
-                      useWalletBalance ? 'bg-emerald-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div
-                      className={`h-4 w-4 rounded-full bg-white transition ${
-                        useWalletBalance ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
                 {/* Bill Breakdown */}
                 <div className="space-y-2 border-t border-gray-100 pt-4 text-xs">
                   <div className="flex justify-between text-gray-600">
@@ -347,12 +318,6 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                     <div className="flex justify-between text-emerald-600 font-bold">
                       <span>Promo Discount</span>
                       <span>-₹{discount}</span>
-                    </div>
-                  )}
-                  {walletApplied > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-bold">
-                      <span>Wallet Applied</span>
-                      <span>-₹{walletApplied}</span>
                     </div>
                   )}
                   <div className="flex justify-between border-t border-gray-200 pt-3 text-base font-black text-gray-900">

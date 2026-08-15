@@ -74,7 +74,7 @@ export default function PartnerLandingPage() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Real-time GPS Trip Dispatches
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Direct Wallet Payouts &amp; Withdrawals
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Direct Bank Payouts &amp; Weekly Settlements
               </li>
             </ul>
           </div>

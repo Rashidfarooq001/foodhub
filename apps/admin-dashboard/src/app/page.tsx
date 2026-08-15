@@ -6,26 +6,51 @@ import { AdminStats } from '../data/admin-mock-data';
 import { DollarSign, ShoppingBag, Store, Bike, ArrowUpRight, CheckSquare } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { adminFetch } from '../utils/admin-fetch';
+import { getApiBaseUrl } from '@foodhub/config';
+import { io } from 'socket.io-client';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await adminFetch('/analytics/admin');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch {
-        // Backend offline
-      } finally {
-        setIsLoading(false);
+  const fetchStats = async () => {
+    try {
+      const res = await adminFetch('/analytics/admin');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
       }
-    };
+    } catch {
+      // Backend offline
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
+
+    const socketUrl = getApiBaseUrl().replace('/api/v1', '');
+    const socket = io(`${socketUrl}/orders`, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      socket.emit('joinAdmin');
+    });
+
+    const handleAdminUpdate = () => {
+      fetchStats();
+    };
+
+    socket.on('order.created', handleAdminUpdate);
+    socket.on('status.updated', handleAdminUpdate);
+    socket.on('order.status-changed', handleAdminUpdate);
+    socket.on('admin.operations', handleAdminUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const kpi = {

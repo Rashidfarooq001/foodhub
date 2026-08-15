@@ -128,9 +128,6 @@ export const Navbar: React.FC = () => {
                     <Link href="/orders" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
                       <Clock className="h-4 w-4" /> My Orders
                     </Link>
-                    <Link href="/wallet" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                      <CreditCard className="h-4 w-4" /> Payment History
-                    </Link>
                     <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600">
                       <User className="h-4 w-4" /> Profile
                     </Link>
@@ -187,9 +184,6 @@ export const Navbar: React.FC = () => {
                 </Link>
                 <Link href="/orders" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
                   <Clock className="h-4 w-4 text-orange-500" /> My Orders
-                </Link>
-                <Link href="/wallet" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
-                  <CreditCard className="h-4 w-4 text-orange-500" /> Payment History
                 </Link>
                 <Link href="/profile" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600">
                   <User className="h-4 w-4 text-orange-500" /> Profile

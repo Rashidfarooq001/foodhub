@@ -64,18 +64,32 @@ export class OrdersGateway
     }
   }
 
+  @SubscribeMessage('joinAdmin')
+  handleJoinAdmin(@ConnectedSocket() client: Socket): void {
+    client.join('admin:operations');
+    this.logger.log(`Client ${client.id} joined admin:operations`);
+  }
+
   /** Emit an event to all subscribers of a specific order room */
   emitToOrder(orderId: string, event: OrderEventName, payload: unknown): void {
     this.server.to(`order:${orderId}`).emit(event, payload);
+    this.server.to('admin:operations').emit(event, payload);
   }
 
   /** Emit an event to all staff subscribed to a restaurant room */
   emitToRestaurant(restaurantId: string, event: OrderEventName, payload: unknown): void {
     this.server.to(`restaurant:${restaurantId}`).emit(event, payload);
+    this.server.to('admin:operations').emit(event, payload);
   }
 
   /** Emit an event to a specific driver room */
   emitToDriver(driverId: string, event: OrderEventName, payload: unknown): void {
     this.server.to(`driver:${driverId}`).emit(event, payload);
+    this.server.to('admin:operations').emit(event, payload);
+  }
+
+  /** Emit an event to all admin operations listeners */
+  emitToAdmin(event: OrderEventName, payload: unknown): void {
+    this.server.to('admin:operations').emit(event, payload);
   }
 }

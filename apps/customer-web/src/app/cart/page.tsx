@@ -37,7 +37,6 @@ export default function CartPage() {
     getDeliveryFee,
     getTaxAmount,
     getDiscountAmount,
-    getWalletAppliedAmount,
     getGrandTotal,
   } = useCartStore();
 
@@ -51,7 +50,6 @@ export default function CartPage() {
   const deliveryFee = getDeliveryFee();
   const tax = getTaxAmount();
   const discount = getDiscountAmount();
-  const walletApplied = getWalletAppliedAmount();
   const grandTotal = getGrandTotal();
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
@@ -296,12 +294,6 @@ export default function CartPage() {
               <div className="flex justify-between text-emerald-600 font-bold">
                 <span>Discount</span>
                 <span>-₹{discount}</span>
-              </div>
-            )}
-            {walletApplied > 0 && (
-              <div className="flex justify-between text-emerald-600 font-bold">
-                <span>Wallet Applied</span>
-                <span>-₹{walletApplied}</span>
               </div>
             )}
 

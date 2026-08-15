@@ -37,8 +37,6 @@ interface CartState {
   packagingFeeType: PackagingFeeType;
   packagingFeeRate: number;
   appliedCoupon: AppliedCoupon | null;
-  useWalletBalance: boolean;
-  walletBalance: number;
 
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   removeItem: (id: string) => void;
@@ -47,14 +45,12 @@ interface CartState {
   setPackagingRule: (type: PackagingFeeType, rate: number) => void;
   applyCoupon: (code: string, discount: number) => void;
   removeCoupon: () => void;
-  toggleWallet: () => void;
 
   getSubtotal: () => number;
   getPackagingFee: () => number;
   getDeliveryFee: () => number;
   getTaxAmount: () => number;
   getDiscountAmount: () => number;
-  getWalletAppliedAmount: () => number;
   getGrandTotal: () => number;
   getItemCount: () => number;
 }
@@ -68,8 +64,6 @@ export const useCartStore = create<CartState>()(
       packagingFeeType: 'FLAT',
       packagingFeeRate: 15,
       appliedCoupon: null,
-      useWalletBalance: false,
-      walletBalance: 0,
 
       addItem: (newItem) => {
         const { items, restaurantId } = get();
@@ -140,8 +134,6 @@ export const useCartStore = create<CartState>()(
 
       removeCoupon: () => set({ appliedCoupon: null }),
 
-      toggleWallet: () => set((state) => ({ useWalletBalance: !state.useWalletBalance })),
-
       getSubtotal: () => {
         return get().items.reduce((total, item) => {
           const addonsTotal = item.addons.reduce((sum, a) => sum + a.price, 0);
@@ -172,18 +164,6 @@ export const useCartStore = create<CartState>()(
 
       getDiscountAmount: () => (get().appliedCoupon ? get().appliedCoupon!.discountAmount : 0),
 
-      getWalletAppliedAmount: () => {
-        const { useWalletBalance, walletBalance } = get();
-        if (!useWalletBalance) return 0;
-        const totalBeforeWallet =
-          get().getSubtotal() +
-          get().getPackagingFee() +
-          get().getDeliveryFee() +
-          get().getTaxAmount() -
-          get().getDiscountAmount();
-        return Math.min(walletBalance, Math.max(0, totalBeforeWallet));
-      },
-
       getGrandTotal: () => {
         const subtotal = get().getSubtotal();
         if (subtotal === 0) return 0;
@@ -192,15 +172,14 @@ export const useCartStore = create<CartState>()(
           get().getPackagingFee() +
           get().getDeliveryFee() +
           get().getTaxAmount() -
-          get().getDiscountAmount() -
-          get().getWalletAppliedAmount();
+          get().getDiscountAmount();
         return Math.max(0, total);
       },
 
       getItemCount: () => get().items.reduce((count, item) => count + item.quantity, 0),
     }),
     {
-      name: 'foodhub-customer-cart',
+      name: 'foodhub-cart-storage',
       storage: createJSONStorage(() => localStorage),
     },
   ),
