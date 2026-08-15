@@ -150,7 +150,7 @@ export const useCartStore = create<CartState>()(
         const hasCoords = address?.latitude !== null && address?.latitude !== undefined &&
           address?.longitude !== null && address?.longitude !== undefined;
 
-        const locationSource = (address as any)?.locationSource || (address?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+        const locationSource = (address as any)?.locationSource || (address?.id === 'current-location' ? 'CURRENT_GPS' : 'PLACE_SEARCH');
 
         const quote = await fetchOrderQuote({
           foodSubtotal: subtotal,
