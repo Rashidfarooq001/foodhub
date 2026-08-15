@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm --filter=customer-web build",
+  "buildCommand": "pnpm --filter=customer-web build",
   "outputDirectory": ".next",
   "framework": "nextjs"
 }
