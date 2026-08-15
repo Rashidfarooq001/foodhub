@@ -24,6 +24,30 @@ export interface GeocodeResult {
   placeId:     string;
 }
 
+export interface StructuredAddressQuery {
+  houseNumber?: string;
+  street?: string;
+  areaLocality?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+}
+
+export interface DetailedGeocodeResult {
+  success: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  displayName: string | null;
+  geocodeLevel: string | null;
+  precisionLabel: 'EXACT' | 'AREA' | 'PINCODE' | 'UNKNOWN';
+  confidenceScore: number | null;
+  matchedAddress: string | null;
+  queryTierUsed: number;
+  source: string;
+  reason?: string;
+}
+
 export interface NearbyRestaurant {
   id:           string;
   name:         string;
@@ -42,6 +66,36 @@ export interface DistanceResult {
 
 const AVG_SPEED_KMH = 20; // urban delivery speed
 
+function normalizeStateName(state?: string): string {
+  if (!state) return '';
+  const s = state.trim();
+  if (/^j&k$/i.test(s) || /^jammu\s*&\s*kashmir$/i.test(s)) {
+    return 'Jammu and Kashmir';
+  }
+  return s;
+}
+
+function cleanAddressQuery(parts: string[]): string {
+  return parts
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .join(', ')
+    .replace(/,+/g, ',')
+    .trim();
+}
+
+function classifyGeocodePrecision(level?: string | null): 'EXACT' | 'AREA' | 'PINCODE' | 'UNKNOWN' {
+  if (!level) return 'AREA';
+  const l = level.toLowerCase();
+  if (l.includes('house') || l.includes('building') || l.includes('poi') || l.includes('street') || l.includes('premise')) {
+    return 'EXACT';
+  }
+  if (l.includes('pincode') || l.includes('postcode') || l.includes('postal') || l.includes('city') || l.includes('district')) {
+    return 'PINCODE';
+  }
+  return 'AREA'; // subLocality, locality, village, sector, colony
+}
+
 @Injectable()
 export class GeolocationService {
   private readonly logger = new Logger(GeolocationService.name);
@@ -52,115 +106,132 @@ export class GeolocationService {
     return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
   }
 
-  /** Forward geocoding & autosuggest search — via Mappls Autosuggest, Geocode & OSM fallback APIs */
-  async searchAddress(query: string): Promise<GeocodeResult[]> {
+  /**
+   * Multi-Tier Geocoding Engine for Manual Customer Addresses.
+   * Executes 4 fallback query variations (Full -> Area -> City/Village -> Pincode).
+   * Accepts coordinates at ANY geocode level without requiring exact house numbers.
+   */
+  async geocodeStructuredAddress(addr: StructuredAddressQuery): Promise<DetailedGeocodeResult> {
     const key = this.MapplsKey;
-    const cleanQuery = query.trim();
-    if (!cleanQuery) return [];
 
-    const resultsMap = new Map<string, GeocodeResult>();
-    let totalRawCount = 0;
+    const house = (addr.houseNumber || '').trim();
+    const street = (addr.street || '').trim();
+    const area = (addr.areaLocality || '').trim();
+    const landmark = (addr.landmark || '').trim();
+    const city = (addr.city || '').trim();
+    const state = normalizeStateName(addr.state);
+    const postalCode = (addr.postalCode || '').trim();
 
-    // Search terms: Query exact user string first, and fallback to region-expanded terms if query is short
-    const searchTerms = [cleanQuery];
-    if (cleanQuery.length >= 2 && !/kashmir|jammu|j&k|india|delhi|mumbai|bangalore/i.test(cleanQuery)) {
-      searchTerms.push(`${cleanQuery}, Jammu and Kashmir`, `${cleanQuery}, India`);
-    }
+    // Construct 4 controlled query tiers
+    const tier1 = cleanAddressQuery([house, street, area, landmark, city, state, postalCode, 'India']);
+    const tier2 = cleanAddressQuery([area, landmark, city, state, postalCode, 'India']);
+    const tier3 = cleanAddressQuery([city, state, postalCode, 'India']);
+    const tier4 = cleanAddressQuery([postalCode, state, 'India']);
 
-    for (const term of searchTerms) {
+    const queryTiers = [
+      { tier: 1, query: tier1 },
+      { tier: 2, query: tier2 },
+      { tier: 3, query: tier3 },
+      { tier: 4, query: tier4 },
+    ].filter((q) => q.query.length > 5);
+
+    this.logger.log(`[GEOCODING_ENGINE] Received manual address request: house="${house}" area="${area}" city="${city}" pincode="${postalCode}"`);
+
+    for (const { tier, query } of queryTiers) {
+      this.logger.log(`[GEOCODING_ENGINE] Attempting Tier ${tier} query="${query}"`);
+
       const urls = key
         ? [
-            `https://atlas.mappls.com/api/places/autosuggest?query=${encodeURIComponent(term)}`,
-            `https://apis.mappls.com/advancedmaps/v1/${key}/autosuggest?query=${encodeURIComponent(term)}`,
-            `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(term)}`,
-            `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(term)}`,
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=15&countrycodes=in`,
+            `https://search.mappls.com/search/address/geocode?address=${encodeURIComponent(query)}`,
+            `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(query)}`,
+            `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`,
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
           ]
         : [
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(term)}&format=json&limit=15&countrycodes=in`,
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
           ];
 
       for (const url of urls) {
         try {
           const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            this.logger.warn(`[GEOCODING_ENGINE] HTTP ${res.status} from ${url.split('?')[0]}`);
+            continue;
+          }
 
           const data = await res.json();
           const rawList = Array.isArray(data)
             ? data
-            : (data.suggestedLocations || data.copopResults || data.results || data.data || []);
+            : (data.copResults || data.results || data.suggestedLocations || data.data || []);
 
-          totalRawCount += rawList.length;
-
-          for (const item of rawList) {
-            let lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
-            let lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
-            
-            const rawName = item.placeName || item.locality || item.name || item.formattedAddress || item.display_name || item.placeAddress || term;
-            const rawAddress = item.placeAddress || item.formattedAddress || item.display_name || rawName;
-            const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
-
-            // Fallback coordinate lookup if eLoc/Autosuggest item lacks direct lat/lng
-            if ((lat === 0 || lng === 0 || isNaN(lat) || isNaN(lng)) && rawAddress) {
-              if (/sopore|sangri|watlab|bandipora|baramulla|srinagar|kashmir/i.test(rawAddress)) {
-                lat = 34.3868;
-                lng = 74.5221;
-              } else if (/delhi/i.test(rawAddress)) {
-                lat = 28.6139;
-                lng = 77.2090;
-              } else if (/mumbai/i.test(rawAddress)) {
-                lat = 19.0760;
-                lng = 72.8777;
-              } else if (/bangalore|bengaluru/i.test(rawAddress)) {
-                lat = 12.9716;
-                lng = 77.5946;
-              }
-            }
+          if (rawList && rawList.length > 0) {
+            const item = rawList[0];
+            const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
+            const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
+            const geocodeLevel = item.geocodeLevel || item.type || item.addresstype || item.category || 'locality';
+            const confidenceScore = typeof item.confidenceScore === 'number' ? item.confidenceScore : null;
+            const displayName = item.formattedAddress || item.display_name || item.placeAddress || item.placeName || query;
 
             if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
-              const keyName = `${placeId}-${lat.toFixed(4)}-${lng.toFixed(4)}`;
-              if (!resultsMap.has(keyName)) {
-                resultsMap.set(keyName, {
-                  lat,
-                  lng,
-                  displayName: rawAddress.includes(rawName) ? rawAddress : `${rawName}, ${rawAddress}`,
-                  placeId,
-                });
-              }
+              const precisionLabel = classifyGeocodePrecision(geocodeLevel);
+              this.logger.log(`[GEOCODING_ENGINE] SUCCESS Tier ${tier} (${precisionLabel}) level="${geocodeLevel}" lat=${lat} lng=${lng}`);
+              return {
+                success: true,
+                latitude: lat,
+                longitude: lng,
+                displayName,
+                geocodeLevel: String(geocodeLevel),
+                precisionLabel,
+                confidenceScore,
+                matchedAddress: displayName,
+                queryTierUsed: tier,
+                source: url.includes('mappls') ? 'mappls' : 'nominatim',
+              };
             }
           }
-        } catch (err) {
-          this.logger.error(`[MAPPLS_PROXY] Fetch error for url=${url}`, err);
+        } catch (err: any) {
+          this.logger.warn(`[GEOCODING_ENGINE] Error fetching ${url.split('?')[0]}: ${err.message}`);
         }
       }
     }
 
-    const allMappedResults = Array.from(resultsMap.values());
+    this.logger.error(`[GEOCODING_ENGINE] FAILED all query tiers for house="${house}" area="${area}" city="${city}" pincode="${postalCode}"`);
+    return {
+      success: false,
+      latitude: null,
+      longitude: null,
+      displayName: null,
+      geocodeLevel: null,
+      precisionLabel: 'UNKNOWN',
+      confidenceScore: null,
+      matchedAddress: null,
+      queryTierUsed: 4,
+      source: 'none',
+      reason: 'NO_COORDINATES',
+    };
+  }
 
-    // Soft Ranking & Relevance Prioritization (NO hard filters):
-    // 1. Exact / prefix match on user's query
-    // 2. Soft preference for J&K / Kashmir local places if query is neutral
-    // 3. Keep all valid Indian search results (Delhi, Mumbai, Bangalore, etc.)
-    const qLower = cleanQuery.toLowerCase();
-    allMappedResults.sort((a, b) => {
-      const aName = a.displayName.toLowerCase();
-      const bName = b.displayName.toLowerCase();
+  /** Forward geocoding & autosuggest search */
+  async searchAddress(query: string): Promise<GeocodeResult[]> {
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return [];
 
-      const aPrefix = aName.startsWith(qLower);
-      const bPrefix = bName.startsWith(qLower);
-      if (aPrefix && !bPrefix) return -1;
-      if (!aPrefix && bPrefix) return 1;
-
-      const isJK_A = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(aName) || (a.lat >= 32.0 && a.lat <= 36.0);
-      const isJK_B = /jammu|kashmir|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama/i.test(bName) || (b.lat >= 32.0 && b.lat <= 36.0);
-      if (isJK_A && !isJK_B) return -1;
-      if (!isJK_A && isJK_B) return 1;
-
-      return 0;
+    const structuredRes = await this.geocodeStructuredAddress({
+      areaLocality: cleanQuery,
     });
 
-    this.logger.log(`[MAPPLS_DIAGNOSTIC] query="${cleanQuery}" totalRawCount=${totalRawCount} returnedCount=${allMappedResults.length}`);
-    return allMappedResults;
+    if (structuredRes.success && structuredRes.latitude && structuredRes.longitude) {
+      return [
+        {
+          lat: structuredRes.latitude,
+          lng: structuredRes.longitude,
+          displayName: structuredRes.displayName || cleanQuery,
+          placeId: `geo-${structuredRes.latitude}-${structuredRes.longitude}`,
+        },
+      ];
+    }
+
+    return [];
   }
 
   /** Mappls Location Autosuggest — returns normalized FoodHub structure */
@@ -180,15 +251,11 @@ export class GeolocationService {
       const parts = item.displayName.split(',').map((s) => s.trim());
       const placeName = parts[0] || query;
       const address = item.displayName;
-      const city = parts.length > 2 ? parts[parts.length - 3] : undefined;
-      const state = parts.length > 1 ? parts[parts.length - 2] : undefined;
 
       return {
         id: item.placeId,
         placeName,
         address,
-        city,
-        state,
         latitude: item.lat,
         longitude: item.lng,
       };
@@ -234,7 +301,6 @@ export class GeolocationService {
     lng:      number,
     radiusKm: number = 5,
   ): Promise<NearbyRestaurant[]> {
-    // Approx degree offset: 1° lat ≈ 111 km
     const delta = radiusKm / 111;
 
     const restaurants = await this.prisma.restaurant.findMany({

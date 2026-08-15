@@ -56,7 +56,54 @@ export interface ForwardGeocodeResponse {
   latitude?: number;
   longitude?: number;
   displayName?: string;
+  geocodeLevel?: string;
+  precisionLabel?: 'EXACT' | 'AREA' | 'PINCODE' | 'UNKNOWN';
+  confidenceScore?: number | null;
+  queryTierUsed?: number;
   message?: string;
+}
+
+export interface StructuredAddressPayload {
+  houseNumber?: string;
+  street?: string;
+  areaLocality?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  address?: string;
+}
+
+export async function forwardGeocodeStructuredAddress(
+  payload: StructuredAddressPayload,
+  signal?: AbortSignal,
+): Promise<ForwardGeocodeResponse> {
+  try {
+    const res = await apiClient.post<ForwardGeocodeResponse>(
+      '/geolocation/geocode',
+      payload,
+      { signal },
+    );
+    if (res.data?.success && typeof res.data.latitude === 'number' && typeof res.data.longitude === 'number') {
+      return res.data;
+    }
+    return {
+      success: false,
+      message: res.data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+    };
+  } catch (err: any) {
+    // Fallback to GET endpoint
+    const query = [
+      payload.houseNumber,
+      payload.areaLocality || payload.address,
+      payload.landmark,
+      payload.city,
+      payload.state,
+      payload.postalCode,
+    ].filter(Boolean).join(', ');
+
+    return forwardGeocodeAddress(query, signal);
+  }
 }
 
 export async function forwardGeocodeAddress(
@@ -79,6 +126,8 @@ export async function forwardGeocodeAddress(
         latitude: res.latitude,
         longitude: res.longitude,
         displayName: res.displayName,
+        geocodeLevel: res.geocodeLevel,
+        precisionLabel: res.precisionLabel,
       };
     }
     return {

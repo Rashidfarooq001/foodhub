@@ -26,7 +26,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import { fetchPricingConfig, forwardGeocodeAddress, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
+import { fetchPricingConfig, forwardGeocodeAddress, forwardGeocodeStructuredAddress, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -295,7 +295,14 @@ export default function CheckoutPage() {
     const finalLabel = newAddrLabel === 'Other' && customLabelInput.trim() ? customLabelInput.trim() : newAddrLabel;
 
     try {
-      const geoResult = await forwardGeocodeAddress(addressQuery);
+      const geoResult = await forwardGeocodeStructuredAddress({
+        houseNumber: houseNo,
+        areaLocality: area,
+        landmark: landmark,
+        city: city,
+        state: state,
+        postalCode: pinCode,
+      });
 
       if (geoResult.success && typeof geoResult.latitude === 'number' && typeof geoResult.longitude === 'number') {
         const createdAddr: CustomerAddressItem = {

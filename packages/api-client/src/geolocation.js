@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchLocationAutosuggest = fetchLocationAutosuggest;
+exports.forwardGeocodeStructuredAddress = forwardGeocodeStructuredAddress;
 exports.forwardGeocodeAddress = forwardGeocodeAddress;
 const axios_client_1 = require("./axios-client");
 const helpers_1 = require("./helpers");
@@ -32,6 +33,30 @@ async function fetchLocationAutosuggest(query, signal) {
         return [];
     }
 }
+async function forwardGeocodeStructuredAddress(payload, signal) {
+    try {
+        const res = await axios_client_1.apiClient.post('/geolocation/geocode', payload, { signal });
+        if (res.data?.success && typeof res.data.latitude === 'number' && typeof res.data.longitude === 'number') {
+            return res.data;
+        }
+        return {
+            success: false,
+            message: res.data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+        };
+    }
+    catch (err) {
+        // Fallback to GET endpoint
+        const query = [
+            payload.houseNumber,
+            payload.areaLocality || payload.address,
+            payload.landmark,
+            payload.city,
+            payload.state,
+            payload.postalCode,
+        ].filter(Boolean).join(', ');
+        return forwardGeocodeAddress(query, signal);
+    }
+}
 async function forwardGeocodeAddress(addressQuery, signal) {
     const clean = addressQuery?.trim();
     if (!clean) {
@@ -45,6 +70,8 @@ async function forwardGeocodeAddress(addressQuery, signal) {
                 latitude: res.latitude,
                 longitude: res.longitude,
                 displayName: res.displayName,
+                geocodeLevel: res.geocodeLevel,
+                precisionLabel: res.precisionLabel,
             };
         }
         return {
