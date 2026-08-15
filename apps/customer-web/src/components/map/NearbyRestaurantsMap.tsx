@@ -54,11 +54,22 @@ export default function NearbyRestaurantsMap({
 
       map = L.map(mapElRef.current).setView([userLat, userLng], 13);
 
-      L.tileLayer('https://apis.mappls.com/advancedmaps/v1/{apiKey}/tile/{z}/{x}/{y}.png', {
+      const mapplsKey = process.env.NEXT_PUBLIC_MAPPLS_API_KEY;
+      const primaryTileUrl = mapplsKey
+        ? `https://apis.mappls.com/advancedmaps/v1/${mapplsKey}/tile/{z}/{x}/{y}.png`
+        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+      const tileLayer = L.tileLayer(primaryTileUrl, {
         attribution: '© Mappls / MapmyIndia',
         maxZoom: 19,
-        apiKey: process.env.NEXT_PUBLIC_MAPPLS_API_KEY || 'mappls',
-      } as any).addTo(map);
+        subdomains: 'abcd',
+      } as any);
+
+      tileLayer.on('tileerror', () => {
+        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+      });
+
+      tileLayer.addTo(map);
 
       // User location marker (blue)
       const userIcon = L.divIcon({
