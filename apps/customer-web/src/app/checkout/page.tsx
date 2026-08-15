@@ -233,7 +233,7 @@ export default function CheckoutPage() {
           return;
         }
 
-        let reverseArea = 'Current Location';
+        let reverseArea = 'Location detected, Jammu & Kashmir';
 
         try {
           const geoRes = await fetch(
@@ -470,7 +470,6 @@ export default function CheckoutPage() {
         deliveryAddress: addressPayload,
         paymentMethod: validPaymentMethod,
         specialInstruction: fullInstruction || undefined,
-        taxSnapshot: orderQuote ? JSON.parse(JSON.stringify(orderQuote)) : undefined,
       };
 
       const orderRes = await fetch(`${API_BASE}/orders`, {
@@ -723,14 +722,19 @@ export default function CheckoutPage() {
                       <span>{isLocatingUser ? 'Locating...' : '📍 Use Current Location'}</span>
                     </button>
 
-                    {/* OPTION 2 — MANUAL ADDRESS */}
+                    {/* OPTION 2 — PLACE-NAME SEARCH */}
                     <button
                       type="button"
-                      onClick={() => setShowCustomAddressModal(true)}
+                      onClick={() => {
+                        setPlaceSearchInput('');
+                        setPlaceCandidates([]);
+                        setPlaceSearchError(null);
+                        setShowCustomAddressModal(true);
+                      }}
                       className="flex items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-black transition"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>✍️ Enter Address Manually</span>
+                      <Search className="h-3.5 w-3.5 text-orange-400" />
+                      <span>🔎 Change Location</span>
                     </button>
                   </div>
                 </div>
@@ -772,18 +776,23 @@ export default function CheckoutPage() {
                         </div>
                       </button>
 
-                      {/* OPTION 2 CARD */}
+                      {/* OPTION 2 CARD — PLACE-NAME SEARCH */}
                       <button
                         type="button"
-                        onClick={() => setShowCustomAddressModal(true)}
+                        onClick={() => {
+                          setPlaceSearchInput('');
+                          setPlaceCandidates([]);
+                          setPlaceSearchError(null);
+                          setShowCustomAddressModal(true);
+                        }}
                         className="p-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 transition flex flex-col items-center gap-2 text-center"
                       >
                         <div className="h-8 w-8 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                          <Plus className="h-4 w-4" />
+                          <Search className="h-4 w-4 text-orange-400" />
                         </div>
                         <div>
-                          <span className="text-xs font-black text-gray-900 block">✍️ Enter Address Manually</span>
-                          <span className="text-[10px] text-gray-600 font-medium">Type house/flat, area &amp; landmark</span>
+                          <span className="text-xs font-black text-gray-900 block">🔎 Search Location by Place Name</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Kehnusa, Aloosa, Sopore, Bandipora</span>
                         </div>
                       </button>
                     </div>
@@ -1173,7 +1182,7 @@ export default function CheckoutPage() {
 
                   <div className="space-y-1 py-1">
                     <div className="flex justify-between text-gray-700 font-semibold">
-                      <span>Customer Taxes &amp; GST</span>
+                      <span>GST &amp; Taxes</span>
                       <span>₹{tax}</span>
                     </div>
                     {orderQuote?.taxItems?.map((t) => (
