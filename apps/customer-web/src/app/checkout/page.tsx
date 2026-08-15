@@ -69,6 +69,11 @@ function calculateHaversineDistance(
 
 export default function CheckoutPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    console.log('CHECKOUT_VERSION = "FINAL-CHECKOUT-2026-08-15"');
+    console.log('QUOTE_SOURCE = "BACKEND-ORDER-QUOTE"');
+  }, []);
   const {
     items,
     restaurantName,
@@ -253,13 +258,18 @@ export default function CheckoutPage() {
           /* reverse geocode fallback */
         }
 
+        const addressParts = reverseArea.split(',').map((s) => s.trim());
+        const detectedPlace = addressParts[0] || 'Kehnusa';
+        const detectedCity = addressParts.length > 2 ? addressParts[addressParts.length - 2] : 'Bandipora';
+        const detectedState = addressParts.length > 1 ? addressParts[addressParts.length - 1] : 'Jammu & Kashmir';
+
         const gpsAddr: CustomerAddressItem = {
           id: 'current-location',
           label: 'Current Location',
-          placeName: reverseArea.split(',')[0] || 'Current Location',
+          placeName: detectedPlace,
           addressLine1: reverseArea,
-          city: 'Current Location',
-          state: 'GPS',
+          city: detectedCity,
+          state: detectedState,
           postalCode: '',
           latitude: lat,
           longitude: lng,
