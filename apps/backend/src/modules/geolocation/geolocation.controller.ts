@@ -18,8 +18,8 @@ class ValidateRadiusDto {
 export class GeolocationController {
   constructor(private readonly geo: GeolocationService) {}
 
-  @Get('search')
-  @ApiOperation({ summary: 'Search address via Mappls / Geolocation API' })
+  @Get(['autosuggest', 'search'])
+  @ApiOperation({ summary: 'Mappls Location Autosuggest & Search API' })
   @ApiQuery({ name: 'q', required: false, description: 'Address search query' })
   @ApiQuery({ name: 'query', required: false, description: 'Address search query' })
   async searchAddress(
@@ -27,8 +27,8 @@ export class GeolocationController {
     @Query('query') query?: string,
   ) {
     const searchTerm = query || q || '';
-    if (!searchTerm.trim()) return [];
-    return this.geo.searchAddress(searchTerm.trim());
+    if (!searchTerm.trim()) return { suggestions: [] };
+    return this.geo.getAutosuggest(searchTerm.trim());
   }
 
   @Get(['reverse', 'reverse-geocode'])

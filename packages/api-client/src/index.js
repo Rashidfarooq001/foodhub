@@ -19,3 +19,4 @@ __exportStar(require("./interceptors.js"), exports);
 __exportStar(require("./token-manager.js"), exports);
 __exportStar(require("./error-handler.js"), exports);
 __exportStar(require("./helpers.js"), exports);
+__exportStar(require("./geolocation.js"), exports);

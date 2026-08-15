@@ -123,6 +123,40 @@ export class GeolocationService {
     return allMappedResults;
   }
 
+  /** Mappls Location Autosuggest — returns normalized FoodHub structure */
+  async getAutosuggest(query: string): Promise<{ suggestions: Array<{
+    id: string;
+    placeName: string;
+    address: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    latitude: number;
+    longitude: number;
+  }> }> {
+    const rawResults = await this.searchAddress(query);
+
+    const suggestions = rawResults.map((item) => {
+      const parts = item.displayName.split(',').map((s) => s.trim());
+      const placeName = parts[0] || query;
+      const address = item.displayName;
+      const city = parts.length > 2 ? parts[parts.length - 3] : undefined;
+      const state = parts.length > 1 ? parts[parts.length - 2] : undefined;
+
+      return {
+        id: item.placeId,
+        placeName,
+        address,
+        city,
+        state,
+        latitude: item.lat,
+        longitude: item.lng,
+      };
+    });
+
+    return { suggestions };
+  }
+
   /** Reverse geocoding — coordinates → address string via Mappls API */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const key = this.MapplsKey;

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, Loader2 } from 'lucide-react';
-
-import { getApiBaseUrl } from '@foodhub/config';
+import { MapPin, Search, Loader2, AlertCircle } from 'lucide-react';
+import { fetchLocationAutosuggest } from '@foodhub/api-client';
+import { GeolocationSuggestion } from '@foodhub/types';
 
 interface AddressSearchBarProps {
   onAddressSelect?: (data: { address: string; lat: number; lng: number }) => void;
@@ -11,39 +11,56 @@ interface AddressSearchBarProps {
 
 export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GeolocationSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const fetchPlaces = async () => {
-      const trimmed = query.trim();
-      if (trimmed.length < 2) {
-        setResults([]);
-        setIsOpen(false);
-        return;
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      setIsOpen(false);
+      setLoading(false);
+      setErrorMsg(null);
+      setHasSearched(false);
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    const debounceTimer = setTimeout(async () => {
+      // Cancel previous in-flight request to avoid race conditions/stale response overwriting
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-      
-      setLoading(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const apiBase = getApiBaseUrl();
-        const res = await fetch(`${apiBase}/geolocation/search?query=${encodeURIComponent(trimmed)}&q=${encodeURIComponent(trimmed)}`);
-        if (res.ok) {
-          const data = await res.json();
-          const list = Array.isArray(data) ? data : (data.suggestedLocations || data.results || []);
-          setResults(list);
-          setIsOpen(list.length > 0);
+        const list = await fetchLocationAutosuggest(trimmed, controller.signal);
+        setSuggestions(list);
+        setHasSearched(true);
+        setIsOpen(true);
+      } catch (err: any) {
+        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+          console.error("Address Search Error:", err);
+          setErrorMsg("Unable to search locations. Please try again.");
+          setIsOpen(true);
         }
-      } catch (err) {
-        console.error("Mappls Search Error:", err);
       } finally {
         setLoading(false);
       }
-    };
+    }, 300);
 
-    const debounceTimer = setTimeout(fetchPlaces, 300);
-    return () => clearTimeout(debounceTimer);
+    return () => {
+      clearTimeout(debounceTimer);
+    };
   }, [query]);
 
   useEffect(() => {
@@ -64,8 +81,8 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (results.length > 0) setIsOpen(true); }}
-          placeholder="Search Area / Locality / Street"
+          onFocus={() => { if (suggestions.length > 0 || hasSearched || errorMsg) setIsOpen(true); }}
+          placeholder="Search location (e.g. Sopore, Bandipora, Srinagar...)"
           className="w-full rounded-xl border border-gray-200 py-2.5 pl-9 pr-10 font-medium focus:border-orange-500 focus:outline-none text-xs"
         />
         {loading && (
@@ -73,42 +90,46 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
         )}
       </div>
       
-      {isOpen && results.length > 0 && (
-        <ul className="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-gray-100 bg-white py-1 shadow-xl text-xs">
-          {results.map((place, idx) => {
-            const displayName = place.displayName || place.placeName || 'Selected Location';
-            const subtitle = place.placeAddress || place.displayName || '';
-            const itemLat = parseFloat(place.lat ?? place.latitude ?? 0);
-            const itemLng = parseFloat(place.lng ?? place.longitude ?? 0);
-
-            return (
-              <li
-                key={idx}
-                onClick={() => {
-                  setQuery(displayName);
-                  setIsOpen(false);
-                  
-                  if (onAddressSelect && itemLat !== 0 && itemLng !== 0) {
-                    onAddressSelect({
-                      address: displayName,
-                      lat: itemLat,
-                      lng: itemLng,
-                    });
-                  }
-                }}
-                className="cursor-pointer px-3 py-2.5 hover:bg-orange-50 flex items-start gap-2.5 transition-colors border-b border-gray-50 last:border-0"
-              >
-                <MapPin className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-black text-gray-900">{displayName}</span>
-                  {subtitle && subtitle !== displayName && (
-                    <span className="text-[10px] leading-tight text-gray-500">{subtitle}</span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+      {isOpen && (
+        <div className="absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-gray-100 bg-white py-1 shadow-xl text-xs">
+          {errorMsg ? (
+            <div className="px-3 py-3 text-amber-600 font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>{errorMsg}</span>
+            </div>
+          ) : suggestions.length > 0 ? (
+            <ul className="divide-y divide-gray-50">
+              {suggestions.map((item) => (
+                <li
+                  key={item.id}
+                  onClick={() => {
+                    setQuery(item.placeName || item.address);
+                    setIsOpen(false);
+                    
+                    if (onAddressSelect && item.latitude !== 0 && item.longitude !== 0) {
+                      onAddressSelect({
+                        address: item.address || item.placeName,
+                        lat: item.latitude,
+                        lng: item.longitude,
+                      });
+                    }
+                  }}
+                  className="cursor-pointer px-3.5 py-2.5 hover:bg-orange-50 flex items-start gap-2.5 transition-colors"
+                >
+                  <MapPin className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-black text-gray-900 leading-tight">{item.placeName}</span>
+                    <span className="text-[10px] leading-tight text-gray-500">{item.address}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : hasSearched && !loading ? (
+            <div className="px-3 py-3 text-gray-400 text-center font-medium">
+              No locations found for &quot;{query}&quot;
+            </div>
+          ) : null}
+        </div>
       )}
     </div>
   );

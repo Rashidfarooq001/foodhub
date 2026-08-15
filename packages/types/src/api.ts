@@ -25,3 +25,18 @@ export interface ApiError {
   timestamp: string;
   path?: string;
 }
+
+export interface GeolocationSuggestion {
+  id: string;
+  placeName: string;
+  address: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface GeolocationAutosuggestResponse {
+  suggestions: GeolocationSuggestion[];
+}
