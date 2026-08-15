@@ -187,6 +187,7 @@ export class OrdersService {
           totalAmount,
           paymentMethod:      dto.paymentMethod,
           deliveryAddress:    dto.deliveryAddress as Prisma.InputJsonValue,
+          taxSnapshot:        (dto as any).taxSnapshot ? ((dto as any).taxSnapshot as Prisma.InputJsonValue) : Prisma.JsonNull,
           deliveryOtp:        generateDeliveryOtp(),
           specialInstruction: dto.specialInstruction,
         },

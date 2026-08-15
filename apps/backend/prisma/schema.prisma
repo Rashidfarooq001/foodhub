@@ -733,6 +733,7 @@ model Order {
   paymentStatus    PaymentStatus @default(PENDING) @map("payment_status")
   paymentMethod    PaymentMethod @default(UPI) @map("payment_method")
   deliveryAddress  Json          @map("delivery_address")
+  taxSnapshot      Json?         @map("tax_snapshot")
   deliveryOtp      String        @map("delivery_otp") // 4-digit OTP
   specialInstruction String?     @map("special_instruction")
   assignedFoodHubDriverId    String?                  @map("assigned_foodhub_driver_id") @db.Uuid
@@ -1442,4 +1443,45 @@ model PricingConfig {
   updatedAt                   DateTime @updatedAt @map("updated_at")
 
   @@map("pricing_configs")
+}
+
+model TaxRule {
+  id                    String    @id @default(uuid()) @db.Uuid
+  code                  String    @unique // e.g. RESTAURANT_FOOD_SERVICE, PLATFORM_FEE, SMALL_ORDER_FEE, DELIVERY_SERVICE, RESTAURANT_COMMISSION, PAYMENT_GATEWAY, RIDER_TIP
+  name                  String
+  componentType         String    @map("component_type") // FOOD, PLATFORM_FEE, SMALL_ORDER_FEE, DELIVERY, COMMISSION, GATEWAY, TIP
+  taxCategory           String    @map("tax_category") // ECO_SECTION_9_5, SERVICE_TAX, MERCHANT_SERVICE, PASS_THROUGH, FINANCIAL_COST
+  sacCode               String?   @map("sac_code")
+  rate                  Decimal   @default(0.00) @db.Decimal(5, 2)
+  cgstRate              Decimal   @default(0.00) @map("cgst_rate") @db.Decimal(5, 2)
+  sgstRate              Decimal   @default(0.00) @map("sgst_rate") @db.Decimal(5, 2)
+  utgstRate             Decimal   @default(0.00) @map("utgst_rate") @db.Decimal(5, 2)
+  igstRate              Decimal   @default(0.00) @map("igst_rate") @db.Decimal(5, 2)
+  supplierType          String    @default("ECO_FOODHUB") @map("supplier_type")
+  recipientType         String    @default("CUSTOMER") @map("recipient_type")
+  placeOfSupplyRule     String    @default("LOCATION_OF_RESTAURANT") @map("place_of_supply_rule")
+  sectionReference      String?   @map("section_reference")
+  notificationReference String?   @map("notification_reference")
+  legalReference        String?   @map("legal_reference")
+  notes                 String?
+  effectiveFrom         DateTime  @default(now()) @map("effective_from")
+  effectiveTill         DateTime? @map("effective_till")
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("tax_rules")
+}
+
+model TaxRuleAuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  taxRuleId      String   @map("tax_rule_id") @db.Uuid
+  changedBy      String   @map("changed_by")
+  previousValue  Json     @map("previous_value")
+  newValue       Json     @map("new_value")
+  reason         String?
+  legalReference String?  @map("legal_reference")
+  timestamp      DateTime @default(now())
+
+  @@map("tax_rule_audit_logs")
 }

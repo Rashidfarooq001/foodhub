@@ -384,6 +384,71 @@ export default function AdminPricingConfigPage() {
             </div>
           </div>
 
+          {/* SECTION 4: STATUTORY GST & TAX RULES MANAGEMENT */}
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
+                  <ShieldAlert className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">4. Statutory Indian GST Engine Configuration</h2>
+                  <p className="text-[11px] text-gray-500">Sec 9(5) ECO Restaurant Food GST (5%), Platform GST (18%), Commission GST (18%)</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full uppercase">
+                Audited &amp; Effective-Dated
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-2xl bg-teal-50/60 border border-teal-100 flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-teal-900 leading-relaxed font-medium">
+                  <span className="font-bold">Sec 9(5) E-Commerce Operator Rule Active:</span> FoodHub collects and remits 5% GST on restaurant food services. Statutory GST collected is tracked as a government liability and is <strong>NEVER counted as FoodHub revenue or profit</strong>.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Restaurant Food Service GST</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">Sec 9(5) ECO Rate</span>
+                    <span className="text-sm font-black text-teal-700">5.00%</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 block">Intrastate: CGST 2.5% + SGST 2.5% (SAC 996331)</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Platform Fee GST</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">IT Platform Access Service</span>
+                    <span className="text-sm font-black text-teal-700">18.00%</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 block">Intrastate: CGST 9.0% + SGST 9.0% (SAC 998314)</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Restaurant Commission GST</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">Merchant Service GST</span>
+                    <span className="text-sm font-black text-teal-700">18.00%</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 block">Applied to 13% commission income (SAC 998314)</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Customer Rider Tip GST</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">Gratuity Pass-Through</span>
+                    <span className="text-sm font-black text-emerald-700">EXEMPT (0%)</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 block">100% passed to rider without platform deduction</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <button
               type="submit"

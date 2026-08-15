@@ -21,3 +21,4 @@ __exportStar(require("./error-handler.js"), exports);
 __exportStar(require("./helpers.js"), exports);
 __exportStar(require("./geolocation.js"), exports);
 __exportStar(require("./pricing.js"), exports);
+__exportStar(require("./tax.js"), exports);

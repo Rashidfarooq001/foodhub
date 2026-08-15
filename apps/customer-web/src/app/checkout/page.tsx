@@ -26,7 +26,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import { fetchPricingConfig, forwardGeocodeAddress, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
+import { fetchPricingConfig, forwardGeocodeAddress, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -164,13 +164,34 @@ export default function CheckoutPage() {
   const isDeliveryEligible =
     realDistanceKm === null || realDistanceKm <= maxRadiusKm;
 
+  const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
+
+  useEffect(() => {
+    const sub = getSubtotal();
+    const disc = getDiscountAmount();
+    const pack = getPackagingFee();
+    const dist = realDistanceKm ?? 0;
+
+    fetchOrderQuote({
+      foodSubtotal: sub,
+      distanceKm: dist,
+      tipAmount: tipAmount,
+      discountAmount: disc,
+      packagingFee: pack,
+      customerState: selectedAddress?.state || 'J&K',
+      restaurantState: 'J&K',
+    }).then((quote) => {
+      if (quote) setOrderQuote(quote);
+    });
+  }, [items, selectedAddress, realDistanceKm, tipAmount]);
+
   const packagingFee = getPackagingFee();
-  const tax = getTaxAmount();
+  const tax = orderQuote ? orderQuote.totalCustomerTaxes : getTaxAmount();
   const discount = getDiscountAmount();
   const walletApplied = getWalletAppliedAmount();
   const baseGrandTotal =
     subtotal + packagingFee + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount - walletApplied;
-  const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
+  const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
@@ -462,6 +483,7 @@ export default function CheckoutPage() {
         paymentMethod: validPaymentMethod,
         specialInstruction: fullInstruction || undefined,
         useWallet: walletApplied > 0,
+        taxSnapshot: orderQuote ? JSON.parse(JSON.stringify(orderQuote)) : undefined,
       };
 
       const orderRes = await fetch(`${API_BASE}/orders`, {
@@ -1166,8 +1188,12 @@ export default function CheckoutPage() {
                     <span>₹{packagingFee}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>GST &amp; Taxes</span>
-                    <span>₹{tax}</span>
+                    <span>Restaurant Food GST (Sec 9(5) ECO 5%)</span>
+                    <span>₹{orderQuote ? orderQuote.restaurantFoodGst : (Math.round(subtotal * 0.05 * 100) / 100)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Platform Fee GST (18%)</span>
+                    <span>₹{orderQuote ? orderQuote.platformFeeGst : (Math.round(platformFee * 0.18 * 100) / 100)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">
