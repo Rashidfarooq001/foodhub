@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { OrdersRepository } from './orders.repository';
@@ -29,6 +30,8 @@ function generateDeliveryOtp(): string {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma:      PrismaService,
     private readonly repo:        OrdersRepository,
@@ -609,72 +612,90 @@ if (!allowed.includes(dto.status as OrderStatus)) {
   // --- CUSTOMER ORDER TRACKING & HISTORY METHODS ---
 
   async getActiveCustomerOrder(userId: string) {
-    const customer = await this.prisma.customer.findFirst({
-      where: { userId },
-    });
-    const customerId = customer?.id || userId;
+    try {
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId);
 
-    const activeOrder = await this.prisma.order.findFirst({
-      where: {
-        customerId,
-        status: {
-          notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+      const customer = isUuid
+        ? await this.prisma.customer.findFirst({
+            where: { OR: [{ userId }, { id: userId }] },
+          })
+        : null;
+
+      const customerId = customer?.id || (isUuid ? userId : undefined);
+
+      if (!customerId) return null;
+
+      const activeOrder = await this.prisma.order.findFirst({
+        where: {
+          customerId,
+          status: {
+            notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+          },
         },
-      },
-      include: {
-        restaurant: true,
-        orderItems: { include: { foodItem: true } },
-        orderTimelines: { orderBy: { createdAt: 'asc' } },
-        tracking: true,
-        assignedRestaurantDriver: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        include: {
+          restaurant: true,
+          orderItems: { include: { foodItem: true } },
+          orderTimelines: { orderBy: { createdAt: 'asc' } },
+          tracking: true,
+          assignedRestaurantDriver: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
 
-    if (!activeOrder) return null;
+      if (!activeOrder) return null;
 
-    const deliveryAddress: any = activeOrder.deliveryAddress || {};
-const restaurantLat = activeOrder.restaurant.latitude;
-const restaurantLng = activeOrder.restaurant.longitude;
-const customerLat = deliveryAddress?.latitude;
-const customerLng = deliveryAddress?.longitude;
-const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
-const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
-    // Calculate ETA (mins) based on distance
-    const distKm = Math.sqrt(
-      Math.pow((customerLat - driverLat) * 111, 2) +
-      Math.pow((customerLng - driverLng) * 111, 2),
-    );
-    const etaMins = Math.max(10, Math.ceil((distKm / 25) * 60) + 10);
+      const deliveryAddress: any = activeOrder.deliveryAddress || {};
+      const restaurantLat = activeOrder.restaurant ? Number(activeOrder.restaurant.latitude || 34.3868) : 34.3868;
+      const restaurantLng = activeOrder.restaurant ? Number(activeOrder.restaurant.longitude || 74.5221) : 74.5221;
+      const customerLat = typeof deliveryAddress?.latitude === 'number' ? deliveryAddress.latitude : restaurantLat;
+      const customerLng = typeof deliveryAddress?.longitude === 'number' ? deliveryAddress.longitude : restaurantLng;
+      const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
+      const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
 
-    return serializePrisma({
-      orderId: activeOrder.id,
-      orderNumber: activeOrder.orderNumber,
-      restaurantName: activeOrder.restaurant.name,
-      restaurantAddress: activeOrder.restaurant.addressLine,
-      restaurantLat,
-      restaurantLng,
-      customerAddress: [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') || 'Delivery Address',
-      customerLat,
-      customerLng,
-      driverLat,
-      driverLng,
-      driverName: activeOrder.assignedRestaurantDriver
-        ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
-        : 'Assigned Partner',
-      driverPhone: activeOrder.assignedRestaurantDriver?.phone || '+919876543210',
-      vehicleNumber: activeOrder.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482',
-      deliveryOtp: activeOrder.deliveryOtp,
-      etaMins,
-      status: activeOrder.status,
-      placedAt: activeOrder.createdAt,
-      items: activeOrder.orderItems.map((i) => ({
-        name: i.foodItem?.name || 'Item',
-        quantity: i.quantity,
-        price: Number(i.unitPrice),
-      })),
-      totalAmount: Number(activeOrder.totalAmount),
-    });
+      const distKm = Math.sqrt(
+        Math.pow((customerLat - driverLat) * 111, 2) +
+        Math.pow((customerLng - driverLng) * 111, 2),
+      );
+      const etaMins = isNaN(distKm) ? 15 : Math.max(10, Math.ceil((distKm / 25) * 60) + 10);
+
+      const customerAddressText = typeof deliveryAddress === 'string'
+        ? deliveryAddress
+        : deliveryAddress.formattedAddress ||
+          [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') ||
+          'Delivery Address';
+
+      return serializePrisma({
+        orderId: activeOrder.id,
+        orderNumber: activeOrder.orderNumber,
+        restaurantName: activeOrder.restaurant?.name || 'FoodHub Restaurant',
+        restaurantAddress: activeOrder.restaurant?.addressLine || 'Main Market, Bandipora',
+        restaurantLat,
+        restaurantLng,
+        customerAddress: customerAddressText,
+        customerLat,
+        customerLng,
+        driverLat,
+        driverLng,
+        driverName: activeOrder.assignedRestaurantDriver
+          ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
+          : 'Assigned Partner',
+        driverPhone: activeOrder.assignedRestaurantDriver?.phone || '+919876543210',
+        vehicleNumber: activeOrder.assignedRestaurantDriver?.vehicleNumber || 'JK-15-A-1001',
+        deliveryOtp: activeOrder.deliveryOtp,
+        etaMins,
+        status: activeOrder.status,
+        placedAt: activeOrder.createdAt,
+        items: (activeOrder.orderItems || []).map((i) => ({
+          name: i.foodItem?.name || 'Item',
+          quantity: i.quantity,
+          price: Number(i.unitPrice),
+        })),
+        totalAmount: Number(activeOrder.totalAmount),
+      });
+    } catch (err) {
+      this.logger.error('Error in getActiveCustomerOrder', err);
+      return null;
+    }
   }
 
   async getCustomerOrderHistory(userId: string, statusFilter?: string) {

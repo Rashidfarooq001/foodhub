@@ -69,8 +69,10 @@ function calculateHaversineDistance(
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    setIsHydrated(true);
     console.log('CHECKOUT_VERSION = "FINAL-CHECKOUT-2026-08-15"');
     console.log('QUOTE_SOURCE = "BACKEND-ORDER-QUOTE"');
   }, []);
@@ -652,6 +654,19 @@ export default function CheckoutPage() {
     }
     setShowCustomTipInput(false);
   };
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 p-6 flex flex-col items-center justify-center">
+        <div className="h-8 w-48 rounded-xl bg-gray-200 animate-pulse mb-4" />
+        <div className="h-64 w-full max-w-2xl rounded-3xl bg-white p-6 shadow-sm border border-gray-100 space-y-4">
+          <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse" />
+          <div className="h-6 w-1/2 rounded bg-gray-200 animate-pulse" />
+          <div className="h-10 w-full rounded-2xl bg-gray-200 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

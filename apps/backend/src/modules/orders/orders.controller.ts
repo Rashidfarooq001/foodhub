@@ -56,6 +56,7 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get current active order for authenticated customer' })
   async getActiveOrder(@Request() req: any) {
     const userId = req.user?.id || req.user?.sub;
+    if (!userId) return null;
     return this.ordersService.getActiveCustomerOrder(userId);
   }
 
