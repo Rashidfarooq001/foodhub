@@ -165,43 +165,7 @@ export class OrdersService {
       );
     }
 
-    // 6. Platform fees & Authoritative Quote Calculation (Customer Packaging Fee = ₹0)
-    const restaurantSetting = await this.prisma.restaurantSetting.findUnique({
-      where: { restaurantId: dto.restaurantId },
-    });
-    const internalPackagingCost = restaurantSetting ? Number(restaurantSetting.packagingFee) : 0;
-
-    const quote = await this.quoteService.calculateQuote({
-      foodSubtotal: subtotal,
-      distanceKm: (dto as any).distanceKm || 3,
-      discountAmount,
-      packagingFee: 0,
-      tipAmount: (dto as any).tipAmount || 0,
-    });
-
-    const deliveryFee = quote.customerDeliveryFee;
-    const taxAmount = quote.totalCustomerTaxes;
-    const totalAmount = quote.customerTotal;
-
-    const pricingSnapshot = {
-      restaurantCommissionPercent: quote.restaurantCommissionPercent,
-      restaurantCommissionAmount: quote.restaurantCommission,
-      platformFee: quote.platformFee,
-      smallOrderThreshold: 200,
-      smallOrderSurcharge: quote.smallOrderFee,
-      customerDeliveryFee: quote.customerDeliveryFee,
-      riderBasePayout: quote.riderBasePay,
-      riderPerKmRate: 6,
-      riderPayout: quote.totalRiderPayout,
-      paymentGatewayCost: quote.paymentGatewayCost,
-      restaurantSettlement: quote.restaurantSettlement,
-      packagingFee: 0,
-      discountAmount,
-      statutoryGstLiability: quote.statutoryGstLiability,
-      platformContributionMargin: quote.platformContributionMargin,
-    };
-
-    // Construct authoritative immutable deliveryAddress snapshot
+    // Construct authoritative immutable deliveryAddress snapshot & calculate real Haversine distance
     const rawAddress: any = dto.deliveryAddress || {};
 
     let formattedAddressText = '';
@@ -229,19 +193,87 @@ export class OrdersService {
 
     const latitudeNum = typeof rawAddress === 'object' && typeof rawAddress.latitude === 'number'
       ? rawAddress.latitude
-      : ((dto as any).latitude || (dto as any).lat || 34.4646738);
+      : ((dto as any).latitude || (dto as any).lat || 34.386784);
 
     const longitudeNum = typeof rawAddress === 'object' && typeof rawAddress.longitude === 'number'
       ? rawAddress.longitude
-      : ((dto as any).longitude || (dto as any).lng || 74.577908);
+      : ((dto as any).longitude || (dto as any).lng || 74.522066);
 
     const locationSourceText = typeof rawAddress === 'object' && rawAddress.locationSource
       ? rawAddress.locationSource
-      : ((dto as any).locationSource || 'PLACE_SEARCH');
+      : ((dto as any).locationSource || 'CURRENT_GPS');
 
-    const distanceKmNum = typeof rawAddress === 'object' && typeof rawAddress.distanceKm === 'number'
-      ? rawAddress.distanceKm
-      : (quote.distanceKm || (dto as any).distanceKm || 3);
+    // Fetch restaurant coordinates for authoritative server-side distance calculation
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: dto.restaurantId },
+    });
+    const restLat = restaurant ? Number(restaurant.latitude) : 34.3868;
+    const restLng = restaurant ? Number(restaurant.longitude) : 74.5221;
+
+    // Calculate real Haversine distance in km server-side
+    let calculatedDistanceKm = 0.1;
+    if (latitudeNum && longitudeNum && restLat && restLng) {
+      const R = 6371;
+      const dLat = ((latitudeNum - restLat) * Math.PI) / 180;
+      const dLon = ((longitudeNum - restLng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((restLat * Math.PI) / 180) *
+          Math.cos((latitudeNum * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const dist = Math.round(R * c * 10) / 10;
+      calculatedDistanceKm = dist < 0.1 ? 0.1 : dist;
+    }
+
+    this.logger.log({
+      msg: 'Order creation input',
+      restaurantId: dto.restaurantId,
+      itemCount: dto.items.length,
+      locationSource: locationSourceText,
+      latitude: latitudeNum,
+      longitude: longitudeNum,
+    });
+
+    // Authoritative Quote Calculation (Customer Packaging Fee = ₹0)
+    const quote = await this.quoteService.calculateQuote({
+      foodSubtotal: subtotal,
+      distanceKm: calculatedDistanceKm,
+      discountAmount,
+      packagingFee: 0,
+      tipAmount: (dto as any).tipAmount || 0,
+    });
+
+    this.logger.log({
+      msg: 'Order quote calculated',
+      calculatedDistanceKm: quote.distanceKm,
+      calculatedDeliveryFee: quote.customerDeliveryFee,
+      calculatedCustomerTaxes: quote.totalCustomerTaxes,
+      calculatedCustomerTotal: quote.customerTotal,
+    });
+
+    const deliveryFee = quote.customerDeliveryFee;
+    const taxAmount = quote.totalCustomerTaxes;
+    const totalAmount = quote.customerTotal;
+
+    const pricingSnapshot = {
+      restaurantCommissionPercent: quote.restaurantCommissionPercent,
+      restaurantCommissionAmount: quote.restaurantCommission,
+      platformFee: quote.platformFee,
+      smallOrderThreshold: 200,
+      smallOrderSurcharge: quote.smallOrderFee,
+      customerDeliveryFee: quote.customerDeliveryFee,
+      riderBasePayout: quote.riderBasePay,
+      riderPerKmRate: 6,
+      riderPayout: quote.totalRiderPayout,
+      paymentGatewayCost: quote.paymentGatewayCost,
+      restaurantSettlement: quote.restaurantSettlement,
+      packagingFee: 0,
+      discountAmount,
+      statutoryGstLiability: quote.statutoryGstLiability,
+      platformContributionMargin: quote.platformContributionMargin,
+    };
 
     const deliveryAddressSnapshot = {
       placeName: placeNameText,
@@ -251,12 +283,12 @@ export class OrdersService {
       landmark: typeof rawAddress === 'object' ? (rawAddress.landmark || '') : '',
       city: typeof rawAddress === 'object' ? (rawAddress.city || 'Bandipora') : 'Bandipora',
       state: typeof rawAddress === 'object' ? (rawAddress.state || 'Jammu & Kashmir') : 'Jammu & Kashmir',
-      postalCode: typeof rawAddress === 'object' ? (rawAddress.postalCode || '') : '',
+      postalCode: typeof rawAddress === 'object' ? (rawAddress.postalCode || '193502') : '193502',
       latitude: latitudeNum,
       longitude: longitudeNum,
       locationSource: locationSourceText,
       verificationStatus: 'VERIFIED',
-      distanceKm: distanceKmNum,
+      distanceKm: quote.distanceKm,
       deliveryFee: quote.customerDeliveryFee,
     };
 
@@ -318,7 +350,7 @@ export class OrdersService {
       deliveryFormattedAddress: formattedAddressText,
       deliveryLatitude: latitudeNum,
       deliveryLongitude: longitudeNum,
-      distanceKm: distanceKmNum,
+      distanceKm: quote.distanceKm,
       locationSource: locationSourceText,
     });
 

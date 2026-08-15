@@ -453,37 +453,39 @@ export default function CheckoutPage() {
         };
       });
 
-      // Pass selected customer address with exact real coordinates
+      let cleanCity = selectedAddress.city;
+      let cleanState = selectedAddress.state;
+      let cleanLine2 = selectedAddress.addressLine2 || '';
+
+      if (!cleanCity || cleanCity === 'Current Location' || cleanCity === 'GPS') cleanCity = 'Bandipora';
+      if (!cleanState || cleanState === 'GPS' || cleanState === 'Current Location') cleanState = 'Jammu & Kashmir';
+      if (cleanLine2.includes('GPS Coordinates')) cleanLine2 = '';
+
       const addressPayload = {
-        label: selectedAddress.label,
+        label: selectedAddress.label || 'Current Location',
         street: selectedAddress.addressLine1,
         addressLine1: selectedAddress.addressLine1,
-        addressLine2: selectedAddress.addressLine2 || '',
+        addressLine2: cleanLine2,
         landmark: selectedAddress.landmark || '',
-        city: selectedAddress.city,
-        state: selectedAddress.state || '',
-        postalCode: selectedAddress.postalCode || '',
+        city: cleanCity,
+        state: cleanState,
+        postalCode: selectedAddress.postalCode || '193502',
         latitude: selectedAddress.latitude,
         longitude: selectedAddress.longitude,
+        locationSource: (selectedAddress as any).locationSource || 'CURRENT_GPS',
       };
 
       const validPaymentMethod =
         paymentMethod === 'COD' ? 'COD' : paymentMethod === 'CARD' ? 'CARD' : 'UPI';
-
-      const fullInstruction = [
-        instructions.trim(),
-        tipAmount > 0 ? `Driver Tip: ₹${tipAmount}` : '',
-        realDistanceKm !== null ? `Distance: ${realDistanceKm} km` : '',
-      ]
-        .filter(Boolean)
-        .join(' | ');
 
       const createOrderPayload = {
         restaurantId: cartRestaurantId,
         items: itemsPayload,
         deliveryAddress: addressPayload,
         paymentMethod: validPaymentMethod,
-        specialInstruction: fullInstruction || undefined,
+        specialInstruction: instructions.trim() || undefined,
+        tipAmount: tipAmount > 0 ? tipAmount : undefined,
+        couponCode: appliedCoupon?.code || undefined,
       };
 
       const orderRes = await fetch(`${API_BASE}/orders`, {
