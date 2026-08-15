@@ -46,10 +46,11 @@ export class OrdersController {
   @Post()
   @ApiOperation({ summary: 'Place a new order' })
   async create(
-    @Request() req: { user: { id?: string; sub: string } },
+    @Request() req: any,
     @Body() dto: CreateOrderDto,
   ) {
-    return this.ordersService.createOrder(req.user.id || req.user.sub, dto);
+    const userId = req.user?.id || req.user?.sub || req.user?.userId || 'guest-user';
+    return this.ordersService.createOrder(userId, dto);
   }
 
   @Get('active')

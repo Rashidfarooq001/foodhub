@@ -11,11 +11,14 @@ export class OrdersValidationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async validateRestaurantOpen(restaurantId: string): Promise<void> {
+    if (!restaurantId || typeof restaurantId !== 'string' || !restaurantId.trim()) {
+      throw new BadRequestException('Valid restaurantId is required');
+    }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
     });
     if (!restaurant) {
-      throw new NotFoundException('Restaurant not found');
+      throw new NotFoundException(`Restaurant not found for ID ${restaurantId}`);
     }
     if (!restaurant.isOpen) {
       throw new BadRequestException('Restaurant is currently closed');
@@ -26,11 +29,14 @@ export class OrdersValidationService {
   }
 
   async validateDeliveryRadius(restaurantId: string, deliveryAddress: any): Promise<number> {
+    if (!restaurantId || typeof restaurantId !== 'string' || !restaurantId.trim()) {
+      throw new BadRequestException('Valid restaurantId is required');
+    }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
     });
     if (!restaurant) {
-      throw new NotFoundException('Restaurant not found');
+      throw new NotFoundException(`Restaurant not found for ID ${restaurantId}`);
     }
 
     const restLat = Number(restaurant.latitude);
