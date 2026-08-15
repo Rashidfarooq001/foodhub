@@ -52,19 +52,82 @@ export class GeolocationService {
     return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || '';
   }
 
-  /** Forward geocoding — search address string → coordinates via Mappls / Geolocation API */
+  /** Forward geocoding — search address string → coordinates via Mappls / Local Kashmir Search */
   async searchAddress(query: string): Promise<GeocodeResult[]> {
     const key = this.MapplsKey;
     const cleanQuery = query.trim();
+    if (!cleanQuery) return [];
     this.logger.log(`[MAPPLS_PROXY] query="${cleanQuery}" keyConfigured=${Boolean(key)}`);
 
-    // Append J&K region bias if not explicitly provided in the query string
+    const resultsMap = new Map<string, GeocodeResult>();
+
+    // 1. Query PostgreSQL DB Restaurants matching locality/address or name
+    try {
+      const dbRestaurants = await this.prisma.restaurant.findMany({
+        where: {
+          OR: [
+            { name: { contains: cleanQuery, mode: 'insensitive' } },
+            { addressLine: { contains: cleanQuery, mode: 'insensitive' } },
+          ],
+        },
+        take: 5,
+      });
+
+      for (const r of dbRestaurants) {
+        if (r.latitude && r.longitude && r.latitude !== 12.9716) {
+          const keyName = `db-rest-${r.id}`;
+          resultsMap.set(keyName, {
+            lat: Number(r.latitude),
+            lng: Number(r.longitude),
+            displayName: `${r.name}, ${r.addressLine || 'Sopore, Kashmir'}`,
+            placeId: keyName,
+          });
+        }
+      }
+    } catch {
+      /* db search fallback */
+    }
+
+    // 2. Comprehensive Local Kashmir Area & Landmark Catalog
+    const KASHMIR_LOCALITIES: Array<{ name: string; lat: number; lng: number }> = [
+      { name: 'Watlab, Wular Lake, Bandipora, Kashmir 193502', lat: 34.3542, lng: 74.5211 },
+      { name: 'Sangri, Main Market, Sopore, Kashmir 193201', lat: 34.3868, lng: 74.5221 },
+      { name: 'Main Market, Sopore, Baramulla, Kashmir 193201', lat: 34.3868, lng: 74.5221 },
+      { name: 'Model Town, Sopore, Baramulla, Kashmir 193201', lat: 34.3812, lng: 74.4754 },
+      { name: 'Batpora, Sopore, Baramulla, Kashmir 193201', lat: 34.3795, lng: 74.4682 },
+      { name: 'Arampora, Sopore, Baramulla, Kashmir 193201', lat: 34.3850, lng: 74.4710 },
+      { name: 'Dangerpora, Sopore, Baramulla, Kashmir 193201', lat: 34.3920, lng: 74.4815 },
+      { name: 'Bohripora, Sopore, Baramulla, Kashmir 193201', lat: 34.3725, lng: 74.4620 },
+      { name: 'Seer Jagir, Sopore, Baramulla, Kashmir 193201', lat: 34.3680, lng: 74.4550 },
+      { name: 'Tujjar Sharief, Sopore, Baramulla, Kashmir 193201', lat: 34.4120, lng: 74.4980 },
+      { name: 'Baramulla Main Town, Kashmir 193101', lat: 34.2018, lng: 74.3436 },
+      { name: 'Bandipora Main Town, Kashmir 193502', lat: 34.4225, lng: 74.6520 },
+      { name: 'Lal Chowk, Srinagar, Kashmir 190001', lat: 34.0722, lng: 74.8105 },
+      { name: 'Hazratbal, Srinagar, Kashmir 190006', lat: 34.1264, lng: 74.8398 },
+      { name: 'Handwara Main Town, Kupwara, Kashmir 193221', lat: 34.3995, lng: 74.2810 },
+      { name: 'Kupwara Main Town, Kashmir 193222', lat: 34.5262, lng: 74.2546 },
+    ];
+
+    const regex = new RegExp(cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    for (const loc of KASHMIR_LOCALITIES) {
+      if (regex.test(loc.name)) {
+        const keyName = `local-${loc.name.toLowerCase().replace(/\s+/g, '-')}`;
+        if (!resultsMap.has(keyName)) {
+          resultsMap.set(keyName, {
+            lat: loc.lat,
+            lng: loc.lng,
+            displayName: loc.name,
+            placeId: keyName,
+          });
+        }
+      }
+    }
+
+    // 3. Mappls & Geocoding API External Search
     const hasRegion = /kashmir|jammu|j&k|sopore|baramulla|bandipora|srinagar|anantnag|pulwama|ganderbal/i.test(cleanQuery);
     const searchTerms = hasRegion
       ? [cleanQuery]
       : [`${cleanQuery}, Jammu and Kashmir`, cleanQuery];
-
-    const allMappedResults: GeocodeResult[] = [];
 
     for (const term of searchTerms) {
       const urls = key
@@ -93,9 +156,9 @@ export class GeolocationService {
             const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
 
             if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
-              // Avoid duplicate placeId or exact coordinates
-              if (!allMappedResults.some((r) => r.placeId === placeId || (Math.abs(r.lat - lat) < 0.0001 && Math.abs(r.lng - lng) < 0.0001))) {
-                allMappedResults.push({ lat, lng, displayName: name, placeId });
+              const keyName = `ext-${placeId}`;
+              if (!resultsMap.has(keyName)) {
+                resultsMap.set(keyName, { lat, lng, displayName: name, placeId });
               }
             }
           }
@@ -104,6 +167,8 @@ export class GeolocationService {
         }
       }
     }
+
+    const allMappedResults = Array.from(resultsMap.values());
 
     // Sort results so Jammu & Kashmir / Kashmir locations appear at the TOP
     allMappedResults.sort((a, b) => {
@@ -114,7 +179,7 @@ export class GeolocationService {
       return 0;
     });
 
-    this.logger.log(`[MAPPLS_PROXY] Returning ${allMappedResults.length} sorted results for query "${cleanQuery}"`);
+    this.logger.log(`[MAPPLS_PROXY] Returning ${allMappedResults.length} sorted local results for query "${cleanQuery}"`);
     return allMappedResults;
   }
 
