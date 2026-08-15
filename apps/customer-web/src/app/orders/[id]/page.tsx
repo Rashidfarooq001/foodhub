@@ -419,11 +419,6 @@ export default function OrderDetailsPage() {
                 </div>
 
                 <div className="flex justify-between text-gray-600">
-                  <span>Packaging Fee</span>
-                  <span className="font-bold text-gray-900">₹{Number(order.packagingFee || 0).toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between text-gray-600">
                   <span>Delivery Fee</span>
                   <span className="font-bold text-gray-900">₹{Number(order.deliveryFee || 0).toFixed(2)}</span>
                 </div>

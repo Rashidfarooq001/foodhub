@@ -51,7 +51,7 @@ export class UnitEconomicsService {
     const distanceKm = Math.max(0, req.distanceKm || 0);
     const tipAmount = Math.max(0, req.tipAmount || 0);
     const discountAmount = Math.max(0, req.discountAmount || 0);
-    const packagingFee = Math.max(0, req.packagingFee ?? 15.0);
+    const packagingFee = 0.0; // CUSTOMER PACKAGING FEE IS REMOVED COMPLETELY (₹0)
 
     // Customer Delivery Fee: MAX(minimumFee, distance * perKm)
     const rawDeliveryFee = distanceKm * config.customerDeliveryPerKm;
@@ -73,14 +73,14 @@ export class UnitEconomicsService {
     const customerTotal = Math.max(
       0,
       Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + packagingFee + taxes + tipAmount - discountAmount) * 100,
+        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + taxes + tipAmount - discountAmount) * 100,
       ) / 100,
     );
 
     // Restaurant Commission & Settlement (13% default)
     const restaurantCommissionPercent = config.restaurantCommissionPercent;
     const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
-    const restaurantSettlement = Math.round((foodSubtotal + packagingFee - restaurantCommission) * 100) / 100;
+    const restaurantSettlement = Math.round((foodSubtotal - restaurantCommission) * 100) / 100;
 
     // Rider Earnings Payout Engine
     const riderBasePay = config.riderBasePay;

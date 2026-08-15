@@ -10,7 +10,7 @@ export default function AdminSystemSettingsPage() {
   const [name, setName] = useState('FoodHub Enterprise Platform');
   const [taxRate, setTaxRate] = useState('5.0');
   const [deliveryFee, setDeliveryFee] = useState('30');
-  const [packagingFee, setPackagingFee] = useState('15');
+  const [packagingFee, setPackagingFee] = useState('0');
   const [saved, setSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
