@@ -1,10 +1,12 @@
 const http = require('http');
+const https = require('https');
 
-const API_BASE = 'http://localhost:4000/api/v1';
+const API_BASE = 'https://foodhub-backend-enq2.onrender.com/api/v1';
 
 function request(url, options = {}, body = null) {
   return new Promise((resolve, reject) => {
-    const req = http.request(url, options, (res) => {
+    const client = url.startsWith('https') ? https : http;
+    const req = client.request(url, options, (res) => {
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
