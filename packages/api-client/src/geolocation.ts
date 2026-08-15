@@ -80,7 +80,7 @@ export async function forwardGeocodeStructuredAddress(
 ): Promise<ForwardGeocodeResponse> {
   try {
     const res = await apiClient.post<ForwardGeocodeResponse>(
-      '/geolocation/geocode',
+      '/geolocation/forward-geocode',
       payload,
       { signal },
     );

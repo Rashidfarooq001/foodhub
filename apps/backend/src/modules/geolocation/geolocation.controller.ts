@@ -63,27 +63,56 @@ export class GeolocationController {
     return { success: false, message: "Couldn't determine the location of this address." };
   }
 
-  @Post(['geocode', 'forward'])
-  @ApiOperation({ summary: 'POST forward geocode structured address' })
+  @Post(['forward-geocode', 'geocode', 'forward'])
+  @ApiOperation({ summary: 'POST forward geocode structured address (Zomato-Style)' })
   async postGeocodeAddress(@Body() body: {
+    house?: string;
     houseNumber?: string;
     street?: string;
+    area?: string;
     areaLocality?: string;
     landmark?: string;
     city?: string;
     state?: string;
     postalCode?: string;
+    pincode?: string;
     address?: string;
   }) {
-    return this.geo.geocodeStructuredAddress({
-      houseNumber: body.houseNumber,
+    const houseNumber = body.house || body.houseNumber;
+    const areaLocality = body.area || body.areaLocality || body.address;
+    const postalCode = body.postalCode || body.pincode;
+
+    const res = await this.geo.geocodeStructuredAddress({
+      houseNumber,
       street: body.street,
-      areaLocality: body.areaLocality || body.address,
+      areaLocality,
       landmark: body.landmark,
       city: body.city,
       state: body.state,
-      postalCode: body.postalCode,
+      postalCode,
     });
+
+    return {
+      success: res.success,
+      location: res.success && res.latitude && res.longitude ? {
+        latitude: res.latitude,
+        longitude: res.longitude,
+      } : null,
+      verification: {
+        status: res.verificationStatus,
+        provider: 'MAPPLS',
+        confidence: res.confidenceScore,
+        matchedPostalCode: res.matchedPostalCode,
+        matchedCity: res.matchedCity,
+        matchedState: res.matchedState,
+        matchedLocality: res.matchedLocality,
+      },
+      message: res.reason || (res.success ? 'Address location verified successfully' : "Couldn't determine the location of this address."),
+      formattedAddress: res.displayName,
+      latitude: res.latitude,
+      longitude: res.longitude,
+      verificationStatus: res.verificationStatus,
+    };
   }
 
   @Get(['reverse', 'reverse-geocode'])

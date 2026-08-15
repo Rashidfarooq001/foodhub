@@ -35,7 +35,7 @@ async function fetchLocationAutosuggest(query, signal) {
 }
 async function forwardGeocodeStructuredAddress(payload, signal) {
     try {
-        const res = await axios_client_1.apiClient.post('/geolocation/geocode', payload, { signal });
+        const res = await axios_client_1.apiClient.post('/geolocation/forward-geocode', payload, { signal });
         if (res.data?.success && typeof res.data.latitude === 'number' && typeof res.data.longitude === 'number') {
             return res.data;
         }
