@@ -690,7 +690,11 @@ const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
       throw new ForbiddenException('You do not have permission to view this order.');
     }
 
-    return serializePrisma(order);
+    const serialized: any = serializePrisma(order);
+    if (!isAdmin) {
+      delete serialized.pricingSnapshot;
+    }
+    return serialized;
   }
 
   async getOrderTrackingSecured(orderId: string, userId: string, role?: string) {

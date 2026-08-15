@@ -1,6 +1,7 @@
 import { Controller, Get, Patch, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { TaxEngineService, TaxComponentInput } from './tax-engine.service';
 import { OrderQuoteService, OrderQuoteRequest } from './order-quote.service';
+import { toCustomerOrderQuote } from '../orders/dto/customer-order-quote.dto';
 import { PrismaService } from '../database/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -77,6 +78,14 @@ export class TaxController {
 
   @Post('orders/quote')
   async calculateOrderQuote(@Body() body: OrderQuoteRequest) {
+    const fullQuote = await this.orderQuoteService.calculateQuote(body);
+    return toCustomerOrderQuote(fullQuote);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @Post('admin/orders/quote')
+  async calculateAdminOrderQuote(@Body() body: OrderQuoteRequest) {
     return this.orderQuoteService.calculateQuote(body);
   }
 }

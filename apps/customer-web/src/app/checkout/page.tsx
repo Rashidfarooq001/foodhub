@@ -1192,12 +1192,8 @@ export default function CheckoutPage() {
                     <span>₹{packagingFee}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Restaurant Food GST (Sec 9(5) ECO 5%)</span>
-                    <span>₹{orderQuote ? orderQuote.restaurantFoodGst : (Math.round(subtotal * 0.05 * 100) / 100)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Platform Fee GST (18%)</span>
-                    <span>₹{orderQuote ? orderQuote.platformFeeGst : (Math.round(platformFee * 0.18 * 100) / 100)}</span>
+                    <span>Taxes &amp; Statutory Levies</span>
+                    <span>₹{orderQuote ? orderQuote.totalCustomerTaxes : (Math.round((subtotal * 0.05 + platformFee * 0.18) * 100) / 100)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">

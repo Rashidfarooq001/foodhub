@@ -1,19 +1,19 @@
 export interface TaxComponentDetail {
     componentCode: string;
     taxableAmount: number;
-    rate: number;
-    cgst: number;
-    sgst: number;
-    utgst: number;
-    igst: number;
+    rate?: number;
+    cgst?: number;
+    sgst?: number;
+    utgst?: number;
+    igst?: number;
     totalTax: number;
     taxCategory?: string;
     sacCode?: string;
     sectionReference?: string;
     legalReference?: string;
-    isInterstate: boolean;
+    isInterstate?: boolean;
 }
-export interface OrderQuoteData {
+export interface CustomerOrderQuoteData {
     foodSubtotal: number;
     customerDeliveryFee: number;
     platformFee: number;
@@ -21,13 +21,12 @@ export interface OrderQuoteData {
     packagingFee: number;
     discountAmount: number;
     tipAmount: number;
-    taxItems: TaxComponentDetail[];
-    restaurantFoodGst: number;
-    platformFeeGst: number;
-    smallOrderFeeGst: number;
-    deliveryFeeGst: number;
     totalCustomerTaxes: number;
     customerTotal: number;
+    taxItems: TaxComponentDetail[];
+    quoteTimestamp: string;
+}
+export interface AdminOrderQuoteData extends CustomerOrderQuoteData {
     restaurantCommissionPercent: number;
     restaurantCommission: number;
     restaurantCommissionGst: number;
@@ -36,12 +35,13 @@ export interface OrderQuoteData {
     riderDistancePay: number;
     riderTip: number;
     totalRiderPayout: number;
+    paymentGatewayCost: number;
     statutoryGstLiability: number;
     platformOperatingRevenue: number;
     platformContributionMargin: number;
     taxEngineVersion: string;
-    quoteTimestamp: string;
 }
+export type OrderQuoteData = CustomerOrderQuoteData;
 export declare function fetchOrderQuote(req: {
     foodSubtotal: number;
     distanceKm: number;
@@ -50,5 +50,5 @@ export declare function fetchOrderQuote(req: {
     packagingFee?: number;
     customerState?: string;
     restaurantState?: string;
-}): Promise<OrderQuoteData | null>;
+}): Promise<CustomerOrderQuoteData | null>;
 export declare function fetchActiveTaxRules(): Promise<any[]>;
