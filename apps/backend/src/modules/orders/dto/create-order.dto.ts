@@ -55,4 +55,24 @@ export class CreateOrderDto {
   @IsBoolean()
   @IsOptional()
   useWallet?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  taxSnapshot?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  pricingSnapshot?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  packagingFee?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  distanceKm?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  tipAmount?: any;
 }
