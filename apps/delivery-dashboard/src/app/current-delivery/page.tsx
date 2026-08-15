@@ -366,6 +366,64 @@ export default function CurrentDeliveryPage() {
 
           </div>
 
+          {/* Driver Payout & Earnings Breakdown */}
+
+          <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-6 shadow-sm space-y-3 text-xs">
+
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center justify-between">
+
+              <span>Driver Payout Breakdown</span>
+
+              <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-md">
+
+                100% Tips Guaranteed
+
+              </span>
+
+            </h3>
+
+            <div className="space-y-1.5 pt-1 text-gray-700">
+
+              <div className="flex justify-between">
+
+                <span>Base Pay</span>
+
+                <span className="font-bold text-gray-900">₹30.00</span>
+
+              </div>
+
+              <div className="flex justify-between">
+
+                <span>Distance Pay</span>
+
+                <span className="font-bold text-gray-900">₹{Math.max(0, (currentJob.estimatedEarnings || 35) - 30 - (currentJob.tip || 0)).toFixed(2)}</span>
+
+              </div>
+
+              {currentJob.tip > 0 && (
+
+                <div className="flex justify-between text-orange-700 font-bold">
+
+                  <span>Customer Tip (100%)</span>
+
+                  <span>+₹{currentJob.tip.toFixed(2)}</span>
+
+                </div>
+
+              )}
+
+              <div className="pt-2 border-t border-emerald-200 flex justify-between items-center text-sm font-black text-emerald-900">
+
+                <span>Total Order Payout</span>
+
+                <span className="text-emerald-700 text-base">₹{currentJob.estimatedEarnings || 50}</span>
+
+              </div>
+
+            </div>
+
+          </div>
+
           {/* Order Items */}
 
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">

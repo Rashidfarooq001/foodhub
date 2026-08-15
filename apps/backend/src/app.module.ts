@@ -38,6 +38,8 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 // Phase 18 — Security & Hardening
 import { SecurityModule } from './modules/security/security.module';
+// Pricing & Unit Economics Engine
+import { PricingModule } from './modules/pricing/pricing.module';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { SecurityModule } from './modules/security/security.module';
     AnalyticsModule,
     // Phase 18
     SecurityModule,
+    PricingModule,
   ],
 })
 export class AppModule {}

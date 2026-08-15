@@ -1422,3 +1422,24 @@ model Webhook {
 
   @@map("webhooks")
 }
+
+model PricingConfig {
+  id                          String   @id @default(uuid()) @db.Uuid
+  restaurantCommissionPercent Decimal  @default(13.00) @map("restaurant_commission_percent") @db.Decimal(5, 2)
+  customerDeliveryPerKm       Decimal  @default(7.00) @map("customer_delivery_per_km") @db.Decimal(10, 2)
+  minimumCustomerDeliveryFee   Decimal  @default(25.00) @map("minimum_customer_delivery_fee") @db.Decimal(10, 2)
+  platformFee                 Decimal  @default(10.00) @map("platform_fee") @db.Decimal(10, 2)
+  smallOrderThreshold         Decimal  @default(199.00) @map("small_order_threshold") @db.Decimal(10, 2)
+  smallOrderFee               Decimal  @default(10.00) @map("small_order_fee") @db.Decimal(10, 2)
+  riderBasePay                Decimal  @default(30.00) @map("rider_base_pay") @db.Decimal(10, 2)
+  riderPerKmPay               Decimal  @default(7.00) @map("rider_per_km_pay") @db.Decimal(10, 2)
+  riderWaitingPay             Decimal  @default(0.00) @map("rider_waiting_pay") @db.Decimal(10, 2)
+  riderPeakBonus              Decimal  @default(0.00) @map("rider_peak_bonus") @db.Decimal(10, 2)
+  riderLongDistanceBonus      Decimal  @default(0.00) @map("rider_long_distance_bonus") @db.Decimal(10, 2)
+  riderBatchBonus             Decimal  @default(0.00) @map("rider_batch_bonus") @db.Decimal(10, 2)
+  isDefault                   Boolean  @default(true) @map("is_default")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  @@map("pricing_configs")
+}

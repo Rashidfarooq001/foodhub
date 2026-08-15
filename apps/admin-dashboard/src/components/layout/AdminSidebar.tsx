@@ -19,6 +19,7 @@ import {
   Sliders,
   Settings,
   UserCog,
+  DollarSign,
   X,
 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ const NAVIGATION = [
   { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
   { name: 'CMS & Banners', href: '/cms', icon: FileCode },
   { name: 'Feature Flags & Maintenance', href: '/feature-flags', icon: Sliders },
+  { name: 'Pricing & Unit Economics', href: '/pricing-config', icon: DollarSign },
   { name: 'System Settings', href: '/system-settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
 ];

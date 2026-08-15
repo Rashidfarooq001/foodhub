@@ -26,6 +26,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
+import { fetchPricingConfig, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -132,6 +133,12 @@ export default function CheckoutPage() {
     fetchRestaurantDetails();
   }, [items]);
 
+  const [pricingConfig, setPricingConfig] = useState<PricingConfigData>(DEFAULT_PRICING_CONFIG_DATA);
+
+  useEffect(() => {
+    fetchPricingConfig().then(setPricingConfig);
+  }, []);
+
   // Calculate real customer <-> restaurant distance
   const realDistanceKm = calculateHaversineDistance(
     selectedAddress?.latitude,
@@ -140,27 +147,29 @@ export default function CheckoutPage() {
     restaurantData?.longitude,
   );
 
-  // Determine delivery fee dynamically based on real distance
+  // Dynamic delivery fee calculation: MAX(minimumCustomerDeliveryFee, distance * customerDeliveryPerKm)
   const dynamicDeliveryFee =
     realDistanceKm !== null
-      ? realDistanceKm <= 3.0
-        ? 25
-        : realDistanceKm <= 7.0
-        ? 35
-        : 50
-      : 35;
+      ? Math.max(
+          pricingConfig.minimumCustomerDeliveryFee,
+          Math.round(realDistanceKm * pricingConfig.customerDeliveryPerKm * 100) / 100,
+        )
+      : pricingConfig.minimumCustomerDeliveryFee;
+
+  const platformFee = pricingConfig.platformFee;
+  const subtotal = getSubtotal();
+  const smallOrderFee = subtotal > 0 && subtotal < pricingConfig.smallOrderThreshold ? pricingConfig.smallOrderFee : 0;
 
   const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
   const isDeliveryEligible =
     realDistanceKm === null || realDistanceKm <= maxRadiusKm;
 
-  const subtotal = getSubtotal();
   const packagingFee = getPackagingFee();
   const tax = getTaxAmount();
   const discount = getDiscountAmount();
   const walletApplied = getWalletAppliedAmount();
   const baseGrandTotal =
-    subtotal + packagingFee + dynamicDeliveryFee + tax - discount - walletApplied;
+    subtotal + packagingFee + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount - walletApplied;
   const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -1112,7 +1121,7 @@ export default function CheckoutPage() {
                 {/* Fee Breakdown */}
                 <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
+                    <span>Food Subtotal</span>
                     <span>₹{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
@@ -1120,8 +1129,22 @@ export default function CheckoutPage() {
                     <span>₹{dynamicDeliveryFee}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Taxes &amp; Fees</span>
-                    <span>₹{tax + packagingFee}</span>
+                    <span>Platform Fee</span>
+                    <span>₹{platformFee}</span>
+                  </div>
+                  {smallOrderFee > 0 && (
+                    <div className="flex justify-between text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
+                      <span>Small Order Fee (&lt; ₹{pricingConfig.smallOrderThreshold})</span>
+                      <span>+₹{smallOrderFee}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-600">
+                    <span>Packaging Fee</span>
+                    <span>₹{packagingFee}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>GST &amp; Taxes</span>
+                    <span>₹{tax}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">
@@ -1137,7 +1160,7 @@ export default function CheckoutPage() {
                   )}
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-orange-600 font-bold">
-                      <span>Driver Tip</span>
+                      <span>Rider Tip (100% to rider)</span>
                       <span>+₹{tipAmount}</span>
                     </div>
                   )}

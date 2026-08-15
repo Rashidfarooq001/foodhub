@@ -4,3 +4,4 @@ export * from './token-manager.js';
 export * from './error-handler.js';
 export * from './helpers.js';
 export * from './geolocation.js';
+export * from './pricing.js';
