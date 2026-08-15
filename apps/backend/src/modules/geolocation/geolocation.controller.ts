@@ -14,18 +14,24 @@ class ValidateRadiusDto {
 }
 
 @ApiTags('Geolocation (Phase 14)')
-@Controller('geo')
+@Controller(['geolocation', 'geo'])
 export class GeolocationController {
   constructor(private readonly geo: GeolocationService) {}
 
   @Get('search')
-  @ApiOperation({ summary: 'Search address via OpenStreetMap Nominatim' })
-  @ApiQuery({ name: 'q', description: 'Address search query' })
-  async searchAddress(@Query('q') q: string) {
-    return this.geo.searchAddress(q);
+  @ApiOperation({ summary: 'Search address via Mappls / Geolocation API' })
+  @ApiQuery({ name: 'q', required: false, description: 'Address search query' })
+  @ApiQuery({ name: 'query', required: false, description: 'Address search query' })
+  async searchAddress(
+    @Query('q') q?: string,
+    @Query('query') query?: string,
+  ) {
+    const searchTerm = query || q || '';
+    if (!searchTerm.trim()) return [];
+    return this.geo.searchAddress(searchTerm.trim());
   }
 
-  @Get('reverse')
+  @Get(['reverse', 'reverse-geocode'])
   @ApiOperation({ summary: 'Reverse geocode coordinates to address' })
   @ApiQuery({ name: 'lat' })
   @ApiQuery({ name: 'lng' })
@@ -34,7 +40,7 @@ export class GeolocationController {
     @Query('lng') lng: string,
   ) {
     const address = await this.geo.reverseGeocode(parseFloat(lat), parseFloat(lng));
-    return { address };
+    return typeof address === 'string' ? { address } : address;
   }
 
   @Get('distance')

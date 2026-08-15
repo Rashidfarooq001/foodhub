@@ -18,19 +18,22 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
 
   useEffect(() => {
     const fetchPlaces = async () => {
-      if (query.trim().length < 3) {
+      const trimmed = query.trim();
+      if (trimmed.length < 2) {
         setResults([]);
+        setIsOpen(false);
         return;
       }
       
       setLoading(true);
       try {
         const apiBase = getApiBaseUrl();
-        const res = await fetch(`${apiBase}/geolocation/search?query=${encodeURIComponent(query)}`);
+        const res = await fetch(`${apiBase}/geolocation/search?query=${encodeURIComponent(trimmed)}&q=${encodeURIComponent(trimmed)}`);
         if (res.ok) {
           const data = await res.json();
-          setResults(Array.isArray(data) ? data : (data.suggestedLocations || []));
-          setIsOpen(true);
+          const list = Array.isArray(data) ? data : (data.suggestedLocations || data.results || []);
+          setResults(list);
+          setIsOpen(list.length > 0);
         }
       } catch (err) {
         console.error("Mappls Search Error:", err);
@@ -39,7 +42,7 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
       }
     };
 
-    const debounceTimer = setTimeout(fetchPlaces, 400);
+    const debounceTimer = setTimeout(fetchPlaces, 300);
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
