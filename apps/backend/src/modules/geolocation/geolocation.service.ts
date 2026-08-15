@@ -161,29 +161,45 @@ export class GeolocationService {
     const tier6 = cleanAddressQuery([city, state, postalCode, 'India']);
 
     const queryTiers = [
-      { tier: 1, query: tier1, requiresAreaMatch: false },
-      { tier: 2, query: tier2, requiresAreaMatch: false },
-      { tier: 3, query: tier3, requiresAreaMatch: false },
-      { tier: 4, query: tier4, requiresAreaMatch: false },
-      { tier: 5, query: tier5, requiresAreaMatch: false },
-      { tier: 6, query: tier6, requiresAreaMatch: true },
-    ].filter((q) => q.query.length > 5);
+      { tier: 1, query: tier1 },
+      { tier: 2, query: tier2 },
+      { tier: 3, query: tier3 },
+      { tier: 4, query: tier4 },
+      { tier: 5, query: tier5 },
+      { tier: 6, query: tier6 },
+    ].filter((q) => q.query.length > 3);
 
     this.logger.log(`[GEOCODING_ENGINE] Geocoding structured address: house="${house}" area="${area}" landmark="${landmark}" city="${city}" pincode="${postalCode}"`);
 
     const normalizedArea = normalizeText(area);
+    const normalizedLandmark = normalizeText(landmark);
     const normalizedCity = normalizeText(city);
-    const normalizedState = normalizeText(state);
+    const normalizedState = normalizeStateName(state).toLowerCase();
 
-    for (const { tier, query, requiresAreaMatch } of queryTiers) {
+    interface EvaluatedCandidate {
+      lat: number;
+      lng: number;
+      displayName: string;
+      candPincode: string;
+      score: number;
+      tier: number;
+      source: string;
+      geocodeLevel: string;
+    }
+
+    const evaluatedCandidates: EvaluatedCandidate[] = [];
+
+    for (const { tier, query } of queryTiers) {
       const urls = key
         ? [
             `https://search.mappls.com/search/address/geocode?address=${encodeURIComponent(query)}`,
             `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(query)}`,
             `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`,
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,
             `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
           ]
         : [
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,
             `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
           ];
 
@@ -193,88 +209,108 @@ export class GeolocationService {
           if (!res.ok) continue;
 
           const data = await res.json();
-          const rawList: any[] = Array.isArray(data)
-            ? data
-            : (data.copResults || data.results || data.suggestedLocations || data.data || []);
+          let rawList: any[] = [];
+          if (Array.isArray(data)) {
+            rawList = data;
+          } else if (data.features && Array.isArray(data.features)) {
+            // Photon feature collection format
+            rawList = data.features.map((f: any) => ({
+              lat: f.geometry?.coordinates?.[1],
+              lng: f.geometry?.coordinates?.[0],
+              displayName: [f.properties?.name, f.properties?.city || f.properties?.county, f.properties?.state, f.properties?.country].filter(Boolean).join(', '),
+              pincode: f.properties?.postcode || '',
+              city: f.properties?.city || f.properties?.county || '',
+              state: f.properties?.state || '',
+              locality: f.properties?.name || '',
+              geocodeLevel: f.properties?.osm_value || 'locality',
+            }));
+          } else {
+            rawList = data.copResults || data.results || data.suggestedLocations || data.data || [];
+          }
 
           if (rawList && rawList.length > 0) {
-            // Evaluate candidates to rank and match against PIN / City / State / Locality constraints
             for (const item of rawList) {
               const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
               const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
 
-              // Reject 0,0 or invalid coordinates
               if (lat === 0 || lng === 0 || isNaN(lat) || isNaN(lng) || lat < 8 || lat > 38 || lng < 68 || lng > 98) {
                 continue;
               }
 
-              const displayName = item.formattedAddress || item.display_name || item.placeAddress || item.placeName || query;
+              const displayName = item.formattedAddress || item.display_name || item.placeAddress || item.placeName || item.displayName || query;
               const normalizedDisplay = normalizeText(displayName);
+              const itemCity = normalizeText(item.city || item.district || item.locality || '');
+              const itemState = normalizeText(item.state || '');
 
-              // Locality Match Check for fallback query tiers
-              if (normalizedArea && requiresAreaMatch && !normalizedDisplay.includes(normalizedArea)) {
-                this.logger.warn(`[GEOCODING_ENGINE] Candidate Locality mismatch on fallback Tier ${tier}: expected="${area}" in "${displayName}"`);
-                continue; // Do NOT accept broad city-center result for a specific village query
-              }
-
-              // Extract postal code from candidate if available
               const candPincode = (item.pincode || item.postcode || item.postal_code || '').trim() ||
-                (displayName.match(/\b\d{6}\b/) || [])[0];
+                (displayName.match(/\b\d{6}\b/) || [])[0] || '';
 
-              // PIN Validation Check
+              // Scoring candidate according to rules:
+              // +40 locality match, +25 PIN match, +15 city/district match, +10 state match, +5 landmark match, +5 valid coordinates
+              let score = 5; // valid coordinates base
+
+              const localityMatches = normalizedArea && (
+                normalizedDisplay.includes(normalizedArea) ||
+                normalizeText(item.locality).includes(normalizedArea) ||
+                normalizedArea.includes(normalizeText(item.locality))
+              );
+
+              if (localityMatches) score += 40;
+              if (candPincode && candPincode === postalCode) score += 25;
+              if (normalizedCity && (normalizedDisplay.includes(normalizedCity) || itemCity.includes(normalizedCity))) score += 15;
+              if (normalizedDisplay.includes('jammu') || normalizedDisplay.includes('kashmir') || itemState.includes('jammu') || itemState.includes('kashmir')) score += 10;
+              if (normalizedLandmark && normalizedDisplay.includes(normalizedLandmark)) score += 5;
+
+              // Enforce PIN mismatch rejection if candidate explicitly specifies a DIFFERENT 6-digit PIN
               if (candPincode && /^\d{6}$/.test(candPincode) && candPincode !== postalCode) {
-                this.logger.warn(`[GEOCODING_ENGINE] Candidate PIN mismatch: expected=${postalCode} got=${candPincode}`);
-                continue; // Reject candidate with wrong PIN
+                this.logger.warn(`[GEOCODING_ENGINE] Rejecting candidate PIN mismatch: expected=${postalCode} got=${candPincode}`);
+                continue;
               }
 
-              // City Validation Check (Harmless normalized comparison)
-              if (normalizedCity && !normalizedDisplay.includes(normalizedCity)) {
-                // If display doesn't explicitly mention city, check item metadata
-                const itemCity = normalizeText(item.city || item.district || item.locality || '');
-                if (itemCity && !itemCity.includes(normalizedCity) && !normalizedCity.includes(itemCity)) {
-                  this.logger.warn(`[GEOCODING_ENGINE] Candidate City mismatch: expected=${city} got=${itemCity}`);
-                  continue; // Reject candidate with wrong city
-                }
-              }
-
-              // State Validation Check
-              if (normalizedState && !normalizedDisplay.includes('jammu') && !normalizedDisplay.includes('kashmir')) {
-                const itemState = normalizeText(item.state || '');
-                if (itemState && !itemState.includes('jammu') && !itemState.includes('kashmir')) {
-                  this.logger.warn(`[GEOCODING_ENGINE] Candidate State mismatch: expected=${state} got=${itemState}`);
-                  continue;
-                }
-              }
-
-              const geocodeLevel = item.geocodeLevel || item.type || item.addresstype || item.category || 'locality';
-              const confidenceScore = typeof item.confidenceScore === 'number' ? item.confidenceScore : 0.9;
-              const precisionLabel = classifyGeocodePrecision(geocodeLevel);
-
-              this.logger.log(`[GEOCODING_ENGINE] SUCCESS Candidate verified: tier=${tier} (${precisionLabel}) lat=${lat} lng=${lng} displayName="${displayName}"`);
-
-              return {
-                success: true,
-                latitude: lat,
-                longitude: lng,
+              evaluatedCandidates.push({
+                lat,
+                lng,
                 displayName,
-                geocodeLevel: String(geocodeLevel),
-                precisionLabel,
-                confidenceScore,
-                matchedAddress: displayName,
-                matchedPostalCode: candPincode || postalCode,
-                matchedCity: city,
-                matchedState: state,
-                matchedLocality: area,
-                verificationStatus: 'VERIFIED',
-                queryTierUsed: tier,
-                source: url.includes('mappls') ? 'mappls' : 'nominatim',
-              };
+                candPincode,
+                score,
+                tier,
+                source: url.includes('mappls') ? 'mappls' : url.includes('photon') ? 'photon' : 'nominatim',
+                geocodeLevel: item.geocodeLevel || item.type || 'locality',
+              });
             }
           }
         } catch (err: any) {
           this.logger.warn(`[GEOCODING_ENGINE] Error fetching ${url.split('?')[0]}: ${err.message}`);
         }
       }
+    }
+
+    // Rank candidates by score descending
+    evaluatedCandidates.sort((a, b) => b.score - a.score);
+
+    if (evaluatedCandidates.length > 0 && evaluatedCandidates[0].score >= 35) {
+      const winner = evaluatedCandidates[0];
+      const precisionLabel = classifyGeocodePrecision(winner.geocodeLevel);
+
+      this.logger.log(`[GEOCODING_ENGINE] SUCCESS Candidate verified (Score: ${winner.score}, Tier: ${winner.tier}): lat=${winner.lat} lng=${winner.lng} displayName="${winner.displayName}"`);
+
+      return {
+        success: true,
+        latitude: winner.lat,
+        longitude: winner.lng,
+        displayName: winner.displayName,
+        geocodeLevel: winner.geocodeLevel,
+        precisionLabel,
+        confidenceScore: Math.min(1.0, winner.score / 100),
+        matchedAddress: winner.displayName,
+        matchedPostalCode: winner.candPincode || postalCode,
+        matchedCity: city,
+        matchedState: state,
+        matchedLocality: area,
+        verificationStatus: 'VERIFIED',
+        queryTierUsed: winner.tier,
+        source: winner.source,
+      };
     }
 
     this.logger.error(`[GEOCODING_ENGINE] FAILED to verify geocoding for address: house="${house}" area="${area}" city="${city}" pincode="${postalCode}"`);
@@ -288,9 +324,9 @@ export class GeolocationService {
       confidenceScore: null,
       matchedAddress: null,
       verificationStatus: 'FAILED',
-      queryTierUsed: 4,
+      queryTierUsed: 6,
       source: 'none',
-      reason: 'WE_COULDNT_VERIFY_THIS_ADDRESS',
+      reason: "Couldn't determine the exact location of this address. Please check the address details and try again.",
     };
   }
 
