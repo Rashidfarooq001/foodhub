@@ -35,11 +35,16 @@ export default function SearchPage() {
   const allFoodItems: FoodItemData[] = restaurants.flatMap((r: RestaurantData) => r.foodItems ?? []);
 
   const filteredRestaurants = query.trim()
-    ? restaurants.filter(
-        (r: RestaurantData) =>
-          r.name.toLowerCase().includes(query.toLowerCase()) ||
-          r.cuisines?.some((c: string) => c.toLowerCase().includes(query.toLowerCase())),
-      )
+    ? restaurants.filter((r: any) => {
+        const q = query.toLowerCase();
+        return (
+          r.name?.toLowerCase().includes(q) ||
+          r.address?.toLowerCase().includes(q) ||
+          r.addressLine?.toLowerCase().includes(q) ||
+          r.city?.toLowerCase().includes(q) ||
+          r.cuisines?.some((c: string) => c.toLowerCase().includes(q))
+        );
+      })
     : restaurants;
 
   const filteredFood = query.trim()
