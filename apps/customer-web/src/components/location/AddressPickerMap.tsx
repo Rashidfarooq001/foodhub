@@ -25,8 +25,14 @@ export const AddressPickerMap: React.FC<Props> = ({
     if (!leafletMap.current) {
       leafletMap.current = L.map(mapRef.current).setView([initialLat, initialLng], 14);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+      const mapplsKey = process.env.NEXT_PUBLIC_MAPPLS_API_KEY;
+      const primaryTileUrl = mapplsKey
+        ? `https://apis.mappls.com/advancedmaps/v1/${mapplsKey}/tile/{z}/{x}/{y}.png`
+        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+      L.tileLayer(primaryTileUrl, {
+        attribution: '© Mappls / MapmyIndia',
+        maxZoom: 19,
       }).addTo(leafletMap.current);
 
       const customPin = L.divIcon({
