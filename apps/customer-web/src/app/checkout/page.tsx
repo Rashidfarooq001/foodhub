@@ -150,13 +150,11 @@ export default function CheckoutPage() {
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
 
-  // Authoritative delivery fee calculation matching backend formula: 0-3km: ₹30, >3-15km: ₹30 + (dist - 3) * ₹5, >15km: ₹0
+  // Authoritative delivery fee calculation matching backend formula: MAX(30, dist * 5), >15km: ₹0
   const dynamicDeliveryFee = orderQuote
     ? orderQuote.customerDeliveryFee
-    : realDistanceKm !== null && realDistanceKm <= 3.0
-    ? 30.0
     : realDistanceKm !== null && realDistanceKm <= 15.0
-    ? Math.round((30.0 + (realDistanceKm - 3.0) * 5.0) * 100) / 100
+    ? Math.max(30.0, Math.round(realDistanceKm * 5.0 * 100) / 100)
     : 0;
 
   const platformFee = pricingConfig.platformFee;

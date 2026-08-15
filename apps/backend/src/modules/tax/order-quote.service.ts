@@ -97,16 +97,14 @@ export class OrderQuoteService {
     }
 
     // 2. Authoritative Delivery Fee Formula
-    // 0-3 km: ₹30 flat fee. >3-15 km: ₹30 + (distance - 3) * ₹5. >15 km: Delivery Unavailable (₹0).
+    // Minimum fee: ₹30. Above 6 km: distance * ₹5/km. Max radius: 15 km (15 km = ₹75).
     let customerDeliveryFee = 0;
 
     if (!deliveryEligible || distanceKm > 15.0) {
       deliveryEligible = false;
       customerDeliveryFee = 0;
-    } else if (distanceKm <= 3.0) {
-      customerDeliveryFee = 30.0;
     } else {
-      customerDeliveryFee = Math.round((30.0 + (distanceKm - 3.0) * 5.0) * 100) / 100;
+      customerDeliveryFee = Math.max(30.0, Math.round(distanceKm * 5.0 * 100) / 100);
     }
 
     // 2. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
