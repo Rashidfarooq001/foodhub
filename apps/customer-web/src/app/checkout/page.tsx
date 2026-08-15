@@ -674,12 +674,6 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {locationStatusMsg && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-800">
-              ℹ️ {locationStatusMsg}
-            </div>
-          )}
-
           {/* Main 2-Column Responsive Container */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* LEFT COLUMN: Delivery Location & Options */}
@@ -692,51 +686,40 @@ export default function CheckoutPage() {
                     <span>Delivery Address</span>
                   </div>
 
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isLocatingUser}
-                      className="flex items-center gap-1 rounded-xl bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50"
-                    >
-                      <Navigation className={`h-3 w-3 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                      <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomAddressModal(true)}
-                      className="flex items-center gap-1 rounded-xl bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-700 hover:bg-gray-200 transition"
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>Custom Address</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomAddressModal(true);
+                      setModalStep('LOCATION_METHOD');
+                    }}
+                    className="flex items-center gap-1 rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Delivery Address</span>
+                  </button>
                 </div>
 
                 {/* Address Selection / Empty State */}
                 {addresses.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-5 text-center space-y-2">
-                    <p className="text-xs font-bold text-gray-700">No saved addresses</p>
-                    <p className="text-[11px] text-gray-400">
-                      Use your real current location or enter a custom delivery address to proceed.
-                    </p>
-                    <div className="flex justify-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleUseCurrentLocation}
-                        disabled={isLocatingUser}
-                        className="rounded-xl bg-orange-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 disabled:opacity-50 transition"
-                      >
-                        Use Current Location
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomAddressModal(true)}
-                        className="rounded-xl bg-gray-200 px-3.5 py-2 text-xs font-bold text-gray-800 hover:bg-gray-300 transition"
-                      >
-                        Enter Custom Address
-                      </button>
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-6 text-center space-y-3">
+                    <div className="mx-auto h-10 w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                      <MapPin className="h-5 w-5" />
                     </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
+                      <p className="text-[11px] text-gray-500 font-medium">Add a delivery address to select your location and continue checkout.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomAddressModal(true);
+                        setModalStep('LOCATION_METHOD');
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Delivery Address</span>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -754,52 +737,74 @@ export default function CheckoutPage() {
                         <div
                           key={addr.id}
                           onClick={() => setSelectedAddress(addr.id)}
-                          className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
+                          className={`cursor-pointer rounded-2xl border p-4 transition flex items-start justify-between ${
                             isSelected
-                              ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500/20'
+                              ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
                               : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                           }`}
                         >
-                          <div className="min-w-0 pr-2 space-y-0.5">
+                          <div className="space-y-1 text-xs">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-900 truncate">
+                              <span className="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase text-white tracking-wide">
                                 {addr.label}
                               </span>
-                              {addrDist !== null ? (
-                                <span className="text-[10px] font-bold text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded">
-                                  {addrDist} km away
+                              {isSelected && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> 📍 Location confirmed
                                 </span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                                  Distance unavailable
+                              )}
+                              {addrDist !== null && (
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                  ~{addrDist} km away
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-gray-600 truncate">
+
+                            <p className="text-xs font-bold text-gray-900 leading-snug pt-0.5">
                               {addr.addressLine1}
-                              {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}
-                              {addr.city ? `, ${addr.city}` : ''}
                             </p>
+                            {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && (
+                              <p className="text-[11px] text-gray-600 font-medium">
+                                {addr.addressLine2}
+                              </p>
+                            )}
                             {addr.landmark && (
-                              <p className="text-[10px] text-gray-400">
+                              <p className="text-[11px] text-gray-500 font-medium">
                                 Landmark: {addr.landmark}
                               </p>
                             )}
+                            <p className="text-[11px] text-gray-500 font-medium">
+                              {addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.postalCode ? `- ${addr.postalCode}` : ''}
+                            </p>
+
                             {!addrEligible && (
-                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
-                                <AlertTriangle className="h-3 w-3" /> Exceeds delivery radius ({maxRadiusKm} km)
+                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pt-1">
+                                <AlertTriangle className="h-3 w-3" /> Exceeds store delivery radius ({maxRadiusKm} km)
                               </p>
                             )}
                           </div>
 
-                          <div
-                            className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
-                              isSelected
-                                ? 'border-orange-600 bg-orange-600 text-white'
-                                : 'border-gray-300'
-                            }`}
-                          >
-                            {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowCustomAddressModal(true);
+                                setModalStep('LOCATION_METHOD');
+                              }}
+                              className="text-xs font-bold text-orange-600 hover:underline"
+                            >
+                              Change Address
+                            </button>
+                            <div
+                              className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                                isSelected
+                                  ? 'border-orange-600 bg-orange-600 text-white'
+                                  : 'border-gray-300'
+                              }`}
+                            >
+                              {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                            </div>
                           </div>
                         </div>
                       );
