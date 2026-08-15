@@ -204,29 +204,37 @@ export class OrderStateMachineService {
         include: {
           restaurant: true,
           deliveryJob: true,
-          orderItems: { include: { foodItem: true } },
+          orderItems: true,
         },
       });
 
-      // 3. Record OrderStatusHistory safely
-      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          fromStatus: currentStatus,
-          toStatus: targetStatus,
-          changedBy: validActorUserId,
-        },
-      });
+      // 3. Record OrderStatusHistory safely inside try/catch
+      try {
+        const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: order.id,
+            fromStatus: currentStatus,
+            toStatus: targetStatus,
+            changedBy: validActorUserId,
+          },
+        });
+      } catch (histErr: any) {
+        this.logger.warn(`Non-critical OrderStatusHistory creation skipped: ${histErr?.message || histErr}`);
+      }
 
-      // 4. Record OrderTimeline
-      await tx.orderTimeline.create({
-        data: {
-          orderId: order.id,
-          status: targetStatus,
-          message: extraData?.reason || this.getStatusMessage(targetStatus),
-        },
-      });
+      // 4. Record OrderTimeline safely inside try/catch
+      try {
+        await tx.orderTimeline.create({
+          data: {
+            orderId: order.id,
+            status: targetStatus,
+            message: extraData?.reason || this.getStatusMessage(targetStatus),
+          },
+        });
+      } catch (timeErr: any) {
+        this.logger.warn(`Non-critical OrderTimeline creation skipped: ${timeErr?.message || timeErr}`);
+      }
 
       return updatedOrderRecord;
     });
@@ -331,7 +339,7 @@ export class OrderStateMachineService {
         orderId: order.id,
         orderNumber: order.orderNumber,
         restaurantId: order.restaurantId,
-        restaurantName: order.restaurant.name,
+        restaurantName: order.restaurant?.name || 'Restaurant',
         fromStatus,
         status: toStatus,
         updatedAt: order.updatedAt,
