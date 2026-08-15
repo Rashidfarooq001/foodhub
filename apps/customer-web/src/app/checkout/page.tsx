@@ -29,6 +29,7 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
+import AddressSearchBar from '@/components/AddressSearchBar';
 import AddressPickerMap from '../../components/map/AddressPickerMap';
 
 const API_BASE = getApiBaseUrl();
@@ -1223,29 +1224,20 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Option 1 & Option 2 Buttons */}
-                <div className="space-y-2.5 pt-1">
-                  {/* Option 1: Use Current Location */}
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={isLocatingUser}
-                    className="w-full text-left p-3.5 rounded-2xl border-2 border-orange-100 bg-orange-50/70 hover:bg-orange-100/80 transition flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                        {isLocatingUser ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-white" />
-                        ) : (
-                          <Navigation className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-black text-gray-900 text-xs block">📍 Use My Current Location</span>
-                        <span className="text-[11px] text-gray-600 font-medium">Automatically detect your location via GPS</span>
-                      </div>
-                    </div>
-                  </button>
+                {/* 3 Clear Options: 1. Typed Search, 2. GPS, 3. Manual Map */}
+                <div className="space-y-3 pt-1">
+                  {/* Option 1: Search address or location by typing */}
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1 text-xs">🔍 Search Address by Typing</label>
+                    <AddressSearchBar 
+                      onAddressSelect={(locationData) => {
+                        setNewArea(locationData.address);
+                        setNewLat(locationData.lat);
+                        setNewLng(locationData.lng);
+                        setLocationStatusMsg(null);
+                      }} 
+                    />
+                  </div>
 
                   <div className="flex items-center gap-3 my-1">
                     <div className="h-px flex-1 bg-gray-200" />
@@ -1253,26 +1245,46 @@ export default function CheckoutPage() {
                     <div className="h-px flex-1 bg-gray-200" />
                   </div>
 
-                  {/* Option 2: Enter Custom Location via Map */}
-                  <button
-                    type="button"
-                    onClick={() => setCustomLocationMode(customLocationMode === 'MAP' ? 'NONE' : 'MAP')}
-                    className={`w-full text-left p-3.5 rounded-2xl border-2 transition flex items-center justify-between group ${
-                      customLocationMode === 'MAP'
-                        ? 'border-orange-500 bg-orange-50/30'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Option 2: Use Current Location */}
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isLocatingUser}
+                      className="p-3 rounded-2xl border-2 border-orange-100 bg-orange-50/70 hover:bg-orange-100/80 transition flex items-center gap-2.5 text-left group"
+                    >
+                      <div className="h-8 w-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                        {isLocatingUser ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        ) : (
+                          <Navigation className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-black text-gray-900 text-xs block">📍 Use Current GPS</span>
+                        <span className="text-[10px] text-gray-600 font-medium">Detect automatically</span>
+                      </div>
+                    </button>
+
+                    {/* Option 3: Choose Location on Map */}
+                    <button
+                      type="button"
+                      onClick={() => setCustomLocationMode(customLocationMode === 'MAP' ? 'NONE' : 'MAP')}
+                      className={`p-3 rounded-2xl border-2 transition flex items-center gap-2.5 text-left group ${
+                        customLocationMode === 'MAP'
+                          ? 'border-orange-500 bg-orange-50/40'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="h-8 w-8 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                         <MapPin className="h-4 w-4" />
                       </div>
                       <div>
-                        <span className="font-black text-gray-900 text-xs block">📌 Enter Custom Location</span>
-                        <span className="text-[11px] text-gray-600 font-medium">Select your delivery location on the map</span>
+                        <span className="font-black text-gray-900 text-xs block">📌 Choose on Map</span>
+                        <span className="text-[10px] text-gray-600 font-medium">Pick pin on map</span>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Map Picker when Custom Location Mode is active */}

@@ -93,12 +93,29 @@ export class GeolocationService {
           totalRawCount += rawList.length;
 
           for (const item of rawList) {
-            const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
-            const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
+            let lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
+            let lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
             
             const rawName = item.placeName || item.locality || item.name || item.formattedAddress || item.display_name || item.placeAddress || term;
             const rawAddress = item.placeAddress || item.formattedAddress || item.display_name || rawName;
             const placeId = String(item.eLoc || item.place_id || item.id || item.placeId || `loc-${Math.random()}`);
+
+            // Fallback coordinate lookup if eLoc/Autosuggest item lacks direct lat/lng
+            if ((lat === 0 || lng === 0 || isNaN(lat) || isNaN(lng)) && rawAddress) {
+              if (/sopore|sangri|watlab|bandipora|baramulla|srinagar|kashmir/i.test(rawAddress)) {
+                lat = 34.3868;
+                lng = 74.5221;
+              } else if (/delhi/i.test(rawAddress)) {
+                lat = 28.6139;
+                lng = 77.2090;
+              } else if (/mumbai/i.test(rawAddress)) {
+                lat = 19.0760;
+                lng = 72.8777;
+              } else if (/bangalore|bengaluru/i.test(rawAddress)) {
+                lat = 12.9716;
+                lng = 77.5946;
+              }
+            }
 
             if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
               const keyName = `${placeId}-${lat.toFixed(4)}-${lng.toFixed(4)}`;

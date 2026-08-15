@@ -20,7 +20,7 @@ export async function fetchLocationAutosuggest(
   query: string,
   signal?: AbortSignal,
 ): Promise<GeolocationSuggestion[]> {
-  if (!query || query.trim().length < 2) {
+  if (!query || query.trim().length < 1) {
     return [];
   }
   try {

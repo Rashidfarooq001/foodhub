@@ -4,7 +4,7 @@ exports.fetchLocationAutosuggest = fetchLocationAutosuggest;
 const axios_client_1 = require("./axios-client");
 const helpers_1 = require("./helpers");
 async function fetchLocationAutosuggest(query, signal) {
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 1) {
         return [];
     }
     try {

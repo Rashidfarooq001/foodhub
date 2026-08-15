@@ -22,7 +22,7 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    if (trimmed.length < 1) {
       setSuggestions([]);
       setIsOpen(false);
       setLoading(false);
