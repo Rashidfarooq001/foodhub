@@ -141,20 +141,29 @@ export default function AddressPickerMap({
 
       {/* Map Container with Center Pin Overlay */}
       <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm z-0">
-        <div ref={mapElRef} className="h-64 w-full" />
+        <div ref={mapElRef} className="h-72 w-full" />
+        {/* Fixed Center Pin Overlay */}
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center pb-8">
+          <div className="flex flex-col items-center">
+            <div className="rounded-full bg-orange-600 p-2.5 text-white shadow-xl ring-4 ring-orange-500/30">
+              <MapPin className="h-6 w-6" />
+            </div>
+            <div className="h-2 w-2 rounded-full bg-black/40 blur-[1px] mt-0.5" />
+          </div>
+        </div>
       </div>
 
       {/* Selected Location Card */}
-      <div className="rounded-2xl bg-gray-50 border border-gray-200 p-3 space-y-1 text-xs">
+      <div className="rounded-2xl bg-orange-50/60 border border-orange-100 p-3.5 space-y-1 text-xs">
         <div className="flex items-center gap-1.5 font-bold text-gray-900">
           <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
-          <span>Location Selected:</span>
+          <span>Selected Location:</span>
         </div>
-        <p className="text-gray-700 font-semibold text-xs leading-snug">
-          {selectedAddr || 'Detecting area...'}
+        <p className="text-gray-800 font-bold text-xs leading-snug">
+          {selectedAddr || 'Detecting location area...'}
         </p>
         {markerLat !== 0 && markerLng !== 0 && (
-          <p className="text-[10px] text-gray-400 font-mono">
+          <p className="text-[10px] text-orange-700 font-mono pt-0.5">
             Coordinates: {markerLat.toFixed(5)}, {markerLng.toFixed(5)}
           </p>
         )}

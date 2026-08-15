@@ -182,7 +182,7 @@ export default function CheckoutPage() {
     subtotal + packagingFee + dynamicDeliveryFee + tax - discount - walletApplied;
   const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
 
-  const [modalStep, setModalStep] = useState<'SELECT_LOCATION' | 'MAP_CONFIRM' | 'ADDRESS_DETAILS'>('SELECT_LOCATION');
+  const [modalStep, setModalStep] = useState<'LOCATION_METHOD' | 'MAP_SELECTION' | 'ADDRESS_DETAILS'>('LOCATION_METHOD');
   const [tempSelectedArea, setTempSelectedArea] = useState<string>('Sopore, Jammu & Kashmir');
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
@@ -225,25 +225,25 @@ export default function CheckoutPage() {
         setTempSelectedArea(reverseArea);
         setIsLocatingUser(false);
         setLocationStatusMsg(null);
-        setModalStep('MAP_CONFIRM');
+        setModalStep('MAP_SELECTION');
       },
       (err) => {
         setIsLocatingUser(false);
         if (err.code === err.PERMISSION_DENIED) {
           setLocationStatusMsg(
-            'Location permission was denied. Please enable location access or choose location manually.',
+            'Location permission was denied. Please enable location access or choose location on map.',
           );
         } else if (err.code === err.POSITION_UNAVAILABLE) {
           setLocationStatusMsg(
-            'Unable to detect your current location. Please try again or choose location manually.',
+            'Unable to detect your current location. Please try again or choose location on map.',
           );
         } else if (err.code === err.TIMEOUT) {
           setLocationStatusMsg(
-            'Location request timed out. Please try again or choose location manually.',
+            'Location request timed out. Please try again or choose location on map.',
           );
         } else {
           setLocationStatusMsg(
-            'Unable to detect your current location. Please try again or choose location manually.',
+            'Unable to detect your current location. Please try again or choose location on map.',
           );
         }
       },
@@ -258,7 +258,7 @@ export default function CheckoutPage() {
     const area = newArea.trim();
 
     if (!houseNo && !area) {
-      setLocationStatusMsg('Please enter your House/Flat No. or Area details.');
+      setLocationStatusMsg('Please enter your House / Flat / Building No. or Area details.');
       return;
     }
 
@@ -275,7 +275,7 @@ export default function CheckoutPage() {
       addressLine2: newLandmark.trim() || tempSelectedArea || '',
       landmark: newLandmark.trim() || undefined,
       city: newCity.trim() || 'Sopore',
-      state: newState.trim() || 'Jammu and Kashmir',
+      state: newState.trim() || 'Jammu & Kashmir',
       postalCode: newPinCode.trim() || '',
       latitude: latToSave,
       longitude: lngToSave,
@@ -288,7 +288,7 @@ export default function CheckoutPage() {
     setLocationStatusMsg(null);
 
     // Reset form
-    setModalStep('SELECT_LOCATION');
+    setModalStep('LOCATION_METHOD');
     setNewHouseNo('');
     setNewArea('');
     setNewLandmark('');
@@ -1203,17 +1203,18 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* ZOMATO-STYLE CUSTOM ADDRESS FORM MODAL */}
+        {/* CUSTOM ADDRESS FORM MODAL (5-STEP STATE MACHINE: LOCATION_METHOD -> MAP_SELECTION -> ADDRESS_DETAILS -> SAVE) */}
         {showCustomAddressModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div className="flex items-center gap-2">
-                  {modalStep !== 'SELECT_LOCATION' && (
+                  {modalStep !== 'LOCATION_METHOD' && (
                     <button
                       type="button"
                       onClick={() =>
-                        setModalStep(modalStep === 'ADDRESS_DETAILS' ? 'MAP_CONFIRM' : 'SELECT_LOCATION')
+                        setModalStep(modalStep === 'ADDRESS_DETAILS' ? 'MAP_SELECTION' : 'LOCATION_METHOD')
                       }
                       className="rounded-lg p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                     >
@@ -1221,11 +1222,11 @@ export default function CheckoutPage() {
                     </button>
                   )}
                   <h3 className="text-base font-black text-gray-900">
-                    {modalStep === 'SELECT_LOCATION'
+                    {modalStep === 'LOCATION_METHOD'
                       ? 'Add Delivery Address'
-                      : modalStep === 'MAP_CONFIRM'
+                      : modalStep === 'MAP_SELECTION'
                       ? 'Confirm Location on Map'
-                      : 'Enter Address Details'}
+                      : 'Add Address Details'}
                   </h3>
                 </div>
                 <button
@@ -1236,11 +1237,12 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* STEP 1: SELECT LOCATION (Search, GPS, or Map) */}
-              {modalStep === 'SELECT_LOCATION' && (
+              {/* STEP 1 — FIND LOCATION (LOCATION_METHOD) */}
+              {modalStep === 'LOCATION_METHOD' && (
                 <div className="space-y-4 text-xs">
+                  {/* OPTION A — SEARCH */}
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1 text-xs">
+                    <label className="block font-bold text-gray-700 mb-1.5 text-xs">
                       🔍 Search for area, street or place
                     </label>
                     <AddressSearchBar
@@ -1249,19 +1251,19 @@ export default function CheckoutPage() {
                         setNewLng(locationData.lng);
                         setTempSelectedArea(locationData.address);
                         setLocationStatusMsg(null);
-                        setModalStep('MAP_CONFIRM');
+                        setModalStep('MAP_SELECTION');
                       }}
                     />
                   </div>
 
-                  <div className="flex items-center gap-3 my-2">
+                  <div className="flex items-center gap-3 my-1">
                     <div className="h-px flex-1 bg-gray-200" />
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">OR</span>
                     <div className="h-px flex-1 bg-gray-200" />
                   </div>
 
-                  <div className="space-y-2">
-                    {/* Use Current Location Button */}
+                  <div className="space-y-2.5">
+                    {/* OPTION B — CURRENT LOCATION */}
                     <button
                       type="button"
                       onClick={handleUseCurrentLocation}
@@ -1283,7 +1285,7 @@ export default function CheckoutPage() {
                       </div>
                     </button>
 
-                    {/* Choose Location on Map Button */}
+                    {/* OPTION C — CHOOSE ON MAP */}
                     <button
                       type="button"
                       onClick={() => {
@@ -1291,7 +1293,7 @@ export default function CheckoutPage() {
                           setNewLat(34.3868);
                           setNewLng(74.5221);
                         }
-                        setModalStep('MAP_CONFIRM');
+                        setModalStep('MAP_SELECTION');
                       }}
                       className="w-full text-left p-3.5 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 transition flex items-center justify-between group"
                     >
@@ -1300,8 +1302,8 @@ export default function CheckoutPage() {
                           <MapPin className="h-4 w-4" />
                         </div>
                         <div>
-                          <span className="font-black text-gray-900 text-xs block">📌 Choose Location on Map</span>
-                          <span className="text-[11px] text-gray-600 font-medium">Move pin to pick location directly</span>
+                          <span className="font-black text-gray-900 text-xs block">📌 Choose on Map</span>
+                          <span className="text-[11px] text-gray-600 font-medium">Pick exact location pin directly</span>
                         </div>
                       </div>
                     </button>
@@ -1309,8 +1311,8 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* STEP 2: MAP LOCATION CONFIRMATION */}
-              {modalStep === 'MAP_CONFIRM' && (
+              {/* STEP 2 — EXACT LOCATION ON MAP & STEP 3 — CONFIRM LOCATION (MAP_SELECTION) */}
+              {modalStep === 'MAP_SELECTION' && (
                 <div className="space-y-4 text-xs">
                   <AddressPickerMap
                     initialLat={newLat || 34.3868}
@@ -1326,7 +1328,7 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
                     <button
                       type="button"
-                      onClick={() => setModalStep('SELECT_LOCATION')}
+                      onClick={() => setModalStep('LOCATION_METHOD')}
                       className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900 rounded-xl bg-gray-100"
                     >
                       ← Back
@@ -1334,17 +1336,87 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setModalStep('ADDRESS_DETAILS')}
-                      className="flex-1 rounded-xl bg-orange-600 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition"
+                      className="flex-1 rounded-xl bg-orange-600 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition text-xs"
                     >
-                      Confirm Location &amp; Proceed
+                      Confirm Location
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* STEP 3: ADDRESS DETAILS FORM */}
+              {/* STEP 4 — MANUALLY ENTER DELIVERY ADDRESS & STEP 5 — SAVE AS (ADDRESS_DETAILS) */}
               {modalStep === 'ADDRESS_DETAILS' && (
-                <form onSubmit={handleSaveCustomAddress} className="space-y-4 text-xs">
+                <form onSubmit={handleSaveCustomAddress} className="space-y-3.5 text-xs">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      House / Flat / Building <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newHouseNo}
+                      onChange={(e) => setNewHouseNo(e.target.value)}
+                      placeholder="e.g. House No. 24, Flat 4B"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Area / Locality</label>
+                    <input
+                      type="text"
+                      value={newArea}
+                      onChange={(e) => setNewArea(e.target.value)}
+                      placeholder="e.g. Reshi Mohalla"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Landmark</label>
+                    <input
+                      type="text"
+                      value={newLandmark}
+                      onChange={(e) => setNewLandmark(e.target.value)}
+                      placeholder="e.g. Near Main Road"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={newCity}
+                        onChange={(e) => setNewCity(e.target.value)}
+                        placeholder="e.g. Sopore"
+                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">State</label>
+                      <input
+                        type="text"
+                        value={newState}
+                        onChange={(e) => setNewState(e.target.value)}
+                        placeholder="e.g. Jammu &amp; Kashmir"
+                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
+                    <input
+                      type="text"
+                      value={newPinCode}
+                      onChange={(e) => setNewPinCode(e.target.value)}
+                      placeholder="e.g. 193201"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
+                  </div>
+
                   <div>
                     <label className="block font-bold text-gray-700 mb-1.5">Save address as</label>
                     <div className="flex gap-2">
@@ -1353,7 +1425,7 @@ export default function CheckoutPage() {
                           key={lbl}
                           type="button"
                           onClick={() => setNewAddrLabel(lbl)}
-                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition border ${
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
                             newAddrLabel === lbl
                               ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
                               : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
@@ -1375,84 +1447,25 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      House / Flat / Building No. <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newHouseNo}
-                      onChange={(e) => setNewHouseNo(e.target.value)}
-                      placeholder="e.g. House No. 24, Flat 4B"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Area / Locality</label>
-                    <input
-                      type="text"
-                      value={newArea}
-                      onChange={(e) => setNewArea(e.target.value)}
-                      placeholder="e.g. Reshi Mohalla, Main Market"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Landmark (Optional)</label>
-                    <input
-                      type="text"
-                      value={newLandmark}
-                      onChange={(e) => setNewLandmark(e.target.value)}
-                      placeholder="e.g. Near Main Road, Opposite Jamia Masjid"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">City</label>
-                      <input
-                        type="text"
-                        value={newCity}
-                        onChange={(e) => setNewCity(e.target.value)}
-                        placeholder="e.g. Sopore"
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
-                      <input
-                        type="text"
-                        value={newPinCode}
-                        onChange={(e) => setNewPinCode(e.target.value)}
-                        placeholder="PIN Code"
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                      />
-                    </div>
-                  </div>
-
                   {/* Confirmed Pin Banner */}
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs">
+                  <div className="p-3 rounded-xl bg-orange-50/50 border border-orange-100 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-gray-800">
                       <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
                       <span className="font-semibold line-clamp-1">Pin: {tempSelectedArea}</span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setModalStep('MAP_CONFIRM')}
+                      onClick={() => setModalStep('MAP_SELECTION')}
                       className="text-orange-600 font-bold hover:underline shrink-0 text-[11px]"
                     >
-                      Adjust Pin
+                      Adjust Map
                     </button>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                     <button
                       type="button"
-                      onClick={() => setModalStep('MAP_CONFIRM')}
+                      onClick={() => setModalStep('MAP_SELECTION')}
                       className="px-4 py-2 font-bold text-gray-600 hover:text-gray-900"
                     >
                       ← Back
