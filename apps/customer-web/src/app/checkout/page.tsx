@@ -163,9 +163,8 @@ export default function CheckoutPage() {
     subtotal + packagingFee + dynamicDeliveryFee + tax - discount - walletApplied;
   const finalPayableTotal = Math.max(0, baseGrandTotal) + tipAmount;
 
-  // Custom Address Modal Form state
+  // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
-  const [modalStep, setModalStep] = useState<'FORM' | 'MAP'>('FORM');
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
@@ -175,10 +174,73 @@ export default function CheckoutPage() {
   const [newCity, setNewCity] = useState('');
   const [newState, setNewState] = useState('');
   const [newPinCode, setNewPinCode] = useState('');
-  const [newLat, setNewLat] = useState<number | null>(null);
-  const [newLng, setNewLng] = useState<number | null>(null);
 
-  // Save Custom Address Handler (Strict Manual Form Submission)
+  const [isLocatingUser, setIsLocatingUser] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // OPTION 1 — Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser device.');
+      return;
+    }
+
+    setIsLocatingUser(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        let reverseArea = `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+        try {
+          const geoRes = await fetch(
+            `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
+          );
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (typeof geoData === 'string') {
+              reverseArea = geoData;
+            } else if (geoData.address || geoData.displayName) {
+              reverseArea = geoData.address || geoData.displayName;
+            }
+          }
+        } catch {
+          /* reverse geocode fallback */
+        }
+
+        const gpsAddr: CustomerAddressItem = {
+          id: 'current-location',
+          label: 'Current Location',
+          addressLine1: reverseArea,
+          addressLine2: `GPS Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+          city: 'Current Location',
+          state: 'GPS',
+          postalCode: '',
+          latitude: lat,
+          longitude: lng,
+          isDefault: true,
+        };
+
+        addAddress(gpsAddr);
+        setSelectedAddress(gpsAddr.id);
+        setIsLocatingUser(false);
+      },
+      (err) => {
+        setIsLocatingUser(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError('Location permission denied. Please allow location access or choose Manual Address.');
+        } else {
+          setLocationError('Unable to acquire current location. Please try again or choose Manual Address.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  // OPTION 2 — Save Manual Text Address Handler (Text Form ONLY — NO MAP, NO GPS, NO FABRICATED COORDS)
   const handleSaveCustomAddress = (e: React.FormEvent) => {
     e.preventDefault();
     const houseNo = newHouseNo.trim();
@@ -191,14 +253,11 @@ export default function CheckoutPage() {
       return;
     }
 
-    const latToSave = newLat !== null && !isNaN(newLat) && newLat !== 0 ? newLat : 34.3868;
-    const lngToSave = newLng !== null && !isNaN(newLng) && newLng !== 0 ? newLng : 74.5221;
-
     const fullLine1 = `${houseNo}, ${area}`;
     const finalLabel = newAddrLabel === 'Other' && customLabelInput.trim() ? customLabelInput.trim() : newAddrLabel;
 
     const createdAddr: CustomerAddressItem = {
-      id: `addr-custom-${Date.now()}`,
+      id: `addr-manual-${Date.now()}`,
       label: finalLabel,
       addressLine1: fullLine1,
       addressLine2: area,
@@ -206,8 +265,8 @@ export default function CheckoutPage() {
       city: city,
       state: state,
       postalCode: newPinCode.trim() || '',
-      latitude: latToSave,
-      longitude: lngToSave,
+      latitude: null,
+      longitude: null,
       isDefault: false,
     };
 
@@ -216,15 +275,12 @@ export default function CheckoutPage() {
     setShowCustomAddressModal(false);
 
     // Reset form
-    setModalStep('FORM');
     setNewHouseNo('');
     setNewArea('');
     setNewLandmark('');
     setNewCity('');
     setNewState('');
     setNewPinCode('');
-    setNewLat(null);
-    setNewLng(null);
     setCustomLabelInput('');
   };
 
@@ -608,57 +664,102 @@ export default function CheckoutPage() {
             <div className="lg:col-span-7 space-y-4">
               {/* Delivery Address Card */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
                     <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
                     <span>Delivery Address</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCustomAddressModal(true);
-                      setModalStep('FORM');
-                    }}
-                    className="flex items-center gap-1 rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Add Delivery Address</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    {/* OPTION 1 — AUTO CAPTURE CURRENT LOCATION */}
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isLocatingUser}
+                      className="flex items-center gap-1.5 rounded-xl bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50"
+                    >
+                      <MapPin className={`h-3.5 w-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                      <span>{isLocatingUser ? 'Locating...' : '📍 Use Current Location'}</span>
+                    </button>
+
+                    {/* OPTION 2 — MANUAL ADDRESS */}
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomAddressModal(true)}
+                      className="flex items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-black transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>✍️ Enter Address Manually</span>
+                    </button>
+                  </div>
                 </div>
+
+                {locationError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center justify-between">
+                    <span>⚠️ {locationError}</span>
+                    <button type="button" onClick={() => setLocationError(null)} className="text-rose-500 hover:text-rose-800">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Address Selection / Empty State */}
                 {addresses.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-6 text-center space-y-3">
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-6 text-center space-y-4">
                     <div className="mx-auto h-10 w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
-                      <p className="text-[11px] text-gray-500 font-medium">Add a delivery address to select your location and continue checkout.</p>
+                      <p className="text-[11px] text-gray-500 font-medium">Select your delivery location method to continue checkout:</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomAddressModal(true);
-                        setModalStep('FORM');
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Add Delivery Address</span>
-                    </button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 max-w-lg mx-auto">
+                      {/* OPTION 1 CARD */}
+                      <button
+                        type="button"
+                        onClick={handleUseCurrentLocation}
+                        disabled={isLocatingUser}
+                        className="p-4 rounded-2xl border border-orange-200 bg-orange-50/80 hover:bg-orange-100 transition flex flex-col items-center gap-2 text-center disabled:opacity-50"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-orange-600 text-white flex items-center justify-center">
+                          <MapPin className={`h-4 w-4 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-gray-900 block">📍 Use Current Location</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Automatically locate me via GPS</span>
+                        </div>
+                      </button>
+
+                      {/* OPTION 2 CARD */}
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomAddressModal(true)}
+                        className="p-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 transition flex flex-col items-center gap-2 text-center"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-gray-900 text-white flex items-center justify-center">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-gray-900 block">✍️ Enter Address Manually</span>
+                          <span className="text-[10px] text-gray-600 font-medium">Type house/flat, area &amp; landmark</span>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {addresses.map((addr) => {
                       const isSelected = selectedAddressId === addr.id;
-                      const addrDist = calculateHaversineDistance(
-                        addr.latitude,
-                        addr.longitude,
-                        restaurantData?.latitude,
-                        restaurantData?.longitude,
-                      );
+                      const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
+                      const addrDist = hasCoords
+                        ? calculateHaversineDistance(
+                            addr.latitude,
+                            addr.longitude,
+                            restaurantData?.latitude,
+                            restaurantData?.longitude,
+                          )
+                        : null;
                       const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
 
                       return (
@@ -678,7 +779,7 @@ export default function CheckoutPage() {
                               </span>
                               {isSelected && (
                                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> 📍 Location confirmed
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 GPS Verified' : '✍️ Text Address'}
                                 </span>
                               )}
                               {addrDist !== null && (
@@ -705,7 +806,13 @@ export default function CheckoutPage() {
                               {addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.postalCode ? `- ${addr.postalCode}` : ''}
                             </p>
 
-                            {!addrEligible && (
+                            {!hasCoords && (
+                              <p className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md mt-1">
+                                ℹ️ Delivery availability will be confirmed after address verification.
+                              </p>
+                            )}
+
+                            {hasCoords && !addrEligible && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pt-1">
                                 <AlertTriangle className="h-3 w-3" /> Exceeds store delivery radius ({maxRadiusKm} km)
                               </p>
@@ -718,11 +825,10 @@ export default function CheckoutPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowCustomAddressModal(true);
-                                setModalStep('FORM');
                               }}
                               className="text-xs font-bold text-orange-600 hover:underline"
                             >
-                              Change Address
+                              Change
                             </button>
                             <div
                               className={`h-4 w-4 rounded-full border flex items-center justify-center ${
@@ -737,67 +843,6 @@ export default function CheckoutPage() {
                         </div>
                       );
                     })}
-                  </div>
-                )}
-
-                {/* Selected Address Preview & Real Distance Status */}
-                {selectedAddress && (
-                  <div className="rounded-xl bg-gray-100/70 p-3 text-xs space-y-1.5 border border-gray-200">
-                    <div className="flex items-center justify-between font-bold text-gray-900">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-orange-600" />
-                        <span>Address Preview</span>
-                      </span>
-                      <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
-                          isDeliveryEligible
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {isDeliveryEligible ? 'Eligible' : 'Outside Radius'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-gray-700">
-                      <span className="font-semibold">Selected:</span> {selectedAddress.addressLine1}
-                      {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
-                      {selectedAddress.city ? `, ${selectedAddress.city}` : ''}
-                      {selectedAddress.postalCode ? ` - ${selectedAddress.postalCode}` : ''}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 pt-1 border-t border-gray-200">
-                      {realDistanceKm !== null ? (
-                        <span className="font-bold text-orange-700">
-                          📏 Calculated Distance: {realDistanceKm} km
-                        </span>
-                      ) : (
-                        <span className="font-bold text-amber-700">
-                          Restaurant location unavailable
-                        </span>
-                      )}
-                    </div>
-
-                    {!isDeliveryEligible && (
-                      <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 space-y-2 mt-2">
-                        <div className="flex items-center gap-1.5 font-black text-rose-700">
-                          <AlertTriangle className="h-4 w-4 shrink-0" />
-                          <span>Sorry, we're not delivering to this location yet.</span>
-                        </div>
-                        <p className="text-[11px] text-rose-800">
-                          This restaurant currently delivers within {maxRadiusKm} km. (Selected location is {realDistanceKm} km away). We're expanding our delivery area soon!
-                        </p>
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomAddressModal(true)}
-                            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-rose-700 transition"
-                          >
-                            Change Delivery Address
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -1142,20 +1187,9 @@ export default function CheckoutPage() {
             <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2">
-                  {modalStep === 'MAP' && (
-                    <button
-                      type="button"
-                      onClick={() => setModalStep('FORM')}
-                      className="rounded-lg p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                  )}
-                  <h3 className="text-base font-black text-gray-900">
-                    {modalStep === 'FORM' ? 'Add Delivery Address' : 'Set Exact Location on Map'}
-                  </h3>
-                </div>
+                <h3 className="text-base font-black text-gray-900">
+                  Add Delivery Address
+                </h3>
                 <button
                   onClick={() => setShowCustomAddressModal(false)}
                   className="text-gray-400 hover:text-gray-600 rounded-full p-1"
@@ -1164,201 +1198,134 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* VIEW 1: MANUAL ADDRESS FORM */}
-              {modalStep === 'FORM' && (
-                <form onSubmit={handleSaveCustomAddress} className="space-y-3 text-xs">
-                  {/* Save Address As */}
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1.5">Save Address As</label>
-                    <div className="flex gap-2">
-                      {(['Home', 'Work', 'Other'] as const).map((lbl) => (
-                        <button
-                          key={lbl}
-                          type="button"
-                          onClick={() => setNewAddrLabel(lbl)}
-                          className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
-                            newAddrLabel === lbl
-                              ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                          }`}
-                        >
-                          {lbl}
-                        </button>
-                      ))}
-                    </div>
-
-                    {newAddrLabel === 'Other' && (
-                      <input
-                        type="text"
-                        value={customLabelInput}
-                        onChange={(e) => setCustomLabelInput(e.target.value)}
-                        placeholder="Enter custom label (e.g. Gym, Friend's House)"
-                        className="mt-2 w-full rounded-xl border border-gray-200 px-3.5 py-2 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50"
-                      />
-                    )}
+              {/* MANUAL ADDRESS TEXT FORM ONLY */}
+              <form onSubmit={handleSaveCustomAddress} className="space-y-3.5 text-xs">
+                {/* Save Address As */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1.5">Save Address As</label>
+                  <div className="flex gap-2">
+                    {(['Home', 'Work', 'Other'] as const).map((lbl) => (
+                      <button
+                        key={lbl}
+                        type="button"
+                        onClick={() => setNewAddrLabel(lbl)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                          newAddrLabel === lbl
+                            ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      House / Flat / Building <span className="text-rose-500">*</span>
-                    </label>
+                  {newAddrLabel === 'Other' && (
                     <input
                       type="text"
-                      required
-                      value={newHouseNo}
-                      onChange={(e) => setNewHouseNo(e.target.value)}
-                      placeholder="Enter house/flat/building"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                      value={customLabelInput}
+                      onChange={(e) => setCustomLabelInput(e.target.value)}
+                      placeholder="Enter custom label (e.g. Gym, Friend's House)"
+                      className="mt-2 w-full rounded-xl border border-gray-200 px-3.5 py-2 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50"
                     />
-                  </div>
+                  )}
+                </div>
 
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Area / Locality <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newArea}
-                      onChange={(e) => setNewArea(e.target.value)}
-                      placeholder="Enter area/locality"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">Landmark</label>
-                    <input
-                      type="text"
-                      value={newLandmark}
-                      onChange={(e) => setNewLandmark(e.target.value)}
-                      placeholder="Enter nearby landmark"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">
-                        City <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={newCity}
-                        onChange={(e) => setNewCity(e.target.value)}
-                        placeholder="Enter city"
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">
-                        State <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={newState}
-                        onChange={(e) => setNewState(e.target.value)}
-                        placeholder="Enter state"
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
-                    <input
-                      type="text"
-                      value={newPinCode}
-                      onChange={(e) => setNewPinCode(e.target.value)}
-                      placeholder="Enter PIN code"
-                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
-                    />
-                  </div>
-
-                  {/* Optional Map Pin Trigger */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!newLat || !newLng) {
-                        setNewLat(34.3868);
-                        setNewLng(74.5221);
-                      }
-                      setModalStep('MAP');
-                    }}
-                    className={`w-full p-3 rounded-2xl border transition flex items-center justify-between group ${
-                      newLat !== null && newLng !== null
-                        ? 'border-emerald-200 bg-emerald-50/60'
-                        : 'border-orange-200 bg-orange-50/40 hover:bg-orange-100/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <MapPin className="h-4 w-4" />
-                      </div>
-                      <div className="text-left">
-                        <span className="font-black text-gray-900 text-xs block">📍 Set Exact Location on Map</span>
-                        <span className="text-[10px] text-gray-600 font-medium">
-                          {newLat !== null && newLng !== null
-                            ? `✓ Location selected (${newLat.toFixed(4)}, ${newLng.toFixed(4)})`
-                            : 'Pin delivery coordinates on map (optional)'}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-orange-600">
-                      {newLat !== null && newLng !== null ? 'Adjust Pin' : 'Open Map'}
-                    </span>
-                  </button>
-
-                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomAddressModal(false)}
-                      className="px-4 py-2 font-bold text-gray-600 hover:text-gray-900"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition"
-                    >
-                      Save Address
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* VIEW 2: MAP LOCATION SELECTION */}
-              {modalStep === 'MAP' && (
-                <div className="space-y-4 text-xs">
-                  <AddressPickerMap
-                    initialLat={newLat || 34.3868}
-                    initialLng={newLng || 74.5221}
-                    onAddressSelected={(locationData) => {
-                      setNewLat(locationData.lat);
-                      setNewLng(locationData.lng);
-                    }}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    House / Flat / Building <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newHouseNo}
+                    onChange={(e) => setNewHouseNo(e.target.value)}
+                    placeholder="Enter house/flat/building"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                   />
+                </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => setModalStep('FORM')}
-                      className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900 rounded-xl bg-gray-100"
-                    >
-                      ← Back to Address Form
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModalStep('FORM')}
-                      className="flex-1 rounded-xl bg-orange-600 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition text-xs"
-                    >
-                      Confirm Location &amp; Return
-                    </button>
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Area / Locality <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    placeholder="Enter area/locality"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Landmark</label>
+                  <input
+                    type="text"
+                    value={newLandmark}
+                    onChange={(e) => setNewLandmark(e.target.value)}
+                    placeholder="Enter nearby landmark"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      City <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCity}
+                      onChange={(e) => setNewCity(e.target.value)}
+                      placeholder="Enter city"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">
+                      State <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newState}
+                      onChange={(e) => setNewState(e.target.value)}
+                      placeholder="Enter state"
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                    />
                   </div>
                 </div>
-              )}
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
+                  <input
+                    type="text"
+                    value={newPinCode}
+                    onChange={(e) => setNewPinCode(e.target.value)}
+                    placeholder="Enter PIN code"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomAddressModal(false)}
+                    className="px-4 py-2.5 font-bold text-gray-600 hover:text-gray-900"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 transition"
+                  >
+                    Save Address
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

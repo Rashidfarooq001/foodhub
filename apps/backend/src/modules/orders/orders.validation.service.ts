@@ -45,7 +45,8 @@ export class OrdersValidationService {
     const custLng = deliveryAddress?.longitude ? Number(deliveryAddress.longitude) : null;
 
     if (custLat === null || custLng === null || (custLat === 0 && custLng === 0) || isNaN(custLat) || isNaN(custLng)) {
-      throw new BadRequestException('Customer delivery location coordinates are required for delivery check.');
+      // Manual text address without GPS coordinates: skip strict radius check for manual address verification
+      return 0;
     }
 
     // Haversine distance in km
