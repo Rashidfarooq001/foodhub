@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Search, X } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
