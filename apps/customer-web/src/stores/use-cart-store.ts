@@ -206,8 +206,15 @@ export const useCartStore = create<CartState>()(
       getItemCount: () => get().items.reduce((count, item) => count + item.quantity, 0),
     }),
     {
-      name: 'foodhub-cart-storage',
+      name: 'foodhub-cart-storage-v3',
       storage: createJSONStorage(() => localStorage),
+      version: 3,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 3) {
+          return { items: [], restaurantId: null, restaurantName: null, appliedCoupon: null, orderQuote: null };
+        }
+        return persistedState as CartState;
+      },
     },
   ),
 );
