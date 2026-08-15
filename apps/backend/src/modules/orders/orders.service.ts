@@ -109,7 +109,7 @@ export class OrdersService {
     await this.validation.validateDeliveryRadius(dto.restaurantId, dto.deliveryAddress);
 
     // 2. Validate items & inventory
-    await this.validation.validateItemsAvailable(dto.items);
+    await this.validation.validateItemsAvailable(dto.items, dto.restaurantId);
 
     // 3. Calculate subtotal
     let subtotal = 0;

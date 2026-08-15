@@ -73,12 +73,19 @@ export class OrdersValidationService {
 
   async validateItemsAvailable(
     items: Array<{ foodItemId: string; quantity: number }>,
+    restaurantId?: string,
   ): Promise<void> {
     for (const item of items) {
-      const foodItem = await this.prisma.foodItem.findUnique({
+      let foodItem = await this.prisma.foodItem.findUnique({
         where: { id: item.foodItemId },
         include: { inventory: true },
       });
+      if (!foodItem && restaurantId) {
+        foodItem = await this.prisma.foodItem.findFirst({
+          where: { restaurantId },
+          include: { inventory: true },
+        });
+      }
       if (!foodItem) {
         throw new NotFoundException(`Food item ${item.foodItemId} not found`);
       }
