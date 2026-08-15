@@ -283,8 +283,8 @@ export default function CheckoutPage() {
     const landmark = newLandmark.trim();
     const pinCode = newPinCode.trim();
 
-    if (!houseNo || !area || !city || !state) {
-      setGeocodingError('Please fill out all required address fields (*).');
+    if (!houseNo || !area || !landmark || !city || !state || !/^\d{6}$/.test(pinCode)) {
+      setGeocodingError('Please fill in all 6 required address fields with a valid 6-digit PIN code.');
       return;
     }
 
@@ -1326,12 +1326,15 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Landmark</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Landmark <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    required
                     value={newLandmark}
                     onChange={(e) => setNewLandmark(e.target.value)}
-                    placeholder="Enter nearby landmark"
+                    placeholder="Near Main Road / School / Masjid"
                     className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                   />
                 </div>
@@ -1339,39 +1342,43 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-gray-700 mb-1">
-                      City <span className="text-rose-500">*</span>
+                      City / Town <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={newCity}
                       onChange={(e) => setNewCity(e.target.value)}
-                      placeholder="Enter city"
+                      placeholder="Enter city/town"
                       className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                     />
                   </div>
                   <div>
                     <label className="block font-bold text-gray-700 mb-1">
-                      State <span className="text-rose-500">*</span>
+                      State / UT <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={newState}
                       onChange={(e) => setNewState(e.target.value)}
-                      placeholder="Enter state"
+                      placeholder="e.g. Jammu & Kashmir"
                       className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">PIN Code</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    PIN / Postal Code <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
+                    required
+                    maxLength={6}
                     value={newPinCode}
-                    onChange={(e) => setNewPinCode(e.target.value)}
-                    placeholder="Enter PIN code"
+                    onChange={(e) => setNewPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit PIN code"
                     className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 font-medium text-gray-900 focus:border-orange-500 focus:outline-none text-xs bg-gray-50/50 focus:bg-white transition"
                   />
                 </div>
@@ -1397,8 +1404,16 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isGeocodingAddress}
-                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 disabled:opacity-50 transition flex items-center gap-2"
+                    disabled={
+                      isGeocodingAddress ||
+                      !newHouseNo.trim() ||
+                      !newArea.trim() ||
+                      !newLandmark.trim() ||
+                      !newCity.trim() ||
+                      !newState.trim() ||
+                      !/^\d{6}$/.test(newPinCode.trim())
+                    }
+                    className="rounded-xl bg-orange-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-orange-700 disabled:opacity-40 transition flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <span>{isGeocodingAddress ? 'Verifying address location...' : 'Save Address'}</span>
                   </button>

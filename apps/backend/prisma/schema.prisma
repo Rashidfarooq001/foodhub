@@ -45,6 +45,13 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum GeocodingStatus {
+  UNVERIFIED
+  VERIFYING
+  VERIFIED
+  FAILED
+}
+
 enum PaymentStatus {
   PENDING
   PROCESSING
@@ -342,13 +349,23 @@ model CustomerAddress {
   id           String   @id @default(uuid()) @db.Uuid
   customerId   String   @map("customer_id") @db.Uuid
   addressLabel String   @map("address_label") // Home, Work, Other
-  addressLine1 String   @map("address_line1")
-  addressLine2 String?  @map("address_line2")
+  addressLine1 String   @map("address_line1") // House / Flat / Building
+  addressLine2 String?  @map("address_line2") // Area / Locality
+  landmark     String?  @map("landmark")      // Search landmark signal
   city         String
   state        String
   postalCode   String   @map("postal_code")
   latitude     Float
   longitude    Float
+  verificationStatus GeocodingStatus @default(UNVERIFIED) @map("verification_status")
+  geocodingProvider   String?         @map("geocoding_provider")
+  matchedPostalCode   String?         @map("matched_postal_code")
+  matchedCity         String?         @map("matched_city")
+  matchedState        String?         @map("matched_state")
+  matchedLocality     String?         @map("matched_locality")
+  geocodingConfidence Float?          @map("geocoding_confidence")
+  geocodingPrecision  String?         @map("geocoding_precision")
+  geocodingVerifiedAt DateTime?       @map("geocoding_verified_at")
   isDefault    Boolean  @default(false) @map("is_default")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
