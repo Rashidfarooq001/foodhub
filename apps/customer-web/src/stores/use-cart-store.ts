@@ -2,6 +2,8 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { CustomerOrderQuoteData, fetchOrderQuote } from '@foodhub/api-client';
+import { CustomerAddressItem } from './use-address-store';
 
 export interface CartAddon {
   id: string;
@@ -37,6 +39,7 @@ interface CartState {
   packagingFeeType: PackagingFeeType;
   packagingFeeRate: number;
   appliedCoupon: AppliedCoupon | null;
+  orderQuote: CustomerOrderQuoteData | null;
 
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   removeItem: (id: string) => void;
@@ -45,6 +48,8 @@ interface CartState {
   setPackagingRule: (type: PackagingFeeType, rate: number) => void;
   applyCoupon: (code: string, discount: number) => void;
   removeCoupon: () => void;
+  setOrderQuote: (quote: CustomerOrderQuoteData | null) => void;
+  fetchCartQuote: (address?: CustomerAddressItem | null) => Promise<CustomerOrderQuoteData | null>;
 
   getSubtotal: () => number;
   getPackagingFee: () => number;
@@ -64,6 +69,7 @@ export const useCartStore = create<CartState>()(
       packagingFeeType: 'FLAT',
       packagingFeeRate: 15,
       appliedCoupon: null,
+      orderQuote: null,
 
       addItem: (newItem) => {
         const { items, restaurantId } = get();
@@ -75,6 +81,7 @@ export const useCartStore = create<CartState>()(
             restaurantId: newItem.restaurantId,
             restaurantName: newItem.restaurantName,
             appliedCoupon: null,
+            orderQuote: null,
           });
         }
 
@@ -87,7 +94,7 @@ export const useCartStore = create<CartState>()(
         if (existingIndex > -1) {
           const updated = [...currentItems];
           updated[existingIndex].quantity += 1;
-          set({ items: updated });
+          set({ items: updated, orderQuote: null });
         } else {
           set({
             items: [
@@ -96,6 +103,7 @@ export const useCartStore = create<CartState>()(
             ],
             restaurantId: newItem.restaurantId,
             restaurantName: newItem.restaurantName,
+            orderQuote: null,
           });
         }
       },
@@ -107,6 +115,7 @@ export const useCartStore = create<CartState>()(
             items: updated,
             restaurantId: updated.length === 0 ? null : state.restaurantId,
             restaurantName: updated.length === 0 ? null : state.restaurantName,
+            orderQuote: null,
           };
         }),
 
@@ -117,6 +126,7 @@ export const useCartStore = create<CartState>()(
         }
         set((state) => ({
           items: state.items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+          orderQuote: null,
         }));
       },
 
@@ -126,13 +136,48 @@ export const useCartStore = create<CartState>()(
           restaurantId: null,
           restaurantName: null,
           appliedCoupon: null,
+          orderQuote: null,
         }),
 
-      setPackagingRule: (type, rate) => set({ packagingFeeType: type, packagingFeeRate: rate }),
+      setPackagingRule: (type, rate) => set({ packagingFeeType: type, packagingFeeRate: rate, orderQuote: null }),
 
-      applyCoupon: (code, discountAmount) => set({ appliedCoupon: { code, discountAmount } }),
+      applyCoupon: (code, discountAmount) => set({ appliedCoupon: { code, discountAmount }, orderQuote: null }),
 
-      removeCoupon: () => set({ appliedCoupon: null }),
+      removeCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
+
+      setOrderQuote: (quote) => set({ orderQuote: quote }),
+
+      fetchCartQuote: async (address?: CustomerAddressItem | null) => {
+        const subtotal = get().getSubtotal();
+        if (subtotal === 0) {
+          set({ orderQuote: null });
+          return null;
+        }
+
+        const restaurantId = get().restaurantId || get().items[0]?.restaurantId || undefined;
+        const discountAmount = get().getDiscountAmount();
+        const packagingFee = get().getPackagingFee();
+
+        const hasCoords = address?.latitude !== null && address?.latitude !== undefined &&
+          address?.longitude !== null && address?.longitude !== undefined;
+
+        const locationSource = (address as any)?.locationSource || (address?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+
+        const quote = await fetchOrderQuote({
+          foodSubtotal: subtotal,
+          restaurantId,
+          latitude: hasCoords ? address!.latitude! : undefined,
+          longitude: hasCoords ? address!.longitude! : undefined,
+          locationSource,
+          discountAmount,
+          packagingFee,
+        });
+
+        if (quote) {
+          set({ orderQuote: quote });
+        }
+        return quote;
+      },
 
       getSubtotal: () => {
         return get().items.reduce((total, item) => {
@@ -151,15 +196,16 @@ export const useCartStore = create<CartState>()(
       },
 
       getDeliveryFee: () => {
-        const subtotal = get().getSubtotal();
-        if (subtotal === 0) return 0;
-        if (subtotal >= 500) return 0; // Free delivery for orders >= 500
-        return 35; // Standard dynamic delivery fee
+        const { orderQuote } = get();
+        if (orderQuote) return orderQuote.customerDeliveryFee;
+        return 0; // Return 0 until location is verified and quote fetched from backend
       },
 
       getTaxAmount: () => {
+        const { orderQuote } = get();
+        if (orderQuote) return orderQuote.totalCustomerTaxes;
         const subtotal = get().getSubtotal();
-        return Math.round(subtotal * 0.05); // 5% GST
+        return Math.round(subtotal * 0.05); // 5% GST fallback estimation before location
       },
 
       getDiscountAmount: () => (get().appliedCoupon ? get().appliedCoupon!.discountAmount : 0),
@@ -167,10 +213,13 @@ export const useCartStore = create<CartState>()(
       getGrandTotal: () => {
         const subtotal = get().getSubtotal();
         if (subtotal === 0) return 0;
+
+        const { orderQuote } = get();
+        if (orderQuote) return orderQuote.customerTotal;
+
         const total =
           subtotal +
           get().getPackagingFee() +
-          get().getDeliveryFee() +
           get().getTaxAmount() -
           get().getDiscountAmount();
         return Math.max(0, total);

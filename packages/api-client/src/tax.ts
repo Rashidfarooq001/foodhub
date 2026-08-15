@@ -26,6 +26,13 @@ export interface CustomerOrderQuoteData {
   packagingFee: number;
   discountAmount: number;
   tipAmount: number;
+
+  distanceKm: number;
+  distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+  deliveryEligible: boolean;
+  deliveryRadiusKm: number;
+  locationSource: string;
+
   totalCustomerTaxes: number;
   customerTotal: number;
   taxItems: TaxComponentDetail[];
@@ -54,7 +61,11 @@ export type OrderQuoteData = CustomerOrderQuoteData;
 
 export async function fetchOrderQuote(req: {
   foodSubtotal: number;
-  distanceKm: number;
+  distanceKm?: number;
+  restaurantId?: string;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS';
   tipAmount?: number;
   discountAmount?: number;
   packagingFee?: number;

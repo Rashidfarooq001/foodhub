@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { TaxEngineService, TaxComponentOutput } from './tax-engine.service';
 import { PricingService } from '../pricing/pricing.service';
+import { DistanceService } from '../geolocation/distance.service';
 
 export interface OrderQuoteRequest {
   foodSubtotal: number;
-  distanceKm: number;
+  distanceKm?: number;
+  restaurantId?: string;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS';
   tipAmount?: number;
   discountAmount?: number;
   packagingFee?: number;
@@ -20,6 +25,12 @@ export interface OrderQuoteResult {
   packagingFee: number;
   discountAmount: number;
   tipAmount: number;
+
+  distanceKm: number;
+  distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+  deliveryEligible: boolean;
+  deliveryRadiusKm: number;
+  locationSource: string;
 
   taxItems: TaxComponentOutput[];
   restaurantFoodGst: number;
@@ -53,12 +64,12 @@ export class OrderQuoteService {
   constructor(
     private readonly taxEngine: TaxEngineService,
     private readonly pricingService: PricingService,
+    private readonly distanceService: DistanceService,
   ) {}
 
   async calculateQuote(req: OrderQuoteRequest): Promise<OrderQuoteResult> {
     const config = await this.pricingService.getActivePricingConfig();
     const foodSubtotal = Math.max(0, req.foodSubtotal || 0);
-    const distanceKm = Math.max(0, req.distanceKm || 0);
     const tipAmount = Math.max(0, req.tipAmount || 0);
     const discountAmount = Math.max(0, req.discountAmount || 0);
     const packagingFee = Math.max(0, req.packagingFee ?? 15.0);
@@ -66,7 +77,26 @@ export class OrderQuoteService {
     const customerState = req.customerState || 'J&K';
     const restaurantState = req.restaurantState || 'J&K';
 
-    // 1. Delivery Fee: MAX(minimumFee, distance * perKm)
+    // 1. Authoritative Distance & Radius Check via DistanceService
+    let distanceKm = Math.max(0, req.distanceKm || 0);
+    let deliveryEligible = true;
+    let deliveryRadiusKm = 15.0;
+    const locationSource = req.locationSource || 'MANUAL_GEOCODED';
+
+    if (req.restaurantId && typeof req.latitude === 'number' && typeof req.longitude === 'number') {
+      const distRes = await this.distanceService.getDeliveryDistance(
+        req.restaurantId,
+        req.latitude,
+        req.longitude,
+      );
+      if (distRes.valid || distRes.distanceKm > 0) {
+        distanceKm = distRes.distanceKm;
+        deliveryEligible = distRes.valid;
+        deliveryRadiusKm = distRes.radiusKm;
+      }
+    }
+
+    // 2. Delivery Fee: MAX(minimumFee, distance * perKm)
     const rawDeliveryFee = distanceKm * config.customerDeliveryPerKm;
     const customerDeliveryFee = Math.max(
       config.minimumCustomerDeliveryFee,
@@ -178,6 +208,12 @@ export class OrderQuoteService {
       packagingFee,
       discountAmount,
       tipAmount,
+
+      distanceKm,
+      distanceType: 'HAVERSINE',
+      deliveryEligible,
+      deliveryRadiusKm,
+      locationSource,
 
       taxItems,
       restaurantFoodGst,

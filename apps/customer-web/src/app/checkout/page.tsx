@@ -61,7 +61,9 @@ function calculateHaversineDistance(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10; // Round to 1 decimal place
+  const rawDist = R * c;
+  const rounded = Math.round(rawDist * 10) / 10;
+  return rounded < 0.1 ? 0.1 : rounded;
 }
 
 export default function CheckoutPage() {
@@ -171,9 +173,18 @@ export default function CheckoutPage() {
     const pack = getPackagingFee();
     const dist = realDistanceKm ?? 0;
 
+    const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+    const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined &&
+      selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
+    const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+
     fetchOrderQuote({
       foodSubtotal: sub,
       distanceKm: dist,
+      restaurantId: restId || undefined,
+      latitude: hasCoords ? selectedAddress!.latitude! : undefined,
+      longitude: hasCoords ? selectedAddress!.longitude! : undefined,
+      locationSource,
       tipAmount: tipAmount,
       discountAmount: disc,
       packagingFee: pack,
@@ -1191,9 +1202,24 @@ export default function CheckoutPage() {
                     <span>Packaging Fee</span>
                     <span>₹{packagingFee}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Taxes &amp; Statutory Levies</span>
-                    <span>₹{orderQuote ? orderQuote.totalCustomerTaxes : (Math.round((subtotal * 0.05 + platformFee * 0.18) * 100) / 100)}</span>
+                  <div className="space-y-1 py-1">
+                    <div className="flex justify-between text-gray-700 font-semibold">
+                      <span>Customer Taxes &amp; GST</span>
+                      <span>₹{tax}</span>
+                    </div>
+                    {orderQuote?.taxItems?.map((t) => (
+                      t.totalTax > 0 && (
+                        <div key={t.componentCode} className="flex justify-between text-[11px] text-gray-500 pl-2">
+                          <span>
+                            {t.componentCode === 'RESTAURANT_FOOD_SERVICE' ? '• Food GST (5%)' :
+                             t.componentCode === 'PLATFORM_FEE' ? '• Platform Fee GST (18%)' :
+                             t.componentCode === 'DELIVERY_SERVICE' ? '• Delivery GST (18%)' :
+                             `• ${t.componentCode}`}
+                          </span>
+                          <span>₹{t.totalTax}</span>
+                        </div>
+                      )
+                    ))}
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">

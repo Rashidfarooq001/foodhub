@@ -8,6 +8,13 @@ export class CustomerOrderQuoteDto {
   packagingFee: number;
   discountAmount: number;
   tipAmount: number;
+
+  distanceKm: number;
+  distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+  deliveryEligible: boolean;
+  deliveryRadiusKm: number;
+  locationSource: string;
+
   totalCustomerTaxes: number;
   customerTotal: number;
   taxItems: Array<{
@@ -32,6 +39,13 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     packagingFee: fullQuote.packagingFee,
     discountAmount: fullQuote.discountAmount,
     tipAmount: fullQuote.tipAmount,
+
+    distanceKm: fullQuote.distanceKm,
+    distanceType: fullQuote.distanceType,
+    deliveryEligible: fullQuote.deliveryEligible,
+    deliveryRadiusKm: fullQuote.deliveryRadiusKm,
+    locationSource: fullQuote.locationSource,
+
     totalCustomerTaxes: fullQuote.totalCustomerTaxes,
     customerTotal: fullQuote.customerTotal,
     taxItems: (fullQuote.taxItems || []).map((item) => ({

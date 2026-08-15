@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ShoppingBag, Plus, Minus, Tag, Wallet, ArrowRight, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Tag, ArrowRight, Trash2, CheckCircle2, MapPin } from 'lucide-react';
 import { useCartStore } from '../../stores/use-cart-store';
+import { useAddressStore } from '../../stores/use-address-store';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CouponData } from '../../data/mock-data';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
-
 
 interface Props {
   isOpen: boolean;
@@ -22,18 +22,19 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     items,
     restaurantName,
     appliedCoupon,
+    orderQuote,
     updateQuantity,
     removeItem,
-    clearCart,
     applyCoupon,
     removeCoupon,
     getSubtotal,
     getPackagingFee,
-    getDeliveryFee,
-    getTaxAmount,
     getDiscountAmount,
-    getGrandTotal,
+    fetchCartQuote,
   } = useCartStore();
+
+  const { getSelectedAddress } = useAddressStore();
+  const selectedAddress = getSelectedAddress();
 
   const { accessToken } = useAuthStore();
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -54,14 +55,34 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     fetchCoupons();
   }, []);
 
+  // Fetch backend quote whenever items or selected location changes
+  useEffect(() => {
+    if (isOpen && items.length > 0) {
+      fetchCartQuote(selectedAddress);
+    }
+  }, [isOpen, items, selectedAddress, appliedCoupon]);
+
   if (!isOpen) return null;
 
   const subtotal = getSubtotal();
   const packagingFee = getPackagingFee();
-  const deliveryFee = getDeliveryFee();
-  const tax = getTaxAmount();
   const discount = getDiscountAmount();
-  const grandTotal = getGrandTotal();
+
+  const hasVerifiedLocation = selectedAddress &&
+    selectedAddress.latitude !== null && selectedAddress.latitude !== undefined &&
+    selectedAddress.longitude !== null && selectedAddress.longitude !== undefined;
+
+  const deliveryFeeText = hasVerifiedLocation && orderQuote
+    ? `₹${orderQuote.customerDeliveryFee}`
+    : 'Calculated at checkout';
+
+  const taxText = orderQuote
+    ? `₹${orderQuote.totalCustomerTaxes}`
+    : `₹${Math.round(subtotal * 0.05)}`;
+
+  const payableTotal = orderQuote
+    ? orderQuote.customerTotal
+    : Math.max(0, subtotal + packagingFee + Math.round(subtotal * 0.05) - discount);
 
   const handleApplyCoupon = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -133,10 +154,9 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     setIsApplyingCoupon(false);
   };
 
-
   const handleCheckout = () => {
     onClose();
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   return (
@@ -161,6 +181,22 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          {/* Location Bar Indicator */}
+          {selectedAddress && (
+            <div className="bg-orange-50/70 border-b border-orange-100 px-6 py-2 flex items-center justify-between text-xs font-semibold text-orange-950">
+              <div className="flex items-center gap-1.5 truncate">
+                <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+                <span className="truncate">{selectedAddress.addressLine1}, {selectedAddress.city}</span>
+              </div>
+              <button
+                onClick={() => { onClose(); router.push('/checkout'); }}
+                className="text-[10px] font-bold text-orange-600 hover:underline shrink-0 ml-2 uppercase tracking-wide"
+              >
+                Change
+              </button>
+            </div>
+          )}
 
           {/* Cart Items Scroll Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -308,11 +344,13 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Fee</span>
-                    <span>₹{deliveryFee}</span>
+                    <span className={hasVerifiedLocation && orderQuote ? 'font-bold text-gray-900' : 'italic text-gray-500'}>
+                      {deliveryFeeText}
+                    </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Taxes (GST 5%)</span>
-                    <span>₹{tax}</span>
+                    <span>Taxes &amp; Levies</span>
+                    <span>{taxText}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">
@@ -322,7 +360,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   )}
                   <div className="flex justify-between border-t border-gray-200 pt-3 text-base font-black text-gray-900">
                     <span>To Pay</span>
-                    <span className="text-orange-600">₹{grandTotal}</span>
+                    <span className="text-orange-600">₹{payableTotal}</span>
                   </div>
                 </div>
               </>
@@ -338,7 +376,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               >
                 <span>Proceed to Checkout</span>
                 <span className="flex items-center gap-2">
-                  ₹{grandTotal} <ArrowRight className="h-5 w-5" />
+                  ₹{payableTotal} <ArrowRight className="h-5 w-5" />
                 </span>
               </button>
             </div>
