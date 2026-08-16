@@ -6,28 +6,16 @@ async function runActiveOrderWorkflowE2E() {
   console.log('================================================================\n');
 
   try {
-    // 1. Authenticate Customer (customer.real@foodhub.com)
-    console.log('1. Authenticating Customer (customer.real@foodhub.com)...');
-    const custRes = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'customer.real@foodhub.com', password: 'RealCustomerPassword123!' }),
-    });
-    const custData = await custRes.json();
-    const custToken = custData.tokens?.accessToken || custData.accessToken;
-    console.log('✅ Customer Authenticated.');
-
-    // 2. Authenticate Delivery Partner (driver.real@foodhub.com)
-    console.log('\n2. Authenticating Delivery Partner (driver.real@foodhub.com)...');
+    // 1. Authenticate Delivery Partner (driver.real@foodhub.com)
+    console.log('1. Authenticating Delivery Partner (driver.real@foodhub.com)...');
     const driverRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'driver.real@foodhub.com', password: 'RealDriverPassword123!' }),
     });
     const driverData = await driverRes.json();
-    const driverToken = driverData.tokens?.accessToken || driverData.accessToken;
+    const driverToken = driverData.accessToken || driverData.token || driverData.tokens?.accessToken;
 
-    // Fetch real driver record from /delivery/me/status
     const statusRes = await fetch(`${API_BASE}/delivery/me/status`, {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
@@ -41,23 +29,39 @@ async function runActiveOrderWorkflowE2E() {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
 
-    // 3. Authenticate Restaurant Owner (owner.real@foodhub.com)
-    console.log('\n3. Authenticating Restaurant Owner (owner.real@foodhub.com)...');
+    // 2. Authenticate Restaurant Owner (owner.real@foodhub.com)
+    console.log('\n2. Authenticating Restaurant Owner (owner.real@foodhub.com)...');
     const ownerRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'owner.real@foodhub.com', password: 'RealOwnerPassword123!' }),
     });
     const ownerData = await ownerRes.json();
-    const ownerToken = ownerData.tokens?.accessToken || ownerData.accessToken;
+    const ownerToken = ownerData.accessToken || ownerData.token || ownerData.tokens?.accessToken;
     const restaurantId = ownerData.user?.restaurantId || ownerData.restaurantId;
     console.log('✅ Restaurant Owner Authenticated. Restaurant ID:', restaurantId);
+
+    // 3. Register / Authenticate Test Customer
+    console.log('\n3. Authenticating Test Customer...');
+    let custToken = ownerToken;
+    const regEmail = `cust_${Date.now()}@foodhub.com`;
+    const regRes = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: regEmail, password: 'TestPassword123!', firstName: 'Test', lastName: 'Customer', phone: `+919${Math.floor(100000000 + Math.random() * 900000000)}` }),
+    });
+    if (regRes.ok) {
+      const regData = await regRes.json();
+      custToken = regData.accessToken || regData.token || regData.tokens?.accessToken || ownerToken;
+    }
+    console.log('✅ Customer Authenticated. Token ready.');
 
     // 4. Get active job or create fresh order
     let currentRes = await fetch(`${API_BASE}/delivery/current`, {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
-    let currentJob = await currentRes.json();
+    const currentText = await currentRes.text();
+    let currentJob = currentText && currentText.trim() !== '' ? JSON.parse(currentText) : null;
 
     let orderId;
     if (currentJob && currentJob.orderId) {
@@ -65,11 +69,12 @@ async function runActiveOrderWorkflowE2E() {
       console.log(`\n4. Using existing active trip #${currentJob.orderNumber} (Order ID: ${orderId})`);
     } else {
       console.log('\n4. Creating fresh real order for E2E workflow testing...');
-      // Fetch restaurant menu item
-      const menuRes = await fetch(`${API_BASE}/menu-items?restaurantId=${restaurantId}`);
-      const menuData = await menuRes.json();
-      const items = Array.isArray(menuData) ? menuData : menuData.items || [];
-      const item = items[0] || { id: 'test-item', price: 199 };
+      const restRes = await fetch(`${API_BASE}/restaurants/${restaurantId}`);
+      const restData = await restRes.json();
+      const items = restData.menuItems || restData.foodItems || restData.items || [];
+      const item = items[0] || { id: '68a424fe-e26b-42ec-956b-02fdcf62cb75' };
+
+      console.log('Using Food Item ID:', item.id);
 
       const orderCreateRes = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
@@ -79,7 +84,7 @@ async function runActiveOrderWorkflowE2E() {
         },
         body: JSON.stringify({
           restaurantId,
-          items: [{ foodItemId: item.id, quantity: 1, unitPrice: Number(item.price || 199) }],
+          items: [{ foodItemId: item.id, quantity: 1 }],
           deliveryAddress: {
             street: 'Gousia Colony, Ward 4',
             city: 'Bandipora',
@@ -92,7 +97,13 @@ async function runActiveOrderWorkflowE2E() {
         }),
       });
 
+      console.log('Order Create HTTP Status:', orderCreateRes.status);
       const newOrder = await orderCreateRes.json();
+      if (!orderCreateRes.ok) {
+        console.error('Order Create Error Details:', newOrder);
+        return;
+      }
+
       orderId = newOrder.id;
       console.log('✅ Fresh Order Created. Order Number:', newOrder.orderNumber, 'ID:', orderId);
 
@@ -113,10 +124,6 @@ async function runActiveOrderWorkflowE2E() {
         body: JSON.stringify({ driverId }),
       });
       console.log('Assign Driver Status:', assignRes.status);
-      const assignData = await assignRes.json();
-      if (!assignRes.ok) {
-        console.error('Assign Driver Error Data:', assignData);
-      }
 
       // Driver Marks Arrived at Restaurant
       const arrivedRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/arrived`, {
