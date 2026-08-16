@@ -206,6 +206,12 @@ async function bootstrap() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'delivery_mode') THEN
               ALTER TABLE "restaurants" ADD COLUMN "delivery_mode" "DeliveryMode" NOT NULL DEFAULT 'FOODHUB_DELIVERY';
           END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'latitude' AND is_nullable = 'NO') THEN
+              ALTER TABLE "restaurants" ALTER COLUMN "latitude" DROP NOT NULL;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'longitude' AND is_nullable = 'NO') THEN
+              ALTER TABLE "restaurants" ALTER COLUMN "longitude" DROP NOT NULL;
+          END IF;
 
           -- Orders table columns
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_foodhub_driver_id') THEN
