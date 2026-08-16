@@ -3,27 +3,22 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
-import { UserRole, DriverStatus } from '@prisma/client';
+import { UserRole, DriverStatus, AuditAction } from '@prisma/client';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
 
-/**
- * DriversService — manages FoodHub courier partner accounts.
- *
- * DATABASE IS THE SOURCE OF TRUTH.
- * This service NEVER:
- * - Hardcodes default passwords
- * - Invents fake driving license numbers
- * - Creates a default vehicle type (missing vehicleType → 400 error)
- * - Inserts fake document URLs
- * - Leaves partial records on failure (all writes are inside $transaction)
- */
 @Injectable()
 export class DriversService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: OrdersGateway,
+  ) {}
 
   /**
    * Admin direct creation of a delivery partner account.
@@ -214,16 +209,54 @@ export class DriversService {
     });
   }
 
-  async updateApprovalStatus(driverId: string, isApproved: boolean) {
+  async updateApprovalStatus(driverId: string, isApproved: boolean, reason?: string, adminUserId?: string) {
     const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
     if (!driver) throw new NotFoundException('Driver not found');
 
-    return this.prisma.driver.update({
+    const previousStatus = driver.status;
+    const nextStatus = isApproved ? DriverStatus.OFFLINE : DriverStatus.SUSPENDED;
+
+    const updated = await this.prisma.driver.update({
       where: { id: driverId },
       data: {
         isApproved,
-        status: isApproved ? DriverStatus.OFFLINE : DriverStatus.SUSPENDED,
+        status: nextStatus,
       },
+      include: { user: { include: { profile: true } } },
     });
+
+    // Create Audit Log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId || null,
+          action: AuditAction.STATUS_CHANGE,
+          entityName: 'Driver',
+          entityId: driverId,
+          oldValue: { isApproved: driver.isApproved, status: previousStatus },
+          newValue: { isApproved, status: nextStatus, reason: reason || null },
+        },
+      });
+    } catch {
+      /* audit log fallback */
+    }
+
+    // Realtime Socket broadcast
+    if (this.gateway) {
+      this.gateway.emitToDriver(driverId, ORDER_EVENTS.DRIVER_STATUS_CHANGED as any, {
+        driverId,
+        isApproved,
+        status: nextStatus,
+        reason: reason || null,
+      });
+      this.gateway.emitToAdmin(ORDER_EVENTS.DRIVER_STATUS_CHANGED as any, {
+        driverId,
+        isApproved,
+        status: nextStatus,
+        reason: reason || null,
+      });
+    }
+
+    return updated;
   }
 }

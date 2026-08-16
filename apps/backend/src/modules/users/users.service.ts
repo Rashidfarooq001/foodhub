@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { UserRole } from '@prisma/client';
+import { UserRole, AuditAction } from '@prisma/client';
 import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
 import { normalizeIndianPhone } from '@foodhub/utils';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: OrdersGateway,
+  ) {}
 
   async findUserByPhone(phone: string) {
     if (!phone || !phone.trim()) return null;
@@ -191,9 +196,11 @@ export class UsersService {
     };
   }
 
-  async updateUserStatusByAdmin(userId: string, isActive: boolean) {
+  async updateUserStatusByAdmin(userId: string, isActive: boolean, reason?: string, adminUserId?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
+
+    const previousActive = user.isActive;
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
@@ -201,13 +208,39 @@ export class UsersService {
       include: { profile: true },
     });
 
+    // Create Audit Log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId || null,
+          action: AuditAction.STATUS_CHANGE,
+          entityName: 'User',
+          entityId: userId,
+          oldValue: { isActive: previousActive },
+          newValue: { isActive, reason: reason || null },
+        },
+      });
+    } catch {
+      /* audit log fallback */
+    }
+
+    // Realtime Socket broadcast
+    if (this.gateway) {
+      this.gateway.emitToAdmin(ORDER_EVENTS.USER_STATUS_CHANGED as any, {
+        userId,
+        isActive,
+        role: user.role,
+        reason: reason || null,
+      });
+    }
+
     return {
       id: updated.id,
       phone: updated.phone,
       email: updated.email,
       role: updated.role,
       isActive: updated.isActive,
-      message: `User account ${isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `User account ${isActive ? 'activated' : 'deactivated/suspended'} successfully`,
     };
   }
 

@@ -1,17 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Optional, Inject } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
-import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
+import { RestaurantStatus, UserRole, DeliveryMode, AuditAction } from '@prisma/client';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
 import { serializePrisma } from '../../common/utils/serializer.util';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
+
 const isUUID = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
 @Injectable()
 export class RestaurantsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly gateway?: OrdersGateway,
+  ) {}
 
   async createRestaurant(dto: CreateRestaurantDto) {
     // Validate required fields — never invent defaults
@@ -507,6 +514,17 @@ export class RestaurantsService {
 
     const isOpen = prismaStatus === RestaurantStatus.APPROVED;
 
+    const prevRestaurant = await this.prisma.restaurant.findUnique({
+      where: { id },
+      select: { id: true, name: true, status: true, ownerId: true },
+    });
+
+    if (!prevRestaurant) {
+      throw new NotFoundException(`Restaurant ${id} not found.`);
+    }
+
+    const previousStatus = prevRestaurant.status;
+
     const restaurant = await this.prisma.restaurant.update({
       where: { id },
       data: {
@@ -537,6 +555,38 @@ export class RestaurantsService {
         designation: 'Owner',
       },
     });
+
+    // Create Audit Log
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId || null,
+          action: AuditAction.STATUS_CHANGE,
+          entityName: 'Restaurant',
+          entityId: id,
+          oldValue: { status: previousStatus },
+          newValue: { status: prismaStatus, reason: rejectionReason || null },
+        },
+      });
+    } catch {
+      /* audit log fallback */
+    }
+
+    // Emit Realtime Socket.IO Event
+    if (this.gateway) {
+      this.gateway.emitToRestaurant(id, ORDER_EVENTS.RESTAURANT_STATUS_CHANGED as any, {
+        restaurantId: id,
+        status: prismaStatus,
+        isOpen,
+        reason: rejectionReason || null,
+      });
+      this.gateway.emitToAdmin(ORDER_EVENTS.RESTAURANT_STATUS_CHANGED as any, {
+        restaurantId: id,
+        status: prismaStatus,
+        isOpen,
+        reason: rejectionReason || null,
+      });
+    }
 
     return {
       ...restaurant,

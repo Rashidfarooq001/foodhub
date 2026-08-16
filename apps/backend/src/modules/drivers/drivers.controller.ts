@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DriversService } from './drivers.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
@@ -68,11 +68,14 @@ export class DriversController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Approve or Reject driver onboarding application' })
+  @ApiOperation({ summary: 'Approve or Reject/Suspend driver onboarding application' })
   async updateApproval(
     @Param('id') id: string,
     @Body('isApproved') isApproved: boolean,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
   ) {
-    return this.driversService.updateApprovalStatus(id, isApproved);
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.updateApprovalStatus(id, isApproved, reason, adminUserId);
   }
 }

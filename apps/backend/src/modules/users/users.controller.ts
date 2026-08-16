@@ -52,12 +52,15 @@ export class UsersController {
   @Patch('users/:id/status')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Activate or deactivate a user account (Admin Only)' })
+  @ApiOperation({ summary: 'Activate or deactivate/suspend a user account (Admin Only)' })
   async updateUserStatus(
     @Param('id') userId: string,
     @Body('isActive') isActive: boolean,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
   ) {
-    return this.usersService.updateUserStatusByAdmin(userId, isActive);
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.updateUserStatusByAdmin(userId, isActive, reason, adminUserId);
   }
 
   @Get('addresses')

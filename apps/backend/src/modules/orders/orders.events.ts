@@ -13,6 +13,8 @@ export const ORDER_EVENTS = {
   REFUND_INITIATED:       'refund.initiated',
   DELIVERY_LOCATION_UPDATED: 'order:delivery-location-updated',
   DRIVER_STATUS_CHANGED:  'driver.status_changed',
+  RESTAURANT_STATUS_CHANGED: 'restaurant.status_changed',
+  USER_STATUS_CHANGED:    'user.status_changed',
 } as const;
 
 export type OrderEventName = (typeof ORDER_EVENTS)[keyof typeof ORDER_EVENTS];
