@@ -149,6 +149,7 @@ export class DeliveryJobsController {
         data: {
           status: DriverStatus.ONLINE,
         },
+        select: { id: true, status: true },
       });
 
       return {
@@ -192,6 +193,7 @@ export class DeliveryJobsController {
         data: {
           status: DriverStatus.OFFLINE,
         },
+        select: { id: true, status: true },
       });
 
       return {
@@ -226,6 +228,7 @@ export class DeliveryJobsController {
         await this.prisma.driver.update({
           where: { id: driver.id },
           data: { currentLat: lat, currentLng: lng },
+          select: { id: true },
         });
       }
 
