@@ -1,17 +1,19 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-
-const FALLBACK_LIVE_DB_URL =
-  'postgresql://foodhub_db_owner:npg_u6Q1yYwzXbFK@ep-super-pond-a10g8w9v-pooler.ap-southeast-1.aws.neon.tech/foodhub_db?sslmode=require';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PrismaService.name);
+
   constructor() {
-    const envUrl = process.env.DATABASE_URL;
-    const dbUrl =
-      envUrl && !envUrl.includes('ep-empty-block-ayeiv0ux')
-        ? envUrl
-        : FALLBACK_LIVE_DB_URL;
+    const dbUrl = process.env.DATABASE_URL;
+
+    if (!dbUrl || dbUrl.trim() === '') {
+      throw new Error(
+        'CRITICAL CONFIGURATION ERROR: DATABASE_URL environment variable is missing. ' +
+        'Specify a valid DATABASE_URL in environment configuration.',
+      );
+    }
 
     super({
       datasources: {
@@ -24,7 +26,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      await this.$connect();
+      this.logger.log('Database connection initialized successfully.');
+    } catch (err: any) {
+      this.logger.error(`Database connection failed on startup: ${err?.message || err}`);
+      throw err;
+    }
   }
 
   async onModuleDestroy() {

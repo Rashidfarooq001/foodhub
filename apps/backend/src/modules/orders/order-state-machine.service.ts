@@ -59,7 +59,7 @@ export class OrderStateMachineService {
     // Validate Actor Permission & State Transition Matrix
     this.validateActorPermission(order, currentStatus, targetStatus, actor);
 
-    // Perform Atomic DB Transaction
+    // Perform Atomic DB Transaction for All Critical Order & Audit State
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       const now = new Date();
 
@@ -86,7 +86,6 @@ export class OrderStateMachineService {
         const custLat = delAddr?.latitude || 34.3877;
         const custLng = delAddr?.longitude || 74.5228;
 
-        // Calculate distance if needed
         const distanceKm = delAddr?.distanceKm || this.calculateHaversineDistance(restLat, restLng, custLat, custLng);
 
         const pickupAddress = {
@@ -208,38 +207,30 @@ export class OrderStateMachineService {
         },
       });
 
-      // 3. Record OrderStatusHistory safely inside try/catch
-      try {
-        const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
-        await tx.orderStatusHistory.create({
-          data: {
-            orderId: order.id,
-            fromStatus: currentStatus,
-            toStatus: targetStatus,
-            changedBy: validActorUserId,
-          },
-        });
-      } catch (histErr: any) {
-        this.logger.warn(`Non-critical OrderStatusHistory creation skipped: ${histErr?.message || histErr}`);
-      }
+      // 3. Record OrderStatusHistory atomically
+      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          fromStatus: currentStatus,
+          toStatus: targetStatus,
+          changedBy: validActorUserId,
+        },
+      });
 
-      // 4. Record OrderTimeline safely inside try/catch
-      try {
-        await tx.orderTimeline.create({
-          data: {
-            orderId: order.id,
-            status: targetStatus,
-            message: extraData?.reason || this.getStatusMessage(targetStatus),
-          },
-        });
-      } catch (timeErr: any) {
-        this.logger.warn(`Non-critical OrderTimeline creation skipped: ${timeErr?.message || timeErr}`);
-      }
+      // 4. Record OrderTimeline atomically
+      await tx.orderTimeline.create({
+        data: {
+          orderId: order.id,
+          status: targetStatus,
+          message: extraData?.reason || this.getStatusMessage(targetStatus),
+        },
+      });
 
       return updatedOrderRecord;
     });
 
-    // 5. Emit Realtime Events (SAFELY WRAPPED IN TRY/CATCH AFTER DB SUCCESS)
+    // 5. Emit Realtime Events (NON-CRITICAL AUXILIARY NOTIFICATIONS AFTER DB COMMIT)
     this.emitRealtimeEvents(updatedOrder, currentStatus, targetStatus);
 
     return updatedOrder;

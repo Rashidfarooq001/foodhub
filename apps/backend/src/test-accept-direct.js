@@ -1,15 +1,22 @@
 const { PrismaClient } = require('@prisma/client');
 
+const dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl) {
+  console.error('DATABASE_URL environment variable is required to run test-accept-direct.js');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://foodhub_db_owner:npg_u6Q1yYwzXbFK@ep-super-pond-a10g8w9v.ap-southeast-1.aws.neon.tech/foodhub_db?sslmode=require',
+      url: dbUrl,
     },
   },
 });
 
 async function runTrace() {
-  console.log('=== DIRECT DATABASE TRACE WITH DIRECT NEON HOST ===');
+  console.log('=== DIRECT DATABASE TRACE OF ORDER TRANSITION ===');
   try {
     const orderId = 'eaf99d39-d299-4694-b947-a920684a82a6';
     const userId = '39bf0909-da74-4f23-85a3-c4ed98efad4c';

@@ -1,9 +1,16 @@
-const { PrismaClient } = require('./apps/backend/node_modules/@prisma/client');
+const { PrismaClient } = require('@prisma/client');
+
+const dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl) {
+  console.error('DATABASE_URL environment variable is required to run trace-create-order-backend-error.js');
+  process.exit(1);
+}
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://foodhub_db_owner:npg_u6Q1yYwzXbFK@ep-super-pond-a10g8w9v-pooler.ap-southeast-1.aws.neon.tech/foodhub_db?sslmode=require',
+      url: dbUrl,
     },
   },
 });
