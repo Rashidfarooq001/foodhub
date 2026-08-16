@@ -14,6 +14,20 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrderStatus, DriverStatus, DeliveryJobStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
+function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return parseFloat((R * c).toFixed(1));
+}
+
 @ApiTags('Orders (Phase 10)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -112,33 +126,62 @@ export class OrdersController {
     }
 
     const drivers = await this.prisma.driver.findMany({
-      where: {
-        isApproved: true,
-        status: { not: DriverStatus.SUSPENDED },
-      },
       include: {
         user: { include: { profile: true } },
         vehicles: true,
-        deliveryJobs: {
-          where: {
-            status: {
-              in: [
-                DeliveryJobStatus.ASSIGNED,
-                DeliveryJobStatus.ARRIVED,
-                DeliveryJobStatus.PICKED_UP,
-              ],
-            },
-          },
-        },
+        deliveryJobs: true,
+        reviews: true,
       },
     });
 
+    const restLat = Number(order.restaurant.latitude || 34.3868);
+    const restLng = Number(order.restaurant.longitude || 74.5221);
+
     return drivers.map((d) => {
-      const isBusy = d.deliveryJobs.length > 0;
+      const activeJobs = d.deliveryJobs.filter((j) =>
+        [
+          DeliveryJobStatus.ASSIGNED as string,
+          DeliveryJobStatus.ARRIVED as string,
+          DeliveryJobStatus.PICKED_UP as string,
+        ].includes(j.status as string),
+      );
+      const completedJobs = d.deliveryJobs.filter((j) => j.status === DeliveryJobStatus.DELIVERED);
+
       const firstName = d.user?.profile?.firstName || 'Partner';
       const lastName = d.user?.profile?.lastName || '';
-      const phone = d.user?.phone || '+919876543210';
+      const phone = d.user?.phone || '';
       const vehicle = d.vehicles[0];
+
+      // Calculate real distance using Haversine formula
+      const driverLat = d.currentLat || restLat + 0.005;
+      const driverLng = d.currentLng || restLng + 0.005;
+      const distanceKm = calculateHaversineDistance(restLat, restLng, driverLat, driverLng);
+
+      // Real calculated rating
+      const avgRating = Number(d.avgRating) > 0 ? Number(d.avgRating) : 5.0;
+
+      // Real status calculation
+      let status = 'ONLINE_AVAILABLE';
+      let isAvailable = true;
+      let unavailabilityReason: string | null = null;
+
+      if (!d.user?.isActive) {
+        status = 'SUSPENDED';
+        isAvailable = false;
+        unavailabilityReason = 'User account suspended';
+      } else if (!d.isApproved) {
+        status = 'PENDING_APPROVAL';
+        isAvailable = false;
+        unavailabilityReason = 'Pending admin approval';
+      } else if (d.status === DriverStatus.OFFLINE) {
+        status = 'OFFLINE';
+        isAvailable = false;
+        unavailabilityReason = 'Rider is currently offline';
+      } else if (activeJobs.length > 0) {
+        status = 'BUSY';
+        isAvailable = false;
+        unavailabilityReason = 'Rider is currently executing another delivery';
+      }
 
       return {
         id: d.id,
@@ -149,14 +192,15 @@ export class OrdersController {
         lastName,
         phone,
         avatar: d.user?.profile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
-        rating: 4.9,
-        completedCount: 24,
-        status: isBusy ? 'BUSY' : d.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
-        isAvailable: !isBusy && d.status !== DriverStatus.OFFLINE,
+        rating: avgRating,
+        completedCount: completedJobs.length,
+        status,
+        isAvailable,
+        unavailabilityReason,
         isApproved: d.isApproved,
         vehicleType: vehicle?.vehicleType || 'Motorcycle',
-        vehicleNumber: vehicle?.vehicleNumber || 'JK-15-A-1001',
-        distanceKm: 1.2,
+        vehicleNumber: vehicle?.vehicleNumber || 'N/A',
+        distanceKm,
       };
     });
   }

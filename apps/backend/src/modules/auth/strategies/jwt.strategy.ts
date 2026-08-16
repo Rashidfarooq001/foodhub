@@ -34,6 +34,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         restaurantStaff: {
           include: { restaurant: true },
         },
+        driver: {
+          select: { id: true },
+        },
       },
     });
 
@@ -52,6 +55,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (rest) restaurantId = rest.id;
     }
 
+    const driverId = user.driver?.id;
+
     return {
       id: user.id,
       phone: user.phone,
@@ -60,6 +65,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       sessionId: payload.sessionId,
       profile: user.profile,
       restaurantId,
+      driverId,
     };
   }
 }

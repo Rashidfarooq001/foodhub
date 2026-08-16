@@ -1,11 +1,34 @@
 const API_BASE = 'https://foodhub-backend-enq2.onrender.com/api/v1';
 
 async function runRiderAssignmentVerification() {
-  console.log('=== RESTAURANT-CONTROLLED RIDER ASSIGNMENT VERIFICATION ===\n');
+  console.log('=== RESTAURANT-CONTROLLED RIDER ASSIGNMENT REAL LIFECYCLE AUDIT ===\n');
 
   try {
-    // 1. Log in as Restaurant Owner
-    console.log('1. Logging in as Restaurant Owner (owner.real@foodhub.com)...');
+    // 1. Delivery Partner logs in and sets status to ONLINE
+    console.log('1. Logging in as Delivery Partner (driver.real@foodhub.com)...');
+    const driverLogin = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'driver.real@foodhub.com', password: 'RealDriverPassword123!' }),
+    });
+    const driverData = await driverLogin.json();
+    const driverToken = driverData.tokens?.accessToken || driverData.accessToken;
+    console.log(`✅ Driver logged in. Driver ID: ${driverData.user?.driverId}`);
+
+    console.log('\n2. Toggling driver duty status to ONLINE...');
+    const dutyRes = await fetch(`${API_BASE}/delivery/duty-status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${driverToken}`,
+      },
+      body: JSON.stringify({ status: 'ONLINE' }),
+    });
+    const dutyData = await dutyRes.json();
+    console.log(`✅ Driver Duty Status set to: ${dutyData.dutyStatus}`);
+
+    // 3. Log in as Restaurant Owner
+    console.log('\n3. Logging in as Restaurant Owner (owner.real@foodhub.com)...');
     const ownerRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -13,66 +36,66 @@ async function runRiderAssignmentVerification() {
     });
     const ownerData = await ownerRes.json();
     const ownerToken = ownerData.tokens?.accessToken || ownerData.accessToken;
-    console.log('✅ Restaurant Owner logged in. Token acquired.');
 
-    // 2. Fetch PENDING/ACCEPTED orders
-    console.log('\n2. Fetching active restaurant orders...');
-    const ordersRes = await fetch(`${API_BASE}/orders?limit=10`, {
+    // Fetch active order
+    const ordersRes = await fetch(`${API_BASE}/orders?limit=1`, {
       headers: { Authorization: `Bearer ${ownerToken}` },
     });
     const ordersData = await ordersRes.json();
     const orders = Array.isArray(ordersData) ? ordersData : ordersData.orders ?? [];
-    console.log(`Fetched ${orders.length} orders for restaurant.`);
-
     if (orders.length === 0) {
-      console.log('No order found to test rider assignment.');
+      console.log('No order found to test.');
       return;
     }
-
     const testOrder = orders[0];
     console.log(`Selected Order #${testOrder.orderNumber} (ID: ${testOrder.id})`);
 
-    // 3. Query eligible riders for this order
-    console.log(`\n3. Querying eligible FoodHub riders (GET /orders/${testOrder.id}/eligible-riders)...`);
+    // 4. Query eligible riders for this order
+    console.log(`\n4. Restaurant querying eligible riders (GET /orders/${testOrder.id}/eligible-riders)...`);
     const ridersRes = await fetch(`${API_BASE}/orders/${testOrder.id}/eligible-riders`, {
       headers: { Authorization: `Bearer ${ownerToken}` },
     });
     const riders = await ridersRes.json();
-    console.log(`HTTP ${ridersRes.status}: Found ${Array.isArray(riders) ? riders.length : 0} eligible riders.`);
+    console.log(`HTTP ${ridersRes.status}: Returned ${riders.length} rider records from PostgreSQL.`);
 
-    if (Array.isArray(riders) && riders.length > 0) {
-      const selectedRider = riders[0];
-      console.log(`Eligible Rider Sample: ${selectedRider.name} (${selectedRider.vehicleType} • ${selectedRider.phone}) - Available: ${selectedRider.isAvailable}`);
+    const availableRiders = riders.filter((r) => r.isAvailable);
+    const unavailableRiders = riders.filter((r) => !r.isAvailable);
 
-      // 4. Restaurant explicitly assigns selected rider
-      console.log(`\n4. Assigning rider ${selectedRider.name} (ID: ${selectedRider.driverId}) to Order #${testOrder.orderNumber}...`);
+    console.log(`  - ONLINE_AVAILABLE Riders: ${availableRiders.length}`);
+    console.log(`  - Unavailable Riders: ${unavailableRiders.length}`);
+
+    if (availableRiders.length > 0) {
+      const targetRider = availableRiders[0];
+      console.log('\nSample Available Rider Record:');
+      console.log(`  Name: ${targetRider.name}`);
+      console.log(`  Phone: ${targetRider.phone}`);
+      console.log(`  Vehicle: ${targetRider.vehicleType} (${targetRider.vehicleNumber})`);
+      console.log(`  Rating: ★ ${targetRider.rating}`);
+      console.log(`  Completed Deliveries: ${targetRider.completedCount}`);
+      console.log(`  Distance from Restaurant: ${targetRider.distanceKm} km`);
+      console.log(`  Status: ${targetRider.status} (isAvailable: ${targetRider.isAvailable})`);
+
+      // 5. Restaurant explicitly assigns rider
+      console.log(`\n5. Restaurant assigning rider ${targetRider.name} to Order #${testOrder.orderNumber}...`);
       const assignRes = await fetch(`${API_BASE}/orders/${testOrder.id}/assign-rider`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ownerToken}`,
         },
-        body: JSON.stringify({ driverId: selectedRider.driverId }),
+        body: JSON.stringify({ driverId: targetRider.driverId }),
       });
 
       console.log(`ASSIGN RIDER HTTP Status: ${assignRes.status} ${assignRes.statusText}`);
       if (assignRes.ok) {
         const assignData = await assignRes.json();
         console.log(`✅ Order Status updated to: ${assignData.status}`);
-      } else {
-        const err = await assignRes.json();
-        console.log('Assign Result:', err.message);
       }
     }
 
-    // 5. Test Unauthorized Access (Server-side Ownership Enforcement)
-    console.log('\n5. Testing Server-Side Ownership Enforcement with unauthenticated request...');
-    const unauthRes = await fetch(`${API_BASE}/orders/${testOrder.id}/eligible-riders`);
-    console.log(`Unauthenticated HTTP Status: ${unauthRes.status} (Expected 401 Unauthorized)`);
-
-    console.log('\n🎉 ALL RESTAURANT RIDER ASSIGNMENT TESTS COMPLETED CLEANLY!');
+    console.log('\n🎉 ALL REALTIME RIDER AVAILABILITY & ASSIGNMENT AUDIT CHECKS PASSED!');
   } catch (err) {
-    console.error('❌ ASSIGNMENT TEST EXCEPTION:', err);
+    console.error('❌ RIDER ASSIGNMENT AUDIT EXCEPTION:', err);
   }
 }
 

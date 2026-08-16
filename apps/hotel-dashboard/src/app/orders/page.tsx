@@ -19,6 +19,8 @@ import {
   RefreshCw,
   Star,
   UserCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
@@ -98,6 +100,7 @@ export default function HotelOrdersPage() {
   const [eligibleRiders, setEligibleRiders] = useState<any[]>([]);
   const [isFetchingRiders, setIsFetchingRiders] = useState(false);
   const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
+  const [showUnavailableRiders, setShowUnavailableRiders] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -314,6 +317,7 @@ export default function HotelOrdersPage() {
     setAssigningOrder(order);
     setIsFetchingRiders(true);
     setEligibleRiders([]);
+    setShowUnavailableRiders(false);
     try {
       const res = await fetch(`${API_BASE}/orders/${order.id}/eligible-riders`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
@@ -380,6 +384,9 @@ export default function HotelOrdersPage() {
   };
 
   const filteredOrders = getFilteredOrders();
+
+  const availableRidersList = eligibleRiders.filter((r) => r.isAvailable);
+  const unavailableRidersList = eligibleRiders.filter((r) => !r.isAvailable);
 
   const getTabCount = (tab: FilterTab) => {
     return orders.filter((o) => {
@@ -718,7 +725,7 @@ export default function HotelOrdersPage() {
       {/* RIDER SELECTION MODAL */}
       {assigningOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block">RESTAURANT RIDER ASSIGNMENT</span>
@@ -731,56 +738,96 @@ export default function HotelOrdersPage() {
 
             {isFetchingRiders ? (
               <div className="py-12 text-center text-xs font-bold text-gray-400">Searching nearby eligible FoodHub riders...</div>
-            ) : eligibleRiders.length === 0 ? (
-              <div className="py-8 text-center space-y-3">
-                <Bike className="h-10 w-10 mx-auto text-gray-300" />
-                <p className="text-sm font-black text-gray-800">No Online Delivery Partners Nearby</p>
-                <p className="text-xs text-gray-500">FoodHub platform fleet will auto-dispatch when a rider becomes online.</p>
-              </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {eligibleRiders.map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-4 hover:border-purple-200 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={r.avatar}
-                        alt={r.name}
-                        className="h-12 w-12 rounded-2xl object-cover border border-white shadow-sm shrink-0"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-gray-900">{r.name}</h4>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-black ${
-                              r.status === 'ONLINE' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {r.status}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 font-bold mt-0.5">
-                          {r.vehicleType} • {r.vehicleNumber} • {r.phone}
-                        </p>
-                        <div className="flex items-center gap-3 text-[11px] font-bold text-gray-400 mt-1">
-                          <span className="text-amber-600 flex items-center gap-0.5">★ {r.rating}</span>
-                          <span>{r.completedCount} orders completed</span>
-                          <span>{r.distanceKm} km away</span>
-                        </div>
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                {/* SECTION 1: AVAILABLE FOODHUB RIDERS */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Available FoodHub Riders ({availableRidersList.length})
+                  </h4>
 
+                  {availableRidersList.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center space-y-2">
+                      <Bike className="h-8 w-8 mx-auto text-gray-300" />
+                      <p className="text-xs font-bold text-gray-700">No FoodHub riders are currently available nearby.</p>
+                      <p className="text-[11px] text-gray-400">FoodHub platform fleet will auto-dispatch as soon as a delivery partner becomes online.</p>
+                    </div>
+                  ) : (
+                    availableRidersList.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/20 p-4 hover:border-emerald-300 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={r.avatar}
+                            alt={r.name}
+                            className="h-12 w-12 rounded-2xl object-cover border border-white shadow-sm shrink-0"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-black text-gray-900">{r.name}</h4>
+                              <span className="rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5">
+                                ONLINE
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-bold mt-0.5">
+                              {r.vehicleType} • {r.vehicleNumber} • {r.phone}
+                            </p>
+                            <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
+                              <span className="text-amber-600 font-black">★ {r.rating}</span>
+                              <span>{r.completedCount} deliveries completed</span>
+                              <span className="text-emerald-700 font-bold">{r.distanceKm} km away</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          disabled={assigningDriverId === r.id}
+                          onClick={() => handleAssignRider(r.driverId)}
+                          className="w-full sm:w-auto shrink-0 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-md hover:bg-purple-700 disabled:opacity-50"
+                        >
+                          {assigningDriverId === r.id ? 'Assigning...' : 'ASSIGN RIDER'}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* SECTION 2: OPTIONAL EXPANDABLE UNAVAILABLE RIDERS */}
+                {unavailableRidersList.length > 0 && (
+                  <div className="border-t border-gray-100 pt-3">
                     <button
-                      disabled={assigningDriverId === r.id || !r.isAvailable}
-                      onClick={() => handleAssignRider(r.driverId)}
-                      className="w-full sm:w-auto shrink-0 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-black text-white shadow-md hover:bg-purple-700 disabled:opacity-50"
+                      onClick={() => setShowUnavailableRiders(!showUnavailableRiders)}
+                      className="w-full flex items-center justify-between text-xs font-bold text-gray-500 hover:text-gray-800 py-1"
                     >
-                      {assigningDriverId === r.id ? 'Assigning...' : r.isAvailable ? 'ASSIGN RIDER' : 'RIDER BUSY'}
+                      <span>Unavailable Riders ({unavailableRidersList.length})</span>
+                      {showUnavailableRiders ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
+
+                    {showUnavailableRiders && (
+                      <div className="space-y-2 mt-2">
+                        {unavailableRidersList.map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3 opacity-75"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img src={r.avatar} alt={r.name} className="h-9 w-9 rounded-xl object-cover" />
+                              <div>
+                                <h5 className="text-xs font-bold text-gray-800">{r.name}</h5>
+                                <p className="text-[10px] text-gray-500">{r.vehicleType} • {r.phone}</p>
+                              </div>
+                            </div>
+                            <span className="rounded-full bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1">
+                              {r.unavailabilityReason || r.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
