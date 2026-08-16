@@ -356,4 +356,16 @@ export class OrdersController {
     };
     return this.stateMachineService.getRestaurantPickupOtp(id, actor);
   }
+
+  @Post(':id/reviews')
+  @ApiOperation({ summary: 'Customer submits review and rating for delivered order' })
+  async submitReview(
+    @Param('id') id: string,
+    @Body('rating') rating: number,
+    @Body('comment') comment: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.submitOrderReview(id, rating, comment, userId);
+  }
 }
