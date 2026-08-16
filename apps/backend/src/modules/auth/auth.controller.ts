@@ -195,6 +195,20 @@ export class AuthController {
     return this.authService.resetAdminPasswordWithToken(dto);
   }
 
+  @Patch('admin/change-passwords')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Admin Password 1 (16 digits) and/or Password 2 (8 digits)' })
+  @ApiResponse({ status: 200, description: 'Admin passwords updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid password format' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async changeAdminPasswords(
+    @CurrentUser('id') userId: string,
+    @Body() dto: { newPassword1?: string; newPassword2?: string },
+  ) {
+    return this.authService.changeAdminPasswords(userId, dto);
+  }
+
   @Patch('admin/change-security-questions')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
