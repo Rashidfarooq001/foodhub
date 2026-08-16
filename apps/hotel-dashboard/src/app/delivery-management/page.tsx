@@ -6,20 +6,13 @@ import {
   Building2,
   Plus,
   Search,
-  UserCheck,
-  UserX,
   Trash2,
-  Edit,
-  Star,
-  TrendingUp,
-  Clock,
   CheckCircle2,
   MapPin,
   Phone,
-  ShieldCheck,
-  AlertTriangle,
-  Navigation,
-  KeyRound,
+  Clock,
+  RefreshCw,
+  UserCheck,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
@@ -45,41 +38,12 @@ interface Rider {
   completedCount?: number;
 }
 
-const DEFAULT_RIDERS: Rider[] = [
-  {
-    id: 'rider-1',
-    firstName: 'Ramesh',
-    lastName: 'Kumar',
-    phone: '+91 98765 12345',
-    email: 'ramesh@spicegarden.com',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    vehicleType: 'EV Scooter',
-    vehicleNumber: 'KA-01-HD-4821',
-    status: 'AVAILABLE',
-    isActive: true,
-    avgRating: 4.9,
-    completedCount: 142,
-  },
-  {
-    id: 'rider-2',
-    firstName: 'Suresh',
-    lastName: 'Patel',
-    phone: '+91 98765 67890',
-    email: 'suresh@spicegarden.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    vehicleType: 'Motorcycle',
-    vehicleNumber: 'KA-03-EV-9012',
-    status: 'BUSY',
-    isActive: true,
-    avgRating: 4.8,
-    completedCount: 98,
-  },
-];
-
 export default function HotelDeliveryManagementPage() {
-  const [activeTab, setActiveTab] = useState<'settings' | 'staff' | 'portal' | 'analytics'>('settings');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'settings' | 'staff' | 'portal' | 'analytics'>('monitor');
   const [deliveryMode, setDeliveryMode] = useState<'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY'>('FOODHUB_DELIVERY');
-  const [riders, setRiders] = useState<Rider[]>(DEFAULT_RIDERS);
+  const [riders, setRiders] = useState<Rider[]>([]);
+  const [activeDeliveries, setActiveDeliveries] = useState<any[]>([]);
+  const [isLoadingDeliveries, setIsLoadingDeliveries] = useState(true);
   const [search, setSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [savingMode, setSavingMode] = useState(false);
@@ -95,14 +59,27 @@ export default function HotelDeliveryManagementPage() {
     vehicleNumber: '',
   });
 
-  // Rider Portal Interactive Demo State
-  const [activeRiderId, setActiveRiderId] = useState<string>('rider-1');
-  const [riderOrderStatus, setRiderOrderStatus] = useState<'ASSIGNED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED'>('ACCEPTED');
-  const [deliveryOtpInput, setDeliveryOtpInput] = useState('');
-  const [otpError, setOtpError] = useState(false);
-
   const { user, accessToken } = useHotelAuthStore();
   const restaurantId = user?.restaurantId;
+
+  const fetchActiveDeliveries = async () => {
+    if (!restaurantId || !accessToken) return;
+    setIsLoadingDeliveries(true);
+    try {
+      const res = await fetch(`${getApiBase()}/orders?restaurantId=${restaurantId}&limit=50`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const orders = Array.isArray(data) ? data : data.orders ?? [];
+        setActiveDeliveries(orders);
+      }
+    } catch {
+      /* offline */
+    } finally {
+      setIsLoadingDeliveries(false);
+    }
+  };
 
   const fetchDeliveryData = async () => {
     if (!restaurantId) return;
@@ -117,13 +94,14 @@ export default function HotelDeliveryManagementPage() {
         }
       }
     } catch {
-      /* offline fallback */
+      /* offline */
     }
   };
 
   useEffect(() => {
+    fetchActiveDeliveries();
     fetchDeliveryData();
-  }, [restaurantId]);
+  }, [restaurantId, accessToken]);
 
   const handleSaveDeliveryMode = async (mode: 'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY') => {
     setDeliveryMode(mode);
@@ -171,7 +149,7 @@ export default function HotelDeliveryManagementPage() {
         body: JSON.stringify(newRider),
       });
     } catch {
-      /* offline fallback */
+      /* offline */
     }
 
     setIsAddModalOpen(false);
@@ -186,21 +164,16 @@ export default function HotelDeliveryManagementPage() {
 
   const handleDeleteRider = async (id: string) => {
     setRiders((prev) => prev.filter((r) => r.id !== id));
-    try {
-      await fetch(`${getApiBase()}/restaurants/${restaurantId}/delivery-staff/${id}`, {
-        method: 'DELETE',
-      });
-    } catch {
-      /* offline */
-    }
   };
 
-  const filteredRiders = riders.filter(
-    (r) =>
-      r.firstName.toLowerCase().includes(search.toLowerCase()) ||
-      (r.phone || '').includes(search) ||
-      (r.vehicleNumber || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const categorized = {
+    waitingForRider: activeDeliveries.filter((o) => o.status === 'READY_FOR_PICKUP'),
+    riderAssigned: activeDeliveries.filter((o) => o.status === 'DRIVER_ASSIGNED'),
+    riderArrived: activeDeliveries.filter((o) => o.status === 'ARRIVED_AT_RESTAURANT'),
+    pickedUp: activeDeliveries.filter((o) => o.status === 'PICKED_UP'),
+    outForDelivery: activeDeliveries.filter((o) => o.status === 'OUT_FOR_DELIVERY'),
+    completed: activeDeliveries.filter((o) => o.status === 'DELIVERED'),
+  };
 
   return (
     <div className="space-y-6">
@@ -208,18 +181,26 @@ export default function HotelDeliveryManagementPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-black text-gray-900">Hybrid Delivery Management</h1>
+            <h1 className="text-3xl font-black text-gray-900">Live Delivery Management</h1>
             <span className="rounded-full bg-orange-100 text-orange-700 text-[10px] font-black px-2.5 py-0.5">
-              HYBRID ARCHITECTURE
+              REALTIME FLEET DISPATCH
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Seamlessly toggle between FoodHub Fleet &amp; In-House Self Delivery Riders
+            Monitor live order dispatches, rider arrival statuses, and delivery completion
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-1 bg-gray-100 p-1 rounded-2xl text-xs font-bold">
+          <button
+            onClick={() => setActiveTab('monitor')}
+            className={`px-4 py-2 rounded-xl transition ${
+              activeTab === 'monitor' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            Live Monitor ({activeDeliveries.length})
+          </button>
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 rounded-xl transition ${
@@ -237,20 +218,12 @@ export default function HotelDeliveryManagementPage() {
             Delivery Staff ({riders.length})
           </button>
           <button
-            onClick={() => setActiveTab('portal')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'portal' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            Rider Delivery App
-          </button>
-          <button
             onClick={() => setActiveTab('analytics')}
             className={`px-4 py-2 rounded-xl transition ${
               activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Analytics &amp; Ratings
+            Analytics &amp; Performance
           </button>
         </div>
       </div>
@@ -263,6 +236,103 @@ export default function HotelDeliveryManagementPage() {
         </div>
       )}
 
+      {/* TAB 0: LIVE MONITOR */}
+      {activeTab === 'monitor' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black text-gray-900">Active Operational Deliveries</h2>
+            <button
+              onClick={fetchActiveDeliveries}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Section 1: Waiting for Rider */}
+            <div className="rounded-3xl border border-amber-200 bg-amber-50/30 p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+                <span className="text-xs font-black uppercase text-amber-900 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-amber-600" /> 1. Waiting for Rider
+                </span>
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800">
+                  {categorized.waitingForRider.length}
+                </span>
+              </div>
+              {categorized.waitingForRider.length === 0 ? (
+                <p className="text-xs text-gray-400 font-bold py-4 text-center">No orders currently waiting for rider</p>
+              ) : (
+                categorized.waitingForRider.map((ord) => (
+                  <div key={ord.id} className="rounded-2xl border border-white bg-white p-4 shadow-sm space-y-2 text-xs">
+                    <div className="flex justify-between font-black text-gray-900">
+                      <span>Order #{ord.orderNumber}</span>
+                      <span className="text-amber-600 font-bold">₹{ord.totalAmount}</span>
+                    </div>
+                    <p className="text-gray-500 font-bold">Status: Ready for Pickup</p>
+                    <p className="text-[11px] text-gray-400">Created: {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Section 2: Rider Assigned & Arriving */}
+            <div className="rounded-3xl border border-blue-200 bg-blue-50/30 p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-blue-100 pb-3">
+                <span className="text-xs font-black uppercase text-blue-900 flex items-center gap-1.5">
+                  <Bike className="h-4 w-4 text-blue-600" /> 2. Rider Assigned &amp; Arriving
+                </span>
+                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-black text-blue-800">
+                  {categorized.riderAssigned.length + categorized.riderArrived.length}
+                </span>
+              </div>
+              {[...categorized.riderAssigned, ...categorized.riderArrived].length === 0 ? (
+                <p className="text-xs text-gray-400 font-bold py-4 text-center">No assigned riders currently en route</p>
+              ) : (
+                [...categorized.riderAssigned, ...categorized.riderArrived].map((ord) => (
+                  <div key={ord.id} className="rounded-2xl border border-white bg-white p-4 shadow-sm space-y-2 text-xs">
+                    <div className="flex justify-between font-black text-gray-900">
+                      <span>Order #{ord.orderNumber}</span>
+                      <span className="text-blue-600 font-bold">{ord.status}</span>
+                    </div>
+                    {ord.assignedRestaurantDriver && (
+                      <p className="text-gray-700 font-bold">
+                        Rider: {ord.assignedRestaurantDriver.firstName} ({ord.assignedRestaurantDriver.phone})
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Section 3: Out for Delivery & Completed */}
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/30 p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+                <span className="text-xs font-black uppercase text-emerald-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 3. Out for Delivery &amp; Completed
+                </span>
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-800">
+                  {categorized.pickedUp.length + categorized.outForDelivery.length + categorized.completed.length}
+                </span>
+              </div>
+              {[...categorized.pickedUp, ...categorized.outForDelivery, ...categorized.completed].length === 0 ? (
+                <p className="text-xs text-gray-400 font-bold py-4 text-center">No active deliveries out for customer drop</p>
+              ) : (
+                [...categorized.pickedUp, ...categorized.outForDelivery, ...categorized.completed].map((ord) => (
+                  <div key={ord.id} className="rounded-2xl border border-white bg-white p-4 shadow-sm space-y-2 text-xs">
+                    <div className="flex justify-between font-black text-gray-900">
+                      <span>Order #{ord.orderNumber}</span>
+                      <span className="text-emerald-700 font-bold">{ord.status}</span>
+                    </div>
+                    <p className="text-gray-500 font-bold">Total: ₹{ord.totalAmount}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TAB 1: DELIVERY SETTINGS */}
       {activeTab === 'settings' && (
         <div className="space-y-6">
@@ -270,7 +340,7 @@ export default function HotelDeliveryManagementPage() {
             <div>
               <h2 className="text-lg font-black text-gray-900">Choose Merchant Delivery Mode</h2>
               <p className="text-xs text-gray-500">
-                Select how orders placed at Spice Garden Restaurant should be dispatched to customers.
+                Select how orders placed at your restaurant should be dispatched to customers.
               </p>
             </div>
 
@@ -301,11 +371,6 @@ export default function HotelDeliveryManagementPage() {
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
                   FoodHub automatically dispatches nearby verified delivery partners. You focus on preparing delicious food while FoodHub handles end-to-end logistics.
                 </p>
-                <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500 border-t border-gray-100 pt-3">
-                  <span>⚡ Auto Dispatch</span>
-                  <span>🛡️ Full Platform Insurance</span>
-                  <span>📍 GPS Tracking</span>
-                </div>
               </div>
 
               {/* Option 2: Restaurant Self Delivery */}
@@ -334,11 +399,6 @@ export default function HotelDeliveryManagementPage() {
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
                   Use your own restaurant delivery staff. Assign orders directly from your KDS Kitchen Queue to your in-house riders and track deliveries in real time.
                 </p>
-                <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500 border-t border-gray-100 pt-3">
-                  <span>🚀 Zero Commission</span>
-                  <span>👥 Direct Rider Control</span>
-                  <span>🔑 Custom OTP</span>
-                </div>
               </div>
             </div>
           </div>
@@ -368,9 +428,8 @@ export default function HotelDeliveryManagementPage() {
             </button>
           </div>
 
-          {/* Riders List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRiders.map((rider) => (
+            {riders.map((rider) => (
               <div key={rider.id} className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -390,51 +449,11 @@ export default function HotelDeliveryManagementPage() {
                     className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
                       rider.status === 'AVAILABLE'
                         ? 'bg-emerald-100 text-emerald-800'
-                        : rider.status === 'BUSY'
-                        ? 'bg-amber-100 text-amber-800'
                         : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {rider.status}
                   </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 rounded-2xl bg-gray-50 p-3 text-xs">
-                  <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase">Vehicle</span>
-                    <span className="font-black text-gray-800">{rider.vehicleType || 'Scooter'}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase">Plate</span>
-                    <span className="font-black text-gray-800">{rider.vehicleNumber || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase">Rating</span>
-                    <span className="font-black text-amber-600">★ {rider.avgRating || 5.0}/5</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-gray-400 font-bold uppercase">Completed</span>
-                    <span className="font-black text-gray-800">{rider.completedCount || 0} orders</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => handleToggleRiderStatus(rider.id)}
-                    className={`flex-1 rounded-xl py-2 text-xs font-bold border transition ${
-                      rider.isActive
-                        ? 'border-rose-200 text-rose-600 hover:bg-rose-50'
-                        : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                    }`}
-                  >
-                    {rider.isActive ? 'Suspend Rider' : 'Activate Rider'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteRider(rider.id)}
-                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-rose-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -442,231 +461,24 @@ export default function HotelDeliveryManagementPage() {
         </div>
       )}
 
-      {/* TAB 3: SELF DELIVERY RIDER APP SIMULATOR */}
-      {activeTab === 'portal' && (
-        <div className="max-w-md mx-auto rounded-3xl border border-gray-200 bg-gray-900 text-white p-6 shadow-2xl space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-            <div>
-              <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest block">RIDER PORTAL</span>
-              <h2 className="text-lg font-black">Self Delivery App</h2>
-            </div>
-            <span className="rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1">
-              ONLINE
-            </span>
-          </div>
-
-          {/* Rider Switcher */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400">Logged-in Self Delivery Rider:</label>
-            <select
-              value={activeRiderId}
-              onChange={(e) => setActiveRiderId(e.target.value)}
-              className="w-full rounded-2xl bg-gray-800 border border-gray-700 px-3 py-2 text-xs font-bold text-white focus:outline-none"
-            >
-              {riders.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.firstName} {r.lastName || ''} ({r.vehicleNumber})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Active Order Card */}
-          <div className="rounded-2xl bg-gray-800/90 border border-gray-700 p-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="text-xs font-black text-orange-400">ORDER #FH-98421</span>
-                <h3 className="text-sm font-black text-white">Rahul Sharma</h3>
-              </div>
-              <span className="rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black px-2.5 py-1">
-                {riderOrderStatus}
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs text-gray-300">
-              <div className="flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                <span>+91 98765 43210</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-3.5 w-3.5 text-orange-400 shrink-0 mt-0.5" />
-                <span>Flat 402, Sunshine Apartments, Indiranagar, Bengaluru</span>
-              </div>
-            </div>
-
-            <div className="border-t border-gray-700 pt-3 text-xs font-medium text-gray-400">
-              <p>1x Paneer Butter Masala, 3x Butter Naan</p>
-              <p className="text-emerald-400 font-bold mt-1">Payment: COD (₹540 to collect)</p>
-            </div>
-
-            {/* Rider Action Controls */}
-            <div className="space-y-2 pt-2">
-              {riderOrderStatus === 'ACCEPTED' && (
-                <button
-                  onClick={() => setRiderOrderStatus('PICKED_UP')}
-                  className="w-full rounded-xl bg-orange-600 py-2.5 text-xs font-black text-white hover:bg-orange-500"
-                >
-                  Mark Order Picked Up
-                </button>
-              )}
-
-              {riderOrderStatus === 'PICKED_UP' && (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      maxLength={4}
-                      value={deliveryOtpInput}
-                      onChange={(e) => setDeliveryOtpInput(e.target.value)}
-                      placeholder="Enter 4-Digit Customer OTP"
-                      className="w-full rounded-xl bg-gray-900 border border-gray-700 py-2 pl-9 pr-3 text-xs font-bold text-white focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  {otpError && <p className="text-[10px] text-rose-400 font-bold">Incorrect OTP. Demo OTP is 1234.</p>}
-
-                  <button
-                    onClick={() => {
-                      if (deliveryOtpInput === '1234' || deliveryOtpInput.length === 4) {
-                        setRiderOrderStatus('DELIVERED');
-                        setOtpError(false);
-                      } else {
-                        setOtpError(true);
-                      }
-                    }}
-                    className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-black text-white hover:bg-emerald-500"
-                  >
-                    Verify OTP &amp; Mark Delivered
-                  </button>
-                </div>
-              )}
-
-              {riderOrderStatus === 'DELIVERED' && (
-                <div className="rounded-xl bg-emerald-950 border border-emerald-800 p-3 text-center text-xs font-bold text-emerald-300">
-                  ✓ Order Delivered Successfully!
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: ANALYTICS & RATINGS */}
+      {/* TAB 3: ANALYTICS & RATINGS */}
       {activeTab === 'analytics' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
             <span className="text-xs font-bold text-gray-400 uppercase">Avg Delivery Time</span>
             <p className="text-2xl font-black text-gray-900">22 mins</p>
-            <p className="text-[10px] text-emerald-600 font-bold">⚡ 4 mins faster than platform avg</p>
           </div>
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
             <span className="text-xs font-bold text-gray-400 uppercase">Success Rate</span>
             <p className="text-2xl font-black text-emerald-600">99.2%</p>
-            <p className="text-[10px] text-gray-500 font-bold">240 completed deliveries</p>
           </div>
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
-            <span className="text-xs font-bold text-gray-400 uppercase">Self Rider Rating</span>
+            <span className="text-xs font-bold text-gray-400 uppercase">Rider Rating</span>
             <p className="text-2xl font-black text-amber-500">★ 4.9 / 5</p>
-            <p className="text-[10px] text-gray-500 font-bold">Based on 180 customer reviews</p>
           </div>
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
-            <span className="text-xs font-bold text-gray-400 uppercase">Commission Saved</span>
-            <p className="text-2xl font-black text-gray-900">₹14,400</p>
-            <p className="text-[10px] text-emerald-600 font-bold">Saved using Self Delivery</p>
-          </div>
-        </div>
-      )}
-
-      {/* Add Rider Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <h3 className="text-lg font-black text-gray-900">Add In-House Delivery Rider</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleAddRider} className="space-y-4 text-xs font-bold text-gray-700">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block mb-1">First Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newRider.firstName}
-                    onChange={(e) => setNewRider((p) => ({ ...p, firstName: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
-                    placeholder="Ramesh"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    value={newRider.lastName}
-                    onChange={(e) => setNewRider((p) => ({ ...p, lastName: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
-                    placeholder="Kumar"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block mb-1">Mobile Phone *</label>
-                <input
-                  type="tel"
-                  required
-                  value={newRider.phone}
-                  onChange={(e) => setNewRider((p) => ({ ...p, phone: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
-                  placeholder="+91 98765 12345"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block mb-1">Vehicle Type</label>
-                  <select
-                    value={newRider.vehicleType}
-                    onChange={(e) => setNewRider((p) => ({ ...p, vehicleType: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
-                  >
-                    <option value="EV Scooter">EV Scooter</option>
-                    <option value="Motorcycle">Motorcycle</option>
-                    <option value="Scooter">Scooter</option>
-                    <option value="Bicycle">Bicycle</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1">Vehicle Plate Number</label>
-                  <input
-                    type="text"
-                    value={newRider.vehicleNumber}
-                    onChange={(e) => setNewRider((p) => ({ ...p, vehicleNumber: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-orange-500 focus:outline-none"
-                    placeholder="KA-01-HD-9999"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-orange-600 py-2.5 text-xs font-black text-white hover:bg-orange-700 shadow-md shadow-orange-500/20"
-                >
-                  Save Rider
-                </button>
-              </div>
-            </form>
+            <span className="text-xs font-bold text-gray-400 uppercase">Total Deliveries</span>
+            <p className="text-2xl font-black text-gray-900">{activeDeliveries.length}</p>
           </div>
         </div>
       )}
