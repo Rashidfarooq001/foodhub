@@ -22,7 +22,7 @@ export function normalizeIndianPhone(input: string): string {
     throw new Error('Enter a valid 10-digit Indian mobile number.');
   }
 
-  return cleaned;
+  return `+91${cleaned}`;
 }
 
 export function isValidIndianPhone(phone: string): boolean {

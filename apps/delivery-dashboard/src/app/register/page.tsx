@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bike, ShieldCheck, CheckCircle2, ArrowRight, AlertCircle, Phone, Mail, Lock, User, FileText, Truck } from 'lucide-react';
+import { Bike, ShieldCheck, CheckCircle2, ArrowRight, AlertCircle, Phone, Mail, Lock, User, FileText, Truck, MapPin } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 
@@ -19,18 +19,34 @@ export default function DeliveryPartnerRegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    vehicleType: 'MOTORCYCLE',
+    vehicleType: '',
     vehicleNumber: '',
     licenseNumber: '',
     addressLine: '',
-    city: 'Bandipora',
-    state: 'Jammu & Kashmir',
-    postalCode: '193502',
+    city: '',
+    state: '',
+    postalCode: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<Array<{ code: string; name: string }>>([]);
+
+  // Load vehicle types from backend — database schema is the source of truth
+  useEffect(() => {
+    fetch(`${API_BASE}/drivers/vehicle-types`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setVehicleTypes(data); })
+      .catch(() => {
+        setVehicleTypes([
+          { code: 'MOTORCYCLE', name: 'Motorcycle / Bike' },
+          { code: 'SCOOTER', name: 'Scooter' },
+          { code: 'EV_SCOOTER', name: 'Electric Scooter (EV)' },
+          { code: 'BICYCLE', name: 'Bicycle' },
+        ]);
+      });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -82,10 +98,10 @@ export default function DeliveryPartnerRegisterPage() {
         vehicleType: form.vehicleType,
         vehicleNumber: form.vehicleNumber.trim().toUpperCase(),
         licenseNumber: form.licenseNumber.trim().toUpperCase(),
-        addressLine: form.addressLine.trim() || 'Delivery Area',
-        city: form.city,
-        state: form.state,
-        postalCode: form.postalCode,
+        addressLine: form.addressLine.trim() || undefined,
+        city: form.city.trim() || undefined,
+        state: form.state.trim() || undefined,
+        postalCode: form.postalCode.trim() || undefined,
       };
 
       const res = await fetch(`${API_BASE}/auth/register/delivery-partner`, {
@@ -272,12 +288,13 @@ export default function DeliveryPartnerRegisterPage() {
                 name="vehicleType"
                 value={form.vehicleType}
                 onChange={handleChange}
+                required
                 className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               >
-                <option value="MOTORCYCLE">Motorcycle / Bike</option>
-                <option value="SCOOTER">Scooter</option>
-                <option value="EV_SCOOTER">Electric Scooter</option>
-                <option value="BICYCLE">Bicycle</option>
+                <option value="" disabled>Select vehicle type *</option>
+                {vehicleTypes.map((vt) => (
+                  <option key={vt.code} value={vt.code}>{vt.name}</option>
+                ))}
               </select>
             </div>
 

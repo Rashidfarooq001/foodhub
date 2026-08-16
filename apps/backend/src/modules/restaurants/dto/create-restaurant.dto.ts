@@ -7,175 +7,226 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+/**
+ * DTO for creating a restaurant via the Admin or Customer-Web registration form.
+ *
+ * IMPORTANT:
+ * - latitude / longitude: Sent as null by the frontend when GPS has not been
+ *   captured. @Transform converts null → undefined so that @IsNumber() +
+ *   @IsOptional() behaves correctly (null fails @IsNumber, undefined skips it).
+ * - email: Empty string "" is converted to undefined to avoid @IsEmail failures
+ *   on blank optional fields.
+ * - fssaiLicense / gstin / panNumber: All optional; empty string → undefined.
+ * - No hardcoded defaults are applied here — the service layer must reject or
+ *   store NULL for any missing required data.
+ */
 export class CreateRestaurantDto {
-  @ApiPropertyOptional({ example: 'uuid-of-owner-user' })
+  @ApiPropertyOptional({ description: 'UUID of an existing owner user (admin use)' })
   @IsString()
   @IsOptional()
   ownerId?: string;
 
-  @ApiPropertyOptional({ example: 'Ananya Verma' })
+  @ApiPropertyOptional({ description: 'Full name of the restaurant owner' })
   @IsString()
   @IsOptional()
   ownerName?: string;
 
-  @ApiProperty({ example: 'Spice Garden Restaurant' })
+  @ApiProperty({ description: 'Restaurant display name' })
   @IsString()
   @IsNotEmpty()
   name!: string;
 
-  @ApiProperty({ example: '+919876543210' })
+  @ApiProperty({ description: 'Restaurant contact phone number' })
   @IsString()
   @IsNotEmpty()
   phone!: string;
 
-  @ApiPropertyOptional({ example: 'ananya@spicegarden.com' })
+  @ApiPropertyOptional({ description: 'Restaurant email address' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsEmail()
   @IsOptional()
   email?: string;
 
-  @ApiPropertyOptional({ example: 'Password123!' })
+  @ApiPropertyOptional({ description: 'Account password for restaurant login' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   password?: string;
 
-  @ApiPropertyOptional({ example: 'Authentic Indian Curry & Tandoor' })
+  @ApiPropertyOptional({ description: 'Short restaurant description or tagline' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ example: ['North Indian', 'Biryani'] })
+  @ApiPropertyOptional({ description: 'List of cuisine types served' })
   @IsArray()
   @IsOptional()
   cuisines?: string[];
 
-  @ApiProperty({ example: '11223344556677' })
+  @ApiPropertyOptional({ description: '14-digit FSSAI license number' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   fssaiLicense?: string;
 
-  @ApiPropertyOptional({ example: '29ABCDE1234F1Z5' })
+  @ApiPropertyOptional({ description: 'GSTIN number' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   gstin?: string;
 
-  @ApiProperty({ example: 'MG Road, Indiranagar, Bengaluru' })
+  @ApiPropertyOptional({ description: 'Street address line' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   address?: string;
 
-  @ApiPropertyOptional({ example: 'Bengaluru' })
+  @ApiPropertyOptional({ description: 'City name' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   city?: string;
 
-  @ApiPropertyOptional({ example: 'Karnataka' })
+  @ApiPropertyOptional({ description: 'State name' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   state?: string;
 
-  @ApiPropertyOptional({ example: 'India' })
+  @ApiPropertyOptional({ description: 'Country name' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   country?: string;
 
-  @ApiPropertyOptional({ example: '560038' })
+  @ApiPropertyOptional({ description: 'PIN / postal code' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   pin?: string;
 
- @ApiPropertyOptional({ example: 12.9716 })
-@IsNumber()
-@IsOptional()
-@Type(() => Number)
-latitude?: number;
+  /**
+   * GPS latitude — the frontend sends null when location has not been captured.
+   * @Transform converts null to undefined so @IsNumber() does not reject it.
+   * If location is required for your flow, enforce it at the service layer and
+   * return a 400: "Restaurant location is required."
+   */
+  @ApiPropertyOptional({ description: 'GPS latitude coordinate from Mappls / device GPS' })
+  @Transform(({ value }) => (value === null || value === undefined || value === '' ? undefined : Number(value)))
+  @IsNumber()
+  @IsOptional()
+  latitude?: number;
 
-@ApiPropertyOptional({ example: 77.5946 })
-@IsNumber()
-@IsOptional()
-@Type(() => Number)
-longitude?: number;
-  @ApiPropertyOptional({ example: '09:00' })
+  /**
+   * GPS longitude — same null-safety treatment as latitude.
+   */
+  @ApiPropertyOptional({ description: 'GPS longitude coordinate from Mappls / device GPS' })
+  @Transform(({ value }) => (value === null || value === undefined || value === '' ? undefined : Number(value)))
+  @IsNumber()
+  @IsOptional()
+  longitude?: number;
+
+  @ApiPropertyOptional({ description: 'Opening time e.g. 09:00' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   openingHours?: string;
 
-  @ApiPropertyOptional({ example: '23:00' })
+  @ApiPropertyOptional({ description: 'Closing time e.g. 23:00' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   closingHours?: string;
 
-  @ApiPropertyOptional({ example: 7.5 })
+  @ApiPropertyOptional({ description: 'Delivery radius in km' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : Number(value)))
   @IsNumber()
   @IsOptional()
   deliveryRadius?: number;
 
-  @ApiPropertyOptional({ example: 25 })
+  @ApiPropertyOptional({ description: 'Packaging fee in INR' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : Number(value)))
   @IsNumber()
   @IsOptional()
   packagingFee?: number;
 
-  @ApiPropertyOptional({ example: 40 })
+  @ApiPropertyOptional({ description: 'Delivery fee in INR' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : Number(value)))
   @IsNumber()
   @IsOptional()
   deliveryFee?: number;
 
-  @ApiPropertyOptional({ example: 199 })
+  @ApiPropertyOptional({ description: 'Minimum order value in INR' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : Number(value)))
   @IsNumber()
   @IsOptional()
   minOrder?: number;
 
-  @ApiPropertyOptional({ example: 'https://images.unsplash.com/logo.png' })
+  @ApiPropertyOptional({ description: 'URL of uploaded restaurant logo image' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   logoUrl?: string;
 
-  @ApiPropertyOptional({ example: 'https://images.unsplash.com/banner.png' })
+  @ApiPropertyOptional({ description: 'URL of uploaded restaurant banner image' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   bannerUrl?: string;
 
-  @ApiPropertyOptional({ example: 'HDFC Bank' })
+  @ApiPropertyOptional({ description: 'Bank name for settlements' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   bankName?: string;
 
-  @ApiPropertyOptional({ example: '918273645019' })
+  @ApiPropertyOptional({ description: 'Bank account number' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   accountNumber?: string;
 
-  @ApiPropertyOptional({ example: 'HDFC0001234' })
+  @ApiPropertyOptional({ description: 'Bank IFSC code' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   ifsc?: string;
 
-  @ApiPropertyOptional({ example: 'spicegarden@hdfc' })
+  @ApiPropertyOptional({ description: 'UPI ID for settlements' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   upiId?: string;
 
-  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/menus/menu-1.pdf' })
+  @ApiPropertyOptional({ description: 'URL of uploaded menu document' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   menuUrl?: string;
 
-  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/fssai-1.pdf' })
+  @ApiPropertyOptional({ description: 'URL of uploaded FSSAI certificate' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   fssaiUrl?: string;
 
-  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/docs/pan-1.pdf' })
+  @ApiPropertyOptional({ description: 'URL of uploaded PAN card document' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   panUrl?: string;
 
-  @ApiPropertyOptional({ example: 'ABCDE1234F' })
+  @ApiPropertyOptional({ description: 'PAN card number' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   panNumber?: string;
 
-  @ApiPropertyOptional({ example: 'https://assets.foodhub.local/videos/promo.mp4' })
+  @ApiPropertyOptional({ description: 'URL of uploaded promotional video' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()
   @IsOptional()
   promoVideoUrl?: string;

@@ -14,12 +14,23 @@ export class RestaurantsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createRestaurant(dto: CreateRestaurantDto) {
-    const rawPassword = dto.password || 'RestaurantPass123!';
+    // Validate required fields — never invent defaults
+    if (!dto.password || !dto.password.trim()) {
+      throw new BadRequestException('A password is required to create the restaurant owner account.');
+    }
+    if (!dto.email || !dto.email.trim()) {
+      throw new BadRequestException('An email address is required for the restaurant owner account.');
+    }
+    if (!dto.ownerName || !dto.ownerName.trim()) {
+      throw new BadRequestException('Owner full name is required.');
+    }
+
+    const rawPassword = dto.password.trim();
     const passwordHash = await bcrypt.hash(rawPassword, 12);
-    
+
     const canonicalPhone = normalizeIndianPhone(dto.phone);
-    const email = (dto.email || `owner_${Date.now()}@foodhub.com`).trim().toLowerCase();
-    const ownerName = dto.ownerName || dto.name + ' Owner';
+    const email = dto.email.trim().toLowerCase();
+    const ownerName = dto.ownerName.trim();
 
     // Execute atomic transaction for User, Profile, Restaurant, and Staff linkage
     const result = await this.prisma.$transaction(async (tx) => {
@@ -112,21 +123,22 @@ export class RestaurantsService {
         .filter(Boolean)
         .join(', ');
 
+      // FSSAI is required for restaurant registration
+      if (!dto.fssaiLicense || !dto.fssaiLicense.trim()) {
+        throw new BadRequestException('FSSAI license number is required for restaurant registration.');
+      }
+
       const restaurant = await tx.restaurant.create({
         data: {
           ownerId,
           name: dto.name,
           slug,
           phone: canonicalPhone,
-          licenseFssai:
-            dto.fssaiLicense ||
-            `FSSAI-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          gstin:
-            dto.gstin ||
-            `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          addressLine: fullAddress || dto.address || 'Location Pending',
+          licenseFssai: dto.fssaiLicense.trim(),
+          gstin: dto.gstin?.trim() || null,
+          addressLine: fullAddress || dto.address || null,
           latitude: dto.latitude != null ? Number(dto.latitude) : null,
-longitude: dto.longitude != null ? Number(dto.longitude) : null,
+          longitude: dto.longitude != null ? Number(dto.longitude) : null,
           bannerUrl: dto.bannerUrl || dto.logoUrl,
           menuUrl: dto.menuUrl,
           fssaiUrl: dto.fssaiUrl,
@@ -139,23 +151,23 @@ longitude: dto.longitude != null ? Number(dto.longitude) : null,
         },
       });
 
-      // Create RestaurantDocument records for FSSAI, PAN, and MENU if provided
-      if (dto.fssaiUrl || dto.fssaiLicense) {
+      // Create RestaurantDocument records — only from real uploaded URLs, never fake fallbacks
+      if (dto.fssaiUrl) {
         await tx.restaurantDocument.create({
           data: {
             restaurantId: restaurant.id,
             documentType: 'FSSAI',
-            documentUrl: dto.fssaiUrl || `https://assets.foodhub.local/docs/fssai-${restaurant.id}.pdf`,
+            documentUrl: dto.fssaiUrl,
           },
         });
       }
 
-      if (dto.panUrl || dto.panNumber) {
+      if (dto.panUrl) {
         await tx.restaurantDocument.create({
           data: {
             restaurantId: restaurant.id,
             documentType: 'PAN',
-            documentUrl: dto.panUrl || `https://assets.foodhub.local/docs/pan-${restaurant.id}.pdf`,
+            documentUrl: dto.panUrl,
           },
         });
       }
@@ -591,16 +603,29 @@ longitude: dto.longitude != null ? Number(dto.longitude) : null,
   }
 
   async createDeliveryStaff(restaurantId: string, dto: any) {
+    // All vehicle/contact data must come from the submitted DTO — no defaults
+    if (!dto.vehicleType) {
+      throw new BadRequestException('Vehicle type is required.');
+    }
+    if (!dto.vehicleNumber) {
+      throw new BadRequestException('Vehicle registration number is required.');
+    }
+    if (!dto.firstName) {
+      throw new BadRequestException('First name is required.');
+    }
+    if (!dto.phone) {
+      throw new BadRequestException('Phone number is required.');
+    }
     return this.prisma.restaurantDeliveryStaff.create({
       data: {
         restaurantId,
         firstName: dto.firstName,
-        lastName: dto.lastName,
+        lastName: dto.lastName || '',
         phone: dto.phone,
-        email: dto.email,
-        avatar: dto.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        vehicleType: dto.vehicleType || 'SCOOTER',
-        vehicleNumber: dto.vehicleNumber || 'KA-01-HD-9999',
+        email: dto.email || null,
+        avatar: dto.avatar || null,
+        vehicleType: dto.vehicleType,
+        vehicleNumber: dto.vehicleNumber,
         status: 'AVAILABLE',
         isActive: true,
       },

@@ -25,7 +25,7 @@ function normalizeIndianPhone(input) {
     if (!indianMobileRegex.test(cleaned)) {
         throw new Error('Enter a valid 10-digit Indian mobile number.');
     }
-    return cleaned;
+    return `+91${cleaned}`;
 }
 function isValidIndianPhone(phone) {
     try {

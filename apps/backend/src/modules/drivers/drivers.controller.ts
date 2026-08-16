@@ -5,11 +5,37 @@ import { CreateDriverDto } from './dto/create-driver.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { VehicleType } from '@prisma/client';
+
+/**
+ * VEHICLE TYPES CONFIG:
+ * Sourced from the Prisma VehicleType enum — the database schema is the source
+ * of truth for which vehicle types are supported. Frontends MUST call
+ * GET /api/v1/drivers/vehicle-types to populate their dropdowns.
+ * Never hardcode vehicle type lists in React components.
+ */
+const VEHICLE_TYPE_CONFIG: Array<{ code: VehicleType; name: string }> = [
+  { code: VehicleType.MOTORCYCLE, name: 'Motorcycle / Bike' },
+  { code: VehicleType.SCOOTER, name: 'Scooter' },
+  { code: VehicleType.EV_SCOOTER, name: 'Electric Scooter (EV)' },
+  { code: VehicleType.BICYCLE, name: 'Bicycle' },
+];
 
 @ApiTags('Delivery Drivers & Onboarding')
 @Controller('drivers')
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
+
+  /**
+   * Returns the list of active vehicle types supported by FoodHub.
+   * Frontends MUST use this endpoint to populate vehicle type dropdowns.
+   * Source of truth: Prisma VehicleType enum (schema.prisma).
+   */
+  @Get('vehicle-types')
+  @ApiOperation({ summary: 'Get supported vehicle types for registration forms' })
+  getVehicleTypes() {
+    return VEHICLE_TYPE_CONFIG;
+  }
 
   @Post()
   @ApiBearerAuth()

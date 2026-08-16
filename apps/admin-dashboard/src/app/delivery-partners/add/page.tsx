@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bike, User, FileText, CreditCard, CheckCircle2 } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
@@ -10,6 +10,23 @@ export default function AddDriverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<Array<{ code: string; name: string }>>([]);
+
+  // Load vehicle types from backend — source of truth for supported enum values
+  useEffect(() => {
+    adminFetch('/drivers/vehicle-types')
+      .then((res) => res.json())
+      .then((data) => { if (Array.isArray(data)) setVehicleTypes(data); })
+      .catch(() => {
+        // Fallback to known Prisma enum values if API is unreachable
+        setVehicleTypes([
+          { code: 'MOTORCYCLE', name: 'Motorcycle / Bike' },
+          { code: 'SCOOTER', name: 'Scooter' },
+          { code: 'EV_SCOOTER', name: 'Electric Scooter (EV)' },
+          { code: 'BICYCLE', name: 'Bicycle' },
+        ]);
+      });
+  }, []);
 
   const [form, setForm] = useState({
     name: '',
@@ -17,10 +34,10 @@ export default function AddDriverPage() {
     email: '',
     password: '',
     licenseNumber: '',
-    vehicleType: 'BIKE',
+    vehicleType: '',
     vehicleNumber: '',
     address: '',
-    bankName: 'HDFC Bank',
+    bankName: '',
     accountNumber: '',
     ifsc: '',
     upiId: '',
@@ -36,9 +53,33 @@ export default function AddDriverPage() {
     setError(null);
 
     try {
+      // Sanitize payload: omit email entirely if blank to avoid unique-constraint on empty string
+      const payload: Record<string, unknown> = {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        password: form.password.trim(),
+        licenseNumber: form.licenseNumber.trim(),
+        vehicleNumber: form.vehicleNumber.trim() || undefined,
+        address: form.address.trim() || undefined,
+        bankName: form.bankName.trim() || undefined,
+        accountNumber: form.accountNumber.trim() || undefined,
+        ifsc: form.ifsc.trim() || undefined,
+        upiId: form.upiId.trim() || undefined,
+      };
+
+      // Only include vehicleType if a valid enum value was selected
+      if (form.vehicleType) {
+        payload.vehicleType = form.vehicleType;
+      }
+
+      // Only include email if non-empty — empty string violates unique constraint
+      if (form.email.trim()) {
+        payload.email = form.email.trim().toLowerCase();
+      }
+
       const res = await adminFetch('/drivers', {
         method: 'POST',
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -48,10 +89,13 @@ export default function AddDriverPage() {
         }, 1500);
       } else {
         const data = await res.json();
-        setError(data.message || 'Failed to onboard delivery partner');
+        const msg = Array.isArray(data.message)
+          ? data.message.join(' • ')
+          : data.message || 'Failed to onboard delivery partner';
+        setError(msg);
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError('Unable to connect to server. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -166,12 +210,13 @@ export default function AddDriverPage() {
                 name="vehicleType"
                 value={form.vehicleType}
                 onChange={handleChange}
+                required
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
               >
-                <option value="BIKE">Motorcycle / Bike</option>
-                <option value="SCOOTER">Scooter</option>
-                <option value="ELECTRIC_BIKE">EV Two Wheeler</option>
-                <option value="BICYCLE">Bicycle</option>
+                <option value="" disabled>Select vehicle type *</option>
+                {vehicleTypes.map((vt) => (
+                  <option key={vt.code} value={vt.code}>{vt.name}</option>
+                ))}
               </select>
             </div>
             <div>

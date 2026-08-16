@@ -299,7 +299,10 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const nameParts = dto.name.trim().split(' ');
-    const firstName = nameParts[0] || 'Owner';
+    if (!nameParts[0]) {
+      throw new BadRequestException('A valid full name is required.');
+    }
+    const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
     const slug = dto.restaurantName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
@@ -331,11 +334,11 @@ export class AuthService {
           slug,
           phone: formattedPhone,
           email: cleanEmail,
-          licenseFssai: dto.fssaiNumber || `FSSAI-${Date.now()}`,
-          gstin: dto.gstin || `GST-${Date.now()}`,
-          addressLine: fullAddress || dto.addressLine,
-          latitude: dto.latitude != null ? Number(dto.latitude) : 34.3868,
-          longitude: dto.longitude != null ? Number(dto.longitude) : 74.5221,
+          licenseFssai: dto.fssaiNumber?.trim() || null,
+          gstin: dto.gstin?.trim() || null,
+          addressLine: fullAddress || dto.addressLine || null,
+          latitude: dto.latitude != null ? Number(dto.latitude) : null,
+          longitude: dto.longitude != null ? Number(dto.longitude) : null,
           status: RestaurantStatus.PENDING_APPROVAL,
           isOpen: false,
         },
@@ -426,7 +429,7 @@ export class AuthService {
       const driver = await tx.driver.create({
         data: {
           userId: user.id,
-          licenseNumber: dto.licenseNumber || `DL-${Date.now()}`,
+          licenseNumber: dto.licenseNumber.trim().toUpperCase(),
           isApproved: false,
           status: DriverStatus.OFFLINE,
         },

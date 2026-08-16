@@ -54,11 +54,11 @@ export default function RestaurantRegisterPage() {
     address: '',
     city: '',
     state: '',
-    country: 'India',
+    country: '',
     pin: '',
     latitude: null as number | null,
     longitude: null as number | null,
-    cuisines: 'North Indian, Biryani',
+    cuisines: '',
     bankName: '',
     accountNumber: '',
     ifsc: '',
@@ -139,24 +139,46 @@ export default function RestaurantRegisterPage() {
     }
 
     try {
+      // Build payload: omit null lat/lng entirely so @IsNumber()/@IsOptional() works
+      // JSON.stringify drops keys with undefined values
+      const cuisineList = form.cuisines.trim()
+        ? form.cuisines.split(',').map((c) => c.trim()).filter(Boolean)
+        : [];
+
+      const payload: Record<string, unknown> = {
+        ...form,
+        phone: rawDigits,
+        cuisines: cuisineList,
+        latitude: form.latitude != null ? form.latitude : undefined,
+        longitude: form.longitude != null ? form.longitude : undefined,
+        // Omit empty optional strings so backend @IsEmail/@IsString validators don't fail
+        gstin: form.gstin.trim() || undefined,
+        panNumber: form.panNumber.trim() || undefined,
+        description: form.description.trim() || undefined,
+        bankName: form.bankName.trim() || undefined,
+        accountNumber: form.accountNumber.trim() || undefined,
+        ifsc: form.ifsc.trim() || undefined,
+        upiId: form.upiId.trim() || undefined,
+        country: form.country.trim() || undefined,
+      };
+
       const res = await fetch(`${API_BASE}/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          phone: rawDigits,
-          cuisines: form.cuisines.split(',').map((c) => c.trim()),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         setSubmitted(true);
       } else {
         const data = await res.json();
-        setError(data.message || 'Registration failed. Please check form details.');
+        const msg = Array.isArray(data.message)
+          ? data.message.join(' • ')
+          : data.message || 'Registration failed. Please check form details.';
+        setError(msg);
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError('Unable to connect to server. Please check your internet connection and try again.');
     } finally {
       setIsSubmitting(false);
     }

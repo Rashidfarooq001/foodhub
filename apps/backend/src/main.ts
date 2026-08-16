@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { HttpAdapterHost } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import * as compression from 'compression';
@@ -9,6 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { PrismaService } from './modules/database/prisma.service';
+import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -131,6 +133,12 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Global Prisma Exception Filter
+  // Converts database-level errors (P2002 duplicate, P2003 FK, P2025 not-found)
+  // into clean HTTP 400/404/409 responses — never exposes raw Prisma stack traces.
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
   // Swagger
   const swaggerConfig = new DocumentBuilder()
