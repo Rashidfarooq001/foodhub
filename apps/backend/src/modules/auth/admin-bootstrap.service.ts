@@ -30,6 +30,11 @@ export class AdminBootstrapService implements OnModuleInit {
         },
       });
 
+      const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
+      const initialP2Hash = await bcrypt.hash('88887777', 10);
+      const initialDobHash = await bcrypt.hash('2005-01-01', 10);
+      const initialFavHash = await bcrypt.hash('reshi', 10);
+
       if (!existingAdmin) {
         this.logger.log(`[AdminBootstrap] No Admin account found. Provisioning single platform ADMIN (${adminPhone} / ${adminEmail})...`);
         const passwordHash = await bcrypt.hash(rawPassword, 12);
@@ -38,6 +43,10 @@ export class AdminBootstrapService implements OnModuleInit {
             phone: adminPhone,
             email: adminEmail,
             passwordHash,
+            password1Hash: initialP1Hash,
+            password2Hash: initialP2Hash,
+            adminDobHash: initialDobHash,
+            adminFavoritePersonHash: initialFavHash,
             role: UserRole.SUPER_ADMIN,
             isVerified: true,
             isActive: true,
@@ -51,6 +60,18 @@ export class AdminBootstrapService implements OnModuleInit {
         });
         this.logger.log(`[AdminBootstrap] Single platform ADMIN provisioned successfully.`);
       } else {
+        if (!existingAdmin.password1Hash || !existingAdmin.password2Hash) {
+          await this.prisma.user.update({
+            where: { id: existingAdmin.id },
+            data: {
+              password1Hash: initialP1Hash,
+              password2Hash: initialP2Hash,
+              adminDobHash: existingAdmin.adminDobHash || initialDobHash,
+              adminFavoritePersonHash: existingAdmin.adminFavoritePersonHash || initialFavHash,
+            },
+          });
+          this.logger.log(`[AdminBootstrap] Two-password hashes provisioned for existing Admin account.`);
+        }
         this.logger.log(`[AdminBootstrap] Single platform ADMIN account verified (${existingAdmin.phone}).`);
       }
     } catch (err: any) {
