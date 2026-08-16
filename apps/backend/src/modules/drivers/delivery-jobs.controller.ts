@@ -512,120 +512,175 @@ export class DeliveryJobsController {
   @Post('jobs/:id/accept')
   @ApiOperation({ summary: 'Rider accepts delivery job (Atomic conditional transaction)' })
   async acceptJob(@Param('id') id: string, @Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
-    }
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
 
-    const activeJob = await this.prisma.deliveryJob.findFirst({
-      where: {
-        driverId: driver.id,
-        status: {
-          in: [
-            DeliveryJobStatus.ASSIGNED,
-            DeliveryJobStatus.ARRIVED,
-            DeliveryJobStatus.PICKED_UP,
-          ],
+      const activeJob = await this.prisma.deliveryJob.findFirst({
+        where: {
+          driverId: driver.id,
+          status: {
+            in: [
+              DeliveryJobStatus.ASSIGNED,
+              DeliveryJobStatus.ARRIVED,
+              DeliveryJobStatus.PICKED_UP,
+            ],
+          },
         },
-      },
-    });
+      });
 
-    if (activeJob) {
-      throw new ConflictException('You already have an active delivery in progress. Complete your current delivery before accepting another job.');
+      if (activeJob) {
+        throw new ConflictException('You already have an active delivery in progress. Complete your current delivery before accepting another job.');
+      }
+
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: {
+          OR: [{ id }, { orderId: id }],
+        },
+      });
+
+      if (!job) {
+        throw new NotFoundException('Delivery job not found.');
+      }
+
+      if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
+        throw new ConflictException('This delivery job has already been claimed by another delivery partner.');
+      }
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.stateMachineService.transition(job.orderId, OrderStatus.DRIVER_ASSIGNED, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`acceptJob failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to accept delivery job',
+        details: err?.stack || String(err),
+      });
     }
-
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: {
-        OR: [{ id }, { orderId: id }],
-      },
-    });
-
-    if (!job) {
-      throw new NotFoundException('Delivery job not found.');
-    }
-
-    if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
-      throw new ConflictException('This delivery job has already been claimed by another delivery partner.');
-    }
-
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      driverId: driver.id,
-    };
-
-    return this.stateMachineService.transition(job.orderId, OrderStatus.DRIVER_ASSIGNED, actor);
   }
 
   @Post('jobs/:id/arrived')
   @ApiOperation({ summary: 'Rider arrives at pickup restaurant' })
   async arrivedAtRestaurant(@Param('id') id: string, @Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: { OR: [{ id }, { orderId: id }] },
-    });
-    if (!job) throw new NotFoundException('Delivery job not found.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
 
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      driverId: driver?.id,
-    };
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
 
-    return this.stateMachineService.transition(job.orderId, OrderStatus.ARRIVED_AT_RESTAURANT, actor);
+      return await this.stateMachineService.transition(job.orderId, OrderStatus.ARRIVED_AT_RESTAURANT, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`arrivedAtRestaurant failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to arrived',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post('jobs/:id/picked-up')
   @ApiOperation({ summary: 'Rider picks up order from restaurant' })
   async pickedUpOrder(@Param('id') id: string, @Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: { OR: [{ id }, { orderId: id }] },
-    });
-    if (!job) throw new NotFoundException('Delivery job not found.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
 
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      driverId: driver?.id,
-    };
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
 
-    return this.stateMachineService.transition(job.orderId, OrderStatus.PICKED_UP, actor);
+      return await this.stateMachineService.transition(job.orderId, OrderStatus.PICKED_UP, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`pickedUpOrder failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to picked up',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post('jobs/:id/start-delivery')
   @ApiOperation({ summary: 'Rider starts delivery to customer location' })
   async startDelivery(@Param('id') id: string, @Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: { OR: [{ id }, { orderId: id }] },
-    });
-    if (!job) throw new NotFoundException('Delivery job not found.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
 
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      driverId: driver?.id,
-    };
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
 
-    return this.stateMachineService.transition(job.orderId, OrderStatus.OUT_FOR_DELIVERY, actor);
+      return await this.stateMachineService.transition(job.orderId, OrderStatus.OUT_FOR_DELIVERY, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`startDelivery failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to out for delivery',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post('jobs/:id/delivered')
   @ApiOperation({ summary: 'Rider marks order as delivered to customer' })
   async markDelivered(@Param('id') id: string, @Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: { OR: [{ id }, { orderId: id }] },
-    });
-    if (!job) throw new NotFoundException('Delivery job not found.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
 
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      driverId: driver?.id,
-    };
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
 
-    return this.stateMachineService.transition(job.orderId, OrderStatus.DELIVERED, actor);
+      return await this.stateMachineService.transition(job.orderId, OrderStatus.DELIVERED, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`markDelivered failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to mark order as delivered',
+        details: err?.stack || String(err),
+      });
+    }
   }
 }
