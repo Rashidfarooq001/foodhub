@@ -319,7 +319,17 @@ export default function CurrentDeliveryPage() {
           <p className="text-xs text-gray-400 mt-0.5">{currentJob.restaurantAddress}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {currentJob.restaurantLat && currentJob.restaurantLng && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.restaurantLat},${currentJob.restaurantLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700 transition-all shadow-md"
+            >
+              <Navigation className="h-4 w-4" /> Navigate to Restaurant
+            </a>
+          )}
           <a
             href={`tel:${currentJob.restaurantPhone}`}
             className="flex items-center gap-1.5 rounded-2xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
@@ -341,13 +351,28 @@ export default function CurrentDeliveryPage() {
             Navigate to <strong>{currentJob.restaurantName}</strong> and tap <strong>I HAVE ARRIVED AT RESTAURANT</strong> once you reach the location.
           </p>
 
-          <button
-            disabled={isSubmitting}
-            onClick={handleArrived}
-            className="w-full rounded-2xl bg-emerald-600 py-4 text-xs font-black text-white shadow-lg hover:bg-emerald-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Updating...' : 'I HAVE ARRIVED AT RESTAURANT'}
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {currentJob.restaurantLat && currentJob.restaurantLng ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.restaurantLat},${currentJob.restaurantLng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-xs font-black text-orange-700 hover:bg-orange-100 transition"
+              >
+                <Navigation className="h-4 w-4" /> OPEN RESTAURANT NAVIGATION
+              </a>
+            ) : (
+              <div className="text-xs text-gray-400 font-bold p-3">Restaurant location coordinates pending</div>
+            )}
+
+            <button
+              disabled={isSubmitting}
+              onClick={handleArrived}
+              className="rounded-2xl bg-emerald-600 py-3.5 text-xs font-black text-white shadow-lg hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Updating...' : 'I HAVE ARRIVED AT RESTAURANT'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -434,8 +459,20 @@ export default function CurrentDeliveryPage() {
             </a>
           </div>
 
-          <div className="rounded-2xl bg-white p-4 border border-teal-100 space-y-2 text-xs">
-            <span className="font-bold text-gray-500 block uppercase">Destination Address</span>
+          <div className="rounded-2xl bg-white p-4 border border-teal-100 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-gray-500 block uppercase">Destination Address</span>
+              {currentJob.customerLat && currentJob.customerLng && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.customerLat},${currentJob.customerLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition"
+                >
+                  <Navigation className="h-3.5 w-3.5" /> Open Navigation
+                </a>
+              )}
+            </div>
             <p className="font-bold text-gray-900 text-sm">{currentJob.customerAddress}</p>
           </div>
 

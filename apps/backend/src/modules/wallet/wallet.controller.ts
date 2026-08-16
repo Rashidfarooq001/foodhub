@@ -12,8 +12,15 @@ export class WalletController {
 
   @Get()
   @ApiOperation({ summary: 'Get wallet balance' })
-  async getBalance(@Request() req: { user: { sub: string } }) {
-    return this.walletService.getBalance(req.user.sub);
+  async getBalance(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.walletService.getBalance(userId);
+  }
+
+  @Get('overview')
+  @ApiOperation({ summary: 'Get platform customer and driver wallets overview (Admin)' })
+  async getOverview(@Request() req: any) {
+    return this.walletService.getPlatformWalletsOverview();
   }
 
   @Get('transactions')
@@ -21,10 +28,11 @@ export class WalletController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   async getHistory(
-    @Request() req: { user: { sub: string } },
+    @Request() req: any,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.walletService.getTransactionHistory(req.user.sub, +page, +limit);
+    const userId = req.user?.id || req.user?.sub;
+    return this.walletService.getTransactionHistory(userId, +page, +limit);
   }
 }

@@ -802,6 +802,14 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     if (!isAdmin) {
       delete serialized.pricingSnapshot;
     }
+
+    // STRICT DELIVERY OTP PRIVACY:
+    // Only the authenticated ordering customer receives deliveryOtp, and ONLY when the order is OUT_FOR_DELIVERY
+    if (!isCustomerOwner || order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      delete serialized.deliveryOtp;
+      delete serialized.deliveryOtpHash;
+    }
+
     return serialized;
   }
 

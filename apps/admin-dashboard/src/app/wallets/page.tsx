@@ -5,41 +5,46 @@ import { Wallet, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 import { adminFetch } from '../../utils/admin-fetch';
 
-const DEFAULT_CUSTOMER_WALLETS = [
-  { name: 'Rahul Sharma', phone: '+919876543210', balance: 250, txCount: 8 },
-  { name: 'Priya Patel', phone: '+919876543211', balance: 100, txCount: 3 },
-  { name: 'Anish Verma', phone: '+919876543212', balance: 0, txCount: 1 },
-];
+interface CustomerWalletItem {
+  id: string;
+  name: string;
+  phone: string;
+  balance: number;
+  txCount: number;
+}
 
-const DEFAULT_DRIVER_WALLETS = [
-  { name: 'Vikram Singh', vehicle: 'KA-01-HA-9821', balance: 3480, txCount: 24 },
-  { name: 'Amit Kumar', vehicle: 'KA-03-EB-1234', balance: 2150, txCount: 18 },
-];
+interface DriverWalletItem {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle: string;
+  balance: number;
+  txCount: number;
+}
 
 export default function AdminWalletsPage() {
-  const [customerWallets, setCustomerWallets] = React.useState(DEFAULT_CUSTOMER_WALLETS);
-  const [driverWallets, setDriverWallets] = React.useState(DEFAULT_DRIVER_WALLETS);
+  const [customerWallets, setCustomerWallets] = React.useState<CustomerWalletItem[]>([]);
+  const [driverWallets, setDriverWallets] = React.useState<DriverWalletItem[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const [driversRes] = await Promise.all([
-          adminFetch('/drivers'),
-        ]);
-        if (driversRes.ok) {
-          const drivers = await driversRes.json();
-          if (Array.isArray(drivers) && drivers.length > 0) {
-            setDriverWallets(
-              drivers.map((d: any) => ({
-                name: d.user?.profile?.firstName ? `${d.user.profile.firstName} ${d.user.profile.lastName || ''}` : 'Courier Partner',
-                vehicle: d.vehicleNumber || 'KA-01-EV-1000',
-                balance: d.walletBalance || 2500,
-                txCount: d.totalDeliveries || 12,
-              })),
-            );
+        const res = await adminFetch('/wallet/overview');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.customerWallets)) {
+            setCustomerWallets(data.customerWallets);
+          }
+          if (Array.isArray(data.driverWallets)) {
+            setDriverWallets(data.driverWallets);
           }
         }
-      } catch { /* fallback */ }
+      } catch {
+        /* offline */
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchWallets();
   }, []);

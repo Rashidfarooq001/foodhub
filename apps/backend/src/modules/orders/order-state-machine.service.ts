@@ -585,8 +585,55 @@ export class OrderStateMachineService {
               status: DeliveryJobStatus.DELIVERED,
               deliveredAt: now,
             },
-            select: { id: true, status: true },
+            select: { id: true, status: true, driverId: true, riderPayout: true, deliveryFee: true },
           });
+
+          // Idempotent Driver Wallet Credit
+          if (updatedJob.driverId) {
+            const driver = await tx.driver.findUnique({
+              where: { id: updatedJob.driverId },
+              select: { userId: true },
+            });
+
+            if (driver?.userId) {
+              const payoutAmount = Number(updatedJob.riderPayout || Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)));
+              
+              // Check if wallet transaction for this order delivery already exists
+              let driverWallet = await tx.wallet.findUnique({
+                where: { userId: driver.userId },
+              });
+
+              if (!driverWallet) {
+                driverWallet = await tx.wallet.create({
+                  data: { userId: driver.userId, balance: 0 },
+                });
+              }
+
+              const existingTx = await tx.walletTransaction.findFirst({
+                where: {
+                  walletId: driverWallet.id,
+                  referenceId: order.id,
+                },
+              });
+
+              if (!existingTx && payoutAmount > 0) {
+                await tx.wallet.update({
+                  where: { id: driverWallet.id },
+                  data: { balance: { increment: payoutAmount } },
+                });
+
+                await tx.walletTransaction.create({
+                  data: {
+                    walletId: driverWallet.id,
+                    type: 'CREDIT',
+                    amount: payoutAmount,
+                    description: `Earnings for delivering Order #${order.orderNumber}`,
+                    referenceId: order.id,
+                  },
+                });
+              }
+            }
+          }
         }
       } else if (targetStatus === OrderStatus.CANCELLED || targetStatus === OrderStatus.REJECTED) {
         if (order.deliveryJob) {

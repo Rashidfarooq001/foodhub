@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, Eye, X, ExternalLink } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
 import { getImageUrl } from '@foodhub/config';
 
@@ -27,6 +27,7 @@ interface PendingDriverApplication {
 export default function AdminDriverApprovalPage() {
   const [applications, setApplications] = useState<PendingDriverApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
   const fetchApplications = async () => {
     try {
@@ -60,6 +61,8 @@ export default function AdminDriverApprovalPage() {
     const doc = app.documents?.find((d) => d.documentType === type);
     return doc?.documentUrl ? getImageUrl(doc.documentUrl) : null;
   };
+
+  const isPdf = (url: string) => url.toLowerCase().includes('.pdf');
 
   return (
     <div className="space-y-6">
@@ -108,14 +111,17 @@ export default function AdminDriverApprovalPage() {
                   <div>
                     <span className="block font-semibold text-indigo-700 mb-1">Driving License Photo</span>
                     {getDocUrl(app, 'DL') ? (
-                      <a
-                        href={getDocUrl(app, 'DL')!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc({
+                          url: getDocUrl(app, 'DL')!,
+                          title: `${app.user?.profile?.firstName || 'Driver'}'s Driving License`,
+                          type: 'DL'
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
                       >
-                        Preview DL Document
-                      </a>
+                        <Eye className="h-3.5 w-3.5" /> Preview DL Document
+                      </button>
                     ) : (
                       <span className="text-indigo-400 font-bold">Document Pending</span>
                     )}
@@ -123,14 +129,17 @@ export default function AdminDriverApprovalPage() {
                   <div>
                     <span className="block font-semibold text-indigo-700 mb-1">Vehicle RC Document</span>
                     {getDocUrl(app, 'RC') ? (
-                      <a
-                        href={getDocUrl(app, 'RC')!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc({
+                          url: getDocUrl(app, 'RC')!,
+                          title: `${app.user?.profile?.firstName || 'Driver'}'s Vehicle RC Document`,
+                          type: 'RC'
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
                       >
-                        Preview RC Document
-                      </a>
+                        <Eye className="h-3.5 w-3.5" /> Preview RC Document
+                      </button>
                     ) : (
                       <span className="text-indigo-400 font-bold">Document Pending</span>
                     )}
@@ -138,14 +147,17 @@ export default function AdminDriverApprovalPage() {
                   <div>
                     <span className="block font-semibold text-indigo-700 mb-1">Aadhaar / ID Proof</span>
                     {getDocUrl(app, 'AADHAAR') ? (
-                      <a
-                        href={getDocUrl(app, 'AADHAAR')!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc({
+                          url: getDocUrl(app, 'AADHAAR')!,
+                          title: `${app.user?.profile?.firstName || 'Driver'}'s Identity Proof`,
+                          type: 'AADHAAR'
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
                       >
-                        Preview ID Document
-                      </a>
+                        <Eye className="h-3.5 w-3.5" /> Preview ID Document
+                      </button>
                     ) : (
                       <span className="text-indigo-400 font-bold">Document Pending</span>
                     )}
@@ -171,6 +183,53 @@ export default function AdminDriverApprovalPage() {
           ))
         )}
       </div>
+
+      {/* DOCUMENT PREVIEW MODAL */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-black text-gray-900">{previewDoc.title}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline px-2 py-1 rounded-lg"
+                >
+                  <ExternalLink className="h-4 w-4" /> Open in New Tab
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="rounded-full p-1 hover:bg-gray-100 text-gray-400"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto rounded-2xl bg-gray-50 flex items-center justify-center p-4 min-h-[300px]">
+              {isPdf(previewDoc.url) ? (
+                <iframe
+                  src={previewDoc.url}
+                  className="w-full h-[500px] rounded-xl border border-gray-200"
+                  title="Document Preview"
+                />
+              ) : (
+                <img
+                  src={previewDoc.url}
+                  alt={previewDoc.title}
+                  className="max-h-[500px] w-auto rounded-xl object-contain shadow"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
