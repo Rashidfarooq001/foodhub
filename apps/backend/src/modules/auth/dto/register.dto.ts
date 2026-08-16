@@ -22,6 +22,11 @@ export class RegisterDto {
   @IsNotEmpty()
   confirmPassword!: string;
 
+  @ApiPropertyOptional({ example: 'customer@example.com', description: 'Customer email address' })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
   @ApiPropertyOptional({ example: '123 Mg Road, Indiranagar, Bengaluru', description: 'Customer default delivery address' })
   @IsOptional()
   @IsString()

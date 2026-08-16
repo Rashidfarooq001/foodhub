@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, ForbiddenException, ConflictException, Logger } from '@nestjs/common';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
@@ -236,7 +236,15 @@ export class AuthService {
 
     const existingUser = await this.usersService.findUserByPhone(formattedPhone);
     if (existingUser) {
-      throw new BadRequestException('Phone number is already registered. Please login.');
+      throw new ConflictException('Phone number is already registered. Please login.');
+    }
+
+    const cleanEmail = dto.email ? dto.email.trim().toLowerCase() : undefined;
+    if (cleanEmail) {
+      const existingEmail = await this.usersService.findUserByPhone(cleanEmail);
+      if (existingEmail) {
+        throw new ConflictException('An account with this email address already exists. Please login.');
+      }
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -248,6 +256,7 @@ export class AuthService {
     const user = await (this.usersService as any).prisma.user.create({
       data: {
         phone: formattedPhone,
+        email: cleanEmail,
         passwordHash,
         role: UserRole.CUSTOMER,
         isVerified: true,
