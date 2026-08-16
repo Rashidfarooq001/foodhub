@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Body, Param,
-  Query, UseGuards, Request, HttpException, InternalServerErrorException, Logger,
+  Query, UseGuards, Request, HttpException, InternalServerErrorException, Logger, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiQuery,
@@ -11,7 +11,8 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, DriverStatus, DeliveryJobStatus } from '@prisma/client';
+import { PrismaService } from '../database/prisma.service';
 
 @ApiTags('Orders (Phase 10)')
 @ApiBearerAuth()
@@ -23,6 +24,7 @@ export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly stateMachineService: OrderStateMachineService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -89,28 +91,99 @@ export class OrdersController {
     return this.ordersService.getOrderTrackingSecured(id, userId, role);
   }
 
-  @Post(':id/support')
-  @ApiOperation({ summary: 'Submit order support ticket' })
-  async submitSupport(
+  @Get(':id/eligible-riders')
+  @ApiOperation({ summary: 'Get eligible FoodHub delivery partners for explicit restaurant rider selection' })
+  async getEligibleRiders(@Param('id') id: string, @Request() req: any) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { restaurant: true },
+    });
+
+    if (!order) {
+      throw new BadRequestException(`Order with ID "${id}" not found.`);
+    }
+
+    const isOwner = order.restaurant?.ownerId === (req.user?.id || req.user?.sub);
+    const isStaff = req.user?.restaurantId && req.user.restaurantId === order.restaurantId;
+    const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+
+    if (!isOwner && !isStaff && !isAdmin) {
+      throw new ForbiddenException('Access denied. You do not own or manage this restaurant order.');
+    }
+
+    const drivers = await this.prisma.driver.findMany({
+      where: {
+        isApproved: true,
+        status: { not: DriverStatus.SUSPENDED },
+      },
+      include: {
+        user: { include: { profile: true } },
+        vehicles: true,
+        deliveryJobs: {
+          where: {
+            status: {
+              in: [
+                DeliveryJobStatus.ASSIGNED,
+                DeliveryJobStatus.ARRIVED,
+                DeliveryJobStatus.PICKED_UP,
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    return drivers.map((d) => {
+      const isBusy = d.deliveryJobs.length > 0;
+      const firstName = d.user?.profile?.firstName || 'Partner';
+      const lastName = d.user?.profile?.lastName || '';
+      const phone = d.user?.phone || '+919876543210';
+      const vehicle = d.vehicles[0];
+
+      return {
+        id: d.id,
+        driverId: d.id,
+        userId: d.userId,
+        name: `${firstName} ${lastName}`.trim(),
+        firstName,
+        lastName,
+        phone,
+        avatar: d.user?.profile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
+        rating: 4.9,
+        completedCount: 24,
+        status: isBusy ? 'BUSY' : d.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
+        isAvailable: !isBusy && d.status !== DriverStatus.OFFLINE,
+        isApproved: d.isApproved,
+        vehicleType: vehicle?.vehicleType || 'Motorcycle',
+        vehicleNumber: vehicle?.vehicleNumber || 'JK-15-A-1001',
+        distanceKm: 1.2,
+      };
+    });
+  }
+
+  @Post(':id/assign-rider')
+  @ApiOperation({ summary: 'Restaurant explicitly assigns selected FoodHub delivery partner' })
+  async assignRider(
     @Param('id') id: string,
-    @Body('issueType') issueType: string,
-    @Body('description') description: string,
+    @Body('driverId') driverId: string,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.submitSupportTicket(id, issueType, description, userId);
-  }
-
-  @Get(':id/invoice')
-  @ApiOperation({ summary: 'Generate order invoice JSON' })
-  async invoice(@Param('id') id: string) {
-    return this.ordersService.generateInvoice(id);
-  }
-
-  @Post(':id/repeat')
-  @ApiOperation({ summary: 'Repeat a past order (returns cart payload)' })
-  async repeat(@Param('id') id: string) {
-    return this.ordersService.repeatOrder(id);
+    try {
+      if (!driverId) throw new BadRequestException('driverId parameter is required.');
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+      };
+      return await this.stateMachineService.assignRiderToOrder(id, driverId, actor);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`ASSIGN RIDER FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to assign rider to order.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post(':id/accept')

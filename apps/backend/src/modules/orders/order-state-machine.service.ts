@@ -33,6 +33,159 @@ export class OrderStateMachineService {
   }
 
   /**
+   * Restaurant explicitly assigns a FoodHub rider to an order
+   */
+  async assignRiderToOrder(
+    orderId: string,
+    targetDriverId: string,
+    actor: AuthenticatedActor,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { restaurant: true, customer: true, deliveryJob: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    // Verify restaurant ownership
+    const isOwner = order.restaurant?.ownerId === actor.userId;
+    const isStaff = actor.restaurantId && actor.restaurantId === order.restaurantId;
+    const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
+
+    if (!isOwner && !isStaff && !isAdmin) {
+      throw new ForbiddenException('Access denied. You do not own or manage this restaurant order.');
+    }
+
+    // Check driver approval
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: targetDriverId },
+      include: { user: { include: { profile: true } }, vehicles: true },
+    });
+
+    if (!driver || !driver.isApproved) {
+      throw new BadRequestException('Selected rider is not an approved FoodHub delivery partner.');
+    }
+
+    // Atomic transaction for rider assignment & concurrency protection
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      // Concurrency check: verify target driver is NOT currently on another active delivery
+      const activeJob = await tx.deliveryJob.findFirst({
+        where: {
+          driverId: targetDriverId,
+          status: {
+            in: [
+              DeliveryJobStatus.ASSIGNED,
+              DeliveryJobStatus.ARRIVED,
+              DeliveryJobStatus.PICKED_UP,
+            ],
+          },
+        },
+      });
+
+      if (activeJob) {
+        throw new ConflictException('Selected delivery partner is no longer available or has already been assigned to another delivery.');
+      }
+
+      const now = new Date();
+      const restLat = order.restaurant.latitude || 34.3868;
+      const restLng = order.restaurant.longitude || 74.5221;
+      const delAddr = order.deliveryAddress as any;
+      const custLat = delAddr?.latitude || 34.3877;
+      const custLng = delAddr?.longitude || 74.5228;
+      const distanceKm = delAddr?.distanceKm || this.calculateHaversineDistance(restLat, restLng, custLat, custLng);
+
+      const pickupAddress = {
+        restaurantName: order.restaurant.name,
+        addressLine: order.restaurant.addressLine,
+        latitude: restLat,
+        longitude: restLng,
+        phone: order.restaurant.phone,
+      };
+
+      const dropAddress = {
+        street: delAddr?.street || delAddr?.addressLine1 || 'Delivery Address',
+        addressLine2: delAddr?.addressLine2 || '',
+        city: delAddr?.city || 'Bandipora',
+        state: delAddr?.state || 'Jammu & Kashmir',
+        postalCode: delAddr?.postalCode || '193502',
+        latitude: custLat,
+        longitude: custLng,
+        contactName: delAddr?.name || 'Customer',
+      };
+
+      const riderPayout = Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+
+      // Upsert delivery job with assigned driver
+      await tx.deliveryJob.upsert({
+        where: { orderId: order.id },
+        create: {
+          orderId: order.id,
+          driverId: targetDriverId,
+          status: DeliveryJobStatus.ASSIGNED,
+          pickupAddressJson: pickupAddress,
+          dropAddressJson: dropAddress,
+          distanceKm,
+          deliveryFee: order.deliveryFee,
+          riderPayout,
+          offeredAt: now,
+          acceptedAt: now,
+        },
+        update: {
+          driverId: targetDriverId,
+          status: DeliveryJobStatus.ASSIGNED,
+          acceptedAt: now,
+        },
+      });
+
+      // Update Order status
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.DRIVER_ASSIGNED,
+          assignedFoodHubDriverId: targetDriverId,
+        },
+        include: {
+          restaurant: true,
+          deliveryJob: { include: { driver: { include: { user: { include: { profile: true } }, vehicles: true } } } },
+          orderItems: true,
+        },
+      });
+
+      // Audit logs
+      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: OrderStatus.DRIVER_ASSIGNED,
+          changedBy: validActorUserId,
+        },
+      });
+
+      const driverName = driver.user?.profile
+        ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}`.trim()
+        : 'Partner';
+
+      await tx.orderTimeline.create({
+        data: {
+          orderId: order.id,
+          status: OrderStatus.DRIVER_ASSIGNED,
+          message: `Restaurant assigned FoodHub delivery partner: ${driverName}.`,
+        },
+      });
+
+      return updated;
+    });
+
+    // Realtime notification
+    this.emitRealtimeEvents(updatedOrder, order.status, OrderStatus.DRIVER_ASSIGNED);
+
+    return updatedOrder;
+  }
+
+  /**
    * Authoritative Order State Transition Guard
    */
   async transition(
@@ -202,7 +355,7 @@ export class OrderStateMachineService {
         },
         include: {
           restaurant: true,
-          deliveryJob: true,
+          deliveryJob: { include: { driver: { include: { user: { include: { profile: true } }, vehicles: true } } } },
           orderItems: true,
         },
       });
@@ -335,6 +488,16 @@ export class OrderStateMachineService {
         status: toStatus,
         updatedAt: order.updatedAt,
         deliveryJob: order.deliveryJob,
+        assignedRider: order.deliveryJob?.driver
+          ? {
+              id: order.deliveryJob.driver.id,
+              name: order.deliveryJob.driver.user?.profile
+                ? `${order.deliveryJob.driver.user.profile.firstName} ${order.deliveryJob.driver.user.profile.lastName || ''}`.trim()
+                : 'Partner',
+              phone: order.deliveryJob.driver.user?.phone,
+              vehicleNumber: order.deliveryJob.driver.vehicles?.[0]?.vehicleNumber,
+            }
+          : null,
       };
 
       // Emit to order room (customer)
@@ -344,8 +507,9 @@ export class OrderStateMachineService {
       this.ordersGateway.emitToRestaurant(order.restaurantId, 'order:status-changed' as any, payload);
 
       // Emit to driver if assigned
-      if (order.assignedFoodHubDriverId) {
-        this.ordersGateway.emitToDriver(order.assignedFoodHubDriverId, 'order:status-changed' as any, payload);
+      if (order.assignedFoodHubDriverId || order.deliveryJob?.driverId) {
+        const driverId = order.assignedFoodHubDriverId || order.deliveryJob?.driverId;
+        this.ordersGateway.emitToDriver(driverId, 'order:status-changed' as any, payload);
       }
 
       // Specific event triggers
