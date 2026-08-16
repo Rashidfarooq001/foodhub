@@ -35,34 +35,59 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         await this.$executeRawUnsafe(`
           DO $$
           BEGIN
-            -- Ensure food_variants.price column exists
-            IF NOT EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_name = 'food_variants' AND column_name = 'price'
-            ) THEN
-              ALTER TABLE "food_variants" ADD COLUMN "price" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+            -- Ensure all food_variants columns exist
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'food_variants') THEN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'price'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "price" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'is_available'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "is_available" BOOLEAN NOT NULL DEFAULT true;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'display_order'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "display_order" INTEGER NOT NULL DEFAULT 0;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'price_modifier'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "price_modifier" DECIMAL(10,2);
+              END IF;
             END IF;
 
             -- Ensure order_items variant & snapshot columns exist
-            IF NOT EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_name = 'order_items' AND column_name = 'variant_id'
-            ) THEN
-              ALTER TABLE "order_items" ADD COLUMN "variant_id" UUID;
-            END IF;
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'order_items') THEN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'order_items' AND column_name = 'variant_id'
+              ) THEN
+                ALTER TABLE "order_items" ADD COLUMN "variant_id" UUID;
+              END IF;
 
-            IF NOT EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_name = 'order_items' AND column_name = 'variant_name'
-            ) THEN
-              ALTER TABLE "order_items" ADD COLUMN "variant_name" TEXT;
-            END IF;
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'order_items' AND column_name = 'variant_name'
+              ) THEN
+                ALTER TABLE "order_items" ADD COLUMN "variant_name" TEXT;
+              END IF;
 
-            IF NOT EXISTS (
-              SELECT 1 FROM information_schema.columns
-              WHERE table_name = 'order_items' AND column_name = 'unit_price'
-            ) THEN
-              ALTER TABLE "order_items" ADD COLUMN "unit_price" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'order_items' AND column_name = 'unit_price'
+              ) THEN
+                ALTER TABLE "order_items" ADD COLUMN "unit_price" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+              END IF;
             END IF;
 
             -- Ensure settlements table has all weekly settlement columns
