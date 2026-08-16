@@ -77,10 +77,12 @@ export class OrderStateMachineService {
 
     const driver = await this.prisma.driver.findUnique({
       where: { id: driverId },
-      include: {
-        user: { include: { profile: true } },
-        vehicles: true,
-        deliveryJobs: true,
+      select: {
+        id: true,
+        status: true,
+        isApproved: true,
+        user: { select: { id: true, isActive: true, profile: true } },
+        deliveryJobs: { select: { id: true, status: true } },
       },
     });
 
@@ -96,7 +98,7 @@ export class OrderStateMachineService {
       throw new BadRequestException('Selected delivery partner is currently OFFLINE.');
     }
 
-    const activeJobs = driver.deliveryJobs.filter((j) =>
+    const activeJobs = (driver.deliveryJobs || []).filter((j) =>
       [
         DeliveryJobStatus.ASSIGNED as string,
         DeliveryJobStatus.ARRIVED as string,
@@ -109,7 +111,6 @@ export class OrderStateMachineService {
     }
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      const now = new Date();
       const restLat = Number(order.restaurant.latitude || 34.3868);
       const restLng = Number(order.restaurant.longitude || 74.5221);
       const delAddr: any = order.deliveryAddress || {};
@@ -165,7 +166,21 @@ export class OrderStateMachineService {
         },
         include: {
           restaurant: true,
-          deliveryJob: { include: { driver: { include: { user: { include: { profile: true } }, vehicles: true } } } },
+          deliveryJob: {
+            select: {
+              id: true,
+              status: true,
+              driverId: true,
+              driver: {
+                select: {
+                  id: true,
+                  status: true,
+                  isApproved: true,
+                  user: { select: { id: true, profile: true } },
+                },
+              },
+            },
+          },
           orderItems: true,
         },
       });
@@ -227,8 +242,6 @@ export class OrderStateMachineService {
     this.validateActorPermission(order, currentStatus, targetStatus, actor);
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      const now = new Date();
-
       const liveOrder = await tx.order.findUnique({
         where: { id: order.id },
         select: { status: true },
@@ -361,7 +374,21 @@ export class OrderStateMachineService {
         },
         include: {
           restaurant: true,
-          deliveryJob: { include: { driver: { include: { user: { include: { profile: true } } } } } },
+          deliveryJob: {
+            select: {
+              id: true,
+              status: true,
+              driverId: true,
+              driver: {
+                select: {
+                  id: true,
+                  status: true,
+                  isApproved: true,
+                  user: { select: { id: true, profile: true } },
+                },
+              },
+            },
+          },
           orderItems: { include: { foodItem: true } },
         },
       });
