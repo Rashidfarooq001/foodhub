@@ -400,7 +400,6 @@ export class OrderStateMachineService {
           fromStatus: currentStatus,
           toStatus: targetStatus,
           changedBy: validActorUserId,
-          reason: extraData?.reason || extraData?.cancellationReason || null,
         },
       });
 
@@ -446,6 +445,8 @@ export class OrderStateMachineService {
       DELIVERED: [],
       REJECTED: [],
       CANCELLED: [],
+      FAILED: [],
+      REFUNDED: [],
     };
 
     if (!allowedTransitions[currentStatus]?.includes(targetStatus)) {
@@ -467,12 +468,14 @@ export class OrderStateMachineService {
     }
 
     if (
-      [
-        OrderStatus.ARRIVED_AT_RESTAURANT,
-        OrderStatus.PICKED_UP,
-        OrderStatus.OUT_FOR_DELIVERY,
-        OrderStatus.DELIVERED,
-      ].includes(targetStatus)
+      (
+        [
+          OrderStatus.ARRIVED_AT_RESTAURANT,
+          OrderStatus.PICKED_UP,
+          OrderStatus.OUT_FOR_DELIVERY,
+          OrderStatus.DELIVERED,
+        ] as OrderStatus[]
+      ).includes(targetStatus)
     ) {
       if (!isAssignedDriver && !isAdmin) {
         throw new ForbiddenException('Only the assigned delivery partner can update trip progress.');
