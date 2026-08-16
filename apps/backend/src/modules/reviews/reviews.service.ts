@@ -67,7 +67,10 @@ export class ReviewsService {
   async createRestaurantReview(userId: string, dto: CreateRestaurantReviewDto) {
     await this.assertOrderDelivered(dto.orderId, userId);
 
-    const customer = await this.prisma.customer.findFirstOrThrow({ where: { userId } });
+    const customer = await this.prisma.customer.findFirst({
+      where: { OR: [{ userId }, { id: userId }] },
+    });
+    if (!customer) throw new NotFoundException('Customer profile not found');
 
     // One review per order guard
     const existing = await this.prisma.restaurantReview.findFirst({
@@ -121,7 +124,10 @@ export class ReviewsService {
   async createFoodReview(userId: string, dto: CreateFoodReviewDto) {
     await this.assertOrderDelivered(dto.orderId, userId);
 
-    const customer = await this.prisma.customer.findFirstOrThrow({ where: { userId } });
+    const customer = await this.prisma.customer.findFirst({
+      where: { OR: [{ userId }, { id: userId }] },
+    });
+    if (!customer) throw new NotFoundException('Customer profile not found');
 
     const existing = await this.prisma.foodReview.findFirst({
       where: { orderId: dto.orderId, foodItemId: dto.foodItemId, customerId: customer.id },
@@ -146,7 +152,10 @@ export class ReviewsService {
   async createDriverReview(userId: string, dto: CreateDriverReviewDto) {
     await this.assertOrderDelivered(dto.orderId, userId);
 
-    const customer = await this.prisma.customer.findFirstOrThrow({ where: { userId } });
+    const customer = await this.prisma.customer.findFirst({
+      where: { OR: [{ userId }, { id: userId }] },
+    });
+    if (!customer) throw new NotFoundException('Customer profile not found');
 
     const existing = await this.prisma.driverReview.findFirst({
       where: { orderId: dto.orderId, driverId: dto.driverId },
