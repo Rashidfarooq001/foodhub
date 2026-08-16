@@ -32,15 +32,195 @@ export class DeliveryJobsController {
     private readonly stateMachineService: OrderStateMachineService,
   ) {}
 
-  private async getDriverIdFromReq(req: any): Promise<string | undefined> {
-    if (req.user?.driverId) return req.user.driverId;
+  private async getDriverFromReq(req: any) {
     const userId = req.user?.id || req.user?.sub;
-    if (!userId) return undefined;
-    const driver = await this.prisma.driver.findUnique({
+    if (!userId) return null;
+
+    return this.prisma.driver.findUnique({
       where: { userId },
-      select: { id: true },
+      include: {
+        user: { include: { profile: true } },
+        vehicles: true,
+        deliveryJobs: {
+          include: { order: true },
+        },
+      },
     });
-    return driver?.id;
+  }
+
+  @Get('me/status')
+  @ApiOperation({ summary: 'Get current authenticated driver availability and presence status' })
+  async getMyStatus(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    const now = new Date();
+    const activeJob = driver.deliveryJobs.find((j) =>
+      [
+        DeliveryJobStatus.ASSIGNED as string,
+        DeliveryJobStatus.ARRIVED as string,
+        DeliveryJobStatus.PICKED_UP as string,
+      ].includes(j.status as string),
+    );
+
+    // Stale presence evaluation (older than 2 minutes without active delivery)
+    let currentStatus = driver.status;
+    if (
+      currentStatus === DriverStatus.ONLINE &&
+      !activeJob &&
+      driver.lastSeenAt &&
+      now.getTime() - driver.lastSeenAt.getTime() > 2 * 60 * 1000
+    ) {
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: { status: DriverStatus.OFFLINE, onlineSince: null },
+      });
+      currentStatus = DriverStatus.OFFLINE;
+    }
+
+    let operationalStatus = 'ONLINE_AVAILABLE';
+    let unavailabilityReason: string | null = null;
+
+    if (!driver.user?.isActive) {
+      operationalStatus = 'SUSPENDED';
+      unavailabilityReason = 'User account suspended';
+    } else if (!driver.isApproved) {
+      operationalStatus = 'PENDING_APPROVAL';
+      unavailabilityReason = 'Pending admin approval';
+    } else if (currentStatus === DriverStatus.OFFLINE) {
+      operationalStatus = 'OFFLINE';
+      unavailabilityReason = 'Rider is currently offline';
+    } else if (activeJob) {
+      operationalStatus = 'BUSY';
+      unavailabilityReason = 'Rider is currently executing another delivery';
+    }
+
+    return {
+      driverId: driver.id,
+      userId: driver.userId,
+      operationalStatus,
+      dutyStatus: currentStatus === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
+      isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
+      unavailabilityReason,
+      onlineSince: driver.onlineSince,
+      lastSeenAt: driver.lastSeenAt,
+      isApproved: driver.isApproved,
+      activeDelivery: activeJob
+        ? {
+            jobId: activeJob.id,
+            orderId: activeJob.orderId,
+            orderNumber: activeJob.order.orderNumber,
+            status: activeJob.status,
+          }
+        : null,
+    };
+  }
+
+  @Post('me/go-online')
+  @ApiOperation({ summary: 'Delivery partner enables availability (Goes ONLINE)' })
+  async goOnline(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    if (!driver.user?.isActive) {
+      throw new BadRequestException('Cannot go online. Account is suspended or inactive.');
+    }
+
+    if (!driver.isApproved) {
+      throw new BadRequestException('Cannot go online. Account is pending admin approval.');
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.driver.update({
+      where: { id: driver.id },
+      data: {
+        status: DriverStatus.ONLINE,
+        onlineSince: driver.onlineSince || now,
+        lastSeenAt: now,
+      },
+    });
+
+    return {
+      message: "You are now online and available for deliveries",
+      dutyStatus: 'ONLINE',
+      operationalStatus: 'ONLINE_AVAILABLE',
+      onlineSince: updated.onlineSince,
+      lastSeenAt: updated.lastSeenAt,
+    };
+  }
+
+  @Post('me/go-offline')
+  @ApiOperation({ summary: 'Delivery partner disables availability (Goes OFFLINE)' })
+  async goOffline(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    const activeJob = driver.deliveryJobs.find((j) =>
+      [
+        DeliveryJobStatus.ASSIGNED as string,
+        DeliveryJobStatus.ARRIVED as string,
+        DeliveryJobStatus.PICKED_UP as string,
+      ].includes(j.status as string),
+    );
+
+    if (activeJob) {
+      throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
+    }
+
+    const updated = await this.prisma.driver.update({
+      where: { id: driver.id },
+      data: {
+        status: DriverStatus.OFFLINE,
+        onlineSince: null,
+      },
+    });
+
+    return {
+      message: "You are now offline",
+      dutyStatus: 'OFFLINE',
+      operationalStatus: 'OFFLINE',
+    };
+  }
+
+  @Post('me/heartbeat')
+  @ApiOperation({ summary: 'Delivery partner presence heartbeat & live GPS ping' })
+  async heartbeat(
+    @Body('lat') lat?: number,
+    @Body('lng') lng?: number,
+    @Request() req?: any,
+  ) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    const now = new Date();
+    await this.prisma.driver.update({
+      where: { id: driver.id },
+      data: {
+        lastSeenAt: now,
+        ...(lat && lng ? { currentLat: lat, currentLng: lng } : {}),
+      },
+    });
+
+    return {
+      status: 'OK',
+      timestamp: now,
+    };
+  }
+
+  @Patch('me/status')
+  @ApiOperation({ summary: 'Update rider presence status (ONLINE or OFFLINE)' })
+  async updateMyStatus(@Body('status') status: string, @Request() req: any) {
+    if (status === 'ONLINE') return this.goOnline(req);
+    if (status === 'OFFLINE') return this.goOffline(req);
+    throw new BadRequestException('Invalid status value. Use "ONLINE" or "OFFLINE".');
   }
 
   @Get('jobs/available')
@@ -125,14 +305,14 @@ export class DeliveryJobsController {
   @Get('current')
   @ApiOperation({ summary: 'Get current active delivery job for authenticated driver' })
   async getCurrentJob(@Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
-    if (!driverId) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
 
     const job = await this.prisma.deliveryJob.findFirst({
       where: {
-        driverId,
+        driverId: driver.id,
         status: {
           in: [
             DeliveryJobStatus.ASSIGNED,
@@ -211,8 +391,8 @@ export class DeliveryJobsController {
   @Get('stats')
   @ApiOperation({ summary: 'Get earnings & delivery statistics for driver' })
   async getDriverStats(@Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
-    if (!driverId) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
       return {
         todayEarnings: 0,
         todayDeliveries: 0,
@@ -232,7 +412,7 @@ export class DeliveryJobsController {
 
     const completedJobs = await this.prisma.deliveryJob.findMany({
       where: {
-        driverId,
+        driverId: driver.id,
         status: DeliveryJobStatus.DELIVERED,
       },
     });
@@ -241,11 +421,6 @@ export class DeliveryJobsController {
     const todayEarnings = todayJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
     const totalEarnings = completedJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
 
-    const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId },
-      select: { status: true },
-    });
-
     return {
       todayEarnings,
       todayDeliveries: todayJobs.length,
@@ -253,22 +428,22 @@ export class DeliveryJobsController {
       monthlyEarnings: totalEarnings,
       acceptanceRate: 100,
       completionRate: 100,
-      avgRating: 4.9,
+      avgRating: Number(driver.avgRating) > 0 ? Number(driver.avgRating) : 5.0,
       totalRatings: completedJobs.length,
       walletBalance: totalEarnings,
-      dutyStatus: driver?.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
+      dutyStatus: driver.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
     };
   }
 
   @Get('history')
   @ApiOperation({ summary: 'Get completed delivery history for driver' })
   async getDriverHistory(@Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
-    if (!driverId) return [];
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) return [];
 
     const jobs = await this.prisma.deliveryJob.findMany({
       where: {
-        driverId,
+        driverId: driver.id,
         status: DeliveryJobStatus.DELIVERED,
       },
       include: {
@@ -299,35 +474,22 @@ export class DeliveryJobsController {
   @Patch('duty-status')
   @ApiOperation({ summary: 'Toggle driver online/offline duty status' })
   async toggleDutyStatus(@Body('status') status: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
-    if (!driverId) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
-    }
-
-    const targetStatus = status === 'ONLINE' ? DriverStatus.ONLINE : DriverStatus.OFFLINE;
-
-    const updated = await this.prisma.driver.update({
-      where: { id: driverId },
-      data: { status: targetStatus },
-    });
-
-    return {
-      message: `Duty status updated to ${updated.status}`,
-      dutyStatus: updated.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
-    };
+    if (status === 'ONLINE') return this.goOnline(req);
+    if (status === 'OFFLINE') return this.goOffline(req);
+    throw new BadRequestException('Invalid status value. Use "ONLINE" or "OFFLINE".');
   }
 
   @Post('jobs/:id/accept')
   @ApiOperation({ summary: 'Rider accepts delivery job (Atomic conditional transaction)' })
   async acceptJob(@Param('id') id: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
-    if (!driverId) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
 
     const activeJob = await this.prisma.deliveryJob.findFirst({
       where: {
-        driverId,
+        driverId: driver.id,
         status: {
           in: [
             DeliveryJobStatus.ASSIGNED,
@@ -359,7 +521,7 @@ export class DeliveryJobsController {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
-      driverId,
+      driverId: driver.id,
     };
 
     return this.stateMachineService.transition(job.orderId, OrderStatus.DRIVER_ASSIGNED, actor);
@@ -368,7 +530,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/arrived')
   @ApiOperation({ summary: 'Rider arrives at pickup restaurant' })
   async arrivedAtRestaurant(@Param('id') id: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
+    const driver = await this.getDriverFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -377,7 +539,7 @@ export class DeliveryJobsController {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
-      driverId,
+      driverId: driver?.id,
     };
 
     return this.stateMachineService.transition(job.orderId, OrderStatus.ARRIVED_AT_RESTAURANT, actor);
@@ -386,7 +548,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/picked-up')
   @ApiOperation({ summary: 'Rider picks up order from restaurant' })
   async pickedUpOrder(@Param('id') id: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
+    const driver = await this.getDriverFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -395,7 +557,7 @@ export class DeliveryJobsController {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
-      driverId,
+      driverId: driver?.id,
     };
 
     return this.stateMachineService.transition(job.orderId, OrderStatus.PICKED_UP, actor);
@@ -404,7 +566,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/start-delivery')
   @ApiOperation({ summary: 'Rider starts delivery to customer location' })
   async startDelivery(@Param('id') id: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
+    const driver = await this.getDriverFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -413,7 +575,7 @@ export class DeliveryJobsController {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
-      driverId,
+      driverId: driver?.id,
     };
 
     return this.stateMachineService.transition(job.orderId, OrderStatus.OUT_FOR_DELIVERY, actor);
@@ -422,7 +584,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/delivered')
   @ApiOperation({ summary: 'Rider marks order as delivered to customer' })
   async markDelivered(@Param('id') id: string, @Request() req: any) {
-    const driverId = await this.getDriverIdFromReq(req);
+    const driver = await this.getDriverFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -431,7 +593,7 @@ export class DeliveryJobsController {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
-      driverId,
+      driverId: driver?.id,
     };
 
     return this.stateMachineService.transition(job.orderId, OrderStatus.DELIVERED, actor);

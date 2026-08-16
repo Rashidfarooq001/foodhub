@@ -984,6 +984,8 @@ model Driver {
   currentLat    Float?       @map("current_lat")
   currentLng    Float?       @map("current_lng")
   avgRating     Decimal      @default(0.0) @map("avg_rating") @db.Decimal(3, 2)
+  onlineSince   DateTime?    @map("online_since")
+  lastSeenAt    DateTime?    @map("last_seen_at")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
   deletedAt     DateTime?    @map("deleted_at")

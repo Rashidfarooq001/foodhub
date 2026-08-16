@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DeliveryJob, DriverStats } from '../data/delivery-mock-data';
-import { DollarSign, Bike, CheckCircle2, Star, ArrowRight, Navigation } from 'lucide-react';
+import { DollarSign, Bike, CheckCircle2, Star, ArrowRight, Navigation, Power, AlertTriangle, Clock } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -14,23 +14,51 @@ export default function DeliveryDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [me, setMe] = useState<any>(null);
 
-  useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub-delivery-auth') : null;
-    let accessToken: string | null = null;
-    if (token) {
-      try {
-        const parsed = JSON.parse(token);
-        accessToken = parsed.state?.accessToken || parsed.accessToken || null;
-      } catch {
-        /* parse fallback */
-      }
+  // Presence State
+  const [operationalStatus, setOperationalStatus] = useState<string>('OFFLINE');
+  const [dutyStatus, setDutyStatus] = useState<'ONLINE' | 'OFFLINE'>('OFFLINE');
+  const [onlineSince, setOnlineSince] = useState<string | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const getAccessToken = () => {
+    if (typeof window === 'undefined') return null;
+    const token = localStorage.getItem('foodhub-delivery-auth');
+    if (!token) return null;
+    try {
+      const parsed = JSON.parse(token);
+      return parsed.state?.accessToken || parsed.accessToken || null;
+    } catch {
+      return null;
     }
+  };
+
+  const fetchStatus = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/delivery/me/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOperationalStatus(data.operationalStatus);
+        setDutyStatus(data.dutyStatus);
+        setOnlineSince(data.onlineSince);
+      }
+    } catch {
+      /* offline */
+    }
+  };
+
+  useEffect(() => {
+    const token = getAccessToken();
 
     const fetchAll = async () => {
       try {
-        if (accessToken) {
+        if (token) {
           const meRes = await fetch(`${API_BASE}/auth/me`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (meRes.ok) {
             const meData = await meRes.json();
@@ -38,7 +66,7 @@ export default function DeliveryDashboardPage() {
           }
         }
 
-        const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
         const [statsRes, deliveryRes] = await Promise.all([
           fetch(`${API_BASE}/delivery/stats`, { headers }),
           fetch(`${API_BASE}/delivery/current`, { headers }),
@@ -57,8 +85,58 @@ export default function DeliveryDashboardPage() {
         setIsLoading(false);
       }
     };
+
     fetchAll();
-  }, []);
+    fetchStatus();
+
+    // Setup 30s Heartbeat loop when online
+    const heartbeatInterval = setInterval(() => {
+      if (token && dutyStatus === 'ONLINE') {
+        fetch(`${API_BASE}/delivery/me/heartbeat`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      }
+    }, 30000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [dutyStatus]);
+
+  const handleToggleDutyStatus = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setIsTogglingStatus(true);
+    setStatusMessage(null);
+
+    const targetAction = dutyStatus === 'ONLINE' ? 'go-offline' : 'go-online';
+
+    try {
+      const res = await fetch(`${API_BASE}/delivery/me/${targetAction}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setStatusMessage(errData.message || 'Failed to update delivery availability status.');
+        return;
+      }
+
+      const data = await res.json();
+      setDutyStatus(data.dutyStatus);
+      setOperationalStatus(data.operationalStatus);
+      setStatusMessage(data.message);
+    } catch {
+      setStatusMessage('Network error. Unable to reach delivery backend.');
+    } finally {
+      setIsTogglingStatus(false);
+      setTimeout(() => setStatusMessage(null), 5000);
+      fetchStatus();
+    }
+  };
 
   const kpi = {
     todayEarnings: stats?.todayEarnings ?? 0,
@@ -72,6 +150,77 @@ export default function DeliveryDashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Alert Banner */}
+      {statusMessage && (
+        <div className="flex items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 p-4 text-xs font-bold text-amber-900 shadow-lg animate-bounce">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+          <span>{statusMessage}</span>
+        </div>
+      )}
+
+      {/* Prominent Delivery Availability Switch Banner */}
+      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div
+            className={`flex h-14 w-14 items-center justify-center rounded-2xl text-white font-black transition-all ${
+              operationalStatus === 'BUSY'
+                ? 'bg-amber-500 shadow-lg shadow-amber-500/20'
+                : dutyStatus === 'ONLINE'
+                ? 'bg-emerald-600 shadow-lg shadow-emerald-500/20'
+                : 'bg-gray-700'
+            }`}
+          >
+            <Power className="h-7 w-7" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  operationalStatus === 'BUSY'
+                    ? 'bg-amber-500 animate-pulse'
+                    : dutyStatus === 'ONLINE'
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-gray-400'
+                }`}
+              />
+              <h2 className="text-xl font-black text-gray-900">
+                {operationalStatus === 'BUSY'
+                  ? 'BUSY — DELIVERING ORDER'
+                  : dutyStatus === 'ONLINE'
+                  ? '🟢 ONLINE — AVAILABLE FOR DELIVERIES'
+                  : '⚫ OFFLINE — UNAVAILABLE'}
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 font-medium mt-1">
+              {operationalStatus === 'BUSY'
+                ? 'Complete your active delivery before changing duty status.'
+                : dutyStatus === 'ONLINE'
+                ? 'You are visible to nearby restaurants and eligible for delivery dispatches.'
+                : 'You are currently offline. Turn on switch to receive order dispatches.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Toggle Switch */}
+        <button
+          disabled={isTogglingStatus || operationalStatus === 'BUSY' || isUnderReview}
+          onClick={handleToggleDutyStatus}
+          className={`flex items-center gap-3 rounded-2xl px-6 py-3.5 text-xs font-black transition-all shadow-md ${
+            dutyStatus === 'ONLINE'
+              ? 'bg-rose-600 text-white hover:bg-rose-700'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+          } disabled:opacity-50 min-w-[160px] justify-center`}
+        >
+          {isTogglingStatus
+            ? 'Updating...'
+            : operationalStatus === 'BUSY'
+            ? 'BUSY ON TRIP'
+            : dutyStatus === 'ONLINE'
+            ? 'GO OFFLINE'
+            : 'GO ONLINE NOW'}
+        </button>
+      </div>
+
       {isUnderReview && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 shadow-sm flex items-center justify-between">
           <div>
@@ -81,6 +230,7 @@ export default function DeliveryDashboardPage() {
           <span className="rounded-xl bg-amber-200 px-3 py-1 text-[11px] font-black text-amber-900">UNDER REVIEW</span>
         </div>
       )}
+
       {/* Driver Welcome Header */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-gray-100 pb-4">
         <div>
