@@ -53,31 +53,27 @@ export class UnitEconomicsService {
     const discountAmount = Math.max(0, req.discountAmount || 0);
     const packagingFee = 0.0; // CUSTOMER PACKAGING FEE IS REMOVED COMPLETELY (₹0)
 
-    // Customer Delivery Fee: MAX(minimumFee, distance * perKm)
-    const rawDeliveryFee = distanceKm * config.customerDeliveryPerKm;
-    const customerDeliveryFee = Math.max(
-      config.minimumCustomerDeliveryFee,
-      Math.round(rawDeliveryFee * 100) / 100,
-    );
+    // Customer Delivery Fee: Fixed ₹15.00
+    const customerDeliveryFee = 15.0;
 
-    // Platform Fee (Configurable, default ₹10)
-    const platformFee = config.platformFee;
+    // Platform Fee: Fixed ₹3.00
+    const platformFee = 3.0;
 
-    // Small Order Fee (Apply ₹10 if foodSubtotal < ₹199)
-    const smallOrderFee = foodSubtotal > 0 && foodSubtotal < config.smallOrderThreshold ? config.smallOrderFee : 0;
+    // Small Order Fee: Disabled (₹0.00)
+    const smallOrderFee = 0.0;
 
-    // Taxes (5% GST on food)
-    const taxes = Math.round(foodSubtotal * 0.05 * 100) / 100;
+    // Taxes: GST = ₹0.00
+    const taxes = 0.0;
 
-    // Customer Payable Total
+    // Customer Payable Total = Subtotal + 15 + 3 + 0 + tip - discount
     const customerTotal = Math.max(
       0,
       Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + taxes + tipAmount - discountAmount) * 100,
+        (foodSubtotal + customerDeliveryFee + platformFee + taxes + tipAmount - discountAmount) * 100,
       ) / 100,
     );
 
-    // Restaurant Commission & Settlement (13% default)
+    // Restaurant Commission & Settlement (15% default)
     const restaurantCommissionPercent = config.restaurantCommissionPercent;
     const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
     const restaurantSettlement = Math.round((foodSubtotal - restaurantCommission) * 100) / 100;
@@ -97,7 +93,7 @@ export class UnitEconomicsService {
 
     // Platform Contribution Margin
     const platformGrossRevenue = Math.round(
-      (restaurantCommission + platformFee + smallOrderFee + customerDeliveryFee) * 100,
+      (restaurantCommission + platformFee + customerDeliveryFee) * 100,
     ) / 100;
 
     const riderDirectDeliveryCost = totalRiderPayout - riderTip;
@@ -107,10 +103,10 @@ export class UnitEconomicsService {
       foodSubtotal,
       customerDeliveryFee,
       platformFee,
-      smallOrderFee,
-      packagingFee,
+      smallOrderFee: 0,
+      packagingFee: 0,
       discountAmount,
-      taxes,
+      taxes: 0,
       tipAmount,
       customerTotal,
       restaurantCommissionPercent,

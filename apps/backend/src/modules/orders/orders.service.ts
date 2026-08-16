@@ -235,10 +235,10 @@ export class OrdersService {
     const pricingSnapshot = {
       restaurantCommissionPercent: quote.restaurantCommissionPercent,
       restaurantCommissionAmount: quote.restaurantCommission,
-      platformFee: quote.platformFee,
-      smallOrderThreshold: 200,
-      smallOrderSurcharge: quote.smallOrderFee,
-      customerDeliveryFee: quote.customerDeliveryFee,
+      platformFee: 3.0,
+      smallOrderThreshold: 0,
+      smallOrderSurcharge: 0,
+      customerDeliveryFee: 15.0,
       riderBasePayout: quote.riderBasePay,
       riderPerKmRate: 6,
       riderPayout: quote.totalRiderPayout,
@@ -246,7 +246,7 @@ export class OrdersService {
       restaurantSettlement: quote.restaurantSettlement,
       packagingFee: 0,
       discountAmount,
-      statutoryGstLiability: quote.statutoryGstLiability,
+      statutoryGstLiability: 0,
       platformContributionMargin: quote.platformContributionMargin,
     };
 

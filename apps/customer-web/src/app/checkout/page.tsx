@@ -157,18 +157,12 @@ export default function CheckoutPage() {
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
 
-  // Authoritative delivery fee calculation matching backend formula: 0-3km: ₹30, >3-15km: ₹30 + ₹5*(dist - 3)
-  const dynamicDeliveryFee = orderQuote
-    ? orderQuote.customerDeliveryFee
-    : realDistanceKm !== null && realDistanceKm <= 3.0
-    ? 30.0
-    : realDistanceKm !== null && realDistanceKm <= 15.0
-    ? Math.round((30.0 + 5.0 * (realDistanceKm - 3.0)) * 100) / 100
-    : 0;
+  // Authoritative fixed delivery fee: ₹15.00
+  const dynamicDeliveryFee = orderQuote ? orderQuote.customerDeliveryFee : 15.0;
 
-  const platformFee = pricingConfig.platformFee;
+  const platformFee = orderQuote ? orderQuote.platformFee : 3.0;
   const subtotal = getSubtotal();
-  const smallOrderFee = subtotal > 0 && subtotal < pricingConfig.smallOrderThreshold ? pricingConfig.smallOrderFee : 0;
+  const smallOrderFee = 0.0;
 
   const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
   const isDeliveryEligible = orderQuote
@@ -201,10 +195,10 @@ export default function CheckoutPage() {
     });
   }, [items, selectedAddress, realDistanceKm, tipAmount]);
 
-  const tax = orderQuote ? orderQuote.totalCustomerTaxes : getTaxAmount();
+  const tax = orderQuote ? orderQuote.totalCustomerTaxes : 0;
   const discount = getDiscountAmount();
   const baseGrandTotal =
-    subtotal + dynamicDeliveryFee + platformFee + smallOrderFee + tax - discount;
+    subtotal + dynamicDeliveryFee + platformFee + tax - discount;
   const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -1233,38 +1227,16 @@ export default function CheckoutPage() {
                     <span>₹{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Delivery Fee ({realDistanceKm !== null ? `${realDistanceKm} km` : 'Standard'})</span>
-                    <span>₹{dynamicDeliveryFee}</span>
+                    <span>Delivery Fee</span>
+                    <span>₹{dynamicDeliveryFee || 15}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Platform Fee</span>
-                    <span>₹{platformFee}</span>
+                    <span>₹{platformFee || 3}</span>
                   </div>
-                  {smallOrderFee > 0 && (
-                    <div className="flex justify-between text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
-                      <span>Small Order Fee (&lt; ₹{pricingConfig.smallOrderThreshold})</span>
-                      <span>+₹{smallOrderFee}</span>
-                    </div>
-                  )}
-
-                  <div className="space-y-1 py-1">
-                    <div className="flex justify-between text-gray-700 font-semibold">
-                      <span>GST &amp; Taxes</span>
-                      <span>₹{tax}</span>
-                    </div>
-                    {orderQuote?.taxItems?.map((t) => (
-                      t.totalTax > 0 && (
-                        <div key={t.componentCode} className="flex justify-between text-[11px] text-gray-500 pl-2">
-                          <span>
-                            {t.componentCode === 'RESTAURANT_FOOD_SERVICE' ? '• Food GST (5%)' :
-                             t.componentCode === 'PLATFORM_FEE' ? '• Platform Fee GST (18%)' :
-                             t.componentCode === 'DELIVERY_SERVICE' ? '• Delivery GST (18%)' :
-                             `• ${t.componentCode}`}
-                          </span>
-                          <span>₹{t.totalTax}</span>
-                        </div>
-                      )
-                    ))}
+                  <div className="flex justify-between text-gray-600">
+                    <span>GST &amp; Taxes</span>
+                    <span>₹0</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-bold">

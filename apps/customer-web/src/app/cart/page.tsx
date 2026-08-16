@@ -282,11 +282,15 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Delivery Fee</span>
-              <span>₹{deliveryFee}</span>
+              <span>₹{deliveryFee || 15}</span>
             </div>
             <div className="flex justify-between text-gray-600">
-              <span>Taxes &amp; Fees</span>
-              <span>₹{tax}</span>
+              <span>Platform Fee</span>
+              <span>₹3</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>GST &amp; Taxes</span>
+              <span>₹0</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-emerald-600 font-bold">

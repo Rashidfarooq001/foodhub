@@ -19,11 +19,11 @@ export interface PricingConfigDto {
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
   restaurantCommissionPercent: 15.0,
-  customerDeliveryPerKm: 8.0,
-  minimumCustomerDeliveryFee: 30.0,
-  platformFee: 5.0,
-  smallOrderThreshold: 200.0,
-  smallOrderFee: 15.0,
+  customerDeliveryPerKm: 0.0,
+  minimumCustomerDeliveryFee: 15.0,
+  platformFee: 3.0,
+  smallOrderThreshold: 0.0,
+  smallOrderFee: 0.0,
   riderBasePay: 25.0,
   riderPerKmPay: 6.0,
   riderWaitingPay: 0.0,

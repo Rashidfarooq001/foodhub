@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Body, Param,
+  Controller, Get, Post, Body, Param, Query,
   UseGuards, Headers, RawBodyRequest, Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -39,6 +39,17 @@ export class PaymentsController {
   ) {
     const rawBody = req.rawBody?.toString('utf-8') ?? JSON.stringify(body);
     return this.paymentsService.handleWebhook(body, signature, rawBody);
+  }
+
+  @Get('admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get payment transactions and GMV metrics for Admin' })
+  async getPaymentsForAdmin(
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.paymentsService.getPaymentsForAdmin(+page, +limit);
   }
 
   @Post('refund/:orderId')

@@ -12,6 +12,13 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 
+  @Get('overview')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get comprehensive settlements ledger for Restaurants, Riders, and Platform Revenue' })
+  async getOverview() {
+    return this.settlementsService.getComprehensiveSettlementOverview();
+  }
+
   @Get('pending')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
   @ApiOperation({ summary: 'List all restaurants with pending settlement amounts' })

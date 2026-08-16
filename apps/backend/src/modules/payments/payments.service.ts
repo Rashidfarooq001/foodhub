@@ -332,6 +332,75 @@ const payment = await this.prisma.payment.create({
     };
   }
 
+  async getPaymentsForAdmin(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+
+    const [payments, total, totalGmvAgg] = await Promise.all([
+      this.prisma.payment.findMany({
+        include: {
+          order: {
+            include: {
+              restaurant: { select: { id: true, name: true } },
+              customer: {
+                include: {
+                  user: {
+                    include: {
+                      profile: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          refunds: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.payment.count(),
+      this.prisma.payment.aggregate({
+        where: { status: PaymentStatus.COMPLETED },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const totalGmv = Number(totalGmvAgg._sum.amount ?? 0);
+    const platformCommission = Math.round(totalGmv * 0.15 * 100) / 100;
+    const netPayoutsDue = Math.round((totalGmv - platformCommission) * 100) / 100;
+
+    return {
+      stats: {
+        totalGmv,
+        platformCommission,
+        netPayoutsDue,
+        totalPayments: total,
+      },
+      payments: payments.map((p) => ({
+        id: p.id,
+        orderId: p.orderId,
+        orderNumber: p.order?.orderNumber || p.orderId,
+        amount: Number(p.amount),
+        currency: 'INR',
+        paymentMethod: p.order?.paymentMethod || 'UPI',
+        status: p.status,
+        razorpayOrderId: p.razorpayOrderId,
+        razorpayPaymentId: p.razorpayPaymentId,
+        customerName: p.order?.customer?.user?.profile
+          ? `${p.order.customer.user.profile.firstName} ${p.order.customer.user.profile.lastName || ''}`.trim()
+          : 'Customer',
+        customerPhone: p.order?.customer?.user?.phone || 'N/A',
+        restaurantName: p.order?.restaurant?.name || 'Restaurant',
+        hasRefund: (p.refunds && p.refunds.length > 0) || false,
+        refundAmount: p.refunds ? p.refunds.reduce((sum, r) => sum + Number(r.amount), 0) : 0,
+        createdAt: p.createdAt,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
   private async handlePaymentCaptured(
     payload: Record<string, unknown>,
   ) {

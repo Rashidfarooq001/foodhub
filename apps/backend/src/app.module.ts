@@ -41,6 +41,7 @@ import { SecurityModule } from './modules/security/security.module';
 // Pricing & Tax Modules
 import { PricingModule } from './modules/pricing/pricing.module';
 import { TaxModule } from './modules/tax/tax.module';
+import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { TaxModule } from './modules/tax/tax.module';
     // Pricing & Tax Modules
     PricingModule,
     TaxModule,
+    SupportTicketsModule,
   ],
 })
 export class AppModule {}

@@ -96,75 +96,68 @@ export class OrderQuoteService {
       }
     }
 
-    // 2. Authoritative Delivery Fee Formula
-    // 0–3 km: ₹30 flat fee. >3 km to 15 km: ₹30 + ₹5 × (distanceKm - 3). >15 km: Delivery unavailable (₹0).
-    let customerDeliveryFee = 0;
+    // 2. Authoritative Fixed Delivery Fee (₹15.00 business fee)
+    let customerDeliveryFee = 15.0;
 
     if (!deliveryEligible || distanceKm > 15.0) {
       deliveryEligible = false;
-      customerDeliveryFee = 0;
-    } else if (distanceKm <= 3.0) {
-      customerDeliveryFee = 30.0;
-    } else {
-      customerDeliveryFee = Math.round((30.0 + (distanceKm - 3.0) * 5.0) * 100) / 100;
+      customerDeliveryFee = 15.0;
     }
 
-    // 3. Platform Fee & Small Order Fee (Threshold: ₹200, Surcharge: ₹15)
-    const platformFee = config.platformFee;
-    const smallOrderFee = foodSubtotal > 0 && foodSubtotal < config.smallOrderThreshold ? config.smallOrderFee : 0;
+    // 3. Platform Fee (Fixed ₹3.00) & Small Order Fee (Disabled: ₹0.00)
+    const platformFee = 3.0;
+    const smallOrderFee = 0.0;
 
-    // 4. Tax Components
+    // 4. Tax Components (GST = ₹0.00)
     const foodTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'RESTAURANT_FOOD_SERVICE',
-      taxableAmount: foodSubtotal,
+      taxableAmount: 0,
       supplierState: restaurantState,
       recipientState: customerState,
     });
 
     const platformTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'PLATFORM_FEE',
-      taxableAmount: platformFee,
+      taxableAmount: 0,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const smallOrderTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'SMALL_ORDER_FEE',
-      taxableAmount: smallOrderFee,
+      taxableAmount: 0,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const deliveryTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'DELIVERY_SERVICE',
-      taxableAmount: customerDeliveryFee,
+      taxableAmount: 0,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const tipTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'RIDER_TIP',
-      taxableAmount: tipAmount,
+      taxableAmount: 0,
       supplierState: customerState,
       recipientState: customerState,
     });
 
     const taxItems: TaxComponentOutput[] = [foodTax, platformTax, smallOrderTax, deliveryTax, tipTax];
 
-    const restaurantFoodGst = foodTax.totalTax;
-    const platformFeeGst = platformTax.totalTax;
-    const smallOrderFeeGst = smallOrderTax.totalTax;
-    const deliveryFeeGst = deliveryTax.totalTax;
+    const restaurantFoodGst = 0.0;
+    const platformFeeGst = 0.0;
+    const smallOrderFeeGst = 0.0;
+    const deliveryFeeGst = 0.0;
 
-    const totalCustomerTaxes = Math.round(
-      (restaurantFoodGst + platformFeeGst + smallOrderFeeGst + deliveryFeeGst) * 100,
-    ) / 100;
+    const totalCustomerTaxes = 0.0;
 
-    // 5. Customer Total (NO PACKAGING FEE INCLUDED)
+    // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
     const customerTotal = Math.max(
       0,
       Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + smallOrderFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
+        (foodSubtotal + customerDeliveryFee + platformFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
       ) / 100,
     );
 
@@ -179,11 +172,11 @@ export class OrderQuoteService {
       recipientState: restaurantState,
     });
 
-    const restaurantCommissionGst = commissionTax.totalTax;
+    const restaurantCommissionGst = 0.0;
 
-    // Under Sec 9(5) ECO, FoodHub remits restaurant food GST to govt. Restaurant receives (Food + Packaging - Commission - CommissionGST)
+    // Under Sec 9(5) ECO, Restaurant receives (Food Subtotal - Commission)
     const restaurantSettlement = Math.round(
-      (foodSubtotal + packagingFee - restaurantCommission - restaurantCommissionGst) * 100,
+      (foodSubtotal - restaurantCommission) * 100,
     ) / 100;
 
     // 6. Rider Payout (₹25 base + ₹6/km)
@@ -197,10 +190,10 @@ export class OrderQuoteService {
     // 7. Payment Gateway Internal Cost (Default 2% planning rate)
     const paymentGatewayCost = Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100;
 
-    // 8. Core Accounting Isolation (Government GST is EXCLUDED from FoodHub operating profit!)
-    const statutoryGstLiability = Math.round((restaurantFoodGst + platformFeeGst + smallOrderFeeGst + deliveryFeeGst) * 100) / 100;
+    // 8. Core Accounting Isolation
+    const statutoryGstLiability = 0.0;
     const platformOperatingRevenue = Math.round(
-      (restaurantCommission + platformFee + smallOrderFee + customerDeliveryFee) * 100,
+      (restaurantCommission + platformFee + customerDeliveryFee) * 100,
     ) / 100;
 
     const riderDirectCost = totalRiderPayout - riderTip;
@@ -210,8 +203,8 @@ export class OrderQuoteService {
       foodSubtotal,
       customerDeliveryFee,
       platformFee,
-      smallOrderFee,
-      packagingFee,
+      smallOrderFee: 0,
+      packagingFee: 0,
       discountAmount,
       tipAmount,
 
@@ -222,16 +215,16 @@ export class OrderQuoteService {
       locationSource,
 
       taxItems,
-      restaurantFoodGst,
-      platformFeeGst,
-      smallOrderFeeGst,
-      deliveryFeeGst,
-      totalCustomerTaxes,
+      restaurantFoodGst: 0,
+      platformFeeGst: 0,
+      smallOrderFeeGst: 0,
+      deliveryFeeGst: 0,
+      totalCustomerTaxes: 0,
       customerTotal,
 
       restaurantCommissionPercent,
       restaurantCommission,
-      restaurantCommissionGst,
+      restaurantCommissionGst: 0,
       restaurantSettlement,
 
       riderBasePay,
@@ -240,7 +233,7 @@ export class OrderQuoteService {
       totalRiderPayout,
 
       paymentGatewayCost,
-      statutoryGstLiability,
+      statutoryGstLiability: 0,
       platformOperatingRevenue,
       platformContributionMargin,
 
