@@ -144,13 +144,10 @@ export class DeliveryJobsController {
         throw new BadRequestException('Cannot go online. Account is pending admin approval.');
       }
 
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.ONLINE,
-        },
-        select: { id: true, status: true },
-      });
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE drivers SET status = 'ONLINE'::"DriverStatus" WHERE id = $1::uuid`,
+        driver.id,
+      );
 
       return {
         message: "You are now online and available for deliveries",
@@ -188,13 +185,10 @@ export class DeliveryJobsController {
         throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
       }
 
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.OFFLINE,
-        },
-        select: { id: true, status: true },
-      });
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE drivers SET status = 'OFFLINE'::"DriverStatus" WHERE id = $1::uuid`,
+        driver.id,
+      );
 
       return {
         message: "You are now offline",
@@ -225,11 +219,12 @@ export class DeliveryJobsController {
       }
 
       if (lat && lng) {
-        await this.prisma.driver.update({
-          where: { id: driver.id },
-          data: { currentLat: lat, currentLng: lng },
-          select: { id: true },
-        });
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE drivers SET current_lat = $1, current_lng = $2 WHERE id = $3::uuid`,
+          lat,
+          lng,
+          driver.id,
+        );
       }
 
       return {
