@@ -38,11 +38,26 @@ export class DeliveryJobsController {
 
     return this.prisma.driver.findUnique({
       where: { userId },
-      include: {
-        user: { include: { profile: true } },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        isApproved: true,
+        currentLat: true,
+        currentLng: true,
+        avgRating: true,
+        user: { select: { id: true, isActive: true, phone: true, profile: true } },
         vehicles: true,
         deliveryJobs: {
-          include: { order: true },
+          select: {
+            id: true,
+            orderId: true,
+            status: true,
+            riderPayout: true,
+            deliveredAt: true,
+            distanceKm: true,
+            order: { select: { id: true, orderNumber: true, status: true } },
+          },
         },
       },
     });
@@ -56,7 +71,6 @@ export class DeliveryJobsController {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
 
-    const now = new Date();
     const activeJob = driver.deliveryJobs.find((j) =>
       [
         DeliveryJobStatus.ASSIGNED as string,
@@ -64,27 +78,6 @@ export class DeliveryJobsController {
         DeliveryJobStatus.PICKED_UP as string,
       ].includes(j.status as string),
     );
-
-    let currentStatus = driver.status;
-    if (
-      currentStatus === DriverStatus.ONLINE &&
-      !activeJob &&
-      driver.lastSeenAt &&
-      now.getTime() - driver.lastSeenAt.getTime() > 2 * 60 * 1000
-    ) {
-      try {
-        await this.prisma.driver.update({
-          where: { id: driver.id },
-          data: { status: DriverStatus.OFFLINE, onlineSince: null },
-        });
-      } catch {
-        await this.prisma.driver.update({
-          where: { id: driver.id },
-          data: { status: DriverStatus.OFFLINE },
-        });
-      }
-      currentStatus = DriverStatus.OFFLINE;
-    }
 
     let operationalStatus = 'ONLINE_AVAILABLE';
     let unavailabilityReason: string | null = null;
@@ -95,7 +88,7 @@ export class DeliveryJobsController {
     } else if (!driver.isApproved) {
       operationalStatus = 'PENDING_APPROVAL';
       unavailabilityReason = 'Pending admin approval';
-    } else if (currentStatus === DriverStatus.OFFLINE) {
+    } else if (driver.status === DriverStatus.OFFLINE) {
       operationalStatus = 'OFFLINE';
       unavailabilityReason = 'Rider is currently offline';
     } else if (activeJob) {
@@ -107,11 +100,9 @@ export class DeliveryJobsController {
       driverId: driver.id,
       userId: driver.userId,
       operationalStatus,
-      dutyStatus: currentStatus === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
+      dutyStatus: driver.status === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
       isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
       unavailabilityReason,
-      onlineSince: driver.onlineSince || null,
-      lastSeenAt: driver.lastSeenAt || null,
       isApproved: driver.isApproved,
       activeDelivery: activeJob
         ? {
@@ -140,32 +131,17 @@ export class DeliveryJobsController {
       throw new BadRequestException('Cannot go online. Account is pending admin approval.');
     }
 
-    const now = new Date();
-    let updated;
-    try {
-      updated = await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.ONLINE,
-          onlineSince: driver.onlineSince || now,
-          lastSeenAt: now,
-        },
-      });
-    } catch {
-      updated = await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.ONLINE,
-        },
-      });
-    }
+    const updated = await this.prisma.driver.update({
+      where: { id: driver.id },
+      data: {
+        status: DriverStatus.ONLINE,
+      },
+    });
 
     return {
       message: "You are now online and available for deliveries",
       dutyStatus: 'ONLINE',
       operationalStatus: 'ONLINE_AVAILABLE',
-      onlineSince: updated.onlineSince || now,
-      lastSeenAt: updated.lastSeenAt || now,
     };
   }
 
@@ -189,22 +165,12 @@ export class DeliveryJobsController {
       throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
     }
 
-    try {
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.OFFLINE,
-          onlineSince: null,
-        },
-      });
-    } catch {
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: {
-          status: DriverStatus.OFFLINE,
-        },
-      });
-    }
+    await this.prisma.driver.update({
+      where: { id: driver.id },
+      data: {
+        status: DriverStatus.OFFLINE,
+      },
+    });
 
     return {
       message: "You are now offline",
@@ -225,27 +191,16 @@ export class DeliveryJobsController {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
 
-    const now = new Date();
-    try {
+    if (lat && lng) {
       await this.prisma.driver.update({
         where: { id: driver.id },
-        data: {
-          lastSeenAt: now,
-          ...(lat && lng ? { currentLat: lat, currentLng: lng } : {}),
-        },
+        data: { currentLat: lat, currentLng: lng },
       });
-    } catch {
-      if (lat && lng) {
-        await this.prisma.driver.update({
-          where: { id: driver.id },
-          data: { currentLat: lat, currentLng: lng },
-        });
-      }
     }
 
     return {
       status: 'OK',
-      timestamp: now,
+      timestamp: new Date(),
     };
   }
 
@@ -475,26 +430,30 @@ export class DeliveryJobsController {
     const driver = await this.getDriverFromReq(req);
     if (!driver) return [];
 
-    const jobs = await this.prisma.deliveryJob.findMany({
-      where: {
-        driverId: driver.id,
-        status: DeliveryJobStatus.DELIVERED,
-      },
-      include: {
-        order: {
+    const jobs = await this.prisma.driver.findUnique({
+      where: { id: driver.id },
+      select: {
+        deliveryJobs: {
+          where: { status: DeliveryJobStatus.DELIVERED },
           select: {
             id: true,
-            orderNumber: true,
-            totalAmount: true,
-            restaurant: { select: { name: true } },
+            distanceKm: true,
+            riderPayout: true,
+            deliveredAt: true,
+            order: {
+              select: {
+                orderNumber: true,
+                restaurant: { select: { name: true } },
+              },
+            },
           },
+          orderBy: { deliveredAt: 'desc' },
+          take: 50,
         },
       },
-      orderBy: { deliveredAt: 'desc' },
-      take: 50,
     });
 
-    return jobs.map((j) => ({
+    return (jobs?.deliveryJobs || []).map((j) => ({
       id: j.id,
       orderNumber: j.order.orderNumber,
       restaurantName: j.order.restaurant.name,
