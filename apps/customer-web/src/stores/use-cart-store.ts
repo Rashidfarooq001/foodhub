@@ -14,6 +14,7 @@ export interface CartAddon {
 export interface CartItem {
   id: string; // unique item key (foodId + variantId + addonIds)
   foodItemId: string;
+  variantId?: string;
   name: string;
   price: number;
   imageUrl?: string;
@@ -78,7 +79,8 @@ export const useCartStore = create<CartState>()(
         }
 
         const addonKey = newItem.addons.map((a) => a.id).sort().join('-');
-        const itemKey = `${newItem.foodItemId}-${newItem.variantName || 'default'}-${addonKey}`;
+        const variantKey = newItem.variantId || newItem.variantName || 'default';
+        const itemKey = `${newItem.foodItemId}-${variantKey}-${addonKey}`;
 
         const currentItems = get().items;
         const existingIndex = currentItems.findIndex((i) => i.id === itemKey);

@@ -169,6 +169,13 @@ enum TicketPriority {
   URGENT
 }
 
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  SETTLED
+  PAYOUT_FAILED
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -475,6 +482,7 @@ model Restaurant {
   categories      Category[]
   foodItems       FoodItem[]
   orders          Order[]
+  settlements     Settlement[]
   reviews         RestaurantReview[]
   savedByCustomers SavedRestaurant[]
 
@@ -677,13 +685,19 @@ model FoodItem {
 }
 
 model FoodVariant {
-  id            String  @id @default(uuid()) @db.Uuid
-  foodItemId    String  @map("food_item_id") @db.Uuid
-  variantName   String  @map("variant_name") // e.g. "Small", "Large"
-  priceModifier Decimal @map("price_modifier") @db.Decimal(10, 2)
+  id            String   @id @default(uuid()) @db.Uuid
+  foodItemId    String   @map("food_item_id") @db.Uuid
+  variantName   String   @map("variant_name") // e.g. "Half", "Full", "Regular", "Large"
+  price         Decimal  @default(0.00) @db.Decimal(10, 2)
+  priceModifier Decimal? @map("price_modifier") @db.Decimal(10, 2)
+  isAvailable   Boolean  @default(true) @map("is_available")
+  displayOrder  Int      @default(0) @map("display_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
 
+  @@index([foodItemId])
   @@map("food_variants")
 }
 
@@ -803,13 +817,16 @@ model Order {
 }
 
 model OrderItem {
-  id         String  @id @default(uuid()) @db.Uuid
-  orderId    String  @map("order_id") @db.Uuid
-  foodItemId String  @map("food_item_id") @db.Uuid
-  quantity   Int
-  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
-  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
-  addonsJson Json?   @map("addons_json")
+  id              String   @id @default(uuid()) @db.Uuid
+  orderId         String   @map("order_id") @db.Uuid
+  foodItemId      String   @map("food_item_id") @db.Uuid
+  variantId       String?  @map("variant_id") @db.Uuid
+  variantName     String?  @map("variant_name")
+  quantity        Int
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice      Decimal  @map("total_price") @db.Decimal(10, 2)
+  addonsJson      Json?    @map("addons_json")
+  itemSnapshot    Json?    @map("item_snapshot")
 
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
@@ -928,12 +945,35 @@ model PaymentRefund {
 }
 
 model Settlement {
-  id           String   @id @default(uuid()) @db.Uuid
-  restaurantId String   @map("restaurant_id") @db.Uuid
-  amount       Decimal  @db.Decimal(10, 2)
-  utrNumber    String   @unique @map("utr_number")
-  settledAt    DateTime @default(now()) @map("settled_at")
+  id               String           @id @default(uuid()) @db.Uuid
+  restaurantId     String           @map("restaurant_id") @db.Uuid
+  periodStart      DateTime         @map("period_start")
+  periodEnd        DateTime         @map("period_end")
+  orderCount       Int              @default(0) @map("order_count")
+  grossAmount      Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
+  commissionRate   Decimal?         @map("commission_rate") @db.Decimal(5, 2)
+  commissionAmount Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
+  deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
+  netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
+  paidAmount       Decimal          @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
+  pendingAmount    Decimal          @default(0.00) @map("pending_amount") @db.Decimal(10, 2)
+  status           SettlementStatus @default(PENDING)
+  payoutId         String?          @map("payout_id")
+  utrNumber        String?          @map("utr_number")
+  failureReason    String?          @map("failure_reason")
+  initiatedAt      DateTime?        @map("initiated_at")
+  settledAt        DateTime?        @map("settled_at")
+  adminId          String?          @map("admin_id") @db.Uuid
+  notes            String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
+  restaurant       Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+  @@unique([restaurantId, periodStart, periodEnd])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
   @@map("settlements")
 }
 

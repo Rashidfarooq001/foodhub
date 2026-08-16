@@ -36,8 +36,6 @@ const NAVIGATION = [
   { name: 'Coupons & Campaigns', href: '/coupons', icon: Tag },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
   { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
-  { name: 'CMS & Banners', href: '/cms', icon: FileCode },
-  { name: 'Feature Flags & Maintenance', href: '/feature-flags', icon: Sliders },
   { name: 'Pricing & Unit Economics', href: '/pricing-config', icon: DollarSign },
   { name: 'System Settings', href: '/system-settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },

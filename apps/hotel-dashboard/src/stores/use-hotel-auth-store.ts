@@ -12,6 +12,7 @@ export interface HotelUserProfile {
   lastName?: string;
   avatarUrl?: string;
   restaurantId?: string;
+  restaurantName?: string;
   applicationStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   rejectionReason?: string;
 }

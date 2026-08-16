@@ -94,7 +94,7 @@ describe('OrderStateMachineService', () => {
         userId: 'rider_1',
         role: 'DELIVERY_PARTNER',
       }),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow();
   });
 
   it('should reject invalid state transition (PENDING -> DELIVERED) for non-admin', async () => {

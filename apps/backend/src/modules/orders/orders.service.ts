@@ -86,46 +86,93 @@ export class OrdersService {
     // 2. Validate items & inventory
     await this.validation.validateItemsAvailable(dto.items, dto.restaurantId);
 
-    // 3. Calculate subtotal
+    // 3. Calculate subtotal with authoritative server-side price resolution
     let subtotal = 0;
     const itemsWithPrices: Array<{
-      foodItemId:  string;
-      quantity:    number;
-      unitPrice:   number;
-      totalPrice:  number;
-      addonsJson:  Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      foodItemId:    string;
+      variantId:     string | null;
+      variantName:   string | null;
+      quantity:      number;
+      unitPrice:     number;
+      totalPrice:    number;
+      addonsJson:    Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      itemSnapshot:  Prisma.InputJsonValue | typeof Prisma.JsonNull;
     }> = [];
 
     for (const item of dto.items) {
-      let food = await this.prisma.foodItem.findUnique({
+      const food = await this.prisma.foodItem.findUnique({
         where: { id: item.foodItemId },
+        include: { variants: true },
       });
       if (!food) {
-        const fallbackFood = await this.prisma.foodItem.findFirst({
-          where: { restaurantId: dto.restaurantId },
-        });
-        if (!fallbackFood) {
-          throw new BadRequestException(`Food item not found for restaurant ${dto.restaurantId}`);
-        }
-        food = fallbackFood;
-        item.foodItemId = fallbackFood.id;
+        throw new BadRequestException(`Food item ${item.foodItemId} not found.`);
       }
+
+      if (food.restaurantId !== dto.restaurantId) {
+        throw new BadRequestException(`Food item "${food.name}" does not belong to restaurant ${dto.restaurantId}.`);
+      }
+
+      let resolvedUnitPrice = Number(food.price);
+      let selectedVariantName: string | null = null;
+      let selectedVariantId: string | null = null;
+
+      if (item.variantId) {
+        const variant = (food.variants || []).find((v) => v.id === item.variantId);
+        if (!variant) {
+          throw new BadRequestException(`Variant ${item.variantId} not found for "${food.name}".`);
+        }
+        if (!variant.isAvailable) {
+          throw new BadRequestException(`Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`);
+        }
+        resolvedUnitPrice = Number(variant.price);
+        selectedVariantId = variant.id;
+        selectedVariantName = variant.variantName;
+      } else if (item.variantName) {
+        const variant = (food.variants || []).find(
+          (v) => v.variantName.toLowerCase() === item.variantName!.toLowerCase(),
+        );
+        if (variant) {
+          if (!variant.isAvailable) {
+            throw new BadRequestException(`Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`);
+          }
+          resolvedUnitPrice = Number(variant.price);
+          selectedVariantId = variant.id;
+          selectedVariantName = variant.variantName;
+        }
+      }
+
       const addonTotal = item.addonsJson
         ? (item.addonsJson as Array<{ price: number }>).reduce(
             (sum, a) => sum + (a.price || 0), 0,
           )
         : 0;
-      const unitPrice  = Number(food.price) + addonTotal;
+      const unitPrice  = resolvedUnitPrice + addonTotal;
       const totalPrice = unitPrice * item.quantity;
       subtotal        += totalPrice;
+
+      const itemSnapshot = {
+        foodItemId: food.id,
+        foodName: food.name,
+        variantId: selectedVariantId,
+        variantName: selectedVariantName,
+        basePrice: resolvedUnitPrice,
+        addonTotal,
+        unitPrice,
+        quantity: item.quantity,
+        totalPrice,
+      };
+
       itemsWithPrices.push({
-        foodItemId: item.foodItemId,
-        quantity:   item.quantity,
+        foodItemId:   item.foodItemId,
+        variantId:    selectedVariantId,
+        variantName:  selectedVariantName,
+        quantity:     item.quantity,
         unitPrice,
         totalPrice,
         addonsJson: item.addonsJson
           ? (item.addonsJson as Prisma.InputJsonValue)
           : Prisma.JsonNull,
+        itemSnapshot: itemSnapshot as unknown as Prisma.InputJsonValue,
       });
     }
 
@@ -303,15 +350,18 @@ export class OrdersService {
         },
       });
 
-      // Create order items via createMany (avoids nested create type issue)
+      // Create order items via createMany with complete variant & snapshot fields
       await tx.orderItem.createMany({
         data: itemsWithPrices.map((item) => ({
-          orderId:    newOrder.id,
-          foodItemId: item.foodItemId,
-          quantity:   item.quantity,
-          unitPrice:  item.unitPrice,
-          totalPrice: item.totalPrice,
-          addonsJson: item.addonsJson,
+          orderId:      newOrder.id,
+          foodItemId:   item.foodItemId,
+          variantId:    item.variantId,
+          variantName:  item.variantName,
+          quantity:     item.quantity,
+          unitPrice:    item.unitPrice,
+          totalPrice:   item.totalPrice,
+          addonsJson:   item.addonsJson,
+          itemSnapshot: item.itemSnapshot,
         })),
       });
 

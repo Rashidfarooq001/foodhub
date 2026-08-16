@@ -450,6 +450,8 @@ export default function CheckoutPage() {
         const foodId = item.foodItemId || item.id;
         return {
           foodItemId: isUUID(foodId) ? foodId : item.id,
+          variantId: item.variantId && isUUID(item.variantId) ? item.variantId : undefined,
+          variantName: item.variantName || undefined,
           quantity: item.quantity,
           addonsJson:
             item.addons && item.addons.length > 0

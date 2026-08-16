@@ -78,35 +78,44 @@ export class OrdersValidationService {
   }
 
   async validateItemsAvailable(
-    items: Array<{ foodItemId: string; quantity: number }>,
+    items: Array<{ foodItemId: string; variantId?: string; quantity: number }>,
     restaurantId?: string,
   ): Promise<void> {
     for (const item of items) {
-      let foodItem = await this.prisma.foodItem.findUnique({
+      const foodItem = await this.prisma.foodItem.findUnique({
         where: { id: item.foodItemId },
-        include: { inventory: true },
+        include: { variants: true },
       });
-      if (!foodItem && restaurantId) {
-        foodItem = await this.prisma.foodItem.findFirst({
-          where: { restaurantId },
-          include: { inventory: true },
-        });
-      }
+
       if (!foodItem) {
         throw new NotFoundException(`Food item ${item.foodItemId} not found`);
       }
+
+      if (restaurantId && foodItem.restaurantId !== restaurantId) {
+        throw new BadRequestException(`Food item ${foodItem.name} does not belong to the specified restaurant.`);
+      }
+
       if (!foodItem.isAvailable) {
         throw new BadRequestException(
-          `${foodItem.name} is currently unavailable`,
+          `"${foodItem.name}" is currently unavailable from the kitchen.`,
         );
       }
-      if (
-        foodItem.inventory &&
-        foodItem.inventory.stockCount < item.quantity
-      ) {
-        throw new BadRequestException(
-          `Insufficient stock for ${foodItem.name}`,
-        );
+
+      // If item has variants, validate variant
+      if (item.variantId) {
+        const variant = (foodItem.variants || []).find((v) => v.id === item.variantId);
+        if (!variant) {
+          throw new BadRequestException(`Variant ${item.variantId} not found for item "${foodItem.name}"`);
+        }
+        if (!variant.isAvailable) {
+          throw new BadRequestException(`Variant "${variant.variantName}" of "${foodItem.name}" is currently unavailable.`);
+        }
+      } else if (foodItem.variants && foodItem.variants.length > 0) {
+        // If foodItem has multiple variants, require a variant selection
+        const availableVariants = foodItem.variants.filter((v) => v.isAvailable);
+        if (availableVariants.length > 0) {
+          // If customer didn't send variantId but item requires variant, default or warn
+        }
       }
     }
   }

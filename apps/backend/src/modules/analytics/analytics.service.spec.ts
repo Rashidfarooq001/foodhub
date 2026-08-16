@@ -32,6 +32,7 @@ describe('AnalyticsService', () => {
     orderItem:          { groupBy: jest.fn().mockResolvedValue([]) },
     deliveryAssignment: { count: jest.fn().mockResolvedValue(10) },
     wallet:             { findFirst: jest.fn().mockResolvedValue({ balance: 500 }), findUnique: jest.fn().mockResolvedValue({ balance: 200 }) },
+    category:           { findMany: jest.fn().mockResolvedValue([]) },
     couponUsage:        { count: jest.fn().mockResolvedValue(2) },
     referral:           { count: jest.fn().mockResolvedValue(1) },
     $queryRaw:          jest.fn().mockResolvedValue([{ hour: 19, cnt: 45n }]),

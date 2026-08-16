@@ -3,6 +3,7 @@ import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrdersGateway } from './orders.gateway';
+import { OrderQuoteService } from '../tax/order-quote.service';
 import { PrismaService } from '../database/prisma.service';
 import { OrderStatus } from '@prisma/client';
 
@@ -40,6 +41,10 @@ describe('OrdersService', () => {
     $transaction: jest.fn(),
   };
 
+  const mockQuoteService = {
+    calculateOrderQuote: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -47,6 +52,7 @@ describe('OrdersService', () => {
         { provide: OrdersRepository, useValue: mockRepo },
         { provide: OrdersValidationService, useValue: mockValidation },
         { provide: OrdersGateway, useValue: mockGateway },
+        { provide: OrderQuoteService, useValue: mockQuoteService },
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();

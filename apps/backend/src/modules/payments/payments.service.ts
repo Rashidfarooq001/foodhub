@@ -378,7 +378,7 @@ const payment = await this.prisma.payment.create({
         where: { status: PaymentStatus.COMPLETED },
         _sum: { amount: true },
       }),
-      this.prisma.settlement.findMany({ select: { restaurantId: true, amount: true, utrNumber: true, settledAt: true } }),
+      this.prisma.settlement.findMany({ select: { restaurantId: true, paidAmount: true, netPayable: true, utrNumber: true, settledAt: true } }),
       this.prisma.paymentRefund.aggregate({ _sum: { amount: true } }),
     ]);
 
@@ -412,7 +412,7 @@ const payment = await this.prisma.payment.create({
       totalStatutoryGst += tax;
     }
 
-    const totalRestaurantSettled = settlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    const totalRestaurantSettled = settlements.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0);
     const totalRestaurantPending = Math.max(0, totalRestaurantNetPayable - totalRestaurantSettled);
     const totalPlatformOperatingRevenue = totalRestaurantCommission + totalPlatformFees;
     const totalPlatformNetContribution = (totalPlatformOperatingRevenue + totalDeliveryFees) - totalRiderEarnings;

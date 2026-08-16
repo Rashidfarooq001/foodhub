@@ -53,6 +53,8 @@ export default function KitchenQueuePage() {
     );
   };
 
+  const restaurantId = (useHotelAuthStore.getState().user as any)?.restaurantId;
+
   React.useEffect(() => {
     refreshOrders();
 
@@ -62,7 +64,9 @@ export default function KitchenQueuePage() {
     });
 
     socket.on('connect', () => {
-      socket.emit('joinRestaurant', { restaurantId: 'active-restaurant' });
+      if (restaurantId) {
+        socket.emit('joinRestaurant', { restaurantId });
+      }
     });
 
     const handleUpdate = () => {
@@ -76,7 +80,7 @@ export default function KitchenQueuePage() {
     return () => {
       socket.disconnect();
     };
-  }, [accessToken]);
+  }, [accessToken, restaurantId]);
 
   const acceptOrder = async (orderId: string) => {
     const res = await fetch(`${API_BASE}/orders/${orderId}/accept`, {

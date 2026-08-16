@@ -11,6 +11,16 @@ export class OrderItemDto {
   @IsUUID()
   foodItemId!: string;
 
+  @ApiPropertyOptional({ example: 'uuid-variant' })
+  @IsOptional()
+  @IsUUID()
+  variantId?: string;
+
+  @ApiPropertyOptional({ example: 'Full' })
+  @IsOptional()
+  @IsString()
+  variantName?: string;
+
   @ApiProperty({ example: 2 })
   @IsNumber()
   @Min(1)

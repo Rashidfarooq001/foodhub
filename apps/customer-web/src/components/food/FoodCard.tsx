@@ -18,21 +18,13 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
   const cartItem = items.find((i) => i.foodItemId === food.id);
   const quantity = cartItem?.quantity || 0;
 
+  const isItemAvailable = food.isAvailable !== false;
+
   const handleAdd = () => {
-    if (food.variants?.length || food.addonGroups?.length) {
+    if (!isItemAvailable) return;
+
+    if ((food.variants && food.variants.length > 0) || (food.addonGroups && food.addonGroups.length > 0)) {
       if (onCustomize) onCustomize(food);
-      else {
-        addItem({
-          foodItemId: food.id,
-          name: food.name,
-          price: food.price,
-          imageUrl: food.imageUrl,
-          isVeg: food.isVeg,
-          restaurantId: food.restaurantId,
-          restaurantName: food.restaurantName,
-          addons: [],
-        });
-      }
     } else {
       addItem({
         foodItemId: food.id,
@@ -104,7 +96,11 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
 
         {/* Stepper or Add Button */}
         <div className="absolute -bottom-2">
-          {quantity > 0 ? (
+          {!isItemAvailable ? (
+            <span className="rounded-xl bg-gray-100 px-3 py-1 text-[11px] font-bold text-gray-500 border border-gray-200">
+              Unavailable
+            </span>
+          ) : quantity > 0 && (!food.variants || food.variants.length === 0) ? (
             <div className="flex items-center rounded-xl bg-orange-600 text-white shadow-lg">
               <button
                 onClick={() => updateQuantity(cartItem!.id, quantity - 1)}
@@ -125,7 +121,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
               onClick={handleAdd}
               className="flex items-center gap-1 rounded-xl bg-white px-5 py-1.5 text-xs font-black text-orange-600 shadow-md ring-1 ring-orange-500 hover:bg-orange-50"
             >
-              <span>ADD</span>
+              <span>{food.variants && food.variants.length > 0 ? 'CUSTOMIZE' : 'ADD'}</span>
               <Plus className="h-3.5 w-3.5" />
             </button>
           )}

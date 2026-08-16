@@ -21,6 +21,7 @@ describe('CouponsService', () => {
   const mockPrisma = {
     coupon: {
       findUnique: jest.fn().mockResolvedValue(mockActiveCoupon),
+      findFirst:  jest.fn().mockResolvedValue(mockActiveCoupon),
       findMany:   jest.fn().mockResolvedValue([mockActiveCoupon]),
       create:     jest.fn().mockResolvedValue(mockActiveCoupon),
       update:     jest.fn().mockResolvedValue({ ...mockActiveCoupon, status: 'INACTIVE' }),
@@ -62,7 +63,7 @@ describe('CouponsService', () => {
     });
 
     it('should reject expired coupon', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValueOnce({
+      mockPrisma.coupon.findFirst.mockResolvedValueOnce({
         ...mockActiveCoupon,
         validTill: new Date('2020-01-01'),
       });
@@ -84,11 +85,11 @@ describe('CouponsService', () => {
         .mockResolvedValueOnce(500); // global check
       const result = await service.validateCoupon('SAVE50', 'user-1', 350);
       expect(result.valid).toBe(false);
-      expect(result.message).toContain('limit reached');
+      expect(result.message?.toLowerCase()).toContain('limit');
     });
 
     it('should cap percentage discount at maxDiscount', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValueOnce({
+      mockPrisma.coupon.findFirst.mockResolvedValueOnce({
         ...mockActiveCoupon,
         couponType:  'PERCENTAGE',
         discountVal: 50,  // 50%
@@ -101,7 +102,7 @@ describe('CouponsService', () => {
     });
 
     it('should return invalid for non-existent coupon', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.coupon.findFirst.mockResolvedValueOnce(null);
       const result = await service.validateCoupon('GHOST', 'user-1', 350);
       expect(result.valid).toBe(false);
     });

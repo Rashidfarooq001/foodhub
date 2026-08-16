@@ -539,7 +539,7 @@ export class AnalyticsService {
       return formatCsv(settlements.map((s) => ({
         id:              s.id,
         restaurantId:    s.restaurantId,
-        amount:          Number(s.amount),
+        amount:          Number(s.paidAmount || s.netPayable || 0),
         utrNumber:       s.utrNumber,
         settledAt:       s.settledAt ? s.settledAt.toISOString().slice(0, 10) : 'PENDING',
       })));

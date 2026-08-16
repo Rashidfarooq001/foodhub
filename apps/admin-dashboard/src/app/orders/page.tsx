@@ -1,32 +1,29 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, RotateCcw } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const API_BASE = getApiBaseUrl();
+import { Search, ShoppingBag, RotateCcw, RefreshCw } from 'lucide-react';
+import { adminFetch } from '../../utils/admin-fetch';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_access_token') : null;
-        const res = await fetch(`${API_BASE}/orders`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(Array.isArray(data) ? data : data.orders ?? []);
-        }
-      } catch {
-        // Fallback
-      } finally {
-        setIsLoading(false);
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    try {
+      const res = await adminFetch('/orders?page=1&limit=50');
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(Array.isArray(data) ? data : data.orders ?? []);
       }
-    };
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, []);
 

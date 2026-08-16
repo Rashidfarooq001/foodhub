@@ -29,33 +29,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     try {
       await this.$connect();
       this.logger.log('Database connection initialized successfully.');
-      await this.syncMissingColumns();
     } catch (err: any) {
       this.logger.error(`Database connection init failed: ${err?.message || err}`);
       throw err;
     }
-  }
-
-  private async syncMissingColumns() {
-    const ddlStatements = [
-      `ALTER TABLE delivery_jobs ADD COLUMN IF NOT EXISTS pickup_otp_hash VARCHAR(255);`,
-      `ALTER TABLE delivery_jobs ADD COLUMN IF NOT EXISTS pickup_otp_expires_at TIMESTAMP WITH TIME ZONE;`,
-      `ALTER TABLE delivery_jobs ADD COLUMN IF NOT EXISTS pickup_otp_attempts INT DEFAULT 0;`,
-      `ALTER TABLE delivery_jobs ADD COLUMN IF NOT EXISTS pickup_verified_at TIMESTAMP WITH TIME ZONE;`,
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_hash VARCHAR(255);`,
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_expires_at TIMESTAMP WITH TIME ZONE;`,
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_attempts INT DEFAULT 0;`,
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_otp_verified_at TIMESTAMP WITH TIME ZONE;`,
-    ];
-
-    for (const sql of ddlStatements) {
-      try {
-        await this.$executeRawUnsafe(sql);
-      } catch (err: any) {
-        this.logger.warn(`Schema column sync warning for "${sql}": ${err?.message}`);
-      }
-    }
-    this.logger.log('Prisma schema missing columns synchronized successfully on target PostgreSQL.');
   }
 
   async onModuleDestroy() {

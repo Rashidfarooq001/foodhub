@@ -32,13 +32,13 @@ export default function DeliveryEarningsPage() {
         { day: 'Sun', pay: Math.round(stats.weeklyEarnings * 0.24) },
       ]
     : [
-        { day: 'Mon', pay: 750 },
-        { day: 'Tue', pay: 820 },
-        { day: 'Wed', pay: 690 },
-        { day: 'Thu', pay: 910 },
-        { day: 'Fri', pay: 1100 },
-        { day: 'Sat', pay: 1350 },
-        { day: 'Sun', pay: 1420 },
+        { day: 'Mon', pay: 0 },
+        { day: 'Tue', pay: 0 },
+        { day: 'Wed', pay: 0 },
+        { day: 'Thu', pay: 0 },
+        { day: 'Fri', pay: 0 },
+        { day: 'Sat', pay: 0 },
+        { day: 'Sun', pay: 0 },
       ];
 
   return (

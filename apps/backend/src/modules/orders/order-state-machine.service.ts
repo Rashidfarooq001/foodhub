@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { OrdersGateway } from './orders.gateway';
+import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -70,7 +72,10 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
 export class OrderStateMachineService {
   private readonly logger = new Logger(OrderStateMachineService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gateway?: OrdersGateway,
+  ) {}
 
   private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     return calculateHaversineDistance(lat1, lon1, lat2, lon2);
@@ -764,6 +769,25 @@ export class OrderStateMachineService {
 
   private emitRealtimeEvents(order: any, fromStatus: OrderStatus, toStatus: OrderStatus) {
     this.logger.log(`[STATE MACHINE EVENT] Order #${order.orderNumber} transitioned from ${fromStatus} to ${toStatus}`);
+    if (this.gateway) {
+      this.gateway.emitToOrder(order.id, ORDER_EVENTS.STATUS_UPDATED, {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        fromStatus,
+        toStatus,
+        order,
+      });
+      if (order.restaurantId) {
+        this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
+          orderId: order.id,
+          status: toStatus,
+        });
+      }
+      this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, {
+        orderId: order.id,
+        status: toStatus,
+      });
+    }
   }
 
   private getTimelineMessage(status: OrderStatus, reason?: string): string {

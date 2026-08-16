@@ -91,6 +91,49 @@ export default function RestaurantDetailPage() {
     f.name.toLowerCase().includes(menuSearch.toLowerCase()),
   );
 
+  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+
+  // When opening customization modal, select the first available variant if variants exist
+  const openCustomization = (food: FoodItemData) => {
+    setSelectedFoodForCustomization(food);
+    const availableVars = (food.variants || []).filter((v) => v.isAvailable !== false);
+    setSelectedVariant(availableVars.length > 0 ? availableVars[0] : null);
+    setSelectedAddons([]);
+  };
+
+  const handleToggleAddon = (addon: any) => {
+    const exists = selectedAddons.some((a) => a.id === addon.id);
+    if (exists) {
+      setSelectedAddons(selectedAddons.filter((a) => a.id !== addon.id));
+    } else {
+      setSelectedAddons([...selectedAddons, addon]);
+    }
+  };
+
+  const handleAddCustomizedToCart = () => {
+    if (!selectedFoodForCustomization) return;
+
+    const unitPrice = selectedVariant ? selectedVariant.price : selectedFoodForCustomization.price;
+
+    addItem({
+      foodItemId: selectedFoodForCustomization.id,
+      variantId: selectedVariant?.id,
+      variantName: selectedVariant?.variantName,
+      name: selectedFoodForCustomization.name,
+      price: unitPrice,
+      imageUrl: selectedFoodForCustomization.imageUrl,
+      isVeg: selectedFoodForCustomization.isVeg,
+      restaurantId: selectedFoodForCustomization.restaurantId,
+      restaurantName: selectedFoodForCustomization.restaurantName,
+      addons: selectedAddons,
+    });
+
+    setSelectedFoodForCustomization(null);
+    setSelectedVariant(null);
+    setSelectedAddons([]);
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       {/* Restaurant Header Banner */}
@@ -206,7 +249,7 @@ export default function RestaurantDetailPage() {
             <FoodCard
               key={food.id}
               food={food}
-              onCustomize={(f) => setSelectedFoodForCustomization(f)}
+              onCustomize={(f) => openCustomization(f)}
             />
           ))}
         </div>
@@ -271,62 +314,126 @@ export default function RestaurantDetailPage() {
         )}
       </div>
 
-      {/* Food Customization Modal */}
+      {/* Food Customization Modal with Variants and Addons */}
       {selectedFoodForCustomization && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6">
-            <div className="flex items-start justify-between">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
               <div>
                 <h3 className="text-lg font-black text-gray-900">
-                  Customize {selectedFoodForCustomization.name}
+                  {selectedFoodForCustomization.name}
                 </h3>
-                <p className="text-xs text-gray-500">Select portion size and extra toppings</p>
+                <p className="text-xs text-gray-500">Choose portion size &amp; add-ons</p>
               </div>
               <button
-                onClick={() => setSelectedFoodForCustomization(null)}
+                onClick={() => {
+                  setSelectedFoodForCustomization(null);
+                  setSelectedVariant(null);
+                  setSelectedAddons([]);
+                }}
                 className="rounded-full p-2 text-gray-400 hover:bg-gray-100"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
+            {/* Variants Section */}
+            {selectedFoodForCustomization.variants && selectedFoodForCustomization.variants.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-gray-900">
+                    Select Portion / Variant
+                  </h4>
+                  <span className="text-[10px] font-bold text-orange-600 uppercase">Required</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {selectedFoodForCustomization.variants.map((v) => {
+                    const isAvailable = v.isAvailable !== false;
+                    const isSelected = selectedVariant?.id === v.id;
+                    return (
+                      <button
+                        type="button"
+                        key={v.id}
+                        disabled={!isAvailable}
+                        onClick={() => setSelectedVariant(v)}
+                        className={`flex items-center justify-between rounded-2xl border p-3.5 text-left transition ${
+                          !isAvailable
+                            ? 'opacity-40 border-gray-200 bg-gray-50 cursor-not-allowed'
+                            : isSelected
+                            ? 'border-orange-600 bg-orange-50/50 shadow-sm'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                              isSelected ? 'border-orange-600 bg-orange-600' : 'border-gray-300'
+                            }`}
+                          >
+                            {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-gray-900">{v.variantName}</span>
+                            {!isAvailable && (
+                              <span className="block text-[10px] text-rose-500 font-semibold">
+                                Currently unavailable
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-black text-gray-900">₹{v.price}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Addons List */}
             {selectedFoodForCustomization.addonGroups?.map((group) => (
               <div key={group.id} className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                <h4 className="text-xs font-black uppercase tracking-wider text-gray-900">
                   {group.groupName}
                 </h4>
                 <div className="space-y-2">
-                  {group.addons.map((addon) => (
-                    <label
-                      key={addon.id}
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-100 p-3 hover:bg-orange-50/50"
-                    >
-                      <span className="text-xs font-bold text-gray-800">{addon.name}</span>
-                      <span className="text-xs font-black text-orange-600">+₹{addon.price}</span>
-                    </label>
-                  ))}
+                  {group.addons.map((addon) => {
+                    const isChecked = selectedAddons.some((a) => a.id === addon.id);
+                    return (
+                      <label
+                        key={addon.id}
+                        onClick={() => handleToggleAddon(addon)}
+                        className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3 transition ${
+                          isChecked ? 'border-orange-600 bg-orange-50/30' : 'border-gray-100 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            className="rounded text-orange-600 focus:ring-orange-500"
+                          />
+                          <span className="text-xs font-bold text-gray-800">{addon.name}</span>
+                        </div>
+                        <span className="text-xs font-black text-orange-600">+₹{addon.price}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             ))}
 
+            {/* Add to Cart CTA */}
             <button
-              onClick={() => {
-                addItem({
-                  foodItemId: selectedFoodForCustomization.id,
-                  name: selectedFoodForCustomization.name,
-                  price: selectedFoodForCustomization.price,
-                  imageUrl: selectedFoodForCustomization.imageUrl,
-                  isVeg: selectedFoodForCustomization.isVeg,
-                  restaurantId: selectedFoodForCustomization.restaurantId,
-                  restaurantName: selectedFoodForCustomization.restaurantName,
-                  addons: selectedFoodForCustomization.addonGroups?.[0]?.addons || [],
-                });
-                setSelectedFoodForCustomization(null);
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700"
+              onClick={handleAddCustomizedToCart}
+              disabled={selectedFoodForCustomization.variants && selectedFoodForCustomization.variants.length > 0 && !selectedVariant}
+              className="flex w-full items-center justify-between rounded-2xl bg-orange-600 px-5 py-3.5 text-xs font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add Item to Cart
+              <span>Add to Cart</span>
+              <span className="text-sm font-black">
+                ₹{((selectedVariant ? selectedVariant.price : selectedFoodForCustomization.price) +
+                  selectedAddons.reduce((sum, a) => sum + a.price, 0))}
+              </span>
             </button>
           </div>
         </div>

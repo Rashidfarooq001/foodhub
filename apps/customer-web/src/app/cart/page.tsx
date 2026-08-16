@@ -187,12 +187,19 @@ export default function CartPage() {
                     />
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 truncate">{item.name}</p>
+                      {item.variantName && (
+                        <p className="text-[11px] font-bold text-orange-600">
+                          Variant: {item.variantName}
+                        </p>
+                      )}
                       {item.addons && item.addons.length > 0 && (
                         <p className="text-[10px] text-gray-400 truncate">
                           + {item.addons.map((a) => a.name).join(', ')}
                         </p>
                       )}
-                      <p className="text-xs font-black text-gray-900 mt-0.5">₹{item.price * item.quantity}</p>
+                      <p className="text-xs font-black text-gray-900 mt-0.5">
+                        ₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}
+                      </p>
                     </div>
                   </div>
 

@@ -1,9 +1,18 @@
-import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SettlementsService } from './settlements.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Settlements (Phase 11)')
 @ApiBearerAuth()
@@ -12,38 +21,55 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 
-  @Get('overview')
+  @Get('weekly')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
-  @ApiOperation({ summary: 'Get comprehensive settlements ledger for Restaurants, Riders, and Platform Revenue' })
-  async getOverview() {
-    return this.settlementsService.getComprehensiveSettlementOverview();
+  @ApiOperation({ summary: 'Get authoritative restaurant-by-restaurant weekly settlements summary' })
+  async getWeeklySettlements(
+    @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getWeeklyRestaurantSettlements(periodType || 'current', customStart, customEnd);
   }
 
-  @Get('pending')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
-  @ApiOperation({ summary: 'List all restaurants with pending settlement amounts' })
-  async getPending() {
-    return this.settlementsService.getPendingSettlements();
+  @Get('restaurant/:restaurantId/detail')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'RESTAURANT_OWNER')
+  @ApiOperation({ summary: 'Get detailed order-level breakdown and bank account for a restaurant' })
+  async getRestaurantDetail(
+    @Param('restaurantId') restaurantId: string,
+    @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getRestaurantSettlementDetail(restaurantId, periodType || 'current', customStart, customEnd);
   }
 
-  @Post('restaurant/:restaurantId')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
-  @ApiOperation({ summary: 'Process manual settlement for a restaurant' })
-  async settleRestaurant(@Param('restaurantId') restaurantId: string) {
-    return this.settlementsService.processRestaurantSettlement(restaurantId);
+  @Post('restaurant/:restaurantId/payout')
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Initiate bank payout for a restaurant with idempotency protection' })
+  async initiatePayout(
+    @Param('restaurantId') restaurantId: string,
+    @Body() dto: { periodType?: 'current' | 'previous' | 'custom'; customStart?: string; customEnd?: string; notes?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.settlementsService.initiateRestaurantPayout(restaurantId, dto, user.id);
   }
 
   @Get('restaurant/:restaurantId/history')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'RESTAURANT_OWNER')
-  @ApiOperation({ summary: 'Get settlement history for a restaurant' })
-  async restaurantHistory(@Param('restaurantId') restaurantId: string) {
+  @ApiOperation({ summary: 'Get historical weekly settlements for a restaurant' })
+  async getRestaurantHistory(@Param('restaurantId') restaurantId: string) {
     return this.settlementsService.getSettlementHistory(restaurantId);
   }
 
-  @Post('driver/:driverId')
+  @Get('reconciliation')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
-  @ApiOperation({ summary: 'Credit driver wallet for completed deliveries' })
-  async settleDriver(@Param('driverId') driverId: string) {
-    return this.settlementsService.processDriverSettlement(driverId);
+  @ApiOperation({ summary: 'Get double-entry mathematical reconciliation audit' })
+  async getReconciliation(
+    @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getReconciliationReport(periodType || 'current', customStart, customEnd);
   }
 }

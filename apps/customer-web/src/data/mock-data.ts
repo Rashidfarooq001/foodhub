@@ -27,7 +27,10 @@ export interface AddonGroupData {
 export interface FoodVariantData {
   id: string;
   variantName: string;
-  priceModifier: number;
+  price: number;
+  priceModifier?: number;
+  isAvailable: boolean;
+  displayOrder?: number;
 }
 
 export interface FoodItemData {
@@ -40,6 +43,7 @@ export interface FoodItemData {
   originalPrice?: number;
   imageUrl: string;
   isVeg: boolean;
+  isAvailable?: boolean;
   isBestseller?: boolean;
   rating: number;
   ratingCount: number;
@@ -145,12 +149,23 @@ export function normalizeRestaurantData(
       description: item.description ?? '',
       price: safeNumber(item.price, 0),
       originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
-      imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : '',
       isVeg: item.isVeg ?? true,
+      isAvailable: item.isAvailable !== false,
       isBestseller: item.isBestseller ?? false,
-      rating: safeNumber(item.rating, 4.5),
-      ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 50,
+      rating: safeNumber(item.rating, 0),
+      ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 0,
       category: item.category?.name || item.category || 'Main Course',
+      variants: Array.isArray(item.variants)
+        ? item.variants.map((v: any) => ({
+            id: String(v.id),
+            variantName: String(v.variantName || v.name),
+            price: safeNumber(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : item.price)),
+            isAvailable: v.isAvailable !== false,
+            displayOrder: safeNumber(v.displayOrder, 0),
+          }))
+        : [],
+      addonGroups: Array.isArray(item.addonGroups) ? item.addonGroups : [],
     }));
   } else if (categories.length > 0) {
     foodItems = categories.flatMap((cat: any) =>
@@ -162,12 +177,23 @@ export function normalizeRestaurantData(
         description: item.description ?? '',
         price: safeNumber(item.price, 0),
         originalPrice: item.originalPrice ? safeNumber(item.originalPrice) : undefined,
-        imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        imageUrl: item.imageUrl ? getImageUrl(item.imageUrl) : '',
         isVeg: item.isVeg ?? true,
+        isAvailable: item.isAvailable !== false,
         isBestseller: item.isBestseller ?? false,
-        rating: safeNumber(item.rating, 4.5),
-        ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 50,
+        rating: safeNumber(item.rating, 0),
+        ratingCount: item.ratingCount ? safeNumber(item.ratingCount) : 0,
         category: cat.name ?? item.category ?? 'Main Course',
+        variants: Array.isArray(item.variants)
+          ? item.variants.map((v: any) => ({
+              id: String(v.id),
+              variantName: String(v.variantName || v.name),
+              price: safeNumber(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : item.price)),
+              isAvailable: v.isAvailable !== false,
+              displayOrder: safeNumber(v.displayOrder, 0),
+            }))
+          : [],
+        addonGroups: Array.isArray(item.addonGroups) ? item.addonGroups : [],
       }))
     );
   }
