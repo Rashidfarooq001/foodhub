@@ -12,6 +12,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -36,147 +37,179 @@ export class DeliveryJobsController {
     const userId = req.user?.id || req.user?.sub;
     if (!userId) return null;
 
-    return this.prisma.driver.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        userId: true,
-        status: true,
-        isApproved: true,
-        currentLat: true,
-        currentLng: true,
-        avgRating: true,
-        user: { select: { id: true, isActive: true, phone: true, profile: true } },
-        vehicles: true,
-        deliveryJobs: {
-          select: {
-            id: true,
-            orderId: true,
-            status: true,
-            riderPayout: true,
-            deliveredAt: true,
-            distanceKm: true,
-            order: { select: { id: true, orderNumber: true, status: true } },
+    try {
+      return await this.prisma.driver.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          isApproved: true,
+          currentLat: true,
+          currentLng: true,
+          avgRating: true,
+          user: { select: { id: true, isActive: true, phone: true, profile: true } },
+          vehicles: true,
+          deliveryJobs: {
+            select: {
+              id: true,
+              orderId: true,
+              status: true,
+              riderPayout: true,
+              deliveredAt: true,
+              distanceKm: true,
+              order: { select: { id: true, orderNumber: true, status: true } },
+            },
           },
         },
-      },
-    });
+      });
+    } catch (err: any) {
+      this.logger.error(`getDriverFromReq failed for userId ${userId}: ${err?.message}`, err?.stack);
+      throw err;
+    }
   }
 
   @Get('me/status')
   @ApiOperation({ summary: 'Get current authenticated driver availability and presence status' })
   async getMyStatus(@Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const activeJob = (driver.deliveryJobs || []).find((j) =>
+        [
+          DeliveryJobStatus.ASSIGNED as string,
+          DeliveryJobStatus.ARRIVED as string,
+          DeliveryJobStatus.PICKED_UP as string,
+        ].includes(j.status as string),
+      );
+
+      let operationalStatus = 'ONLINE_AVAILABLE';
+      let unavailabilityReason: string | null = null;
+
+      if (!driver.user?.isActive) {
+        operationalStatus = 'SUSPENDED';
+        unavailabilityReason = 'User account suspended';
+      } else if (!driver.isApproved) {
+        operationalStatus = 'PENDING_APPROVAL';
+        unavailabilityReason = 'Pending admin approval';
+      } else if (driver.status === DriverStatus.OFFLINE) {
+        operationalStatus = 'OFFLINE';
+        unavailabilityReason = 'Rider is currently offline';
+      } else if (activeJob) {
+        operationalStatus = 'BUSY';
+        unavailabilityReason = 'Rider is currently executing another delivery';
+      }
+
+      return {
+        driverId: driver.id,
+        userId: driver.userId,
+        operationalStatus,
+        dutyStatus: driver.status === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
+        isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
+        unavailabilityReason,
+        isApproved: driver.isApproved,
+        activeDelivery: activeJob
+          ? {
+              jobId: activeJob.id,
+              orderId: activeJob.orderId,
+              orderNumber: activeJob.order.orderNumber,
+              status: activeJob.status,
+            }
+          : null,
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`getMyStatus failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to fetch driver status',
+        details: err?.stack || String(err),
+      });
     }
-
-    const activeJob = driver.deliveryJobs.find((j) =>
-      [
-        DeliveryJobStatus.ASSIGNED as string,
-        DeliveryJobStatus.ARRIVED as string,
-        DeliveryJobStatus.PICKED_UP as string,
-      ].includes(j.status as string),
-    );
-
-    let operationalStatus = 'ONLINE_AVAILABLE';
-    let unavailabilityReason: string | null = null;
-
-    if (!driver.user?.isActive) {
-      operationalStatus = 'SUSPENDED';
-      unavailabilityReason = 'User account suspended';
-    } else if (!driver.isApproved) {
-      operationalStatus = 'PENDING_APPROVAL';
-      unavailabilityReason = 'Pending admin approval';
-    } else if (driver.status === DriverStatus.OFFLINE) {
-      operationalStatus = 'OFFLINE';
-      unavailabilityReason = 'Rider is currently offline';
-    } else if (activeJob) {
-      operationalStatus = 'BUSY';
-      unavailabilityReason = 'Rider is currently executing another delivery';
-    }
-
-    return {
-      driverId: driver.id,
-      userId: driver.userId,
-      operationalStatus,
-      dutyStatus: driver.status === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
-      isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
-      unavailabilityReason,
-      isApproved: driver.isApproved,
-      activeDelivery: activeJob
-        ? {
-            jobId: activeJob.id,
-            orderId: activeJob.orderId,
-            orderNumber: activeJob.order.orderNumber,
-            status: activeJob.status,
-          }
-        : null,
-    };
   }
 
   @Post('me/go-online')
   @ApiOperation({ summary: 'Delivery partner enables availability (Goes ONLINE)' })
   async goOnline(@Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      if (!driver.user?.isActive) {
+        throw new BadRequestException('Cannot go online. Account is suspended or inactive.');
+      }
+
+      if (!driver.isApproved) {
+        throw new BadRequestException('Cannot go online. Account is pending admin approval.');
+      }
+
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.ONLINE,
+        },
+      });
+
+      return {
+        message: "You are now online and available for deliveries",
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`goOnline failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to go online',
+        details: err?.stack || String(err),
+      });
     }
-
-    if (!driver.user?.isActive) {
-      throw new BadRequestException('Cannot go online. Account is suspended or inactive.');
-    }
-
-    if (!driver.isApproved) {
-      throw new BadRequestException('Cannot go online. Account is pending admin approval.');
-    }
-
-    const updated = await this.prisma.driver.update({
-      where: { id: driver.id },
-      data: {
-        status: DriverStatus.ONLINE,
-      },
-    });
-
-    return {
-      message: "You are now online and available for deliveries",
-      dutyStatus: 'ONLINE',
-      operationalStatus: 'ONLINE_AVAILABLE',
-    };
   }
 
   @Post('me/go-offline')
   @ApiOperation({ summary: 'Delivery partner disables availability (Goes OFFLINE)' })
   async goOffline(@Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const activeJob = (driver.deliveryJobs || []).find((j) =>
+        [
+          DeliveryJobStatus.ASSIGNED as string,
+          DeliveryJobStatus.ARRIVED as string,
+          DeliveryJobStatus.PICKED_UP as string,
+        ].includes(j.status as string),
+      );
+
+      if (activeJob) {
+        throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
+      }
+
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.OFFLINE,
+        },
+      });
+
+      return {
+        message: "You are now offline",
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`goOffline failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to go offline',
+        details: err?.stack || String(err),
+      });
     }
-
-    const activeJob = driver.deliveryJobs.find((j) =>
-      [
-        DeliveryJobStatus.ASSIGNED as string,
-        DeliveryJobStatus.ARRIVED as string,
-        DeliveryJobStatus.PICKED_UP as string,
-      ].includes(j.status as string),
-    );
-
-    if (activeJob) {
-      throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
-    }
-
-    await this.prisma.driver.update({
-      where: { id: driver.id },
-      data: {
-        status: DriverStatus.OFFLINE,
-      },
-    });
-
-    return {
-      message: "You are now offline",
-      dutyStatus: 'OFFLINE',
-      operationalStatus: 'OFFLINE',
-    };
   }
 
   @Post('me/heartbeat')
@@ -186,22 +219,31 @@ export class DeliveryJobsController {
     @Body('lng') lng?: number,
     @Request() req?: any,
   ) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
-    }
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
 
-    if (lat && lng) {
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: { currentLat: lat, currentLng: lng },
+      if (lat && lng) {
+        await this.prisma.driver.update({
+          where: { id: driver.id },
+          data: { currentLat: lat, currentLng: lng },
+        });
+      }
+
+      return {
+        status: 'OK',
+        timestamp: new Date(),
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`heartbeat failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Heartbeat failed',
+        details: err?.stack || String(err),
       });
     }
-
-    return {
-      status: 'OK',
-      timestamp: new Date(),
-    };
   }
 
   @Patch('me/status')
