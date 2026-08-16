@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode } from '@prisma/client';
@@ -66,42 +66,29 @@ export class RestaurantsService {
         });
 
         if (existingUser) {
-          if (existingUser.role === UserRole.ADMIN || existingUser.role === UserRole.SUPER_ADMIN) {
-            throw new BadRequestException(
-              'An Administrator account with this phone/email already exists and cannot be assigned as a restaurant owner.',
-            );
-          }
-          ownerId = existingUser.id;
-          await tx.user.update({
-            where: { id: existingUser.id },
-            data: {
-              phone: canonicalPhone,
-              role: UserRole.RESTAURANT_OWNER,
-              ...(dto.password ? { passwordHash } : {}),
-              isVerified: true,
-              isActive: true,
-            },
-          });
-        } else {
-          const nameParts = ownerName.split(' ');
-          const newUser = await tx.user.create({
-            data: {
-              phone: canonicalPhone,
-              email,
-              passwordHash,
-              role: UserRole.RESTAURANT_OWNER,
-              isVerified: true,
-              isActive: true,
-              profile: {
-                create: {
-                  firstName: nameParts[0] || 'Owner',
-                  lastName: nameParts.slice(1).join(' ') || '',
-                },
+          throw new ConflictException(
+            'An account with this phone number or email already exists. Please log in or use a different phone/email.',
+          );
+        }
+
+        const nameParts = ownerName.split(' ');
+        const newUser = await tx.user.create({
+          data: {
+            phone: canonicalPhone,
+            email,
+            passwordHash,
+            role: UserRole.RESTAURANT_OWNER,
+            isVerified: true,
+            isActive: true,
+            profile: {
+              create: {
+                firstName: nameParts[0] || 'Owner',
+                lastName: nameParts.slice(1).join(' ') || '',
               },
             },
-          });
-          ownerId = newUser.id;
-        }
+          },
+        });
+        ownerId = newUser.id;
       }
 
       const slug =

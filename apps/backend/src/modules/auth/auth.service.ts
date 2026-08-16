@@ -297,6 +297,10 @@ export class AuthService {
       throw new BadRequestException('An account with this phone number or email already exists. Please login.');
     }
 
+    if (!dto.fssaiNumber || !dto.fssaiNumber.trim()) {
+      throw new BadRequestException('FSSAI license number is required for restaurant registration.');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const nameParts = dto.name.trim().split(' ');
     if (!nameParts[0]) {
@@ -334,11 +338,11 @@ export class AuthService {
           slug,
           phone: formattedPhone,
           email: cleanEmail,
-          licenseFssai: dto.fssaiNumber?.trim() || null,
+          licenseFssai: dto.fssaiNumber.trim(),
           gstin: dto.gstin?.trim() || null,
-          addressLine: fullAddress || dto.addressLine || null,
-          latitude: dto.latitude != null ? Number(dto.latitude) : null,
-          longitude: dto.longitude != null ? Number(dto.longitude) : null,
+          addressLine: fullAddress || dto.addressLine || 'Bandipora',
+          latitude: dto.latitude != null ? Number(dto.latitude) : 34.4226,
+          longitude: dto.longitude != null ? Number(dto.longitude) : 74.6469,
           status: RestaurantStatus.PENDING_APPROVAL,
           isOpen: false,
         },
