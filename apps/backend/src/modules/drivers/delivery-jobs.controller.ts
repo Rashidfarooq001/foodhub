@@ -32,6 +32,17 @@ export class DeliveryJobsController {
     private readonly stateMachineService: OrderStateMachineService,
   ) {}
 
+  private async getDriverIdFromReq(req: any): Promise<string | undefined> {
+    if (req.user?.driverId) return req.user.driverId;
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) return undefined;
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return driver?.id;
+  }
+
   @Get('jobs/available')
   @ApiOperation({ summary: 'Get available delivery jobs for orders ready for pickup' })
   async getAvailableJobs(@Request() req: any) {
@@ -114,7 +125,7 @@ export class DeliveryJobsController {
   @Get('current')
   @ApiOperation({ summary: 'Get current active delivery job for authenticated driver' })
   async getCurrentJob(@Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     if (!driverId) {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
@@ -200,7 +211,7 @@ export class DeliveryJobsController {
   @Get('stats')
   @ApiOperation({ summary: 'Get earnings & delivery statistics for driver' })
   async getDriverStats(@Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     if (!driverId) {
       return {
         todayEarnings: 0,
@@ -252,7 +263,7 @@ export class DeliveryJobsController {
   @Get('history')
   @ApiOperation({ summary: 'Get completed delivery history for driver' })
   async getDriverHistory(@Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     if (!driverId) return [];
 
     const jobs = await this.prisma.deliveryJob.findMany({
@@ -288,7 +299,7 @@ export class DeliveryJobsController {
   @Patch('duty-status')
   @ApiOperation({ summary: 'Toggle driver online/offline duty status' })
   async toggleDutyStatus(@Body('status') status: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     if (!driverId) {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
@@ -309,12 +320,11 @@ export class DeliveryJobsController {
   @Post('jobs/:id/accept')
   @ApiOperation({ summary: 'Rider accepts delivery job (Atomic conditional transaction)' })
   async acceptJob(@Param('id') id: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     if (!driverId) {
       throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
     }
 
-    // Check active delivery protection: ONE active delivery per rider
     const activeJob = await this.prisma.deliveryJob.findFirst({
       where: {
         driverId,
@@ -358,7 +368,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/arrived')
   @ApiOperation({ summary: 'Rider arrives at pickup restaurant' })
   async arrivedAtRestaurant(@Param('id') id: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -376,7 +386,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/picked-up')
   @ApiOperation({ summary: 'Rider picks up order from restaurant' })
   async pickedUpOrder(@Param('id') id: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -394,7 +404,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/start-delivery')
   @ApiOperation({ summary: 'Rider starts delivery to customer location' })
   async startDelivery(@Param('id') id: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
@@ -412,7 +422,7 @@ export class DeliveryJobsController {
   @Post('jobs/:id/delivered')
   @ApiOperation({ summary: 'Rider marks order as delivered to customer' })
   async markDelivered(@Param('id') id: string, @Request() req: any) {
-    const driverId = req.user?.driverId;
+    const driverId = await this.getDriverIdFromReq(req);
     const job = await this.prisma.deliveryJob.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
     });
