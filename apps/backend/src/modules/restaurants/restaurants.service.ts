@@ -49,12 +49,12 @@ export class RestaurantsService {
           },
         });
       } else {
-        const phoneFormats: string[] = [
+        const rawTenDigits = canonicalPhone.replace(/\D/g, '').slice(-10);
+        const uniqueFormats = [
           canonicalPhone,
-          `+91${canonicalPhone}`,
-          `91${canonicalPhone}`,
+          `91${rawTenDigits}`,
+          rawTenDigits,
         ];
-        const uniqueFormats = Array.from(new Set(phoneFormats));
 
         const existingUser = await tx.user.findFirst({
           where: {
@@ -104,7 +104,6 @@ export class RestaurantsService {
         }
       }
 
-
       const slug =
         dto.name
           .toLowerCase()
@@ -123,6 +122,10 @@ export class RestaurantsService {
         .filter(Boolean)
         .join(', ');
 
+      if (!fullAddress && !dto.address) {
+        throw new BadRequestException('Restaurant street address is required.');
+      }
+
       // FSSAI is required for restaurant registration
       if (!dto.fssaiLicense || !dto.fssaiLicense.trim()) {
         throw new BadRequestException('FSSAI license number is required for restaurant registration.');
@@ -136,9 +139,9 @@ export class RestaurantsService {
           phone: canonicalPhone,
           licenseFssai: dto.fssaiLicense.trim(),
           gstin: dto.gstin?.trim() || null,
-          addressLine: fullAddress || dto.address || null,
-          latitude: dto.latitude != null ? Number(dto.latitude) : null,
-          longitude: dto.longitude != null ? Number(dto.longitude) : null,
+          addressLine: fullAddress || dto.address || 'Bandipora',
+          latitude: dto.latitude != null ? Number(dto.latitude) : 34.4226,
+          longitude: dto.longitude != null ? Number(dto.longitude) : 74.6469,
           bannerUrl: dto.bannerUrl || dto.logoUrl,
           menuUrl: dto.menuUrl,
           fssaiUrl: dto.fssaiUrl,
