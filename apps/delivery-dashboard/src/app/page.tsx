@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DeliveryJob, DriverStats } from '../data/delivery-mock-data';
 import { DollarSign, Bike, CheckCircle2, Star, ArrowRight, Navigation, Power, AlertTriangle, Clock } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
 
@@ -89,6 +90,32 @@ export default function DeliveryDashboardPage() {
     fetchAll();
     fetchStatus();
 
+    // Socket.IO Real-time Multi-Tab / Fleet Presence Sync
+    let socket: any = null;
+    try {
+      const socketUrl = API_BASE.replace('/api/v1', '');
+      socket = io(`${socketUrl}/orders`, {
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        if (me?.driver?.id) {
+          socket.emit('joinOrder', { orderId: `driver:${me.driver.id}` });
+        }
+      });
+
+      socket.on('driver.status_changed', (payload: any) => {
+        if (!me?.driver?.id || payload?.driverId === me.driver.id) {
+          if (payload?.dutyStatus) {
+            setDutyStatus(payload.dutyStatus);
+            setOperationalStatus(payload.operationalStatus || payload.dutyStatus);
+          }
+        }
+      });
+    } catch {
+      /* socket offline */
+    }
+
     // Setup 30s Heartbeat loop when online
     const heartbeatInterval = setInterval(() => {
       if (token && dutyStatus === 'ONLINE') {
@@ -99,8 +126,11 @@ export default function DeliveryDashboardPage() {
       }
     }, 30000);
 
-    return () => clearInterval(heartbeatInterval);
-  }, [dutyStatus]);
+    return () => {
+      clearInterval(heartbeatInterval);
+      if (socket) socket.disconnect();
+    };
+  }, [dutyStatus, me?.driver?.id]);
 
   const handleToggleDutyStatus = async () => {
     const token = getAccessToken();

@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
+import { io } from 'socket.io-client';
+import { getApiBaseUrl } from '@foodhub/config';
 
 interface DriverPartner {
   id: string;
@@ -42,6 +44,35 @@ export default function AdminDeliveryPartnersPage() {
 
   useEffect(() => {
     fetchDrivers();
+
+    // Socket.IO Real-time synchronization
+    try {
+      const apiBase = getApiBaseUrl();
+      const socketUrl = apiBase.replace('/api/v1', '');
+      const socket = io(`${socketUrl}/orders`, {
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('joinAdmin');
+      });
+
+      socket.on('driver.status_changed', (payload: { driverId: string; dutyStatus: string }) => {
+        if (payload?.driverId && payload?.dutyStatus) {
+          setDrivers((prev) =>
+            prev.map((d) =>
+              d.id === payload.driverId ? { ...d, status: payload.dutyStatus } : d,
+            ),
+          );
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch {
+      /* socket error */
+    }
   }, []);
 
   const handleToggleApproval = async (driverId: string, currentApproved: boolean) => {

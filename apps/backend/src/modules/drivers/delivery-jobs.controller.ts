@@ -19,6 +19,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../database/prisma.service';
 import { OrderStateMachineService } from '../orders/order-state-machine.service';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
 
 @ApiTags('Delivery Jobs Lifecycle')
@@ -31,6 +33,7 @@ export class DeliveryJobsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stateMachineService: OrderStateMachineService,
+    private readonly ordersGateway: OrdersGateway,
   ) {}
 
   private async getDriverFromReq(req: any) {
@@ -145,9 +148,25 @@ export class DeliveryJobsController {
       }
 
       await this.prisma.$executeRawUnsafe(
-        `UPDATE drivers SET status = 'ONLINE'::"DriverStatus" WHERE id = $1::uuid`,
+        `UPDATE drivers SET status = 'ONLINE'::"DriverStatus", online_since = NOW(), last_seen_at = NOW() WHERE id = $1::uuid`,
         driver.id,
       );
+
+      this.logger.log(`[PRESENCE] driver=${driver.id.slice(0, 8)} action=ONLINE databaseStatus=ONLINE socketBroadcast=true`);
+
+      this.ordersGateway.emitToAdmin(ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+        timestamp: new Date().toISOString(),
+      });
+
+      this.ordersGateway.emitToDriver(driver.id, ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+        timestamp: new Date().toISOString(),
+      });
 
       return {
         message: "You are now online and available for deliveries",
@@ -186,9 +205,25 @@ export class DeliveryJobsController {
       }
 
       await this.prisma.$executeRawUnsafe(
-        `UPDATE drivers SET status = 'OFFLINE'::"DriverStatus" WHERE id = $1::uuid`,
+        `UPDATE drivers SET status = 'OFFLINE'::"DriverStatus", last_seen_at = NOW() WHERE id = $1::uuid`,
         driver.id,
       );
+
+      this.logger.log(`[PRESENCE] driver=${driver.id.slice(0, 8)} action=OFFLINE databaseStatus=OFFLINE socketBroadcast=true`);
+
+      this.ordersGateway.emitToAdmin(ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+        timestamp: new Date().toISOString(),
+      });
+
+      this.ordersGateway.emitToDriver(driver.id, ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+        timestamp: new Date().toISOString(),
+      });
 
       return {
         message: "You are now offline",
