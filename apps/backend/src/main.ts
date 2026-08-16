@@ -152,87 +152,13 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/v1/docs', app, document);
 
-  // Auto-verify DB schema & apply missing columns/enums if missing
-  try {
-    const prisma = app.get(PrismaService);
-    await prisma.$executeRawUnsafe(`
-      DO $$
-      BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeliveryMode') THEN
-              CREATE TYPE "DeliveryMode" AS ENUM ('FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY');
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RestaurantDriverStatus') THEN
-              CREATE TYPE "RestaurantDriverStatus" AS ENUM ('AVAILABLE', 'BUSY', 'OFFLINE');
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DriverStatus') THEN
-              CREATE TYPE "DriverStatus" AS ENUM ('OFFLINE', 'ONLINE', 'BUSY', 'SUSPENDED');
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'VehicleType') THEN
-              CREATE TYPE "VehicleType" AS ENUM ('BICYCLE', 'SCOOTER', 'MOTORCYCLE', 'EV_SCOOTER');
-          END IF;
-
-          -- Users table columns
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_dob_hash') THEN
-              ALTER TABLE "users" ADD COLUMN "admin_dob_hash" TEXT;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_favorite_person_hash') THEN
-              ALTER TABLE "users" ADD COLUMN "admin_favorite_person_hash" TEXT;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_recovery_token') THEN
-              ALTER TABLE "users" ADD COLUMN "admin_recovery_token" TEXT;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_recovery_expires_at') THEN
-              ALTER TABLE "users" ADD COLUMN "admin_recovery_expires_at" TIMESTAMP(3);
-          END IF;
-
-          -- Drivers table columns
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'online_since') THEN
-              ALTER TABLE "drivers" ADD COLUMN "online_since" TIMESTAMP(3);
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'last_seen_at') THEN
-              ALTER TABLE "drivers" ADD COLUMN "last_seen_at" TIMESTAMP(3);
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'current_lat') THEN
-              ALTER TABLE "drivers" ADD COLUMN "current_lat" DOUBLE PRECISION;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'current_lng') THEN
-              ALTER TABLE "drivers" ADD COLUMN "current_lng" DOUBLE PRECISION;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'avg_rating') THEN
-              ALTER TABLE "drivers" ADD COLUMN "avg_rating" DECIMAL(3,2) NOT NULL DEFAULT 0.0;
-          END IF;
-
-          -- Restaurants table columns
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'delivery_mode') THEN
-              ALTER TABLE "restaurants" ADD COLUMN "delivery_mode" "DeliveryMode" NOT NULL DEFAULT 'FOODHUB_DELIVERY';
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'latitude' AND is_nullable = 'NO') THEN
-              ALTER TABLE "restaurants" ALTER COLUMN "latitude" DROP NOT NULL;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'longitude' AND is_nullable = 'NO') THEN
-              ALTER TABLE "restaurants" ALTER COLUMN "longitude" DROP NOT NULL;
-          END IF;
-
-          -- Orders table columns
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_foodhub_driver_id') THEN
-              ALTER TABLE "orders" ADD COLUMN "assigned_foodhub_driver_id" UUID;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_restaurant_driver_id') THEN
-              ALTER TABLE "orders" ADD COLUMN "assigned_restaurant_driver_id" UUID;
-          END IF;
-      END $$;
-    `);
-    console.log('✅ Production Neon DB schema verified & updated successfully.');
-  } catch (err: any) {
-    console.warn('⚠️ Auto-schema verification notice:', err?.message || err);
-  }
-
   // Start
-  const port = Number(process.env.PORT) || 4000;
+  const port = process.env.PORT || 4000;
+  await app.listen(port, '0.0.0.0');
 
-  await app.listen(port);
-
-  console.log(`🚀 FoodHub Backend running on port ${port}`);
+  const appLogger = app.get(Logger);
+  appLogger.log(`🚀 FoodHub Core Backend API is running on: http://localhost:${port}/api/v1`);
+  appLogger.log(`📚 Swagger documentation available at: http://localhost:${port}/api/v1/docs`);
 }
 
 bootstrap();

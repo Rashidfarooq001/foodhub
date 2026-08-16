@@ -244,7 +244,7 @@ export class AuthService {
     const firstName = nameParts[0] || 'Customer';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // Create ONLY CUSTOMER user
+    // Create ONLY CUSTOMER user + Customer domain profile
     const user = await (this.usersService as any).prisma.user.create({
       data: {
         phone: formattedPhone,
@@ -258,8 +258,11 @@ export class AuthService {
             lastName,
           },
         },
+        customer: {
+          create: {},
+        },
       },
-      include: { profile: true },
+      include: { profile: true, customer: true },
     });
 
     this.logger.log(`[Customer Register] Registered new Customer ID=${user.id}, phone=${user.phone}`);
@@ -800,8 +803,11 @@ export class AuthService {
                 lastName,
               },
             },
+            customer: {
+              create: {},
+            },
           },
-          include: { profile: true },
+          include: { profile: true, customer: true },
         });
       } else {
         throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
