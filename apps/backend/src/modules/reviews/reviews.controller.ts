@@ -28,28 +28,31 @@ export class ReviewsController {
   @Post('restaurant')
   @ApiOperation({ summary: 'Submit a restaurant review (delivered orders only)' })
   async reviewRestaurant(
-    @Request() req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: CreateRestaurantReviewDto,
   ) {
-    return this.reviewsService.createRestaurantReview(req.user.sub, dto);
+    const userId = req.user?.id || req.user?.sub;
+    return this.reviewsService.createRestaurantReview(userId, dto);
   }
 
   @Post('food')
   @ApiOperation({ summary: 'Submit a food item review (delivered orders only)' })
   async reviewFood(
-    @Request() req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: CreateFoodReviewDto,
   ) {
-    return this.reviewsService.createFoodReview(req.user.sub, dto);
+    const userId = req.user?.id || req.user?.sub;
+    return this.reviewsService.createFoodReview(userId, dto);
   }
 
   @Post('driver')
   @ApiOperation({ summary: 'Submit a driver review (delivered orders only)' })
   async reviewDriver(
-    @Request() req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: CreateDriverReviewDto,
   ) {
-    return this.reviewsService.createDriverReview(req.user.sub, dto);
+    const userId = req.user?.id || req.user?.sub;
+    return this.reviewsService.createDriverReview(userId, dto);
   }
 
   @Public()

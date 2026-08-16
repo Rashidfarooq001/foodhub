@@ -39,13 +39,22 @@ export class ReviewsService {
   // ELIGIBILITY GUARD
   // ────────────────────────────────────────────────────────────────────────────
 
-  private async assertOrderDelivered(orderId: string, customerId: string): Promise<void> {
-    const customer = await this.prisma.customer.findFirst({ where: { userId: customerId } });
+  private async assertOrderDelivered(orderId: string, userIdOrCustomerId: string): Promise<void> {
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        OR: [
+          { userId: userIdOrCustomerId },
+          { id: userIdOrCustomerId },
+        ],
+      },
+    });
     if (!customer) throw new NotFoundException('Customer not found');
 
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.customerId !== customer.id) throw new ForbiddenException('This order does not belong to you');
+    if (order.customerId !== customer.id && order.customerId !== userIdOrCustomerId) {
+      throw new ForbiddenException('This order does not belong to you');
+    }
     if (order.status !== OrderStatus.DELIVERED) {
       throw new BadRequestException('You can only review delivered orders');
     }
