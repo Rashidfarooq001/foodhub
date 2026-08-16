@@ -6,8 +6,19 @@ async function runActiveOrderWorkflowE2E() {
   console.log('================================================================\n');
 
   try {
-    // 1. Authenticate Delivery Partner (driver.real@foodhub.com)
-    console.log('1. Authenticating Delivery Partner (driver.real@foodhub.com)...');
+    // 1. Authenticate Customer (customer.real@foodhub.com)
+    console.log('1. Authenticating Customer (customer.real@foodhub.com)...');
+    const custRes = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'customer.real@foodhub.com', password: 'RealCustomerPassword123!' }),
+    });
+    const custData = await custRes.json();
+    const custToken = custData.tokens?.accessToken || custData.accessToken;
+    console.log('✅ Customer Authenticated.');
+
+    // 2. Authenticate Delivery Partner (driver.real@foodhub.com)
+    console.log('\n2. Authenticating Delivery Partner (driver.real@foodhub.com)...');
     const driverRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -15,10 +26,23 @@ async function runActiveOrderWorkflowE2E() {
     });
     const driverData = await driverRes.json();
     const driverToken = driverData.tokens?.accessToken || driverData.accessToken;
-    console.log('✅ Delivery Partner Authenticated.');
 
-    // 2. Authenticate Restaurant Owner (owner.real@foodhub.com)
-    console.log('\n2. Authenticating Restaurant Owner (owner.real@foodhub.com)...');
+    // Fetch real driver record from /delivery/me/status
+    const statusRes = await fetch(`${API_BASE}/delivery/me/status`, {
+      headers: { Authorization: `Bearer ${driverToken}` },
+    });
+    const statusData = await statusRes.json();
+    const driverId = statusData.driverId || statusData.id;
+    console.log('✅ Delivery Partner Authenticated. Driver ID:', driverId);
+
+    // Ensure driver is ONLINE
+    await fetch(`${API_BASE}/delivery/me/go-online`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driverToken}` },
+    });
+
+    // 3. Authenticate Restaurant Owner (owner.real@foodhub.com)
+    console.log('\n3. Authenticating Restaurant Owner (owner.real@foodhub.com)...');
     const ownerRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,16 +50,88 @@ async function runActiveOrderWorkflowE2E() {
     });
     const ownerData = await ownerRes.json();
     const ownerToken = ownerData.tokens?.accessToken || ownerData.accessToken;
-    console.log('✅ Restaurant Owner Authenticated.');
+    const restaurantId = ownerData.user?.restaurantId || ownerData.restaurantId;
+    console.log('✅ Restaurant Owner Authenticated. Restaurant ID:', restaurantId);
 
-    // 3. Fetch active delivery job for driver
-    console.log('\n3. Fetching active trip (GET /delivery/current)...');
-    const currentRes = await fetch(`${API_BASE}/delivery/current`, {
+    // 4. Get active job or create fresh order
+    let currentRes = await fetch(`${API_BASE}/delivery/current`, {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
-    const currentJob = await currentRes.json();
-    console.log('Current Trip HTTP Status:', currentRes.status);
-    console.log('Active Order Number:', currentJob?.orderNumber);
+    let currentJob = await currentRes.json();
+
+    let orderId;
+    if (currentJob && currentJob.orderId) {
+      orderId = currentJob.orderId;
+      console.log(`\n4. Using existing active trip #${currentJob.orderNumber} (Order ID: ${orderId})`);
+    } else {
+      console.log('\n4. Creating fresh real order for E2E workflow testing...');
+      // Fetch restaurant menu item
+      const menuRes = await fetch(`${API_BASE}/menu-items?restaurantId=${restaurantId}`);
+      const menuData = await menuRes.json();
+      const items = Array.isArray(menuData) ? menuData : menuData.items || [];
+      const item = items[0] || { id: 'test-item', price: 199 };
+
+      const orderCreateRes = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${custToken}`,
+        },
+        body: JSON.stringify({
+          restaurantId,
+          items: [{ foodItemId: item.id, quantity: 1, unitPrice: Number(item.price || 199) }],
+          deliveryAddress: {
+            street: 'Gousia Colony, Ward 4',
+            city: 'Bandipora',
+            state: 'Jammu & Kashmir',
+            postalCode: '193502',
+            latitude: 34.4221,
+            longitude: 74.6542,
+          },
+          paymentMethod: 'COD',
+        }),
+      });
+
+      const newOrder = await orderCreateRes.json();
+      orderId = newOrder.id;
+      console.log('✅ Fresh Order Created. Order Number:', newOrder.orderNumber, 'ID:', orderId);
+
+      // Restaurant Accepts Order
+      const acceptRes = await fetch(`${API_BASE}/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${ownerToken}` },
+      });
+      console.log('Accept Order Status:', acceptRes.status);
+
+      // Restaurant Assigns Driver
+      const assignRes = await fetch(`${API_BASE}/orders/${orderId}/assign-rider`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ownerToken}`,
+        },
+        body: JSON.stringify({ driverId }),
+      });
+      console.log('Assign Driver Status:', assignRes.status);
+      const assignData = await assignRes.json();
+      if (!assignRes.ok) {
+        console.error('Assign Driver Error Data:', assignData);
+      }
+
+      // Driver Marks Arrived at Restaurant
+      const arrivedRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/arrived`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${driverToken}` },
+      });
+      console.log('Arrived Status:', arrivedRes.status);
+
+      currentRes = await fetch(`${API_BASE}/delivery/current`, {
+        headers: { Authorization: `Bearer ${driverToken}` },
+      });
+      currentJob = await currentRes.json();
+    }
+
+    console.log('Current Trip Order Number:', currentJob?.orderNumber);
     console.log('Current Order Status:', currentJob?.status);
 
     // SECURITY CHECK: Verify deliveryOtp & pickupOtp are NEVER exposed to rider API
@@ -51,15 +147,8 @@ async function runActiveOrderWorkflowE2E() {
       console.error('❌ SECURITY FAILURE: OTP secrets exposed in Rider API!');
     }
 
-    if (!currentJob) {
-      console.log('No active job found for driver. Exiting E2E suite.');
-      return;
-    }
-
-    const orderId = currentJob.orderId;
-
-    // 4. Restaurant Owner retrieves Pickup OTP & Signed QR Token
-    console.log(`\n4. Restaurant Owner retrieving Pickup OTP (GET /orders/${orderId}/pickup-otp)...`);
+    // 5. Restaurant Owner retrieves Pickup OTP & Signed QR Token
+    console.log(`\n5. Restaurant Owner retrieving Pickup OTP (GET /orders/${orderId}/pickup-otp)...`);
     const pickupOtpRes = await fetch(`${API_BASE}/orders/${orderId}/pickup-otp`, {
       headers: { Authorization: `Bearer ${ownerToken}` },
     });
@@ -68,8 +157,8 @@ async function runActiveOrderWorkflowE2E() {
     console.log('Generated Pickup OTP (Restaurant View Only):', pickupOtpData.pickupOtp);
     console.log('HMAC Signed QR Token Prefix:', (pickupOtpData.qrToken || '').slice(0, 30) + '...');
 
-    // 5. NEGATIVE SECURITY TEST: Rider attempts to call GET /orders/:id/pickup-otp (Should fail with 403)
-    console.log('\n5. NEGATIVE SECURITY CHECK: Rider attempts to call GET /orders/:id/pickup-otp...');
+    // 6. NEGATIVE SECURITY TEST: Rider attempts to call GET /orders/:id/pickup-otp (Should fail with 403)
+    console.log('\n6. NEGATIVE SECURITY CHECK: Rider attempts to call GET /orders/:id/pickup-otp...');
     const riderPickupOtpRes = await fetch(`${API_BASE}/orders/${orderId}/pickup-otp`, {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
@@ -80,8 +169,8 @@ async function runActiveOrderWorkflowE2E() {
       console.error('❌ SECURITY FAILURE: Rider was able to retrieve Pickup OTP!');
     }
 
-    // 6. NEGATIVE OTP TEST: Rider submits wrong 4-digit pickup code '0000'
-    console.log('\n6. NEGATIVE OTP CHECK: Rider submits invalid OTP "0000"...');
+    // 7. NEGATIVE OTP TEST: Rider submits wrong 4-digit pickup code '0000'
+    console.log('\n7. NEGATIVE OTP CHECK: Rider submits invalid OTP "0000"...');
     const wrongOtpRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/verify-pickup`, {
       method: 'POST',
       headers: {
@@ -97,8 +186,8 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: System rejected invalid pickup OTP!');
     }
 
-    // 7. POSITIVE OTP TEST: Rider submits VALID 4-digit pickup code
-    console.log(`\n7. POSITIVE OTP CHECK: Rider submits valid OTP "${pickupOtpData.pickupOtp}"...`);
+    // 8. POSITIVE OTP TEST: Rider submits VALID 4-digit pickup code
+    console.log(`\n8. POSITIVE OTP CHECK: Rider submits valid OTP "${pickupOtpData.pickupOtp}"...`);
     const validOtpRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/verify-pickup`, {
       method: 'POST',
       headers: {
@@ -114,8 +203,8 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: Order transitioned to PICKED_UP!');
     }
 
-    // 8. Rider starts delivery journey (POST /delivery/jobs/:id/start-delivery)
-    console.log('\n8. Rider starting delivery journey (POST /delivery/jobs/:id/start-delivery)...');
+    // 9. Rider starts delivery journey (POST /delivery/jobs/:id/start-delivery)
+    console.log('\n9. Rider starting delivery journey (POST /delivery/jobs/:id/start-delivery)...');
     const startDeliveryRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/start-delivery`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${driverToken}` },
@@ -127,8 +216,8 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: Order transitioned to OUT_FOR_DELIVERY!');
     }
 
-    // 9. NEGATIVE OFFLINE CHECK: Rider attempts to go OFFLINE while BUSY on active delivery
-    console.log('\n9. NEGATIVE OFFLINE CHECK: Rider attempts to go OFFLINE while BUSY...');
+    // 10. NEGATIVE OFFLINE CHECK: Rider attempts to go OFFLINE while BUSY on active delivery
+    console.log('\n10. NEGATIVE OFFLINE CHECK: Rider attempts to go OFFLINE while BUSY...');
     const failOfflineRes = await fetch(`${API_BASE}/delivery/me/go-offline`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${driverToken}` },
@@ -140,16 +229,16 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: Rider blocked from going offline while actively delivering!');
     }
 
-    // 10. Fetch Customer Order details to get Customer Delivery OTP for test verification
-    console.log('\n10. Fetching Customer Order details to verify delivery OTP...');
+    // 11. Fetch Customer Order details to get Customer Delivery OTP for test verification
+    console.log('\n11. Fetching Customer Order details to verify delivery OTP...');
     const orderDetailsRes = await fetch(`${API_BASE}/orders/${orderId}`, {
       headers: { Authorization: `Bearer ${ownerToken}` },
     });
     const orderDetails = await orderDetailsRes.json();
     const customerDeliveryOtp = orderDetails.deliveryOtp || '1234';
 
-    // 11. POSITIVE DELIVERY OTP TEST: Rider submits Customer Delivery OTP
-    console.log(`\n11. POSITIVE DELIVERY OTP CHECK: Rider submits Customer OTP "${customerDeliveryOtp}"...`);
+    // 12. POSITIVE DELIVERY OTP TEST: Rider submits Customer Delivery OTP
+    console.log(`\n12. POSITIVE DELIVERY OTP CHECK: Rider submits Customer OTP "${customerDeliveryOtp}"...`);
     const verifyDeliveryRes = await fetch(`${API_BASE}/delivery/jobs/${orderId}/verify-delivery`, {
       method: 'POST',
       headers: {
@@ -165,8 +254,8 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: Order successfully delivered!');
     }
 
-    // 12. AUTOMATIC RIDER AVAILABILITY RELEASE CHECK
-    console.log('\n12. Checking Rider Availability Status post-delivery...');
+    // 13. AUTOMATIC RIDER AVAILABILITY RELEASE CHECK
+    console.log('\n13. Checking Rider Availability Status post-delivery...');
     const postStatusRes = await fetch(`${API_BASE}/delivery/me/status`, {
       headers: { Authorization: `Bearer ${driverToken}` },
     });
@@ -177,8 +266,8 @@ async function runActiveOrderWorkflowE2E() {
       console.log('✅ PASSED: Rider automatically released back to ONLINE_AVAILABLE status!');
     }
 
-    // 13. RESTAURANT ELIGIBLE RIDERS QUERY CHECK
-    console.log('\n13. Querying Eligible Riders for Restaurant...');
+    // 14. RESTAURANT ELIGIBLE RIDERS QUERY CHECK
+    console.log('\n14. Querying Eligible Riders for Restaurant...');
     const eligibleRes = await fetch(`${API_BASE}/orders/${orderId}/eligible-riders`, {
       headers: { Authorization: `Bearer ${ownerToken}` },
     });

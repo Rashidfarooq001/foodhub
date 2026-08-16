@@ -602,7 +602,7 @@ export class OrderStateMachineService {
         where: { id: order.id },
         data: {
           status: targetStatus,
-          ...(targetStatus === OrderStatus.DELIVERED ? { isPaid: true, deliveryOtpVerifiedAt: now } : {}),
+          ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any, deliveryOtpVerifiedAt: now } : {}),
         },
         include: {
           restaurant: true,
