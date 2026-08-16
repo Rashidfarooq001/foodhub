@@ -678,8 +678,10 @@ export class AuthService {
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
         this.logger.log(`[Backend MSG91] Creating CUSTOMER account for verified phone ${phoneToVerify} AFTER OTP...`);
-        const passwordToHash = dto?.password || `Customer@${Date.now()}`;
-        const passwordHash = await bcrypt.hash(passwordToHash, 12);
+        if (!dto?.password || dto.password.length < 6) {
+          throw new BadRequestException('A valid password (minimum 6 characters) is required to complete customer registration.');
+        }
+        const passwordHash = await bcrypt.hash(dto.password, 12);
         
         const nameParts = (dto?.name || 'Customer').trim().split(' ');
         const firstName = nameParts[0] || 'Customer';
@@ -752,11 +754,12 @@ export class AuthService {
       throw new BadRequestException('Phone number and OTP code are required');
     }
 
-    const formattedPhone = dto.phone.startsWith('+')
-      ? dto.phone
-      : dto.phone.length === 10
-      ? `+91${dto.phone}`
-      : `+${dto.phone}`;
+    let formattedPhone: string;
+    try {
+      formattedPhone = normalizeIndianPhone(dto.phone);
+    } catch {
+      throw new BadRequestException('Please provide a valid 10-digit Indian mobile number');
+    }
 
     await this.otpService.verifyOtp(formattedPhone, dto.otp);
     const phoneToVerify = formattedPhone;
@@ -766,8 +769,10 @@ export class AuthService {
 
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
-        const passwordToHash = dto?.password || `Customer@${Date.now()}`;
-        const passwordHash = await bcrypt.hash(passwordToHash, 12);
+        if (!dto?.password || dto.password.length < 6) {
+          throw new BadRequestException('A valid password (minimum 6 characters) is required to complete customer registration.');
+        }
+        const passwordHash = await bcrypt.hash(dto.password, 12);
         
         const nameParts = (dto?.name || 'Customer').trim().split(' ');
         const firstName = nameParts[0] || 'Customer';

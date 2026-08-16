@@ -26,10 +26,11 @@ export class UsersService {
       return null;
     }
 
+    const rawTenDigits = canonicalPhone.replace(/\D/g, '').slice(-10);
     const formatsToMatch = [
-      canonicalPhone,
-      `+91${canonicalPhone}`,
-      `91${canonicalPhone}`,
+      canonicalPhone,           // Canonical: +91XXXXXXXXXX
+      `91${rawTenDigits}`,      // Legacy 12-digit: 91XXXXXXXXXX
+      rawTenDigits,             // Legacy 10-digit: XXXXXXXXXX
     ];
 
     return this.prisma.user.findFirst({
