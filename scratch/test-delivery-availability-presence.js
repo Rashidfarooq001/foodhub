@@ -1,9 +1,18 @@
-const API_BASE = 'https://foodhub-backend-enq2.onrender.com/api/v1';
+async function resolveApiBase() {
+  try {
+    const localRes = await fetch('http://localhost:4000/api/v1/health');
+    if (localRes.ok) return 'http://localhost:4000/api/v1';
+  } catch {}
+  return 'https://foodhub-backend-enq2.onrender.com/api/v1';
+}
 
 async function testDeliveryAvailabilityPresence() {
   console.log('=== REAL FOODHUB DELIVERY PARTNER AVAILABILITY & PRESENCE E2E SUITE ===\n');
 
   try {
+    const API_BASE = await resolveApiBase();
+    console.log(`Using API Base URL: ${API_BASE}\n`);
+
     // 1. Log in as Delivery Partner (driver.real@foodhub.com)
     console.log('1. Logging in as Delivery Partner (driver.real@foodhub.com)...');
     const driverRes = await fetch(`${API_BASE}/auth/login`, {

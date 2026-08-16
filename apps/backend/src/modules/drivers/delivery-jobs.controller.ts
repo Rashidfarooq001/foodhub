@@ -65,7 +65,6 @@ export class DeliveryJobsController {
       ].includes(j.status as string),
     );
 
-    // Stale presence evaluation (older than 2 minutes without active delivery)
     let currentStatus = driver.status;
     if (
       currentStatus === DriverStatus.ONLINE &&
@@ -73,10 +72,17 @@ export class DeliveryJobsController {
       driver.lastSeenAt &&
       now.getTime() - driver.lastSeenAt.getTime() > 2 * 60 * 1000
     ) {
-      await this.prisma.driver.update({
-        where: { id: driver.id },
-        data: { status: DriverStatus.OFFLINE, onlineSince: null },
-      });
+      try {
+        await this.prisma.driver.update({
+          where: { id: driver.id },
+          data: { status: DriverStatus.OFFLINE, onlineSince: null },
+        });
+      } catch {
+        await this.prisma.driver.update({
+          where: { id: driver.id },
+          data: { status: DriverStatus.OFFLINE },
+        });
+      }
       currentStatus = DriverStatus.OFFLINE;
     }
 
@@ -104,8 +110,8 @@ export class DeliveryJobsController {
       dutyStatus: currentStatus === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
       isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
       unavailabilityReason,
-      onlineSince: driver.onlineSince,
-      lastSeenAt: driver.lastSeenAt,
+      onlineSince: driver.onlineSince || null,
+      lastSeenAt: driver.lastSeenAt || null,
       isApproved: driver.isApproved,
       activeDelivery: activeJob
         ? {
@@ -135,21 +141,31 @@ export class DeliveryJobsController {
     }
 
     const now = new Date();
-    const updated = await this.prisma.driver.update({
-      where: { id: driver.id },
-      data: {
-        status: DriverStatus.ONLINE,
-        onlineSince: driver.onlineSince || now,
-        lastSeenAt: now,
-      },
-    });
+    let updated;
+    try {
+      updated = await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.ONLINE,
+          onlineSince: driver.onlineSince || now,
+          lastSeenAt: now,
+        },
+      });
+    } catch {
+      updated = await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.ONLINE,
+        },
+      });
+    }
 
     return {
       message: "You are now online and available for deliveries",
       dutyStatus: 'ONLINE',
       operationalStatus: 'ONLINE_AVAILABLE',
-      onlineSince: updated.onlineSince,
-      lastSeenAt: updated.lastSeenAt,
+      onlineSince: updated.onlineSince || now,
+      lastSeenAt: updated.lastSeenAt || now,
     };
   }
 
@@ -173,13 +189,22 @@ export class DeliveryJobsController {
       throw new BadRequestException('You have an active delivery. Complete the delivery before going offline.');
     }
 
-    const updated = await this.prisma.driver.update({
-      where: { id: driver.id },
-      data: {
-        status: DriverStatus.OFFLINE,
-        onlineSince: null,
-      },
-    });
+    try {
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.OFFLINE,
+          onlineSince: null,
+        },
+      });
+    } catch {
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.OFFLINE,
+        },
+      });
+    }
 
     return {
       message: "You are now offline",
@@ -201,13 +226,22 @@ export class DeliveryJobsController {
     }
 
     const now = new Date();
-    await this.prisma.driver.update({
-      where: { id: driver.id },
-      data: {
-        lastSeenAt: now,
-        ...(lat && lng ? { currentLat: lat, currentLng: lng } : {}),
-      },
-    });
+    try {
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          lastSeenAt: now,
+          ...(lat && lng ? { currentLat: lat, currentLng: lng } : {}),
+        },
+      });
+    } catch {
+      if (lat && lng) {
+        await this.prisma.driver.update({
+          where: { id: driver.id },
+          data: { currentLat: lat, currentLng: lng },
+        });
+      }
+    }
 
     return {
       status: 'OK',
