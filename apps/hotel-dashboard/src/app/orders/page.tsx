@@ -21,6 +21,8 @@ import {
   UserCheck,
   ChevronDown,
   ChevronUp,
+  ShieldCheck,
+  QrCode,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
@@ -101,6 +103,31 @@ export default function HotelOrdersPage() {
   const [isFetchingRiders, setIsFetchingRiders] = useState(false);
   const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
   const [showUnavailableRiders, setShowUnavailableRiders] = useState(false);
+
+  // Pickup OTP & QR Modal State
+  const [pickupOtpModalOrder, setPickupOtpModalOrder] = useState<OrderRecord | null>(null);
+  const [pickupOtpData, setPickupOtpData] = useState<{ pickupOtp?: string; qrToken?: string } | null>(null);
+  const [isFetchingOtp, setIsFetchingOtp] = useState(false);
+
+  const handleFetchPickupOtp = async (order: OrderRecord) => {
+    setPickupOtpModalOrder(order);
+    setIsFetchingOtp(true);
+    try {
+      const res = await fetch(`${API_BASE}/orders/${order.id}/pickup-otp`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPickupOtpData(data);
+      } else {
+        setPickupOtpData(null);
+      }
+    } catch {
+      setPickupOtpData(null);
+    } finally {
+      setIsFetchingOtp(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -706,6 +733,15 @@ export default function HotelOrdersPage() {
                           </button>
                         )}
 
+                        {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(o.status) && (
+                          <button
+                            onClick={() => handleFetchPickupOtp(o)}
+                            className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-amber-700 flex items-center gap-1 shrink-0"
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" /> PICKUP CODE &amp; QR
+                          </button>
+                        )}
+
                         <button
                           onClick={() => setSelectedOrder(o)}
                           className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 flex items-center gap-1 shrink-0"
@@ -973,6 +1009,52 @@ export default function HotelOrdersPage() {
                 <span className="text-orange-600">₹{selectedOrder.totalAmount}</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PICKUP OTP & QR CODE MODAL */}
+      {pickupOtpModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">ORDER HANDOVER VERIFICATION</span>
+                <h3 className="text-lg font-black text-gray-900">Pickup Code for #{pickupOtpModalOrder.orderNumber}</h3>
+              </div>
+              <button onClick={() => setPickupOtpModalOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {isFetchingOtp ? (
+              <div className="py-8 text-center text-xs font-bold text-gray-400">Generating secure 4-digit handover code...</div>
+            ) : pickupOtpData ? (
+              <div className="space-y-6 text-center">
+                <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-6 space-y-2">
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Provide this 4-digit code to rider:</span>
+                  <div className="text-4xl font-black tracking-widest text-amber-900 font-mono">
+                    {pickupOtpData.pickupOtp}
+                  </div>
+                  <p className="text-[10px] text-amber-700 font-medium">
+                    The courier will enter this code on their app to verify order package receipt.
+                  </p>
+                </div>
+
+                {pickupOtpData.qrToken && (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <span className="text-xs font-bold text-gray-500 uppercase block">OR Signed QR Verification Token</span>
+                    <div className="rounded-2xl bg-gray-900 p-4 text-[10px] font-mono text-emerald-400 break-all select-all shadow-inner">
+                      {pickupOtpData.qrToken}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs font-bold text-rose-600">
+                Failed to load pickup verification code. Ensure rider has been assigned to order.
+              </div>
+            )}
           </div>
         </div>
       )}

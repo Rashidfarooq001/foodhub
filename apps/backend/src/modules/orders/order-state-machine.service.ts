@@ -8,12 +8,48 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
+import * as crypto from 'crypto';
 
 export interface AuthenticatedActor {
   userId?: string;
   role?: string;
   restaurantId?: string;
   driverId?: string;
+}
+
+export function hashOtp(otp: string): string {
+  return crypto.createHash('sha256').update(otp.trim()).digest('hex');
+}
+
+export function generate4DigitOtp(): string {
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return String(num);
+}
+
+export function signQrToken(payload: { orderId: string; deliveryJobId: string; restaurantId: string; driverId: string; expiresAt: number }): string {
+  const secret = process.env.JWT_SECRET || 'foodhub_super_secret_jwt_key_2026';
+  const dataStr = `${payload.orderId}:${payload.deliveryJobId}:${payload.restaurantId}:${payload.driverId}:${payload.expiresAt}`;
+  const signature = crypto.createHmac('sha256', secret).update(dataStr).digest('hex');
+  return Buffer.from(JSON.stringify({ ...payload, signature })).toString('base64url');
+}
+
+export function verifyQrToken(token: string): { orderId: string; deliveryJobId: string; restaurantId: string; driverId: string; expiresAt: number } | null {
+  try {
+    const raw = Buffer.from(token, 'base64url').toString('utf8');
+    const parsed = JSON.parse(raw);
+    const { orderId, deliveryJobId, restaurantId, driverId, expiresAt, signature } = parsed;
+    if (!orderId || !deliveryJobId || !restaurantId || !driverId || !expiresAt || !signature) return null;
+    if (Date.now() > expiresAt) return null;
+
+    const secret = process.env.JWT_SECRET || 'foodhub_super_secret_jwt_key_2026';
+    const dataStr = `${orderId}:${deliveryJobId}:${restaurantId}:${driverId}:${expiresAt}`;
+    const expectedSig = crypto.createHmac('sha256', secret).update(dataStr).digest('hex');
+    if (signature !== expectedSig) return null;
+
+    return { orderId, deliveryJobId, restaurantId, driverId, expiresAt };
+  } catch {
+    return null;
+  }
 }
 
 function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -110,6 +146,10 @@ export class OrderStateMachineService {
       throw new ConflictException('Selected delivery partner is currently busy executing another delivery.');
     }
 
+    const rawPickupOtp = generate4DigitOtp();
+    const pickupOtpHash = hashOtp(rawPickupOtp);
+    const pickupOtpExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       const restLat = Number(order.restaurant.latitude || 34.3868);
       const restLng = Number(order.restaurant.longitude || 74.5221);
@@ -125,6 +165,7 @@ export class OrderStateMachineService {
         latitude: restLat,
         longitude: restLng,
         phone: order.restaurant.phone,
+        rawPickupOtp, // Stored safely for restaurant lookup only
       };
 
       const dropAddress = {
@@ -151,10 +192,17 @@ export class OrderStateMachineService {
           distanceKm,
           deliveryFee: order.deliveryFee,
           riderPayout,
+          pickupOtpHash,
+          pickupOtpExpiresAt,
+          pickupOtpAttempts: 0,
         },
         update: {
           driverId: driver.id,
           status: DeliveryJobStatus.ASSIGNED,
+          pickupAddressJson: pickupAddress,
+          pickupOtpHash,
+          pickupOtpExpiresAt,
+          pickupOtpAttempts: 0,
         },
         select: { id: true, status: true },
       });
@@ -216,6 +264,175 @@ export class OrderStateMachineService {
   }
 
   /**
+   * Authoritative Restaurant Retrieval of Pickup OTP & Signed QR Code
+   */
+  async getRestaurantPickupOtp(orderId: string, actor: AuthenticatedActor) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { restaurant: true, deliveryJob: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    const isOwner = order.restaurant.ownerId === actor.userId;
+    const isStaff = actor.restaurantId && actor.restaurantId === order.restaurantId;
+    const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
+
+    if (!isOwner && !isStaff && !isAdmin) {
+      throw new ForbiddenException('Access denied. Only authorized restaurant staff can retrieve the pickup verification code.');
+    }
+
+    const job = order.deliveryJob;
+    if (!job || !job.driverId) {
+      throw new BadRequestException('No delivery job or driver assigned to this order yet.');
+    }
+
+    const pickupAddr: any = job.pickupAddressJson || {};
+    let pickupOtp = pickupAddr.rawPickupOtp;
+    if (!pickupOtp) {
+      pickupOtp = generate4DigitOtp();
+      const pickupOtpHash = hashOtp(pickupOtp);
+      await this.prisma.deliveryJob.update({
+        where: { id: job.id },
+        data: {
+          pickupOtpHash,
+          pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+          pickupAddressJson: { ...pickupAddr, rawPickupOtp: pickupOtp },
+        },
+      });
+    }
+
+    const expiresAt = Date.now() + 30 * 60 * 1000;
+    const qrToken = signQrToken({
+      orderId: order.id,
+      deliveryJobId: job.id,
+      restaurantId: order.restaurantId,
+      driverId: job.driverId,
+      expiresAt,
+    });
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      pickupOtp,
+      qrToken,
+      expiresAt,
+    };
+  }
+
+  /**
+   * Rider Submits Pickup OTP to Transition Order ARRIVED_AT_RESTAURANT -> PICKED_UP
+   */
+  async verifyPickupOtp(orderId: string, otp: string, actor: AuthenticatedActor) {
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { OR: [{ id: orderId }, { orderId }] },
+      include: { order: true },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Delivery job not found.');
+    }
+
+    if (job.driverId !== actor.driverId) {
+      throw new ForbiddenException('You are not the assigned delivery partner for this job.');
+    }
+
+    if (job.status !== DeliveryJobStatus.ARRIVED || job.order.status !== OrderStatus.ARRIVED_AT_RESTAURANT) {
+      throw new BadRequestException(`Cannot verify pickup. Order status is "${job.order.status}", expected "ARRIVED_AT_RESTAURANT".`);
+    }
+
+    if (job.pickupOtpAttempts >= 5) {
+      throw new BadRequestException('Maximum pickup verification attempts (5) exceeded. Contact restaurant staff to re-issue code.');
+    }
+
+    if (job.pickupOtpExpiresAt && new Date() > job.pickupOtpExpiresAt) {
+      throw new BadRequestException('Pickup verification code has expired.');
+    }
+
+    const submittedHash = hashOtp(otp);
+    if (job.pickupOtpHash && job.pickupOtpHash !== submittedHash) {
+      await this.prisma.deliveryJob.update({
+        where: { id: job.id },
+        data: { pickupOtpAttempts: { increment: 1 } },
+      });
+      throw new BadRequestException('Invalid pickup verification code.');
+    }
+
+    return this.transition(job.orderId, OrderStatus.PICKED_UP, actor);
+  }
+
+  /**
+   * Rider Scans Signed QR Token to Verify Pickup
+   */
+  async verifyPickupQr(orderId: string, qrToken: string, actor: AuthenticatedActor) {
+    const decoded = verifyQrToken(qrToken);
+    if (!decoded) {
+      throw new BadRequestException('Invalid or expired QR verification token.');
+    }
+
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { id: decoded.deliveryJobId },
+      include: { order: true },
+    });
+
+    if (!job || job.orderId !== decoded.orderId) {
+      throw new NotFoundException('Delivery job matching QR token not found.');
+    }
+
+    if (job.driverId !== actor.driverId) {
+      throw new ForbiddenException('QR code does not match your assigned delivery partner ID.');
+    }
+
+    if (job.status !== DeliveryJobStatus.ARRIVED || job.order.status !== OrderStatus.ARRIVED_AT_RESTAURANT) {
+      throw new BadRequestException(`Cannot verify pickup. Order status is "${job.order.status}", expected "ARRIVED_AT_RESTAURANT".`);
+    }
+
+    return this.transition(job.orderId, OrderStatus.PICKED_UP, actor);
+  }
+
+  /**
+   * Rider Submits Customer Delivery OTP to Transition Order OUT_FOR_DELIVERY -> DELIVERED
+   */
+  async verifyDeliveryOtp(orderId: string, otp: string, actor: AuthenticatedActor) {
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { OR: [{ id: orderId }, { orderId }] },
+      include: { order: true },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Delivery job not found.');
+    }
+
+    if (job.driverId !== actor.driverId) {
+      throw new ForbiddenException('You are not the assigned delivery partner for this job.');
+    }
+
+    if (job.order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      throw new BadRequestException(`Cannot mark delivered. Order status is "${job.order.status}", expected "OUT_FOR_DELIVERY".`);
+    }
+
+    if (job.order.deliveryOtpAttempts >= 5) {
+      throw new BadRequestException('Maximum delivery OTP verification attempts (5) exceeded.');
+    }
+
+    const submittedHash = hashOtp(otp);
+    const validHashMatch = job.order.deliveryOtpHash && job.order.deliveryOtpHash === submittedHash;
+    const validPlaintextMatch = job.order.deliveryOtp && job.order.deliveryOtp.trim() === otp.trim();
+
+    if (!validHashMatch && !validPlaintextMatch) {
+      await this.prisma.order.update({
+        where: { id: job.orderId },
+        data: { deliveryOtpAttempts: { increment: 1 } },
+      });
+      throw new BadRequestException('Invalid customer delivery OTP.');
+    }
+
+    return this.transition(job.orderId, OrderStatus.DELIVERED, actor);
+  }
+
+  /**
    * Authoritative Order State Transition Guard
    */
   async transition(
@@ -254,6 +471,7 @@ export class OrderStateMachineService {
       }
 
       let updatedJob: any = null;
+      const now = new Date();
 
       if (targetStatus === OrderStatus.READY_FOR_PICKUP) {
         const restLat = Number(order.restaurant.latitude || 34.3868);
@@ -264,12 +482,16 @@ export class OrderStateMachineService {
 
         const distanceKm = delAddr?.distanceKm || calculateHaversineDistance(restLat, restLng, custLat, custLng);
 
+        const rawPickupOtp = generate4DigitOtp();
+        const pickupOtpHash = hashOtp(rawPickupOtp);
+
         const pickupAddress = {
           restaurantName: order.restaurant.name,
           addressLine: order.restaurant.addressLine,
           latitude: restLat,
           longitude: restLng,
           phone: order.restaurant.phone,
+          rawPickupOtp,
         };
 
         const dropAddress = {
@@ -295,9 +517,14 @@ export class OrderStateMachineService {
             distanceKm,
             deliveryFee: order.deliveryFee,
             riderPayout,
+            pickupOtpHash,
+            pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
           },
           update: {
             status: DeliveryJobStatus.AVAILABLE,
+            pickupAddressJson: pickupAddress,
+            pickupOtpHash,
+            pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
           },
           select: { id: true, status: true },
         });
@@ -323,6 +550,7 @@ export class OrderStateMachineService {
           data: {
             driverId: actor.driverId,
             status: DeliveryJobStatus.ASSIGNED,
+            acceptedAt: now,
           },
           select: { id: true, status: true },
         });
@@ -332,6 +560,7 @@ export class OrderStateMachineService {
             where: { id: order.deliveryJob.id },
             data: {
               status: DeliveryJobStatus.ARRIVED,
+              arrivedAt: now,
             },
             select: { id: true, status: true },
           });
@@ -342,6 +571,8 @@ export class OrderStateMachineService {
             where: { id: order.deliveryJob.id },
             data: {
               status: DeliveryJobStatus.PICKED_UP,
+              pickedAt: now,
+              pickupVerifiedAt: now,
             },
             select: { id: true, status: true },
           });
@@ -352,6 +583,7 @@ export class OrderStateMachineService {
             where: { id: order.deliveryJob.id },
             data: {
               status: DeliveryJobStatus.DELIVERED,
+              deliveredAt: now,
             },
             select: { id: true, status: true },
           });
@@ -370,7 +602,7 @@ export class OrderStateMachineService {
         where: { id: order.id },
         data: {
           status: targetStatus,
-          ...(targetStatus === OrderStatus.DELIVERED ? { isPaid: true } : {}),
+          ...(targetStatus === OrderStatus.DELIVERED ? { isPaid: true, deliveryOtpVerifiedAt: now } : {}),
         },
         include: {
           restaurant: true,
@@ -502,9 +734,9 @@ export class OrderStateMachineService {
       case OrderStatus.ARRIVED_AT_RESTAURANT:
         return 'Delivery partner arrived at restaurant for pickup.';
       case OrderStatus.PICKED_UP:
-        return 'Delivery partner picked up food package from restaurant.';
+        return 'Delivery partner verified pickup code and received order.';
       case OrderStatus.OUT_FOR_DELIVERY:
-        return 'Rider is on the way to customer delivery location.';
+        return 'Delivery partner started journey to customer location.';
       case OrderStatus.DELIVERED:
         return 'Order delivered successfully to customer.';
       case OrderStatus.CANCELLED:

@@ -18,6 +18,7 @@ import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, Prisma } from '@prisma/client';
 
 import { OrderQuoteService } from '../tax/order-quote.service';
+import { hashOtp } from './order-state-machine.service';
 
 /** Generates a unique order number like FH-948210 */
 function generateOrderNumber(): string {
@@ -268,6 +269,7 @@ export class OrdersService {
 
     // 7. Create order in transaction
     const order = await this.prisma.$transaction(async (tx) => {
+      const rawDeliveryOtp = generateDeliveryOtp();
       const newOrder = await tx.order.create({
         data: {
           orderNumber:        generateOrderNumber(),
@@ -284,7 +286,9 @@ export class OrdersService {
           deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
           taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
           pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
-          deliveryOtp:        generateDeliveryOtp(),
+          deliveryOtp:        rawDeliveryOtp,
+          deliveryOtpHash:    hashOtp(rawDeliveryOtp),
+          deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
           specialInstruction: dto.specialInstruction,
         },
       });

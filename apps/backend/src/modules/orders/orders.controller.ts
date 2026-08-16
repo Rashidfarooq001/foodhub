@@ -345,4 +345,15 @@ export class OrdersController {
     const customerId = req.user.id || req.user.sub;
     return this.ordersService.cancelOrder(id, customerId, cancelDto.reason);
   }
+
+  @Get(':id/pickup-otp')
+  @ApiOperation({ summary: 'Authorized restaurant staff retrieves 4-digit pickup code & signed QR token for order handover' })
+  async getPickupOtp(@Param('id') id: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      restaurantId: req.user?.restaurantId,
+    };
+    return this.stateMachineService.getRestaurantPickupOtp(id, actor);
+  }
 }

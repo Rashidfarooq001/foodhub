@@ -683,4 +683,97 @@ export class DeliveryJobsController {
       });
     }
   }
+
+  @Post('jobs/:id/verify-pickup')
+  @ApiOperation({ summary: 'Rider verifies 4-digit pickup code provided by restaurant staff' })
+  async verifyPickupOtp(
+    @Param('id') id: string,
+    @Body('otp') otp: string,
+    @Request() req: any,
+  ) {
+    try {
+      if (!otp) throw new BadRequestException('Pickup verification code is required.');
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.stateMachineService.verifyPickupOtp(id, otp, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`verifyPickupOtp failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to verify pickup OTP',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/verify-pickup-qr')
+  @ApiOperation({ summary: 'Rider verifies pickup by scanning HMAC signed QR code' })
+  async verifyPickupQr(
+    @Param('id') id: string,
+    @Body('qrToken') qrToken: string,
+    @Request() req: any,
+  ) {
+    try {
+      if (!qrToken) throw new BadRequestException('QR verification token is required.');
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.stateMachineService.verifyPickupQr(id, qrToken, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`verifyPickupQr failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to verify pickup QR token',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/verify-delivery')
+  @ApiOperation({ summary: 'Rider verifies 4-digit customer delivery OTP' })
+  async verifyDeliveryOtp(
+    @Param('id') id: string,
+    @Body('otp') otp: string,
+    @Request() req: any,
+  ) {
+    try {
+      if (!otp) throw new BadRequestException('Customer delivery OTP is required.');
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.stateMachineService.verifyDeliveryOtp(id, otp, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`verifyDeliveryOtp failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to verify customer delivery OTP',
+        details: err?.stack || String(err),
+      });
+    }
+  }
 }

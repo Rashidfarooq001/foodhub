@@ -766,6 +766,10 @@ model Order {
   taxSnapshot      Json?         @map("tax_snapshot")
   pricingSnapshot  Json?         @map("pricing_snapshot")
   deliveryOtp      String        @map("delivery_otp") // 4-digit OTP
+  deliveryOtpHash        String?       @map("delivery_otp_hash")
+  deliveryOtpExpiresAt   DateTime?     @map("delivery_otp_expires_at")
+  deliveryOtpAttempts    Int           @default(0) @map("delivery_otp_attempts")
+  deliveryOtpVerifiedAt  DateTime?     @map("delivery_otp_verified_at")
   specialInstruction String?     @map("special_instruction")
   assignedFoodHubDriverId    String?                  @map("assigned_foodhub_driver_id") @db.Uuid
   assignedRestaurantDriverId String?                  @map("assigned_restaurant_driver_id") @db.Uuid
@@ -1090,6 +1094,10 @@ model DeliveryJob {
   arrivedAt         DateTime?         @map("arrived_at")
   pickedAt          DateTime?         @map("picked_at")
   deliveredAt       DateTime?         @map("delivered_at")
+  pickupOtpHash       String?           @map("pickup_otp_hash")
+  pickupOtpExpiresAt  DateTime?         @map("pickup_otp_expires_at")
+  pickupOtpAttempts   Int               @default(0) @map("pickup_otp_attempts")
+  pickupVerifiedAt    DateTime?         @map("pickup_verified_at")
   createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")
 
