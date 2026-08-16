@@ -430,6 +430,12 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!accessToken) {
+      setPaymentError('Please log in to your account to place your order.');
+      router.push('/login?redirect=/checkout');
+      return;
+    }
+
     setIsPlacing(true);
     setPaymentError(null);
 
@@ -517,10 +523,17 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(createOrderPayload),
       });
+
+      if (orderRes.status === 401) {
+        useAuthStore.getState().logout();
+        setPaymentError('Your session has expired. Please log in again.');
+        router.push('/login?redirect=/checkout&expired=true');
+        return;
+      }
 
       if (!orderRes.ok) {
         const errorData = await orderRes.json().catch(() => ({}));

@@ -59,7 +59,12 @@ export default function LoginPage() {
         data.tokens.refreshToken || data.tokens.accessToken,
       );
 
-      router.push('/');
+      const redirectUrl =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect') || '/'
+          : '/';
+
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message || 'Authentication error.');
     } finally {
