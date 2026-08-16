@@ -190,12 +190,14 @@ export default function HotelOrdersPage() {
   }, [accessToken, restaurantId]);
 
   const showToastError = (status: number, message?: string) => {
-    let msg = 'Order transition failed.';
-    if (status === 400) msg = message || 'Invalid order transition requested.';
-    else if (status === 401) msg = 'Session expired. Please log in again.';
-    else if (status === 403) msg = 'Access denied. You do not have permission to manage this order.';
-    else if (status === 409) msg = 'This order has already been accepted or modified by another user.';
-    else if (status === 500) msg = 'Restaurant order service temporarily failed. Please try again.';
+    let msg = message || 'Order transition failed.';
+    if (!message) {
+      if (status === 400) msg = 'Invalid order transition requested.';
+      else if (status === 401) msg = 'Session expired. Please log in again.';
+      else if (status === 403) msg = 'Access denied. You do not have permission to manage this order.';
+      else if (status === 409) msg = 'This order has already been accepted or modified by another user.';
+      else if (status === 500) msg = 'Restaurant order service temporarily failed. Please try again.';
+    }
 
     setErrorMessage(msg);
     setTimeout(() => setErrorMessage(null), 6000);

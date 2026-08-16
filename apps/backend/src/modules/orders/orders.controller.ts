@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Body, Param,
-  Query, UseGuards, Request,
+  Query, UseGuards, Request, HttpException, InternalServerErrorException, Logger,
 } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiQuery,
@@ -18,6 +18,8 @@ import { OrderStatus } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
+
   constructor(
     private readonly ordersService: OrdersService,
     private readonly stateMachineService: OrderStateMachineService,
@@ -36,7 +38,6 @@ export class OrdersController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-     console.log(req.user);
     const targetRestId = restaurantId || req.user?.restaurantId;
     if (targetRestId) {
       return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
@@ -48,32 +49,32 @@ export class OrdersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Place a new order' })
-  async create(
-    @Request() req: any,
-    @Body() dto: CreateOrderDto,
-  ) {
-    const userId = req.user?.id || req.user?.sub || req.user?.userId || 'guest-user';
-    return this.ordersService.createOrder(userId, dto);
+  @ApiOperation({ summary: 'Create a new order (Checkout)' })
+  async create(@Body() createOrderDto: CreateOrderDto, @Request() req: any) {
+    const customerId = req.user.id || req.user.sub;
+    return this.ordersService.createOrder(customerId, createOrderDto);
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Get current active order for authenticated customer' })
+  @ApiOperation({ summary: 'Get active order tracking for current customer' })
   async getActiveOrder(@Request() req: any) {
-    const userId = req.user?.id || req.user?.sub;
-    if (!userId) return null;
-    return this.ordersService.getActiveCustomerOrder(userId);
+    const customerId = req.user.id || req.user.sub;
+    return this.ordersService.getActiveCustomerOrder(customerId);
   }
 
-  @Get('history')
-  @ApiOperation({ summary: 'Get order history for authenticated customer' })
-  async getOrderHistory(@Request() req: any, @Query('status') status?: string) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.getCustomerOrderHistory(userId, status);
+  @Get('my-orders')
+  @ApiOperation({ summary: 'Get customer order history' })
+  async getMyOrders(
+    @Request() req: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    const customerId = req.user.id || req.user.sub;
+    return this.ordersService.getCustomerOrders(customerId, +page, +limit);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get order detail with full timeline' })
+  @ApiOperation({ summary: 'Get order by ID' })
   async findOne(@Param('id') id: string, @Request() req: any) {
     const userId = req.user?.id || req.user?.sub;
     const role = req.user?.role;
@@ -81,40 +82,16 @@ export class OrdersController {
   }
 
   @Get(':id/tracking')
-  @ApiOperation({ summary: 'Get live delivery tracking location for an order' })
-  async getOrderTracking(@Param('id') id: string, @Request() req: any) {
+  @ApiOperation({ summary: 'Get live tracking coordinates for order' })
+  async tracking(@Param('id') id: string, @Request() req: any) {
     const userId = req.user?.id || req.user?.sub;
     const role = req.user?.role;
     return this.ordersService.getOrderTrackingSecured(id, userId, role);
   }
 
-  @Post(':id/location')
-  @ApiOperation({ summary: 'Update driver live location for active order' })
-  async updateDriverLocation(
-    @Param('id') id: string,
-    @Body('lat') lat: number,
-    @Body('lng') lng: number,
-    @Request() req: any,
-  ) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.updateDriverLocation(id, lat, lng, userId);
-  }
-
-  @Post(':id/review')
-  @ApiOperation({ summary: 'Submit rating & review for delivered order' })
-  async submitReview(
-    @Param('id') id: string,
-    @Body('rating') rating: number,
-    @Body('comment') comment: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.submitOrderReview(id, rating, comment, userId);
-  }
-
   @Post(':id/support')
-  @ApiOperation({ summary: 'Submit support ticket for an order issue' })
-  async submitSupportTicket(
+  @ApiOperation({ summary: 'Submit order support ticket' })
+  async submitSupport(
     @Param('id') id: string,
     @Body('issueType') issueType: string,
     @Body('description') description: string,
@@ -139,45 +116,81 @@ export class OrdersController {
   @Post(':id/accept')
   @ApiOperation({ summary: 'Restaurant accepts pending order' })
   async acceptOrder(@Param('id') id: string, @Request() req: any) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-    };
-    return this.stateMachineService.transition(id, OrderStatus.ACCEPTED, actor);
+    try {
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+      };
+      return await this.stateMachineService.transition(id, OrderStatus.ACCEPTED, actor);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`ACCEPT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Restaurant order service temporarily failed.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post(':id/reject')
   @ApiOperation({ summary: 'Restaurant rejects pending order' })
   async rejectOrder(@Param('id') id: string, @Body('reason') reason: string, @Request() req: any) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-    };
-    return this.stateMachineService.transition(id, OrderStatus.REJECTED, actor, { reason });
+    try {
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+      };
+      return await this.stateMachineService.transition(id, OrderStatus.REJECTED, actor, { reason });
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`REJECT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Restaurant order service temporarily failed.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post(':id/prepare')
   @ApiOperation({ summary: 'Restaurant starts preparing accepted order' })
   async startPreparingOrder(@Param('id') id: string, @Request() req: any) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-    };
-    return this.stateMachineService.transition(id, OrderStatus.PREPARING, actor);
+    try {
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+      };
+      return await this.stateMachineService.transition(id, OrderStatus.PREPARING, actor);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`PREPARE ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Restaurant order service temporarily failed.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post(':id/ready')
   @ApiOperation({ summary: 'Restaurant marks order ready for pickup (creates DeliveryJob)' })
   async markOrderReady(@Param('id') id: string, @Request() req: any) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-    };
-    return this.stateMachineService.transition(id, OrderStatus.READY_FOR_PICKUP, actor);
+    try {
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+      };
+      return await this.stateMachineService.transition(id, OrderStatus.READY_FOR_PICKUP, actor);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`READY ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Restaurant order service temporarily failed.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Patch(':id/status')
@@ -187,92 +200,32 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
     @Request() req: any,
   ) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-      driverId: req.user?.driverId,
-    };
-    return this.stateMachineService.transition(id, dto.status as OrderStatus, actor);
+    try {
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        restaurantId: req.user?.restaurantId,
+        driverId: req.user?.driverId,
+      };
+      return await this.stateMachineService.transition(id, dto.status as OrderStatus, actor);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      this.logger.error(`UPDATE ORDER STATUS FAILED for order ${id}: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Restaurant order service temporarily failed.',
+        details: err?.stack || String(err),
+      });
+    }
   }
 
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Cancel order (within cancellation policy)' })
   async cancel(
     @Param('id') id: string,
-    @Body() dto: CancelOrderDto,
+    @Body() cancelDto: CancelOrderDto,
     @Request() req: any,
   ) {
-    const actor = {
-      userId: req.user?.id || req.user?.sub,
-      role: req.user?.role,
-      restaurantId: req.user?.restaurantId,
-    };
-    return this.stateMachineService.transition(id, OrderStatus.CANCELLED, actor, {
-      cancellationReason: dto?.reason,
-    });
-  }
-
-  @Get('customer/:customerId')
-  @ApiOperation({ summary: 'Get customer order history' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async customerOrders(
-    @Param('customerId') customerId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
-    return this.ordersService.getCustomerOrders(customerId, +page, +limit);
-  }
-
-  @Get('restaurant/:restaurantId')
-  @ApiOperation({ summary: 'Get restaurant order history (filterable by status)' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async restaurantOrders(
-    @Param('restaurantId') restaurantId: string,
-    @Query('status') status?: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
-    return this.ordersService.getRestaurantOrders(
-      restaurantId, status as any, +page, +limit,
-    );
-  }
-
-  @Get('driver/:driverId')
-  @ApiOperation({ summary: 'Get driver delivery history' })
-  async driverOrders(
-    @Param('driverId') driverId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
-    return this.ordersService.getDriverOrders(driverId, +page, +limit);
-  }
-
-  @Post(':id/assign-self-rider')
-  @ApiOperation({ summary: 'Assign a restaurant self-delivery rider to order' })
-  async assignSelfRider(
-    @Param('id') id: string,
-    @Body('riderId') riderId: string,
-  ) {
-    return this.ordersService.assignSelfDeliveryRider(id, riderId);
-  }
-
-  @Get('self-rider/:riderId')
-  @ApiOperation({ summary: 'Get orders assigned to a self-delivery rider' })
-  async getSelfRiderOrders(@Param('riderId') riderId: string) {
-    return this.ordersService.getSelfRiderOrders(riderId);
-  }
-
-  @Patch(':id/self-delivery-status')
-  @ApiOperation({ summary: 'Self-delivery rider status update (with optional OTP verification)' })
-  async updateSelfDeliveryStatus(
-    @Param('id') id: string,
-    @Body('status') status: string,
-    @Body('otp') otp?: string,
-  ) {
-    return this.ordersService.updateSelfDeliveryStatus(id, status, otp);
+    const customerId = req.user.id || req.user.sub;
+    return this.ordersService.cancelOrder(id, customerId, cancelDto.reason);
   }
 }
