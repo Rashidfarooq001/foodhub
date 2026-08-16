@@ -1,5 +1,5 @@
 export interface PricingConfigData {
-    restaurantCommissionPercent: number;
+    restaurantCommissionPercent: number | null;
     customerDeliveryPerKm: number;
     minimumCustomerDeliveryFee: number;
     platformFee: number;

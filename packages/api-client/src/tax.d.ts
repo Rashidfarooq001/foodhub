@@ -29,6 +29,10 @@ export interface CustomerOrderQuoteData {
     customerTotal: number;
     taxItems: TaxComponentDetail[];
     quoteTimestamp: string;
+    deliveryDistanceKm?: number;
+    deliveryFeeBaseKm?: number;
+    deliveryFeeBaseAmount?: number;
+    deliveryFeePerExtraKm?: number;
 }
 export interface AdminOrderQuoteData extends CustomerOrderQuoteData {
     packagingFee: number;

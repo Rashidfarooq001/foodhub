@@ -389,18 +389,51 @@ export class AnalyticsService {
       })));
     }
 
-    if (type === 'restaurants') {
-      const restaurants = await this.prisma.restaurant.findMany({
+    if (type === 'drivers') {
+      const drivers = await this.prisma.driver.findMany({
         where:   { createdAt: { gte: from, lte: to } },
-        select:  { id: true, name: true, status: true, avgRating: true, createdAt: true },
+        include: { user: { include: { profile: true } }, vehicles: true },
         take:    500,
       });
-      return formatCsv(restaurants.map((r) => ({
-        id:        r.id,
-        name:      r.name,
-        status:    r.status,
-        avgRating: Number(r.avgRating),
-        createdAt: r.createdAt.toISOString().slice(0, 10),
+      return formatCsv(drivers.map((d) => ({
+        id:            d.id,
+        name:          d.user?.profile ? `${d.user.profile.firstName} ${d.user.profile.lastName || ''}`.trim() : 'Driver',
+        phone:         d.user?.phone ?? '',
+        licenseNumber: d.licenseNumber,
+        status:        d.status,
+        isApproved:    d.isApproved ? 'YES' : 'NO',
+        vehicleType:   d.vehicles[0]?.vehicleType ?? 'N/A',
+        createdAt:     d.createdAt.toISOString().slice(0, 10),
+      })));
+    }
+
+    if (type === 'settlements') {
+      const settlements = await this.prisma.settlement.findMany({
+        where:   { settledAt: { gte: from, lte: to } },
+        take:    500,
+      });
+      return formatCsv(settlements.map((s) => ({
+        id:              s.id,
+        restaurantId:    s.restaurantId,
+        amount:          Number(s.amount),
+        utrNumber:       s.utrNumber,
+        settledAt:       s.settledAt ? s.settledAt.toISOString().slice(0, 10) : 'PENDING',
+      })));
+    }
+
+    if (type === 'coupons') {
+      const coupons = await this.prisma.coupon.findMany({
+        include: { usages: true },
+        take: 500,
+      });
+      return formatCsv(coupons.map((c) => ({
+        code:           c.code,
+        couponType:     c.couponType,
+        discountValue:  Number(c.discountVal),
+        minOrderAmount: Number(c.minOrderVal),
+        usageLimit:     c.usageLimit,
+        usedCount:      c.usages?.length || 0,
+        status:         c.status,
       })));
     }
 

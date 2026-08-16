@@ -22,6 +22,11 @@ export class CustomerOrderQuoteDto {
     totalTax: number;
   }>;
   quoteTimestamp: string;
+
+  deliveryDistanceKm: number;
+  deliveryFeeBaseKm: number;
+  deliveryFeeBaseAmount: number;
+  deliveryFeePerExtraKm: number;
 }
 
 /**
@@ -52,5 +57,10 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
       totalTax: item.totalTax,
     })),
     quoteTimestamp: fullQuote.quoteTimestamp,
+
+    deliveryDistanceKm: fullQuote.deliveryDistanceKm,
+    deliveryFeeBaseKm: fullQuote.deliveryFeeBaseKm,
+    deliveryFeeBaseAmount: fullQuote.deliveryFeeBaseAmount,
+    deliveryFeePerExtraKm: fullQuote.deliveryFeePerExtraKm,
   };
 }

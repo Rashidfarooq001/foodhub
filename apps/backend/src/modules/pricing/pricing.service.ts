@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 
 export interface PricingConfigDto {
-  restaurantCommissionPercent: number;
+  restaurantCommissionPercent: number | null;
   customerDeliveryPerKm: number;
   minimumCustomerDeliveryFee: number;
   platformFee: number;
@@ -18,7 +18,7 @@ export interface PricingConfigDto {
 }
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
-  restaurantCommissionPercent: 15.0,
+  restaurantCommissionPercent: null, // UNCONFIGURED by default
   customerDeliveryPerKm: 0.0,
   minimumCustomerDeliveryFee: 15.0,
   platformFee: 3.0,
@@ -60,7 +60,9 @@ export class PricingService {
       }
 
       this.cachedConfig = {
-        restaurantCommissionPercent: Number(configRecord.restaurantCommissionPercent),
+        restaurantCommissionPercent: configRecord.restaurantCommissionPercent != null
+          ? Number(configRecord.restaurantCommissionPercent)
+          : null,
         customerDeliveryPerKm: Number(configRecord.customerDeliveryPerKm),
         minimumCustomerDeliveryFee: Number(configRecord.minimumCustomerDeliveryFee),
         platformFee: Number(configRecord.platformFee),
@@ -86,7 +88,9 @@ export class PricingService {
   async updatePricingConfig(dto: Partial<PricingConfigDto>, userId?: string): Promise<PricingConfigDto> {
     const current = await this.getActivePricingConfig();
     const updated: PricingConfigDto = {
-      restaurantCommissionPercent: dto.restaurantCommissionPercent ?? current.restaurantCommissionPercent,
+      restaurantCommissionPercent: dto.restaurantCommissionPercent !== undefined
+        ? dto.restaurantCommissionPercent
+        : current.restaurantCommissionPercent,
       customerDeliveryPerKm: dto.customerDeliveryPerKm ?? current.customerDeliveryPerKm,
       minimumCustomerDeliveryFee: dto.minimumCustomerDeliveryFee ?? current.minimumCustomerDeliveryFee,
       platformFee: dto.platformFee ?? current.platformFee,

@@ -13,7 +13,7 @@ export const RestaurantSchema = z.object({
   isActive: z.boolean(),
   isOpen: z.boolean(),
   avgRating: z.number(),
-  commissionRate: z.number(),
+  commissionRate: z.number().nullable().optional(),
   deliveryMode: z.enum(['FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY']).optional(),
 });
 

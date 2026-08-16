@@ -75,7 +75,20 @@ export class OrdersRepository {
 
     return this.prisma.order.findMany({
       where:   { ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
-      include: { orderItems: { include: { foodItem: true } } },
+      include: {
+        orderItems: { include: { foodItem: true } },
+        restaurant: { select: { id: true, name: true, addressLine: true, phone: true } },
+        customer:   { include: { user: { include: { profile: true } } } },
+        deliveryJob: {
+          include: {
+            driver: {
+              include: { user: { include: { profile: true } } },
+            },
+          },
+        },
+        payments: true,
+        orderTimelines: { orderBy: { createdAt: 'asc' } },
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take:    limit,

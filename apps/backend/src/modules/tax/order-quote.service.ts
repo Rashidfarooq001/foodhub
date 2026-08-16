@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
 import { TaxEngineService, TaxComponentOutput } from './tax-engine.service';
 import { PricingService } from '../pricing/pricing.service';
 import { DistanceService } from '../geolocation/distance.service';
@@ -40,6 +41,9 @@ export interface OrderQuoteResult {
   totalCustomerTaxes: number;
   customerTotal: number;
 
+  // Authoritative Commission Snapshot
+  commissionRate: number | null;
+  commissionStatus: 'CONFIGURED' | 'UNCONFIGURED';
   restaurantCommissionPercent: number;
   restaurantCommission: number;
   restaurantCommissionGst: number;
@@ -55,6 +59,12 @@ export interface OrderQuoteResult {
   platformOperatingRevenue: number;
   platformContributionMargin: number;
 
+  // Authoritative Distance-Based Delivery Snapshot
+  deliveryDistanceKm: number;
+  deliveryFeeBaseKm: number;
+  deliveryFeeBaseAmount: number;
+  deliveryFeePerExtraKm: number;
+
   taxEngineVersion: string;
   quoteTimestamp: string;
 }
@@ -62,6 +72,7 @@ export interface OrderQuoteResult {
 @Injectable()
 export class OrderQuoteService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly taxEngine: TaxEngineService,
     private readonly pricingService: PricingService,
     private readonly distanceService: DistanceService,
@@ -83,6 +94,14 @@ export class OrderQuoteService {
     let deliveryRadiusKm = 15.0;
     const locationSource = req.locationSource || 'MANUAL_GEOCODED';
 
+    let restaurantRecord: { id: string; commissionRate: any } | null = null;
+    if (req.restaurantId) {
+      restaurantRecord = await this.prisma.restaurant.findUnique({
+        where: { id: req.restaurantId },
+        select: { id: true, commissionRate: true },
+      });
+    }
+
     if (req.restaurantId && typeof req.latitude === 'number' && typeof req.longitude === 'number') {
       const distRes = await this.distanceService.getDeliveryDistance(
         req.restaurantId,
@@ -96,12 +115,22 @@ export class OrderQuoteService {
       }
     }
 
-    // 2. Authoritative Fixed Delivery Fee (₹15.00 business fee)
-    let customerDeliveryFee = 15.0;
+    // 2. Authoritative Distance-Based Customer Delivery Fee Rule:
+    // First 3 km: Base delivery fee = ₹15.00
+    // After 3 km: Additional charge = ₹5.00 per additional KM
+    // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
+    const deliveryFeeBaseKm = 3.0;
+    const deliveryFeeBaseAmount = 15.0;
+    const deliveryFeePerExtraKm = 5.0;
 
-    if (!deliveryEligible || distanceKm > 15.0) {
+    let customerDeliveryFee = deliveryFeeBaseAmount;
+    if (distanceKm > deliveryFeeBaseKm) {
+      const extraKm = distanceKm - deliveryFeeBaseKm;
+      customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
+    }
+
+    if (!deliveryEligible || distanceKm > deliveryRadiusKm) {
       deliveryEligible = false;
-      customerDeliveryFee = 15.0;
     }
 
     // 3. Platform Fee (Fixed ₹3.00) & Small Order Fee (Disabled: ₹0.00)
@@ -150,7 +179,6 @@ export class OrderQuoteService {
     const platformFeeGst = 0.0;
     const smallOrderFeeGst = 0.0;
     const deliveryFeeGst = 0.0;
-
     const totalCustomerTaxes = 0.0;
 
     // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
@@ -161,17 +189,29 @@ export class OrderQuoteService {
       ) / 100,
     );
 
-    // 5. Merchant Settlement & Commission GST (Commission = 15% of foodSubtotal)
-    const restaurantCommissionPercent = config.restaurantCommissionPercent;
-    const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
+    // ==========================================
+    // 6. AUTHORITATIVE COMMISSION RESOLUTION
+    // 1. Check Restaurant.commissionRate
+    // 2. Fallback to active PricingConfig.restaurantCommissionPercent
+    // 3. If neither: NULL / UNCONFIGURED, ₹0.00 commission
+    // Note: Explicit 0.00 is CONFIGURED with 0% rate.
+    // ==========================================
+    let resolvedCommissionRate: number | null = null;
+    let commissionStatus: 'CONFIGURED' | 'UNCONFIGURED' = 'UNCONFIGURED';
 
-    const commissionTax = await this.taxEngine.calculateTaxComponent({
-      componentCode: 'RESTAURANT_COMMISSION',
-      taxableAmount: restaurantCommission,
-      supplierState: 'J&K',
-      recipientState: restaurantState,
-    });
+    if (restaurantRecord && restaurantRecord.commissionRate !== null && restaurantRecord.commissionRate !== undefined) {
+      resolvedCommissionRate = Number(restaurantRecord.commissionRate);
+      commissionStatus = 'CONFIGURED';
+    } else if (config.restaurantCommissionPercent !== null && config.restaurantCommissionPercent !== undefined) {
+      resolvedCommissionRate = Number(config.restaurantCommissionPercent);
+      commissionStatus = 'CONFIGURED';
+    } else {
+      resolvedCommissionRate = null;
+      commissionStatus = 'UNCONFIGURED';
+    }
 
+    const effectivePercent = resolvedCommissionRate !== null ? resolvedCommissionRate : 0.0;
+    const restaurantCommission = Math.round(foodSubtotal * (effectivePercent / 100) * 100) / 100;
     const restaurantCommissionGst = 0.0;
 
     // Under Sec 9(5) ECO, Restaurant receives (Food Subtotal - Commission)
@@ -179,7 +219,7 @@ export class OrderQuoteService {
       (foodSubtotal - restaurantCommission) * 100,
     ) / 100;
 
-    // 6. Rider Payout (₹25 base + ₹6/km)
+    // 7. Rider Payout (₹25 base + ₹6/km)
     const riderBasePay = config.riderBasePay;
     const riderDistancePay = Math.round(distanceKm * config.riderPerKmPay * 100) / 100;
     const riderTip = tipAmount; // 100% pass-through
@@ -187,10 +227,10 @@ export class OrderQuoteService {
       (riderBasePay + riderDistancePay + config.riderWaitingPay + config.riderPeakBonus + config.riderLongDistanceBonus + config.riderBatchBonus + riderTip) * 100,
     ) / 100;
 
-    // 7. Payment Gateway Internal Cost (Default 2% planning rate)
+    // 8. Payment Gateway Internal Cost (Default 2% planning rate)
     const paymentGatewayCost = Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100;
 
-    // 8. Core Accounting Isolation
+    // 9. Core Accounting Isolation
     const statutoryGstLiability = 0.0;
     const platformOperatingRevenue = Math.round(
       (restaurantCommission + platformFee + customerDeliveryFee) * 100,
@@ -222,7 +262,9 @@ export class OrderQuoteService {
       totalCustomerTaxes: 0,
       customerTotal,
 
-      restaurantCommissionPercent,
+      commissionRate: resolvedCommissionRate,
+      commissionStatus,
+      restaurantCommissionPercent: effectivePercent,
       restaurantCommission,
       restaurantCommissionGst: 0,
       restaurantSettlement,
@@ -239,6 +281,11 @@ export class OrderQuoteService {
 
       taxEngineVersion: '1.0.0-IN-GST-SEC9(5)',
       quoteTimestamp: new Date().toISOString(),
+
+      deliveryDistanceKm: distanceKm,
+      deliveryFeeBaseKm,
+      deliveryFeeBaseAmount,
+      deliveryFeePerExtraKm,
     };
   }
 }

@@ -15,7 +15,7 @@ exports.RestaurantSchema = zod_1.z.object({
     isActive: zod_1.z.boolean(),
     isOpen: zod_1.z.boolean(),
     avgRating: zod_1.z.number(),
-    commissionRate: zod_1.z.number(),
+    commissionRate: zod_1.z.number().nullable().optional(),
     deliveryMode: zod_1.z.enum(['FOODHUB_DELIVERY', 'RESTAURANT_SELF_DELIVERY']).optional(),
 });
 exports.RestaurantDeliveryStaffSchema = zod_1.z.object({

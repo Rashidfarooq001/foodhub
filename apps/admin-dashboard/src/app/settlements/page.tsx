@@ -189,7 +189,7 @@ export default function AdminSettlementsPage() {
                   <th className="px-6 py-4">Restaurant &amp; Bank</th>
                   <th className="px-6 py-4">Delivered Orders</th>
                   <th className="px-6 py-4">Gross Sales</th>
-                  <th className="px-6 py-4">Commission (15%)</th>
+                  <th className="px-6 py-4">Commission Snapshot</th>
                   <th className="px-6 py-4">Net Payable</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Settlement Action</th>
@@ -213,7 +213,20 @@ export default function AdminSettlementsPage() {
                       </td>
                       <td className="px-6 py-4 font-black text-gray-700">{r.orderCount}</td>
                       <td className="px-6 py-4 font-bold text-gray-800">₹{r.grossAmount}</td>
-                      <td className="px-6 py-4 font-bold text-rose-600">-₹{r.commissionAmount}</td>
+                      <td className="px-6 py-4">
+                        {r.commissionRate !== null ? (
+                          <div>
+                            <span className="font-bold text-rose-600">-₹{r.commissionAmount}</span>{' '}
+                            <span className="text-[10px] font-bold text-gray-500">({r.commissionRate}%)</span>
+                            <span className="block text-[9px] font-black text-emerald-600 uppercase">CONFIGURED</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-bold text-gray-400">₹0.00</span>
+                            <span className="block text-[9px] font-black text-amber-600 uppercase">UNCONFIGURED (0%)</span>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-4 font-black text-emerald-600 text-sm">₹{r.netPayable}</td>
                       <td className="px-6 py-4">
                         <span

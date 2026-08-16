@@ -450,7 +450,7 @@ model Restaurant {
   status         RestaurantStatus @default(PENDING_APPROVAL)
   isOpen         Boolean          @default(true) @map("is_open")
   avgRating      Decimal          @default(0.0) @map("avg_rating") @db.Decimal(3, 2)
-  commissionRate Decimal          @default(20.00) @map("commission_rate") @db.Decimal(5, 2)
+  commissionRate Decimal?         @map("commission_rate") @db.Decimal(5, 2)
   bannerUrl      String?          @map("banner_url")
   menuUrl        String?          @map("menu_url")
   fssaiUrl       String?          @map("fssai_url")
@@ -1495,12 +1495,12 @@ model Webhook {
 
 model PricingConfig {
   id                          String    @id @default(uuid()) @db.Uuid
-  restaurantCommissionPercent Decimal   @default(15.00) @map("restaurant_commission_percent") @db.Decimal(5, 2)
-  customerDeliveryPerKm       Decimal   @default(8.00) @map("customer_delivery_per_km") @db.Decimal(10, 2)
-  minimumCustomerDeliveryFee   Decimal   @default(30.00) @map("minimum_customer_delivery_fee") @db.Decimal(10, 2)
-  platformFee                 Decimal   @default(5.00) @map("platform_fee") @db.Decimal(10, 2)
-  smallOrderThreshold         Decimal   @default(200.00) @map("small_order_threshold") @db.Decimal(10, 2)
-  smallOrderFee               Decimal   @default(15.00) @map("small_order_fee") @db.Decimal(10, 2)
+  restaurantCommissionPercent Decimal?  @map("restaurant_commission_percent") @db.Decimal(5, 2)
+  customerDeliveryPerKm       Decimal   @default(0.00) @map("customer_delivery_per_km") @db.Decimal(10, 2)
+  minimumCustomerDeliveryFee   Decimal   @default(15.00) @map("minimum_customer_delivery_fee") @db.Decimal(10, 2)
+  platformFee                 Decimal   @default(3.00) @map("platform_fee") @db.Decimal(10, 2)
+  smallOrderThreshold         Decimal   @default(0.00) @map("small_order_threshold") @db.Decimal(10, 2)
+  smallOrderFee               Decimal   @default(0.00) @map("small_order_fee") @db.Decimal(10, 2)
   riderBasePay                Decimal   @default(25.00) @map("rider_base_pay") @db.Decimal(10, 2)
   riderPerKmPay               Decimal   @default(6.00) @map("rider_per_km_pay") @db.Decimal(10, 2)
   riderWaitingPay             Decimal   @default(0.00) @map("rider_waiting_pay") @db.Decimal(10, 2)

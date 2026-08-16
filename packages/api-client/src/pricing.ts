@@ -3,7 +3,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export interface PricingConfigData {
-  restaurantCommissionPercent: number;
+  restaurantCommissionPercent: number | null;
   customerDeliveryPerKm: number;
   minimumCustomerDeliveryFee: number;
   platformFee: number;
@@ -19,12 +19,12 @@ export interface PricingConfigData {
 }
 
 export const DEFAULT_PRICING_CONFIG_DATA: PricingConfigData = {
-  restaurantCommissionPercent: 15.0,
-  customerDeliveryPerKm: 8.0,
-  minimumCustomerDeliveryFee: 30.0,
-  platformFee: 5.0,
-  smallOrderThreshold: 200.0,
-  smallOrderFee: 15.0,
+  restaurantCommissionPercent: null, // UNCONFIGURED by default
+  customerDeliveryPerKm: 0.0,
+  minimumCustomerDeliveryFee: 15.0,
+  platformFee: 3.0,
+  smallOrderThreshold: 0.0,
+  smallOrderFee: 0.0,
   riderBasePay: 25.0,
   riderPerKmPay: 6.0,
   riderWaitingPay: 0.0,
@@ -40,12 +40,12 @@ export async function fetchPricingConfig(): Promise<PricingConfigData> {
     if (res.ok) {
       const data = await res.json();
       return {
-        restaurantCommissionPercent: Number(data.restaurantCommissionPercent ?? 15),
-        customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 8),
-        minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 30),
-        platformFee: Number(data.platformFee ?? 5),
-        smallOrderThreshold: Number(data.smallOrderThreshold ?? 200),
-        smallOrderFee: Number(data.smallOrderFee ?? 15),
+        restaurantCommissionPercent: data.restaurantCommissionPercent != null ? Number(data.restaurantCommissionPercent) : null,
+        customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 0),
+        minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 15),
+        platformFee: Number(data.platformFee ?? 3),
+        smallOrderThreshold: Number(data.smallOrderThreshold ?? 0),
+        smallOrderFee: Number(data.smallOrderFee ?? 0),
         riderBasePay: Number(data.riderBasePay ?? 25),
         riderPerKmPay: Number(data.riderPerKmPay ?? 6),
         riderWaitingPay: Number(data.riderWaitingPay ?? 0),

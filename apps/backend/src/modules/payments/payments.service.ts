@@ -366,17 +366,19 @@ const payment = await this.prisma.payment.create({
     ]);
 
     const totalGmv = Number(totalGmvAgg._sum.amount ?? 0);
-    const platformCommission = Math.round(totalGmv * 0.15 * 100) / 100;
-    const netPayoutsDue = Math.round((totalGmv - platformCommission) * 100) / 100;
+    let totalPlatformCommission = 0;
 
-    return {
-      stats: {
-        totalGmv,
-        platformCommission,
-        netPayoutsDue,
-        totalPayments: total,
-      },
-      payments: payments.map((p) => ({
+    const mappedPayments = payments.map((p) => {
+      const snap: any = p.order?.pricingSnapshot || {};
+      const commissionRate = snap.commissionRate !== undefined ? snap.commissionRate : null;
+      const commissionStatus = snap.commissionStatus || (commissionRate !== null ? 'CONFIGURED' : 'UNCONFIGURED');
+      const commissionAmount = Number(snap.commissionAmount || 0);
+
+      if (p.status === PaymentStatus.COMPLETED) {
+        totalPlatformCommission += commissionAmount;
+      }
+
+      return {
         id: p.id,
         orderId: p.orderId,
         orderNumber: p.order?.orderNumber || p.orderId,
@@ -391,10 +393,25 @@ const payment = await this.prisma.payment.create({
           : 'Customer',
         customerPhone: p.order?.customer?.user?.phone || 'N/A',
         restaurantName: p.order?.restaurant?.name || 'Restaurant',
+        commissionRate,
+        commissionAmount,
+        commissionStatus,
         hasRefund: (p.refunds && p.refunds.length > 0) || false,
         refundAmount: p.refunds ? p.refunds.reduce((sum, r) => sum + Number(r.amount), 0) : 0,
         createdAt: p.createdAt,
-      })),
+      };
+    });
+
+    const netPayoutsDue = Math.round((totalGmv - totalPlatformCommission) * 100) / 100;
+
+    return {
+      stats: {
+        totalGmv,
+        platformCommission: Math.round(totalPlatformCommission * 100) / 100,
+        netPayoutsDue,
+        totalPayments: total,
+      },
+      payments: mappedPayments,
       total,
       page,
       limit,

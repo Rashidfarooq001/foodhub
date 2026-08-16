@@ -422,7 +422,12 @@ export class DeliveryJobsController {
         ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
         : dropAddr.contactName || 'Customer';
 
-    const customerPhone = job.order.customer?.user?.phone || dropAddr.phone || '+919876543210';
+    const customerPhone = job.order.customer?.user?.phone || dropAddr.phone || null;
+
+    const restLat = job.order.restaurant.latitude !== null && job.order.restaurant.latitude !== undefined ? Number(job.order.restaurant.latitude) : null;
+    const restLng = job.order.restaurant.longitude !== null && job.order.restaurant.longitude !== undefined ? Number(job.order.restaurant.longitude) : null;
+    const custLat = dropAddr.latitude !== null && dropAddr.latitude !== undefined ? Number(dropAddr.latitude) : null;
+    const custLng = dropAddr.longitude !== null && dropAddr.longitude !== undefined ? Number(dropAddr.longitude) : null;
 
     return {
       id: job.id,
@@ -437,13 +442,13 @@ export class DeliveryJobsController {
       restaurantName: job.order.restaurant.name,
       restaurantAddress: job.order.restaurant.addressLine,
       restaurantPhone: job.order.restaurant.phone,
-      restaurantLat: Number(job.order.restaurant.latitude || 34.3868),
-      restaurantLng: Number(job.order.restaurant.longitude || 74.5221),
+      restaurantLat: restLat,
+      restaurantLng: restLng,
       customerName,
       customerAddress: dropAddressText,
       customerPhone,
-      customerLat: Number(dropAddr.latitude || job.order.restaurant.latitude || 34.3868),
-      customerLng: Number(dropAddr.longitude || job.order.restaurant.longitude || 74.5221),
+      customerLat: custLat,
+      customerLng: custLng,
       distanceKm: job.distanceKm,
       items: (job.order.orderItems || []).map((item) => ({
         name: item.foodItem?.name || 'Item',
@@ -486,16 +491,23 @@ export class DeliveryJobsController {
     const todayEarnings = todayJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
     const totalEarnings = completedJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
 
+    const pendingSettlement = totalEarnings;
+    const availableForSettlement = totalEarnings;
+    const settledAmount = 0;
+
     return {
       todayEarnings,
       todayDeliveries: todayJobs.length,
       weeklyEarnings: totalEarnings,
       monthlyEarnings: totalEarnings,
+      totalEarnings,
+      pendingSettlement,
+      availableForSettlement,
+      settledAmount,
       acceptanceRate: 100,
       completionRate: 100,
       avgRating: Number(driver.avgRating) > 0 ? Number(driver.avgRating) : 5.0,
       totalRatings: completedJobs.length,
-      walletBalance: totalEarnings,
       dutyStatus: driver.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
     };
   }

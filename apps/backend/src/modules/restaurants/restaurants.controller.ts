@@ -72,6 +72,19 @@ export class RestaurantsController {
     return this.restaurantsService.updateDeliveryMode(id, deliveryMode);
   }
 
+  @Patch(':id/commission')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Update restaurant commission rate (Admin Only)' })
+  async updateCommissionRate(
+    @Param('id') id: string,
+    @Body('commissionRate') commissionRate: number | null,
+    @CurrentUser() currentUser?: any,
+  ) {
+    return this.restaurantsService.updateCommissionRate(id, commissionRate, currentUser?.id);
+  }
+
   @Patch(':id/delivery-radius')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)

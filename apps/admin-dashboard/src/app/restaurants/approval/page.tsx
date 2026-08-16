@@ -37,6 +37,7 @@ interface RestaurantApplication {
   bannerUrl?: string;
   logoUrl?: string;
   addressLine: string;
+  commissionRate?: number | null;
   rejectionReason?: string;
   createdAt: string;
   staff?: Array<{
@@ -372,7 +373,7 @@ export default function AdminRestaurantApprovalPage() {
             {/* RESTAURANT INFORMATION */}
             <div className="space-y-3 rounded-2xl bg-gray-50 p-4 border border-gray-100">
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Store className="h-4 w-4 text-purple-600" /> Restaurant Details
+                <Store className="h-4 w-4 text-purple-600" /> Restaurant Details &amp; Commission
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="sm:col-span-2">
@@ -386,6 +387,16 @@ export default function AdminRestaurantApprovalPage() {
                 <div>
                   <span className="block font-semibold text-gray-400">PAN Card No.</span>
                   <span className="font-bold text-gray-900">{selectedApp.panNumber || 'N/A'}</span>
+                </div>
+                <div className="sm:col-span-2 bg-white p-3 rounded-xl border border-gray-200">
+                  <span className="block font-black text-gray-800 mb-1">Contracted Commission Rate</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-black text-purple-700 text-sm">
+                      {selectedApp.commissionRate !== null && selectedApp.commissionRate !== undefined
+                        ? `CONFIGURED — ${selectedApp.commissionRate}%`
+                        : 'UNCONFIGURED — 0% (Global Fallback)'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

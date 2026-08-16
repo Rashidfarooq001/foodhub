@@ -37,10 +37,13 @@ export interface DriverStats {
   todayDeliveries: number;
   weeklyEarnings: number;
   monthlyEarnings: number;
+  totalEarnings: number;
+  pendingSettlement: number;
+  availableForSettlement: number;
+  settledAmount: number;
   acceptanceRate: number;
   completionRate: number;
   avgRating: number;
   totalRatings: number;
-  walletBalance: number;
   dutyStatus: string;
 }

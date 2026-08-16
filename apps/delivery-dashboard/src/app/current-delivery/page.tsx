@@ -251,7 +251,7 @@ export default function CurrentDeliveryPage() {
         throw new Error(data.message || 'Invalid customer delivery OTP');
       }
 
-      setSuccessMessage('Order delivered successfully! Earnings credited to wallet.');
+      setSuccessMessage('Order delivered successfully! Trip earning recorded in settlements ledger.');
       setDeliveryOtp('');
       setCurrentJob(null);
     } catch (err: any) {

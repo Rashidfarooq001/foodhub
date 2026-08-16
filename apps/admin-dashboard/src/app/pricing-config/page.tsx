@@ -22,7 +22,7 @@ import { adminFetch } from '../../utils/admin-fetch';
 const API_BASE = getApiBaseUrl();
 
 interface PricingConfigForm {
-  restaurantCommissionPercent: number;
+  restaurantCommissionPercent: number | '' | null;
   customerDeliveryPerKm: number;
   minimumCustomerDeliveryFee: number;
   platformFee: number;
@@ -38,12 +38,12 @@ interface PricingConfigForm {
 }
 
 const DEFAULT_FORM: PricingConfigForm = {
-  restaurantCommissionPercent: 15,
-  customerDeliveryPerKm: 8,
-  minimumCustomerDeliveryFee: 30,
-  platformFee: 5,
-  smallOrderThreshold: 200,
-  smallOrderFee: 15,
+  restaurantCommissionPercent: '',
+  customerDeliveryPerKm: 0,
+  minimumCustomerDeliveryFee: 15,
+  platformFee: 3,
+  smallOrderThreshold: 0,
+  smallOrderFee: 0,
   riderBasePay: 25,
   riderPerKmPay: 6,
   riderWaitingPay: 0,
@@ -77,12 +77,12 @@ export default function AdminPricingConfigPage() {
       if (res.ok) {
         const data = await res.json();
         setForm({
-          restaurantCommissionPercent: Number(data.restaurantCommissionPercent ?? 15),
-          customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 8),
-          minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 30),
-          platformFee: Number(data.platformFee ?? 5),
-          smallOrderThreshold: Number(data.smallOrderThreshold ?? 200),
-          smallOrderFee: Number(data.smallOrderFee ?? 15),
+          restaurantCommissionPercent: data.restaurantCommissionPercent != null ? Number(data.restaurantCommissionPercent) : '',
+          customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 0),
+          minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 15),
+          platformFee: Number(data.platformFee ?? 3),
+          smallOrderThreshold: Number(data.smallOrderThreshold ?? 0),
+          smallOrderFee: Number(data.smallOrderFee ?? 0),
           riderBasePay: Number(data.riderBasePay ?? 25),
           riderPerKmPay: Number(data.riderPerKmPay ?? 6),
           riderWaitingPay: Number(data.riderWaitingPay ?? 0),
@@ -105,48 +105,59 @@ export default function AdminPricingConfigPage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const commissionValue = form.restaurantCommissionPercent === '' || form.restaurantCommissionPercent === null
+      ? null
+      : Number(form.restaurantCommissionPercent);
+
+    if (commissionValue !== null && (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100)) {
+      setErrorMsg('Commission rate must be between 0% and 100% or left empty for UNCONFIGURED.');
+      setSaving(false);
+      return;
+    }
+
     try {
+      const payload = {
+        ...form,
+        restaurantCommissionPercent: commissionValue,
+      };
       const res = await adminFetch('/pricing/config', {
         method: 'PATCH',
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to update pricing configuration');
+      if (res.ok) {
+        setSuccessMsg('Central pricing configuration saved successfully to PostgreSQL.');
+        fetchPricingConfig();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setErrorMsg(errData.message || 'Failed to update pricing configuration.');
       }
-
-      setSuccessMsg('Platform pricing & unit economics engine configuration saved successfully!');
-      setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error saving configuration');
+      setErrorMsg(err.message || 'Connection error.');
     } finally {
       setSaving(false);
     }
   };
 
-  // Simulator Calculations
-  const simDeliveryFee = Math.max(form.minimumCustomerDeliveryFee, Math.round(simDistanceKm * form.customerDeliveryPerKm * 100) / 100);
-  const simSmallOrderFee = simSubtotal > 0 && simSubtotal < form.smallOrderThreshold ? form.smallOrderFee : 0;
-  const simTaxes = Math.round(simSubtotal * 0.05 * 100) / 100;
-  const simPackagingFee = 15;
-  const simCustomerTotal = simSubtotal + simDeliveryFee + form.platformFee + simSmallOrderFee + simPackagingFee + simTaxes + simTip;
-
-  const simCommission = Math.round(simSubtotal * (form.restaurantCommissionPercent / 100) * 100) / 100;
-  const simRestaurantSettlement = Math.round((simSubtotal + simPackagingFee - simCommission) * 100) / 100;
-
-  const simRiderDistancePay = Math.round(simDistanceKm * form.riderPerKmPay * 100) / 100;
-  const simRiderPayout = form.riderBasePay + simRiderDistancePay + form.riderWaitingPay + form.riderPeakBonus + form.riderLongDistanceBonus + form.riderBatchBonus + simTip;
-
-  const simPaymentGatewayCost = Math.round(simCustomerTotal * (form.paymentGatewayPlanningRate / 100) * 100) / 100;
-  const simPlatformRevenue = simCommission + form.platformFee + simSmallOrderFee + simDeliveryFee;
-  const simPlatformCost = (simRiderPayout - simTip) + simPaymentGatewayCost;
-  const simPlatformContribution = Math.round((simPlatformRevenue - simPlatformCost) * 100) / 100;
+  // Live Unit Economics Calculation
+  const commissionRateEffective = typeof form.restaurantCommissionPercent === 'number' ? form.restaurantCommissionPercent : 0;
+  const isCommissionConfigured = typeof form.restaurantCommissionPercent === 'number';
+  const restaurantCommission = Math.round(simSubtotal * (commissionRateEffective / 100) * 100) / 100;
+  const customerDeliveryFee = form.minimumCustomerDeliveryFee;
+  const platformFee = form.platformFee;
+  const taxes = 0; // GST = 0
+  const customerTotal = Math.round((simSubtotal + customerDeliveryFee + platformFee + taxes + simTip) * 100) / 100;
+  const restaurantSettlement = Math.round((simSubtotal - restaurantCommission) * 100) / 100;
+  const riderPayout = Math.round((form.riderBasePay + simDistanceKm * form.riderPerKmPay + form.riderWaitingPay + form.riderPeakBonus + form.riderLongDistanceBonus + form.riderBatchBonus + simTip) * 100) / 100;
+  const platformRevenue = Math.round((restaurantCommission + platformFee + customerDeliveryFee) * 100) / 100;
+  const riderDirectCost = riderPayout - simTip;
+  const gatewayCost = Math.round(customerTotal * (form.paymentGatewayPlanningRate / 100) * 100) / 100;
+  const contributionMargin = Math.round((platformRevenue - riderDirectCost - gatewayCost) * 100) / 100;
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      {/* Header Banner */}
-      <div className="flex flex-col gap-2 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-black text-gray-900">Pricing &amp; Unit Economics Engine</h1>
@@ -155,7 +166,7 @@ export default function AdminPricingConfigPage() {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Configure 3-sided platform pricing (15% Restaurant Commission, ₹5 Platform Fee, ₹8/km Delivery, ₹25+₹6/km Rider Pay, ₹15 Small Order Surcharge below ₹200, 2% Gateway Cost)
+            Configure dynamic platform pricing backed by PostgreSQL (Zero arbitrary defaults, fixed ₹15 delivery, ₹3 platform fee)
           </p>
         </div>
 
@@ -189,34 +200,45 @@ export default function AdminPricingConfigPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN: Pricing Configuration Controls */}
         <form onSubmit={handleSaveConfig} className="lg:col-span-7 space-y-6">
-          {/* SECTION 1: RESTAURANT COMMISSION */}
+          {/* SECTION 1: GLOBAL RESTAURANT COMMISSION */}
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
               <div className="h-8 w-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
                 <Store className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">1. Restaurant Commission</h2>
-                <p className="text-[11px] text-gray-500">Platform take-rate on gross food subtotal</p>
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">1. Global Restaurant Commission Rate</h2>
+                <p className="text-[11px] text-gray-500">Fallback rate when individual restaurant rate is unconfigured (NULL)</p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Restaurant Commission Rate (%)
+                Global Commission Rate (% or blank for UNCONFIGURED)
               </label>
               <div className="relative">
                 <Percent className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="number"
-                  step="0.1"
-                  required
-                  value={form.restaurantCommissionPercent}
-                  onChange={(e) => setForm({ ...form, restaurantCommissionPercent: parseFloat(e.target.value) || 0 })}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="Leave empty for UNCONFIGURED (0%)"
+                  value={form.restaurantCommissionPercent === '' || form.restaurantCommissionPercent === null ? '' : form.restaurantCommissionPercent}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm({ ...form, restaurantCommissionPercent: val === '' ? '' : parseFloat(val) });
+                  }}
                   className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1 font-medium">Production Default: 15.0% (Calculated strictly on gross food subtotal)</p>
+              <p className="text-[10px] text-gray-400 mt-1 font-medium">
+                {form.restaurantCommissionPercent === '' || form.restaurantCommissionPercent === null ? (
+                  <span className="text-amber-600 font-bold">Status: UNCONFIGURED (0% platform deduction)</span>
+                ) : (
+                  <span className="text-emerald-600 font-bold">Status: CONFIGURED at {form.restaurantCommissionPercent}%</span>
+                )}
+              </p>
             </div>
           </div>
 
@@ -228,26 +250,13 @@ export default function AdminPricingConfigPage() {
               </div>
               <div>
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">2. Customer Delivery &amp; Platform Fees</h2>
-                <p className="text-[11px] text-gray-500">Dynamic delivery calculation &amp; small order rules</p>
+                <p className="text-[11px] text-gray-500">Standard business fees enforced authoritatively</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Customer Delivery Fee per Km (₹)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  required
-                  value={form.customerDeliveryPerKm}
-                  onChange={(e) => setForm({ ...form, customerDeliveryPerKm: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹8 / km</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Minimum Customer Delivery Fee (₹)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Delivery Fee (Fixed ₹)</label>
                 <input
                   type="number"
                   step="1"
@@ -256,59 +265,20 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, minimumCustomerDeliveryFee: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹30 minimum</p>
+                <p className="text-[10px] text-gray-400 mt-1">Production Required: ₹15.00</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Platform / Convenience Fee (₹)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Platform Convenience Fee (₹)</label>
                 <input
                   type="number"
-                  step="1"
+                  step="0.5"
                   required
                   value={form.platformFee}
                   onChange={(e) => setForm({ ...form, platformFee: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹5 flat per order</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Small Order Threshold (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  required
-                  value={form.smallOrderThreshold}
-                  onChange={(e) => setForm({ ...form, smallOrderThreshold: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Default: Below ₹200</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Small Order Fee (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  required
-                  value={form.smallOrderFee}
-                  onChange={(e) => setForm({ ...form, smallOrderFee: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹15 surcharge</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Payment Gateway Planning Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  required
-                  value={form.paymentGatewayPlanningRate}
-                  onChange={(e) => setForm({ ...form, paymentGatewayPlanningRate: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Default: 2.0% internal cost tracking</p>
+                <p className="text-[10px] text-gray-400 mt-1">Production Required: ₹3.00</p>
               </div>
             </div>
           </div>
@@ -316,18 +286,18 @@ export default function AdminPricingConfigPage() {
           {/* SECTION 3: RIDER PAYOUT ENGINE */}
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-              <div className="h-8 w-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
+              <div className="h-8 w-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
                 <Bike className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">3. Rider Payout &amp; Incentive Engine</h2>
-                <p className="text-[11px] text-gray-500">Base pay, distance pay, waiting &amp; surge bonuses</p>
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">3. Courier Partner Payout Model</h2>
+                <p className="text-[11px] text-gray-500">Base compensation, per-km distance rates &amp; bonuses</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Rider Base Pay (₹)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Rider Base Payout (₹)</label>
                 <input
                   type="number"
                   step="1"
@@ -336,7 +306,7 @@ export default function AdminPricingConfigPage() {
                   onChange={(e) => setForm({ ...form, riderBasePay: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-2xl border border-gray-200 py-3 px-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Default: ₹25 per delivery</p>
+                <p className="text-[10px] text-gray-400 mt-1">Default: ₹25 / delivery</p>
               </div>
 
               <div>
@@ -354,130 +324,75 @@ export default function AdminPricingConfigPage() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 rounded-2xl bg-purple-600 px-8 py-4 text-xs font-black text-white shadow-lg shadow-purple-500/25 hover:bg-purple-700 disabled:opacity-50 transition"
-            >
-              <Save className="h-4 w-4" />
-              <span>{saving ? 'Saving Config...' : 'Save Pricing Configuration'}</span>
-            </button>
-          </div>
+          {/* SAVE BUTTON */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-purple-600 py-4 text-xs font-black text-white shadow-xl shadow-purple-500/25 hover:bg-purple-700 disabled:opacity-50 transition"
+          >
+            <Save className="h-4 w-4" />
+            <span>{saving ? 'Saving to Database...' : 'Save & Publish Live Configuration'}</span>
+          </button>
         </form>
 
         {/* RIGHT COLUMN: Live Unit Economics Simulator */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm space-y-4 sticky top-24">
-            <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Calculator className="h-5 w-5 text-purple-600 shrink-0" />
-              <div>
-                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Live Unit Economics Simulator</h3>
-                <p className="text-[11px] text-gray-500">Real-time contribution margin test</p>
-              </div>
+          <div className="rounded-3xl border border-purple-100 bg-purple-50/40 p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
+              <Calculator className="h-5 w-5 text-purple-600" />
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Live Economics Simulator</h3>
             </div>
 
-            {/* Simulation Controls */}
-            <div className="space-y-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-100">
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                  Food Subtotal: <span className="text-purple-600">₹{simSubtotal}</span>
-                </label>
+                <label className="font-bold text-gray-700">Test Food Subtotal (₹): {simSubtotal}</label>
                 <input
                   type="range"
-                  min="50"
+                  min="100"
                   max="2000"
-                  step="10"
+                  step="50"
                   value={simSubtotal}
                   onChange={(e) => setSimSubtotal(Number(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className="w-full mt-1 accent-purple-600"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                  Delivery Distance: <span className="text-purple-600">{simDistanceKm} km</span>
-                </label>
+                <label className="font-bold text-gray-700">Delivery Distance (Km): {simDistanceKm} km</label>
                 <input
                   type="range"
                   min="1"
-                  max="25"
-                  step="0.5"
+                  max="15"
+                  step="1"
                   value={simDistanceKm}
                   onChange={(e) => setSimDistanceKm(Number(e.target.value))}
-                  className="w-full accent-purple-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                  Customer Rider Tip: <span className="text-purple-600">₹{simTip}</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={simTip}
-                  onChange={(e) => setSimTip(Number(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className="w-full mt-1 accent-purple-600"
                 />
               </div>
             </div>
 
-            {/* Breakdown Output */}
-            <div className="space-y-2 text-xs divide-y divide-gray-100 pt-1">
-              <div className="pt-2 flex justify-between">
-                <span className="text-gray-600">Customer Delivery Fee ({simDistanceKm} km)</span>
-                <span className="font-bold text-gray-900">₹{simDeliveryFee}</span>
+            <div className="divide-y divide-purple-100 text-xs pt-2">
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Customer Grand Total</span>
+                <span className="font-black text-gray-900">₹{customerTotal}</span>
               </div>
-              <div className="pt-2 flex justify-between">
-                <span className="text-gray-600">Platform Fee</span>
-                <span className="font-bold text-gray-900">₹{form.platformFee}</span>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Merchant Commission</span>
+                <span className="font-bold text-orange-600">
+                  {isCommissionConfigured ? `₹${restaurantCommission} (${commissionRateEffective}%)` : 'UNCONFIGURED (₹0.00)'}
+                </span>
               </div>
-              <div className="pt-2 flex justify-between">
-                <span className="text-gray-600">Small Order Surcharge</span>
-                <span className="font-bold text-gray-900">₹{simSmallOrderFee}</span>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Merchant Net Settlement</span>
+                <span className="font-bold text-emerald-600">₹{restaurantSettlement}</span>
               </div>
-              <div className="pt-2 flex justify-between">
-                <span className="text-gray-600">Customer Total (inc. ₹{simTip} tip)</span>
-                <span className="font-black text-purple-700 text-sm">₹{simCustomerTotal}</span>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Courier Partner Payout</span>
+                <span className="font-bold text-gray-900">₹{riderPayout}</span>
               </div>
-
-              <div className="pt-3 flex justify-between text-orange-700">
-                <span className="font-medium">Restaurant Commission ({form.restaurantCommissionPercent}%)</span>
-                <span className="font-bold">₹{simCommission}</span>
-              </div>
-              <div className="pt-2 flex justify-between text-orange-900">
-                <span className="font-medium">Restaurant Net Settlement</span>
-                <span className="font-bold">₹{simRestaurantSettlement}</span>
-              </div>
-
-              <div className="pt-3 flex justify-between text-indigo-700">
-                <span className="font-medium">Rider Base + Distance Pay (₹{form.riderBasePay} + ₹{simRiderDistancePay})</span>
-                <span className="font-bold">₹{form.riderBasePay + simRiderDistancePay}</span>
-              </div>
-              <div className="pt-2 flex justify-between text-indigo-900">
-                <span className="font-medium">Total Rider Payout (100% tip)</span>
-                <span className="font-bold">₹{simRiderPayout}</span>
-              </div>
-
-              <div className="pt-2 flex justify-between text-gray-600">
-                <span>Payment Gateway Cost ({form.paymentGatewayPlanningRate}%)</span>
-                <span className="font-bold">₹{simPaymentGatewayCost}</span>
-              </div>
-
-              {/* Final Contribution Margin Card */}
-              <div className={`pt-3 p-4 rounded-2xl border ${simPlatformContribution >= 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider block">FoodHub Contribution Margin</span>
-                    <span className="text-xs font-medium">Revenue (₹{simPlatformRevenue}) - Direct Costs (₹{simPlatformCost})</span>
-                  </div>
-                  <span className="text-xl font-black">
-                    {simPlatformContribution >= 0 ? `+₹${simPlatformContribution}` : `-₹${Math.abs(simPlatformContribution)}`}
-                  </span>
-                </div>
+              <div className="flex justify-between py-2 font-black text-sm text-purple-700 border-t border-purple-200">
+                <span>FoodHub Contribution Margin</span>
+                <span>₹{contributionMargin}</span>
               </div>
             </div>
           </div>

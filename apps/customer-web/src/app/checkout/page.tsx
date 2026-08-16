@@ -157,8 +157,13 @@ export default function CheckoutPage() {
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
 
-  // Authoritative fixed delivery fee: ₹15.00
-  const dynamicDeliveryFee = orderQuote ? orderQuote.customerDeliveryFee : 15.0;
+  // Authoritative distance-based delivery fee: First 3 km = ₹15, After 3 km = ₹5 / extra km
+  const fallbackDeliveryFee =
+    realDistanceKm !== null && realDistanceKm > 3
+      ? Math.round((15.0 + (realDistanceKm - 3.0) * 5.0) * 100) / 100
+      : 15.0;
+
+  const dynamicDeliveryFee = orderQuote ? orderQuote.customerDeliveryFee : fallbackDeliveryFee;
 
   const platformFee = orderQuote ? orderQuote.platformFee : 3.0;
   const subtotal = getSubtotal();

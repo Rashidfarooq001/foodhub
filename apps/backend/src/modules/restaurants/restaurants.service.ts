@@ -668,4 +668,49 @@ export class RestaurantsService {
       activeRidersCount: staff.filter((s) => s.isActive).length,
     };
   }
+
+  async updateCommissionRate(restaurantId: string, commissionRate: number | null, adminUserId?: string) {
+    if (commissionRate !== null && commissionRate !== undefined) {
+      const num = Number(commissionRate);
+      if (isNaN(num) || num < 0 || num > 100) {
+        throw new BadRequestException('Commission rate must be a valid number between 0% and 100% or null (unconfigured).');
+      }
+    }
+
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+    });
+
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const previousRate = restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : null;
+    const newRate = commissionRate !== null && commissionRate !== undefined ? Number(commissionRate) : null;
+
+    const updated = await this.prisma.restaurant.update({
+      where: { id: restaurantId },
+      data: {
+        commissionRate: newRate,
+      },
+    });
+
+    // Record immutable audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId || null,
+        action: 'UPDATE',
+        entityName: 'RestaurantCommission',
+        entityId: restaurantId,
+        oldValue: { commissionRate: previousRate } as any,
+        newValue: { commissionRate: newRate } as any,
+      },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      commissionRate: newRate,
+      commissionStatus: newRate !== null ? 'CONFIGURED' : 'UNCONFIGURED',
+      previousRate,
+    };
+  }
 }

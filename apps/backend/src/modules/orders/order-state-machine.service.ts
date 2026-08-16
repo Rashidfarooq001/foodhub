@@ -627,7 +627,7 @@ export class OrderStateMachineService {
                     walletId: driverWallet.id,
                     type: 'CREDIT',
                     amount: payoutAmount,
-                    description: `Earnings for delivering Order #${order.orderNumber}`,
+                    description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
                     referenceId: order.id,
                   },
                 });

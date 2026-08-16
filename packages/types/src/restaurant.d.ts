@@ -12,7 +12,7 @@ export declare const RestaurantSchema: z.ZodObject<{
     isActive: z.ZodBoolean;
     isOpen: z.ZodBoolean;
     avgRating: z.ZodNumber;
-    commissionRate: z.ZodNumber;
+    commissionRate: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     deliveryMode: z.ZodOptional<z.ZodEnum<["FOODHUB_DELIVERY", "RESTAURANT_SELF_DELIVERY"]>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
@@ -27,7 +27,7 @@ export declare const RestaurantSchema: z.ZodObject<{
     isActive: boolean;
     isOpen: boolean;
     avgRating: number;
-    commissionRate: number;
+    commissionRate?: number | null | undefined;
     deliveryMode?: "FOODHUB_DELIVERY" | "RESTAURANT_SELF_DELIVERY" | undefined;
 }, {
     id: string;
@@ -42,7 +42,7 @@ export declare const RestaurantSchema: z.ZodObject<{
     isActive: boolean;
     isOpen: boolean;
     avgRating: number;
-    commissionRate: number;
+    commissionRate?: number | null | undefined;
     deliveryMode?: "FOODHUB_DELIVERY" | "RESTAURANT_SELF_DELIVERY" | undefined;
 }>;
 export type IRestaurant = z.infer<typeof RestaurantSchema>;

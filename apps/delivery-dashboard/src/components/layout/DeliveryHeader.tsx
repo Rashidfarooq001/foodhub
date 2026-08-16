@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useDutyStore, DutyStatus } from '../../stores/use-duty-store';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
-import { Bell, Wallet, LogOut, Menu } from 'lucide-react';
+import { Bell, Banknote, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../common/ThemeToggle';
 
@@ -62,12 +63,12 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
         </select>
       </div>
 
-      {/* Right: Wallet Quick Balance & Profile */}
+      {/* Right: Settlements & Profile */}
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden sm:flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-200">
-          <Wallet className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span>Wallet</span>
-        </div>
+        <Link href="/wallet" className="hidden sm:flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition">
+          <Banknote className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span>Settlements</span>
+        </Link>
 
         <ThemeToggle />
 

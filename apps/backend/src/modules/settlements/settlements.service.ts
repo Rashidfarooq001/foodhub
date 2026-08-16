@@ -143,8 +143,8 @@ export class SettlementsService {
       this.prisma.driverWallet.findMany(),
     ]);
 
-    // 1. Group delivered orders by restaurant
-    const restMap: Record<string, { orderCount: number; gross: number; commission: number; net: number }> = {};
+    // 1. Group delivered orders by restaurant using IMMUTABLE order pricingSnapshots
+    const restMap: Record<string, { orderCount: number; gross: number; commission: number; net: number; latestRate: number | null; latestStatus: string }> = {};
     let totalPlatformGross = 0;
     let totalCommissionRevenue = 0;
     let totalPlatformFees = 0;
@@ -152,12 +152,15 @@ export class SettlementsService {
 
     for (const o of deliveredOrders) {
       const restId = o.restaurantId;
-      const subtotal = Number(o.subtotal || o.totalAmount);
-      const deliveryFee = Number(o.deliveryFee || 15);
-      const platformFee = 3; // Fixed Platform Fee
-      const rate = Number(o.restaurant.commissionRate || 15);
-      const comm = Math.round((subtotal * rate) / 100 * 100) / 100;
-      const net = Math.max(subtotal - comm, 0);
+      const snap: any = o.pricingSnapshot || {};
+      const subtotal = Number(snap.restaurantGross || o.subtotal || o.totalAmount);
+      const deliveryFee = Number(snap.customerDeliveryFee || o.deliveryFee || 15);
+      const platformFee = Number(snap.platformFee || 3);
+      
+      const commRate = snap.commissionRate !== undefined ? snap.commissionRate : (o.restaurant.commissionRate !== null ? Number(o.restaurant.commissionRate) : null);
+      const commStatus = snap.commissionStatus || (commRate !== null ? 'CONFIGURED' : 'UNCONFIGURED');
+      const comm = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : snap.restaurantCommissionAmount ?? (commRate !== null ? (subtotal * commRate / 100) : 0));
+      const net = Number(snap.restaurantNet !== undefined ? snap.restaurantNet : snap.restaurantSettlement ?? Math.max(subtotal - comm, 0));
 
       totalPlatformGross += Number(o.totalAmount);
       totalCommissionRevenue += comm;
@@ -165,16 +168,25 @@ export class SettlementsService {
       totalDeliveryFees += deliveryFee;
 
       if (!restMap[restId]) {
-        restMap[restId] = { orderCount: 0, gross: 0, commission: 0, net: 0 };
+        restMap[restId] = { orderCount: 0, gross: 0, commission: 0, net: 0, latestRate: commRate, latestStatus: commStatus };
       }
       restMap[restId].orderCount += 1;
       restMap[restId].gross += subtotal;
       restMap[restId].commission += comm;
       restMap[restId].net += net;
+      restMap[restId].latestRate = commRate;
+      restMap[restId].latestStatus = commStatus;
     }
 
     const restaurantSettlements = restaurants.map((r) => {
-      const data = restMap[r.id] || { orderCount: 0, gross: 0, commission: 0, net: 0 };
+      const data = restMap[r.id] || {
+        orderCount: 0,
+        gross: 0,
+        commission: 0,
+        net: 0,
+        latestRate: r.commissionRate !== null ? Number(r.commissionRate) : null,
+        latestStatus: r.commissionRate !== null ? 'CONFIGURED' : 'UNCONFIGURED',
+      };
       const latestSettlement = settlementsHistory.find((s) => s.restaurantId === r.id);
       return {
         restaurantId: r.id,
@@ -185,7 +197,8 @@ export class SettlementsService {
         ifsc: 'SBIN0001234',
         orderCount: data.orderCount,
         grossAmount: Math.round(data.gross * 100) / 100,
-        commissionRate: Number(r.commissionRate || 15),
+        commissionRate: data.latestRate,
+        commissionStatus: data.latestStatus,
         commissionAmount: Math.round(data.commission * 100) / 100,
         netPayable: Math.round(data.net * 100) / 100,
         status: data.orderCount > 0 ? (latestSettlement ? 'SETTLED' : 'PENDING') : 'SETTLED',

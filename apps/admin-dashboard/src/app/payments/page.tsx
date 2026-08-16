@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, ArrowUpRight, Search } from 'lucide-react';
+import { CreditCard, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, ArrowUpRight, Search, ShieldCheck } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 
 interface PaymentRecord {
@@ -17,6 +17,9 @@ interface PaymentRecord {
   customerName: string;
   customerPhone: string;
   restaurantName: string;
+  commissionRate: number | null;
+  commissionAmount: number;
+  commissionStatus: 'CONFIGURED' | 'UNCONFIGURED';
   hasRefund: boolean;
   refundAmount: number;
   createdAt: string;
@@ -77,7 +80,7 @@ export default function AdminPaymentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900">Live Payment Ledger</h1>
-          <p className="text-xs text-gray-500">Real-time payment transactions, gateway reconciliation &amp; refund status</p>
+          <p className="text-xs text-gray-500">Real-time payment transactions, gateway reconciliation &amp; commission snapshot ledger</p>
         </div>
         <button
           onClick={fetchPayments}
@@ -97,9 +100,9 @@ export default function AdminPaymentsPage() {
           <p className="text-[10px] text-purple-600 font-bold">Authoritative gross customer sales</p>
         </div>
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-gray-400 uppercase">Platform Commission (15%)</p>
+          <p className="text-xs font-bold text-gray-400 uppercase">Actual Platform Commission</p>
           <h3 className="text-3xl font-black text-emerald-600">₹{stats.platformCommission.toLocaleString('en-IN')}</h3>
-          <p className="text-[10px] text-emerald-600 font-bold">Net platform operating fee yield</p>
+          <p className="text-[10px] text-emerald-600 font-bold">Sum of immutable order commission snapshots</p>
         </div>
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-1">
           <p className="text-xs font-bold text-gray-400 uppercase">Total Transactions</p>
@@ -148,6 +151,7 @@ export default function AdminPaymentsPage() {
                 <th className="px-6 py-4">Customer</th>
                 <th className="px-6 py-4">Restaurant</th>
                 <th className="px-6 py-4">Amount</th>
+                <th className="px-6 py-4">Commission Snapshot</th>
                 <th className="px-6 py-4">Method</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Date</th>
@@ -156,11 +160,11 @@ export default function AdminPaymentsPage() {
             <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading payment ledger...</td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">Loading payment ledger...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">No payment transactions found.</td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">No payment transactions found.</td>
                 </tr>
               ) : (
                 filtered.map((p) => (
@@ -177,6 +181,20 @@ export default function AdminPaymentsPage() {
                     </td>
                     <td className="px-6 py-4 font-bold text-gray-700">{p.restaurantName}</td>
                     <td className="px-6 py-4 font-black text-gray-900">₹{p.amount}</td>
+                    <td className="px-6 py-4">
+                      {p.commissionStatus === 'CONFIGURED' ? (
+                        <div>
+                          <span className="font-black text-emerald-700">₹{p.commissionAmount}</span>{' '}
+                          <span className="text-[10px] font-bold text-gray-500">({p.commissionRate}%)</span>
+                          <span className="block text-[9px] font-black text-emerald-600 uppercase">CONFIGURED</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-black text-gray-400">₹0.00</span>
+                          <span className="block text-[9px] font-black text-amber-600 uppercase">UNCONFIGURED</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="rounded-lg bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-700">
                         {p.paymentMethod}

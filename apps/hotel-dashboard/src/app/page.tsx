@@ -253,15 +253,15 @@ export default function HotelDashboardPage() {
           </div>
 
           <div className="p-3.5 rounded-2xl bg-white border border-gray-100 space-y-1">
-            <span className="text-[10px] font-bold text-orange-700 uppercase block">FoodHub Commission (13%) + GST</span>
-            <span className="text-xl font-black text-orange-800">₹{Math.round(kpi.todayRevenue * 0.13 * 1.18).toLocaleString()}</span>
-            <span className="text-[10px] text-orange-600 block">Commission ₹{Math.round(kpi.todayRevenue * 0.13)} + 18% GST</span>
+            <span className="text-[10px] font-bold text-orange-700 uppercase block">Platform Commission</span>
+            <span className="text-xl font-black text-orange-800">Dynamic</span>
+            <span className="text-[10px] text-orange-600 block">Deducted per contracted restaurant rate</span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-white border border-gray-100 space-y-1">
             <span className="text-[10px] font-bold text-emerald-700 uppercase block">Net Bank Settlement</span>
-            <span className="text-xl font-black text-emerald-800">₹{Math.round(kpi.todayRevenue - (kpi.todayRevenue * 0.13 * 1.18)).toLocaleString()}</span>
-            <span className="text-[10px] text-emerald-600 font-bold block">Food Sales - Commission &amp; GST</span>
+            <span className="text-xl font-black text-emerald-800">₹{kpi.todayRevenue.toLocaleString()}</span>
+            <span className="text-[10px] text-emerald-600 font-bold block">Gross Sales - Contracted Commission</span>
           </div>
         </div>
       </div>
