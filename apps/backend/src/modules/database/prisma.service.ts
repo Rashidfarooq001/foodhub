@@ -31,7 +31,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       await this.$connect();
       this.logger.log('Database connection initialized successfully.');
 
-      // Check if critical schema tables exist in the target database
+      // Ensure new columns exist on drivers table
       await this.ensureSchemaSynchronized();
     } catch (err: any) {
       this.logger.error(`Database connection or schema init failed: ${err?.message || err}`);
@@ -41,7 +41,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   private async ensureSchemaSynchronized() {
     try {
-      // Query information_schema to verify existence of public.delivery_jobs
+      await this.$executeRawUnsafe(`
+        ALTER TABLE drivers ADD COLUMN IF NOT EXISTS online_since TIMESTAMP WITH TIME ZONE;
+        ALTER TABLE drivers ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE;
+      `).catch((e) => this.logger.warn(`Driver column alter note: ${e?.message}`));
+
       const result: any[] = await this.$queryRawUnsafe(`
         SELECT table_name 
         FROM information_schema.tables 
