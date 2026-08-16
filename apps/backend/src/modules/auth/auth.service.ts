@@ -361,7 +361,12 @@ export class AuthService {
 
     const session = await this.sessionService.createSession(result.user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(
-      { ...result.user, restaurantId: result.restaurant.id },
+      {
+        id: result.user.id,
+        phone: result.user.phone,
+        role: result.user.role,
+        restaurantId: result.restaurant.id,
+      },
       session.id,
     );
 
