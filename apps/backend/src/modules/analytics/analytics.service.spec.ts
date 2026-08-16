@@ -53,26 +53,25 @@ describe('AnalyticsService', () => {
   });
 
   describe('getAdminDashboard', () => {
-    it('should return dashboard with today/week/month structure', async () => {
-      const result = await service.getAdminDashboard();
-      expect(result).toHaveProperty('today');
-      expect(result).toHaveProperty('week');
-      expect(result).toHaveProperty('month');
-      expect(result).toHaveProperty('users');
-      expect(result.today).toHaveProperty('orders');
-      expect(result.today).toHaveProperty('revenue');
+    it('should return dashboard with kpis, trend, categories, and peakHours structure', async () => {
+      const result = await service.getAdminDashboard('7D');
+      expect(result).toHaveProperty('range');
+      expect(result).toHaveProperty('kpis');
+      expect(result).toHaveProperty('revenueTrend');
+      expect(result).toHaveProperty('categoryDistribution');
+      expect(result).toHaveProperty('peakHours');
+      expect(result.kpis).toHaveProperty('todayRevenue');
+      expect(result.kpis).toHaveProperty('todayOrders');
+      expect(result.kpis).toHaveProperty('platformCommission');
+      expect(result.kpis).toHaveProperty('foodhubNetRevenue');
     });
 
-    it('should include peakHour as a number', async () => {
-      const result = await service.getAdminDashboard();
-      expect(typeof result.peakHour).toBe('number');
-      expect(result.peakHour).toBe(19);
-    });
-
-    it('should calculate platform commission as 20% of month revenue', async () => {
-      const result = await service.getAdminDashboard();
-      const expectedComm = Math.round(result.month.revenue * 0.2 * 100) / 100;
-      expect(result.month.platformComm).toBe(expectedComm);
+    it('should include peakHours as an array of objects', async () => {
+      const result = await service.getAdminDashboard('7D');
+      expect(Array.isArray(result.peakHours)).toBe(true);
+      expect(result.peakHours.length).toBeGreaterThan(0);
+      expect(result.peakHours[0]).toHaveProperty('hour');
+      expect(result.peakHours[0]).toHaveProperty('orders');
     });
   });
 

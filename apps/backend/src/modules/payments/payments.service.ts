@@ -335,7 +335,7 @@ const payment = await this.prisma.payment.create({
   async getPaymentsForAdmin(page = 1, limit = 50) {
     const skip = (page - 1) * limit;
 
-    const [payments, total, totalGmvAgg] = await Promise.all([
+    const [payments, total, allOrders, completedPaymentsAgg, settlements, refundTotalAgg] = await Promise.all([
       this.prisma.payment.findMany({
         include: {
           order: {
@@ -350,6 +350,7 @@ const payment = await this.prisma.payment.create({
                   },
                 },
               },
+              deliveryJob: true,
             },
           },
           refunds: true,
@@ -359,56 +360,163 @@ const payment = await this.prisma.payment.create({
         take: limit,
       }),
       this.prisma.payment.count(),
+      this.prisma.order.findMany({
+        where: { paymentStatus: PaymentStatus.COMPLETED },
+        select: {
+          id: true,
+          totalAmount: true,
+          subtotal: true,
+          deliveryFee: true,
+          packagingFee: true,
+          taxAmount: true,
+          pricingSnapshot: true,
+          restaurantId: true,
+          deliveryJob: { select: { riderPayout: true } },
+        },
+      }),
       this.prisma.payment.aggregate({
         where: { status: PaymentStatus.COMPLETED },
         _sum: { amount: true },
       }),
+      this.prisma.settlement.findMany({ select: { restaurantId: true, amount: true, utrNumber: true, settledAt: true } }),
+      this.prisma.paymentRefund.aggregate({ _sum: { amount: true } }),
     ]);
 
-    const totalGmv = Number(totalGmvAgg._sum.amount ?? 0);
-    let totalPlatformCommission = 0;
+    // Authoritative platform aggregates
+    let totalCustomerCollections = 0;
+    let totalRestaurantGross = 0;
+    let totalRestaurantCommission = 0;
+    let totalRestaurantNetPayable = 0;
+    let totalPlatformFees = 0;
+    let totalDeliveryFees = 0;
+    let totalRiderEarnings = 0;
+    let totalStatutoryGst = 0;
+
+    for (const ord of allOrders) {
+      const snap: any = ord.pricingSnapshot || {};
+      const gross = Number(ord.subtotal || 0);
+      const commission = Number(snap.commissionAmount || 0);
+      const netPayable = Math.max(0, gross - commission);
+      const platFee = Number(snap.platformFee ?? 3.0);
+      const delivFee = Number(ord.deliveryFee || 0);
+      const tax = Number(ord.taxAmount || 0);
+      const riderPay = Number(ord.deliveryJob?.riderPayout || 0);
+
+      totalCustomerCollections += Number(ord.totalAmount || 0);
+      totalRestaurantGross += gross;
+      totalRestaurantCommission += commission;
+      totalRestaurantNetPayable += netPayable;
+      totalPlatformFees += platFee;
+      totalDeliveryFees += delivFee;
+      totalRiderEarnings += riderPay;
+      totalStatutoryGst += tax;
+    }
+
+    const totalRestaurantSettled = settlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    const totalRestaurantPending = Math.max(0, totalRestaurantNetPayable - totalRestaurantSettled);
+    const totalPlatformOperatingRevenue = totalRestaurantCommission + totalPlatformFees;
+    const totalPlatformNetContribution = (totalPlatformOperatingRevenue + totalDeliveryFees) - totalRiderEarnings;
 
     const mappedPayments = payments.map((p) => {
-      const snap: any = p.order?.pricingSnapshot || {};
+      const ord = p.order;
+      const snap: any = ord?.pricingSnapshot || {};
+      const foodSubtotal = Number(ord?.subtotal || p.amount || 0);
+      const deliveryFee = Number(ord?.deliveryFee || 0);
+      const platformFee = Number(snap.platformFee ?? (p.amount ? 3.0 : 0));
+      const gst = Number(ord?.taxAmount || 0);
+      const customerPaid = Number(p.amount);
+
       const commissionRate = snap.commissionRate !== undefined ? snap.commissionRate : null;
       const commissionStatus = snap.commissionStatus || (commissionRate !== null ? 'CONFIGURED' : 'UNCONFIGURED');
       const commissionAmount = Number(snap.commissionAmount || 0);
+      const restaurantNetPayable = Math.max(0, foodSubtotal - commissionAmount);
 
-      if (p.status === PaymentStatus.COMPLETED) {
-        totalPlatformCommission += commissionAmount;
-      }
+      const riderJob = ord?.deliveryJob;
+      const riderDistanceKm = Number(riderJob?.distanceKm || 0);
+      const riderPayout = Number(riderJob?.riderPayout || 0);
+
+      const platformOperatingInflow = commissionAmount + platformFee + deliveryFee;
+
+      const restaurantSettlement = settlements.find((s) => s.restaurantId === ord?.restaurantId);
+
+      // Reconciliation verification: Customer Paid vs (Restaurant Net + Commission + Platform Fee + Delivery Fee + GST)
+      const reconstructedTotal = restaurantNetPayable + commissionAmount + platformFee + deliveryFee + gst;
+      const isBalanced = Math.abs(customerPaid - reconstructedTotal) < 0.01;
 
       return {
         id: p.id,
         orderId: p.orderId,
-        orderNumber: p.order?.orderNumber || p.orderId,
-        amount: Number(p.amount),
-        currency: 'INR',
-        paymentMethod: p.order?.paymentMethod || 'UPI',
-        status: p.status,
-        razorpayOrderId: p.razorpayOrderId,
-        razorpayPaymentId: p.razorpayPaymentId,
-        customerName: p.order?.customer?.user?.profile
-          ? `${p.order.customer.user.profile.firstName} ${p.order.customer.user.profile.lastName || ''}`.trim()
-          : 'Customer',
-        customerPhone: p.order?.customer?.user?.phone || 'N/A',
-        restaurantName: p.order?.restaurant?.name || 'Restaurant',
-        commissionRate,
-        commissionAmount,
-        commissionStatus,
+        orderNumber: ord?.orderNumber || p.orderId,
+        customer: {
+          name: ord?.customer?.user?.profile
+            ? `${ord.customer.user.profile.firstName} ${ord.customer.user.profile.lastName || ''}`.trim()
+            : 'Customer',
+          phone: ord?.customer?.user?.phone || '—',
+          foodSubtotal,
+          deliveryFee,
+          platformFee,
+          gst,
+          customerPaid,
+          paymentMethod: ord?.paymentMethod || 'UPI',
+          gatewayTransactionId: p.razorpayPaymentId || p.razorpayOrderId || '—',
+          status: p.status,
+        },
+        restaurant: {
+          id: ord?.restaurant?.id || '—',
+          name: ord?.restaurant?.name || 'Restaurant',
+          grossFoodSales: foodSubtotal,
+          commissionRate,
+          commissionStatus,
+          commissionAmount,
+          restaurantNetPayable,
+          settlementStatus: restaurantSettlement ? 'PAID' : 'PENDING',
+          utrNumber: restaurantSettlement?.utrNumber || '—',
+        },
+        platform: {
+          commissionEarned: commissionAmount,
+          platformFeeCollected: platformFee,
+          deliveryFeeCollected: deliveryFee,
+          platformOperatingInflow,
+        },
+        rider: {
+          distanceKm: riderDistanceKm,
+          baseEarning: riderPayout > 0 ? 25.0 : 0,
+          distanceEarning: riderPayout > 0 ? Math.max(0, riderPayout - 25.0) : 0,
+          totalRiderEarning: riderPayout,
+          settlementStatus: p.status === PaymentStatus.COMPLETED ? 'PENDING' : 'UNALLOCATED',
+        },
+        statutory: {
+          gstLiability: gst,
+        },
+        reconciliation: {
+          status: isBalanced ? 'BALANCED' : 'MISMATCH',
+          discrepancy: Math.round((customerPaid - reconstructedTotal) * 100) / 100,
+        },
         hasRefund: (p.refunds && p.refunds.length > 0) || false,
         refundAmount: p.refunds ? p.refunds.reduce((sum, r) => sum + Number(r.amount), 0) : 0,
         createdAt: p.createdAt,
       };
     });
 
-    const netPayoutsDue = Math.round((totalGmv - totalPlatformCommission) * 100) / 100;
-
     return {
       stats: {
-        totalGmv,
-        platformCommission: Math.round(totalPlatformCommission * 100) / 100,
-        netPayoutsDue,
+        totalCustomerCollections: Math.round(totalCustomerCollections * 100) / 100,
+        completedCustomerPayments: total,
+        totalGmv: Math.round(totalCustomerCollections * 100) / 100,
+        restaurantGrossPayable: Math.round(totalRestaurantGross * 100) / 100,
+        restaurantCommission: Math.round(totalRestaurantCommission * 100) / 100,
+        restaurantNetPayable: Math.round(totalRestaurantNetPayable * 100) / 100,
+        restaurantSettledAmount: Math.round(totalRestaurantSettled * 100) / 100,
+        restaurantPendingSettlement: Math.round(totalRestaurantPending * 100) / 100,
+        riderGrossEarnings: Math.round(totalRiderEarnings * 100) / 100,
+        riderPendingSettlement: Math.round(totalRiderEarnings * 100) / 100,
+        riderSettledAmount: 0,
+        platformCommissionRevenue: Math.round(totalRestaurantCommission * 100) / 100,
+        platformFeeRevenue: Math.round(totalPlatformFees * 100) / 100,
+        deliveryFeeRevenue: Math.round(totalDeliveryFees * 100) / 100,
+        totalPlatformOperatingRevenue: Math.round(totalPlatformOperatingRevenue * 100) / 100,
+        platformNetContribution: Math.round(totalPlatformNetContribution * 100) / 100,
+        refundAmount: Number(refundTotalAgg._sum.amount ?? 0),
         totalPayments: total,
       },
       payments: mappedPayments,

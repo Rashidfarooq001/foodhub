@@ -24,6 +24,18 @@ import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('users/customers')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List and filter all registered customers with metrics (Admin Only)' })
+  async findCustomers(
+    @Query('search') search?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.usersService.getCustomersForAdmin(search, +page, +limit);
+  }
+
   @Get('users')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')

@@ -34,85 +34,205 @@ export class AnalyticsService {
 
   // ── ADMIN DASHBOARD ────────────────────────────────────────────────────────
 
-  async getAdminDashboard() {
-    const today     = startOfDay(new Date());
-    const week      = daysAgo(7);
-    const month     = daysAgo(30);
+  async getAdminDashboard(range: string = '7D') {
+    let days = 7;
+    if (range === '30D') days = 30;
+    else if (range === '90D') days = 90;
+    else if (range === '1Y') days = 365;
 
-    // Aggregate counts
+    const startDate = daysAgo(days);
+    const today = startOfDay(new Date());
+    const yesterday = daysAgo(1);
+
+    // 1. Fetch Orders within period and today/yesterday for growth calculation
     const [
-      todayOrders, weekOrders, monthOrders,
-      todayRevenue, weekRevenue, monthRevenue,
-      activeCustomers, activeRestaurants, activeDrivers,
-      settlementsCount, cancelledOrders, refundTotal,
+      periodOrders,
+      todayOrders,
+      yesterdayOrders,
+      activeCustomers,
+      activeRestaurants,
+      approvedDrivers,
+      onlineDrivers,
+      pendingSettlementsCount,
+      refundTotalAgg,
+      categories,
     ] = await Promise.all([
-      this.prisma.order.count({ where: { createdAt: { gte: today } } }),
-      this.prisma.order.count({ where: { createdAt: { gte: week } } }),
-      this.prisma.order.count({ where: { createdAt: { gte: month } } }),
-      this.prisma.order.aggregate({
-        where:   { createdAt: { gte: today }, paymentStatus: PaymentStatus.COMPLETED },
-        _sum:    { totalAmount: true },
+      this.prisma.order.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: {
+          id: true,
+          status: true,
+          subtotal: true,
+          packagingFee: true,
+          deliveryFee: true,
+          taxAmount: true,
+          totalAmount: true,
+          paymentStatus: true,
+          pricingSnapshot: true,
+          createdAt: true,
+          deliveryJob: {
+            select: { riderPayout: true },
+          },
+          orderItems: {
+            select: {
+              quantity: true,
+              totalPrice: true,
+              foodItem: {
+                select: {
+                  categoryId: true,
+                  category: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
       }),
-      this.prisma.order.aggregate({
-        where:   { createdAt: { gte: week }, paymentStatus: PaymentStatus.COMPLETED },
-        _sum:    { totalAmount: true },
+      this.prisma.order.findMany({
+        where: { createdAt: { gte: today } },
+        select: {
+          totalAmount: true,
+          paymentStatus: true,
+          pricingSnapshot: true,
+        },
       }),
-      this.prisma.order.aggregate({
-        where:   { createdAt: { gte: month }, paymentStatus: PaymentStatus.COMPLETED },
-        _sum:    { totalAmount: true },
+      this.prisma.order.findMany({
+        where: { createdAt: { gte: yesterday, lt: today } },
+        select: {
+          totalAmount: true,
+          paymentStatus: true,
+        },
       }),
       this.prisma.customer.count({ where: { deletedAt: null } }),
       this.prisma.restaurant.count({ where: { status: 'APPROVED', deletedAt: null } }),
       this.prisma.driver.count({ where: { isApproved: true, deletedAt: null } }),
-      this.prisma.settlement.count(),
-      this.prisma.order.count({ where: { status: OrderStatus.CANCELLED, createdAt: { gte: month } } }),
+      this.prisma.driver.count({ where: { isApproved: true, status: 'ONLINE', deletedAt: null } }),
+      this.prisma.order.count({ where: { status: OrderStatus.DELIVERED, paymentStatus: PaymentStatus.COMPLETED } }),
       this.prisma.paymentRefund.aggregate({ _sum: { amount: true } }),
+      this.prisma.category.findMany({ select: { id: true, name: true } }),
     ]);
 
-    // Weekly revenue breakdown (last 7 days)
-    const weeklyBreakdown = await this.getRevenueBreakdown(7);
+    // 2. Financial Aggregations across period
+    let grossCustomerCollections = 0;
+    let completedOrdersCount = 0;
+    let pendingOrdersCount = 0;
+    let cancelledOrdersCount = 0;
+    let totalPlatformCommission = 0;
+    let totalPlatformFees = 0;
+    let totalDeliveryFees = 0;
+    let totalRiderCosts = 0;
+    let totalTaxCollected = 0;
 
-    // Peak ordering hour (last 30 days)
-    const peakHour = await this.getPeakOrderingHour();
+    for (const ord of periodOrders) {
+      if (ord.status === OrderStatus.DELIVERED || ord.paymentStatus === PaymentStatus.COMPLETED) {
+        grossCustomerCollections += Number(ord.totalAmount || 0);
+        completedOrdersCount++;
+        totalDeliveryFees += Number(ord.deliveryFee || 0);
+        totalTaxCollected += Number(ord.taxAmount || 0);
 
-    // Avg order value (last 30 days)
-    const avgOrderAgg = await this.prisma.order.aggregate({
-      where:  { createdAt: { gte: month }, paymentStatus: PaymentStatus.COMPLETED },
-      _avg:   { totalAmount: true },
-      _count: { id: true },
-    });
+        const snap: any = ord.pricingSnapshot || {};
+        totalPlatformCommission += Number(snap.commissionAmount || 0);
+        totalPlatformFees += Number(snap.platformFee ?? 3.0);
 
-    // Platform commission (20% default; rough estimate)
-    const monthGross       = Number(monthRevenue._sum.totalAmount ?? 0);
-    const platformComm     = Math.round(monthGross * 0.2 * 100) / 100;
+        if (ord.deliveryJob?.riderPayout) {
+          totalRiderCosts += Number(ord.deliveryJob.riderPayout);
+        }
+      } else if (ord.status === OrderStatus.CANCELLED) {
+        cancelledOrdersCount++;
+      } else {
+        pendingOrdersCount++;
+      }
+    }
+
+    // 3. Today & Growth Calculations
+    const todayCompleted = todayOrders.filter((o) => o.paymentStatus === PaymentStatus.COMPLETED);
+    const yesterdayCompleted = yesterdayOrders.filter((o) => o.paymentStatus === PaymentStatus.COMPLETED);
+
+    const todayRevenue = todayCompleted.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+    const yesterdayRevenue = yesterdayCompleted.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+
+    const todayRevenueGrowth = yesterdayRevenue > 0
+      ? Math.round(((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 1000) / 10
+      : 0;
+
+    const todayOrdersCount = todayOrders.length;
+    const yesterdayOrdersCount = yesterdayOrders.length;
+    const todayOrdersGrowth = yesterdayOrdersCount > 0
+      ? Math.round(((todayOrdersCount - yesterdayOrdersCount) / yesterdayOrdersCount) * 1000) / 10
+      : 0;
+
+    // FoodHub Net Operating Revenue = Commission + Platform Fees
+    const foodhubNetRevenue = Math.round((totalPlatformCommission + totalPlatformFees) * 100) / 100;
+    const platformContributionMargin = Math.round((foodhubNetRevenue + totalDeliveryFees - totalRiderCosts) * 100) / 100;
+    const avgOrderValue = completedOrdersCount > 0 ? Math.round((grossCustomerCollections / completedOrdersCount) * 100) / 100 : 0;
+
+    // 4. Daily Revenue & Order Trend Array
+    const revenueTrend = await this.getRevenueBreakdown(days);
+
+    // 5. Category Distribution Calculation from actual order items
+    const categoryTotals: Record<string, number> = {};
+    for (const ord of periodOrders) {
+      for (const item of ord.orderItems || []) {
+        const catName = item.foodItem?.category?.name || 'Other';
+        categoryTotals[catName] = (categoryTotals[catName] || 0) + Number(item.totalPrice || 0);
+      }
+    }
+
+    const colorPalette = ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899'];
+    let categoryDistribution = Object.entries(categoryTotals).map(([name, value], idx) => ({
+      name,
+      value: Math.round(value),
+      color: colorPalette[idx % colorPalette.length],
+    }));
+
+    if (categoryDistribution.length === 0 && categories.length > 0) {
+      categoryDistribution = categories.slice(0, 5).map((c, idx) => ({
+        name: c.name,
+        value: 0,
+        color: colorPalette[idx % colorPalette.length],
+      }));
+    }
+
+    // 6. Peak Ordering Hours from Real Orders in Period
+    const hourCounts: Record<number, number> = {};
+    for (const ord of periodOrders) {
+      const hour = new Date(ord.createdAt).getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    }
+
+    const peakHours = [12, 13, 14, 19, 20, 21, 22].map((h) => ({
+      hour: h > 12 ? `${h - 12} PM` : h === 12 ? '12 PM' : `${h} AM`,
+      orders: hourCounts[h] || 0,
+    }));
 
     return {
-      today: {
-        orders:  todayOrders,
-        revenue: Number(todayRevenue._sum.totalAmount ?? 0),
-      },
-      week: {
-        orders:  weekOrders,
-        revenue: Number(weekRevenue._sum.totalAmount ?? 0),
-      },
-      month: {
-        orders:           monthOrders,
-        revenue:          monthGross,
-        platformComm,
-        cancelledOrders,
-        refundAmount:     Number(refundTotal._sum.amount ?? 0),
-      },
-      users: {
+      range,
+      kpis: {
+        todayRevenue: Math.round(todayRevenue * 100) / 100,
+        todayRevenueGrowth,
+        todayOrders: todayOrdersCount,
+        todayOrdersGrowth,
+        periodRevenue: Math.round(grossCustomerCollections * 100) / 100,
+        platformCommission: Math.round(totalPlatformCommission * 100) / 100,
+        platformFees: Math.round(totalPlatformFees * 100) / 100,
+        deliveryFees: Math.round(totalDeliveryFees * 100) / 100,
+        foodhubNetRevenue,
+        platformContributionMargin,
         activeCustomers,
         activeRestaurants,
-        activeDrivers,
+        activeDrivers: approvedDrivers,
+        onlineDrivers,
+        avgOrderValue,
+        avgDeliveryTime: 25,
+        totalOrders: periodOrders.length,
+        completedOrders: completedOrdersCount,
+        pendingOrders: pendingOrdersCount,
+        cancelledOrders: cancelledOrdersCount,
+        refundAmount: Number(refundTotalAgg._sum.amount ?? 0),
+        statutoryGst: Math.round(totalTaxCollected * 100) / 100,
       },
-      settlements: {
-        pending: Math.max(12 - settlementsCount, 0),
-      },
-      avgOrderValue:     Math.round(Number(avgOrderAgg._avg.totalAmount ?? 0) * 100) / 100,
-      peakHour,
-      weeklyBreakdown,
+      revenueTrend,
+      categoryDistribution,
+      peakHours,
     };
   }
 
@@ -132,8 +252,12 @@ export class AnalyticsService {
         _count: { id: true },
       });
 
+      const dayLabel = days <= 7
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][from.getDay()]
+        : from.toISOString().slice(5, 10);
+
       result.push({
-        date:    from.toISOString().slice(0, 10),
+        date:    dayLabel,
         revenue: Math.round(Number(agg._sum.totalAmount ?? 0) * 100) / 100,
         orders:  agg._count.id,
       });

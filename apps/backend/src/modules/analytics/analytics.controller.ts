@@ -21,9 +21,10 @@ export class AnalyticsController {
   @Get('admin')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Admin: full platform KPI dashboard' })
-  async adminDashboard() {
-    return this.analyticsService.getAdminDashboard();
+  @ApiOperation({ summary: 'Admin: full platform KPI dashboard with period filtering' })
+  @ApiQuery({ name: 'range', required: false, enum: ['7D', '30D', '90D', '1Y'], description: 'Time range period' })
+  async adminDashboard(@Query('range') range: string = '7D') {
+    return this.analyticsService.getAdminDashboard(range);
   }
 
   @Get('admin/revenue')

@@ -58,6 +58,85 @@ export class UsersService {
     return user;
   }
 
+  async getCustomersForAdmin(search?: string, page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const userWhere: any = { role: UserRole.CUSTOMER };
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      userWhere.OR = [
+        { phone: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { profile: { firstName: { contains: q, mode: 'insensitive' } } },
+        { profile: { lastName: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: userWhere,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          profile: true,
+          customer: {
+            include: {
+              addresses: true,
+              orders: {
+                select: {
+                  id: true,
+                  status: true,
+                  totalAmount: true,
+                  paymentStatus: true,
+                  createdAt: true,
+                },
+                orderBy: { createdAt: 'desc' },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({ where: userWhere }),
+    ]);
+
+    const customers = users.map((u) => {
+      const cust = u.customer;
+      const orders = cust?.orders || [];
+      const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
+      const cancelledOrders = orders.filter((o) => o.status === 'CANCELLED');
+      const totalSpent = completedOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+      const lastOrder = orders[0];
+
+      return {
+        id: cust?.id || u.id,
+        userId: u.id,
+        name: u.profile ? `${u.profile.firstName} ${u.profile.lastName || ''}`.trim() : 'Customer',
+        phone: u.phone,
+        email: u.email || '—',
+        isActive: u.isActive,
+        isVerified: u.isVerified,
+        createdAt: u.createdAt,
+        totalOrders: orders.length,
+        completedOrders: completedOrders.length,
+        cancelledOrders: cancelledOrders.length,
+        totalSpent: Math.round(totalSpent * 100) / 100,
+        lastOrderDate: lastOrder ? lastOrder.createdAt : null,
+        addressCount: cust?.addresses?.length || 0,
+      };
+    });
+
+    return {
+      customers,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findAllUsersForAdmin(roleFilter?: string, search?: string, page = 1, limit = 50) {
     const where: any = {};
     if (roleFilter && roleFilter.toUpperCase() !== 'ALL') {

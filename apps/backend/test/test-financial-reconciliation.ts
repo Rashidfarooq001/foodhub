@@ -50,6 +50,9 @@ class MockReconciliationPrisma {
       if (args?.where?.status) {
         list = list.filter((o) => o.status === args.where.status);
       }
+      if (args?.where?.paymentStatus) {
+        list = list.filter((o) => o.paymentStatus === args.where.paymentStatus);
+      }
       return list;
     },
     create: async ({ data }: { data: any }) => {
@@ -60,7 +63,18 @@ class MockReconciliationPrisma {
   };
 
   payment = {
-    findMany: async () => Array.from(this.payments.values()),
+    findMany: async (args?: any) => {
+      let list = Array.from(this.payments.values());
+      if (args?.orderBy) { /* mock ignores sorting */ }
+      if (args?.skip) list = list.slice(args.skip);
+      if (args?.take) list = list.slice(0, args.take);
+      // Mock include: add order, refunds stubs if requested
+      return list.map((p) => ({
+        ...p,
+        order: this.orders.get(p.orderId) || null,
+        refunds: [],
+      }));
+    },
     count: async () => this.payments.size,
     aggregate: async () => {
       let totalAmount = 0;
@@ -74,6 +88,10 @@ class MockReconciliationPrisma {
       this.payments.set(payment.id, payment);
       return payment;
     },
+  };
+
+  paymentRefund = {
+    aggregate: async () => ({ _sum: { amount: 0 } }),
   };
 
   driver = {
@@ -354,7 +372,7 @@ async function runEndToEndFinancialReconciliation() {
 
   console.log('\n2. Admin Payments Ledger:');
   console.log(`- Total Payments Inflow:       ₹${paymentsAdmin.stats.totalGmv}`);
-  console.log(`- Total Platform Commission:   ₹${paymentsAdmin.stats.platformCommission}`);
+  console.log(`- Total Platform Commission:   ₹${paymentsAdmin.stats.platformCommissionRevenue}`);
   console.log(`- Total Payment Count:         ${paymentsAdmin.stats.totalPayments}`);
 
   console.log('\n3. Restaurant Breakdown in Settlements:');
@@ -365,7 +383,7 @@ async function runEndToEndFinancialReconciliation() {
   if (paymentsAdmin.stats.totalGmv !== settlementOverview.summary.totalGrossGmv) {
     throw new Error('LEDGER MISMATCH: Payments GMV does not equal Settlements GMV!');
   }
-  if (paymentsAdmin.stats.platformCommission !== settlementOverview.summary.totalCommissionRevenue) {
+  if (paymentsAdmin.stats.platformCommissionRevenue !== settlementOverview.summary.totalCommissionRevenue) {
     throw new Error('LEDGER MISMATCH: Payments Commission does not equal Settlements Commission!');
   }
 
