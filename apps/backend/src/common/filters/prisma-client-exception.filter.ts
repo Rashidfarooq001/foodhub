@@ -83,7 +83,7 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
           `Unhandled Prisma error: ${exception.code} — ${exception.message}`,
         );
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-        message = 'A database error occurred. Please contact support.';
+        message = `A database error occurred [${exception.code}]: ${exception.message.split('\n').pop() || 'Please contact support.'}`;
         break;
       }
     }

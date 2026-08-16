@@ -152,7 +152,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/v1/docs', app, document);
 
-  // Auto-verify DB schema & apply delivery_mode if missing
+  // Auto-verify DB schema & apply missing columns/enums if missing
   try {
     const prisma = app.get(PrismaService);
     await prisma.$executeRawUnsafe(`
@@ -164,15 +164,14 @@ async function bootstrap() {
           IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RestaurantDriverStatus') THEN
               CREATE TYPE "RestaurantDriverStatus" AS ENUM ('AVAILABLE', 'BUSY', 'OFFLINE');
           END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'delivery_mode') THEN
-              ALTER TABLE "restaurants" ADD COLUMN "delivery_mode" "DeliveryMode" NOT NULL DEFAULT 'FOODHUB_DELIVERY';
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DriverStatus') THEN
+              CREATE TYPE "DriverStatus" AS ENUM ('OFFLINE', 'ONLINE', 'BUSY', 'SUSPENDED');
           END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_foodhub_driver_id') THEN
-              ALTER TABLE "orders" ADD COLUMN "assigned_foodhub_driver_id" UUID;
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'VehicleType') THEN
+              CREATE TYPE "VehicleType" AS ENUM ('BICYCLE', 'SCOOTER', 'MOTORCYCLE', 'EV_SCOOTER');
           END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_restaurant_driver_id') THEN
-              ALTER TABLE "orders" ADD COLUMN "assigned_restaurant_driver_id" UUID;
-          END IF;
+
+          -- Users table columns
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_dob_hash') THEN
               ALTER TABLE "users" ADD COLUMN "admin_dob_hash" TEXT;
           END IF;
@@ -184,6 +183,36 @@ async function bootstrap() {
           END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'admin_recovery_expires_at') THEN
               ALTER TABLE "users" ADD COLUMN "admin_recovery_expires_at" TIMESTAMP(3);
+          END IF;
+
+          -- Drivers table columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'online_since') THEN
+              ALTER TABLE "drivers" ADD COLUMN "online_since" TIMESTAMP(3);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'last_seen_at') THEN
+              ALTER TABLE "drivers" ADD COLUMN "last_seen_at" TIMESTAMP(3);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'current_lat') THEN
+              ALTER TABLE "drivers" ADD COLUMN "current_lat" DOUBLE PRECISION;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'current_lng') THEN
+              ALTER TABLE "drivers" ADD COLUMN "current_lng" DOUBLE PRECISION;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'avg_rating') THEN
+              ALTER TABLE "drivers" ADD COLUMN "avg_rating" DECIMAL(3,2) NOT NULL DEFAULT 0.0;
+          END IF;
+
+          -- Restaurants table columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'restaurants' AND column_name = 'delivery_mode') THEN
+              ALTER TABLE "restaurants" ADD COLUMN "delivery_mode" "DeliveryMode" NOT NULL DEFAULT 'FOODHUB_DELIVERY';
+          END IF;
+
+          -- Orders table columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_foodhub_driver_id') THEN
+              ALTER TABLE "orders" ADD COLUMN "assigned_foodhub_driver_id" UUID;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assigned_restaurant_driver_id') THEN
+              ALTER TABLE "orders" ADD COLUMN "assigned_restaurant_driver_id" UUID;
           END IF;
       END $$;
     `);
