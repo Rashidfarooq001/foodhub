@@ -9,7 +9,6 @@ import {
   RefreshCw,
   MapPin,
   CheckCircle2,
-  AlertCircle,
   ExternalLink,
   ShieldCheck,
   Package,
@@ -18,10 +17,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { io } from 'socket.io-client';
 
-const getApiBase = () =>
-  typeof window !== 'undefined'
-    ? getApiBaseUrl()
-    : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+const API_BASE = getApiBaseUrl();
 
 export default function HotelDeliveryManagementPage() {
   const { user, accessToken } = useHotelAuthStore();
@@ -38,14 +34,12 @@ export default function HotelDeliveryManagementPage() {
     }
     setIsLoading(true);
     try {
-      // Query active orders from backend
-      const res = await fetch(`${getApiBase()}/orders?restaurantId=${restaurantId}&limit=50`, {
+      const res = await fetch(`${API_BASE}/orders?restaurantId=${restaurantId}&limit=50`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (res.ok) {
         const data = await res.json();
         const rawOrders = Array.isArray(data) ? data : data.orders ?? [];
-        // Filter strictly to active delivery lifecycle states
         const activeOnly = rawOrders.filter((ord: any) =>
           [
             'READY_FOR_PICKUP',
@@ -59,7 +53,7 @@ export default function HotelDeliveryManagementPage() {
         setLastRefreshed(new Date());
       }
     } catch {
-      /* offline */
+      /* ignore */
     } finally {
       setIsLoading(false);
     }
@@ -70,8 +64,7 @@ export default function HotelDeliveryManagementPage() {
 
     if (!restaurantId) return;
 
-    // Real-Time Socket.IO Synchronization
-    const socketUrl = getApiBase().replace('/api/v1', '');
+    const socketUrl = API_BASE.replace('/api/v1', '');
     const socket = io(`${socketUrl}/orders`, {
       transports: ['websocket', 'polling'],
     });
@@ -80,13 +73,13 @@ export default function HotelDeliveryManagementPage() {
       socket.emit('joinRestaurant', { restaurantId });
     });
 
-    socket.on('order.status_changed', () => {
+    const handleUpdate = () => {
       fetchActiveDeliveries();
-    });
+    };
 
-    socket.on('order.driver_assigned', () => {
-      fetchActiveDeliveries();
-    });
+    socket.on('order.status_changed', handleUpdate);
+    socket.on('order.driver_assigned', handleUpdate);
+    socket.on('ORDER_STATUS_CHANGED', handleUpdate);
 
     socket.on('driver.location_updated', (payload: { orderId: string; lat: number; lng: number }) => {
       setActiveDeliveries((prev) =>
@@ -98,7 +91,7 @@ export default function HotelDeliveryManagementPage() {
                 ...(ord.tracking || {}),
                 currentLat: payload.lat,
                 currentLng: payload.lng,
-                updatedAt: new Date().toISOString(),
+                lastPingAt: new Date().toISOString(),
               },
             };
           }
@@ -110,250 +103,170 @@ export default function HotelDeliveryManagementPage() {
     return () => {
       socket.disconnect();
     };
-  }, [restaurantId, accessToken]);
+  }, [accessToken, restaurantId]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'READY_FOR_PICKUP':
         return {
-          label: 'READY IN KITCHEN',
-          bg: 'bg-amber-100 text-amber-900 border-amber-200',
+          label: 'Awaiting Driver',
+          badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
         };
       case 'DRIVER_ASSIGNED':
-        return {
-          label: 'RIDER ASSIGNED — EN ROUTE',
-          bg: 'bg-blue-100 text-blue-900 border-blue-200',
-        };
       case 'ARRIVED_AT_RESTAURANT':
         return {
-          label: 'RIDER AT RESTAURANT — PICKUP PENDING',
-          bg: 'bg-indigo-100 text-indigo-900 border-indigo-200',
+          label: 'Driver at Store',
+          badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
         };
       case 'PICKED_UP':
       case 'OUT_FOR_DELIVERY':
         return {
-          label: 'OUT FOR DELIVERY TO CUSTOMER',
-          bg: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+          label: 'Out for Delivery',
+          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
         };
       default:
         return {
           label: status,
-          bg: 'bg-gray-100 text-gray-800 border-gray-200',
+          badgeClass: 'bg-gray-100 text-gray-800 border-gray-200',
         };
     }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-              Live Delivery Operations Monitor
-            </h1>
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+            <span>Delivery Tracking</span>
+            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              {activeDeliveries.length} Active in Transit
             </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Real-time GPS tracking, assigned courier partner telemetry &amp; live customer destination feeds
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Real-time delivery partner tracking &amp; order fulfillment status
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">
-            Updated: {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </span>
-          <button
-            onClick={fetchActiveDeliveries}
-            className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
+        <button
+          onClick={fetchActiveDeliveries}
+          disabled={isLoading}
+          className="self-start sm:self-auto flex items-center gap-2 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh Tracking</span>
+        </button>
       </div>
 
-      {/* Main Delivery Monitoring Stream */}
-      {isLoading && activeDeliveries.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center shadow-sm">
-          <RefreshCw className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-3" />
-          <p className="text-xs font-bold text-gray-500">Connecting to live delivery gateway...</p>
+      {/* Main Delivery Tracking List Cards */}
+      {isLoading ? (
+        <div className="py-16 text-center text-xs font-bold text-gray-400">
+          Loading live active deliveries...
         </div>
       ) : activeDeliveries.length === 0 ? (
-        /* Authoritative Clean Empty State */
-        <div className="rounded-3xl border border-dashed border-gray-200 bg-white p-16 text-center shadow-sm space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-black text-gray-900">No Active Deliveries En Route</h3>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              All prepared orders have been delivered or are awaiting food preparation in the Kitchen Queue. When a courier partner is assigned to an order, their live GPS coordinates and delivery status will appear here automatically.
-            </p>
-          </div>
+        <div className="py-16 text-center text-xs font-bold text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200 p-6 space-y-2">
+          <Bike className="h-10 w-10 mx-auto text-gray-300 mb-1" />
+          <p className="text-sm font-black text-gray-700">No Orders in Transit</p>
+          <p className="text-gray-400 max-w-sm mx-auto">
+            When kitchen orders are marked ready and assigned to courier partners, live GPS tracking cards will appear here.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {activeDeliveries.map((order) => {
-            const badge = getStatusBadge(order.status);
-            const driverInfo = order.deliveryJob?.driver || order.driver;
-            const driverUser = driverInfo?.user;
-            const driverProfile = driverUser?.profile;
-            const driverName = driverProfile?.firstName
-              ? `${driverProfile.firstName} ${driverProfile.lastName || ''}`.trim()
-              : (driverInfo?.name || 'ZaykaFood Fleet Courier');
-            const driverPhone = driverUser?.phone || driverInfo?.phone || null;
-
-            const customerUser = order.customer?.user;
-            const customerProfile = customerUser?.profile;
-            const customerName = customerProfile?.firstName
-              ? `${customerProfile.firstName} ${customerProfile.lastName || ''}`.trim()
-              : (order.customerName || 'Customer');
-            const customerPhone = customerUser?.phone || order.customerPhone || null;
-
-            const deliveryAddress = order.deliveryAddress;
-            const formattedCustomerAddress = typeof deliveryAddress === 'string'
-              ? deliveryAddress
-              : (deliveryAddress?.formattedAddress ||
-                 [deliveryAddress?.addressLine1, deliveryAddress?.city].filter(Boolean).join(', ') ||
-                 'Customer Destination Address');
-
-            const customerLat = typeof deliveryAddress === 'object' && typeof deliveryAddress?.latitude === 'number'
-              ? deliveryAddress.latitude
-              : null;
-            const customerLng = typeof deliveryAddress === 'object' && typeof deliveryAddress?.longitude === 'number'
-              ? deliveryAddress.longitude
-              : null;
-
-            const driverLat = order.tracking?.currentLat ?? null;
-            const driverLng = order.tracking?.currentLng ?? null;
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {activeDeliveries.map((delivery) => {
+            const statusInfo = getStatusBadge(delivery.status);
+            const driver = delivery.driver || delivery.driverAssignment?.driver;
+            const driverPhone = driver?.user?.phone || driver?.phone;
+            const customerAddress = delivery.deliveryAddress || delivery.address;
+            const destinationLat = customerAddress?.latitude || delivery.deliveryLat;
+            const destinationLng = customerAddress?.longitude || delivery.deliveryLng;
 
             return (
               <div
-                key={order.id}
-                className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition space-y-6"
+                key={delivery.id}
+                className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between"
               >
-                {/* Card Header: Order # & Status Badge */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-xl bg-purple-100 text-purple-800 px-3 py-1 text-xs font-black">
-                      ORDER #{order.orderNumber || order.id.slice(0, 8)}
-                    </span>
-                    <span className="text-xs font-bold text-gray-900">
-                      ₹{order.totalAmount || 0}
+                <div className="space-y-3">
+                  {/* Order Top Bar */}
+                  <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-3">
+                    <div>
+                      <span className="text-sm sm:text-base font-black text-gray-900">
+                        #{delivery.orderNumber || delivery.id.slice(0, 8)}
+                      </span>
+                      <p className="text-[11px] font-bold text-gray-500 mt-0.5">
+                        Customer: {delivery.customerName || 'Customer'}
+                      </p>
+                    </div>
+
+                    <span className={`rounded-xl px-2.5 py-1 text-[10px] font-black uppercase border ${statusInfo.badgeClass}`}>
+                      {statusInfo.label}
                     </span>
                   </div>
 
-                  <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${badge.bg}`}>
-                    {badge.label}
-                  </span>
-                </div>
-
-                {/* Assigned Courier Partner Telemetry */}
-                <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100 space-y-3">
-                  <div className="flex items-center justify-between">
+                  {/* Driver Info Card */}
+                  <div className="p-3 rounded-2xl bg-gray-50/80 border border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black">
-                        <Bike className="h-5 w-5" />
+                      <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <Bike className="h-4 w-4" />
                       </div>
                       <div>
-                        <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block">
-                          Assigned Courier Partner
+                        <span className="text-xs font-black text-gray-900 block truncate max-w-[140px]">
+                          {driver?.user?.profile?.firstName ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}` : driver?.name || 'Assigned Rider'}
                         </span>
-                        <h4 className="text-sm font-black text-gray-900">{driverName}</h4>
+                        <span className="text-[10px] text-emerald-700 font-bold block">
+                          {driver?.vehicleNumber || 'KA-01-HA-9821'}
+                        </span>
                       </div>
                     </div>
 
                     {driverPhone && (
                       <a
                         href={`tel:${driverPhone}`}
-                        className="flex items-center gap-1 rounded-xl bg-white border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition shadow-sm"
+                        className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3 py-2 text-xs font-black text-white shadow-sm transition min-h-[40px]"
                       >
-                        <Phone className="h-3.5 w-3.5 text-emerald-600" />
-                        Call Rider
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>Call</span>
                       </a>
                     )}
                   </div>
 
-                  {/* Telemetry / Live GPS */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200/60 text-xs">
-                    <div>
-                      <span className="text-[10px] text-gray-400 font-bold block">CURRENT GPS</span>
-                      <span className="font-mono text-[11px] font-bold text-gray-800">
-                        {driverLat && driverLng
-                          ? `${driverLat.toFixed(4)}, ${driverLng.toFixed(4)}`
-                          : 'Awaiting first fix'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-gray-400 font-bold block">LAST TELEMETRY HEARTBEAT</span>
-                      <span className="text-[11px] font-bold text-gray-800">
-                        {order.tracking?.updatedAt
-                          ? new Date(order.tracking.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                          : 'Active Signal'}
+                  {/* Delivery Destination */}
+                  <div className="text-xs space-y-1">
+                    <div className="flex items-start gap-1.5 text-gray-700 font-medium">
+                      <MapPin className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">
+                        {customerAddress?.formattedAddress || customerAddress?.street || 'Delivery Address specified by customer'}
                       </span>
                     </div>
                   </div>
-                </div>
 
-                {/* Destination & Routing Details */}
-                <div className="space-y-3 text-xs">
-                  {/* Restaurant Pickup Location */}
-                  <div className="flex items-start gap-2.5">
-                    <MapPin className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block">
-                        Pickup Location
-                      </span>
-                      <p className="font-bold text-gray-800">
-                        {order.restaurant?.name || 'Your Restaurant'} — {order.restaurant?.addressLine || 'Store Front'}
-                      </p>
+                  {/* Order Items Preview */}
+                  <div className="p-2.5 rounded-xl bg-orange-50/30 border border-orange-100 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-gray-900 mb-1">
+                      <Package className="h-3.5 w-3.5 text-orange-600" />
+                      <span>Items in Package ({delivery.items?.length || 1}):</span>
                     </div>
-                  </div>
-
-                  {/* Customer Drop-off Location */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
-                      <MapPin className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block">
-                          Customer Destination ({customerName})
-                        </span>
-                        <p className="font-bold text-gray-800">{formattedCustomerAddress}</p>
-                      </div>
-                    </div>
-
-                    {customerLat && customerLng && (
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 rounded-xl bg-purple-50 border border-purple-200 px-2.5 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition shrink-0"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Map
-                      </a>
-                    )}
+                    <p className="text-[11px] text-gray-600 truncate">
+                      {delivery.items?.map((it: any) => `${it.quantity}× ${it.name}`).join(', ') || 'Food order items'}
+                    </p>
                   </div>
                 </div>
 
-                {/* Order Item Summary */}
-                <div className="border-t border-gray-100 pt-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 font-bold mb-1.5">
-                    <span className="flex items-center gap-1">
-                      <Package className="h-3.5 w-3.5" />
-                      Items in Transit ({(order.orderItems || []).reduce((acc: number, i: any) => acc + (i.quantity || 1), 0)})
-                    </span>
-                    <span>Placed: {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                {/* External Navigation Link if destination coords exist */}
+                {destinationLat && destinationLng && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${destinationLat},${destinationLng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 py-2.5 text-xs font-bold text-gray-700 transition min-h-[40px]"
+                    >
+                      <Navigation className="h-3.5 w-3.5 text-blue-600" />
+                      <span>View Route on Maps</span>
+                      <ExternalLink className="h-3 w-3 text-gray-400" />
+                    </a>
                   </div>
-                  <p className="text-xs text-gray-700 font-medium">
-                    {(order.orderItems || []).map((i: any) => `${i.quantity}x ${i.foodItem?.name || i.name || 'Item'}`).join(', ')}
-                  </p>
-                </div>
+                )}
               </div>
             );
           })}

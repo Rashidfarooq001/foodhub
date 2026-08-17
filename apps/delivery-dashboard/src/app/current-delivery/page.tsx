@@ -7,11 +7,14 @@ import {
   ShieldCheck,
   Store,
   User,
-  X,
   Navigation,
   CheckCircle2,
-  AlertTriangle,
-  QrCode,
+  AlertCircle,
+  MapPin,
+  Clock,
+  ArrowRight,
+  ExternalLink,
+  Package,
 } from 'lucide-react';
 
 import { getApiBaseUrl } from '@foodhub/config';
@@ -19,16 +22,6 @@ import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
-
-const DynamicDeliveryMap = dynamic(
-  () =>
-    import('../../components/navigation/DeliveryMap').then(
-      (m) => m.DeliveryMap,
-    ),
-  {
-    ssr: false,
-  },
-);
 
 export default function CurrentDeliveryPage() {
   const { user, accessToken } = useDeliveryAuthStore();
@@ -39,24 +32,20 @@ export default function CurrentDeliveryPage() {
   // OTP inputs
   const [pickupOtp, setPickupOtp] = useState('');
   const [deliveryOtp, setDeliveryOtp] = useState('');
-  const [qrTokenInput, setQrTokenInput] = useState('');
-  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   const loadCurrentJob = async () => {
-    if (!user || !accessToken) {
+    if (!accessToken) {
       setLoading(false);
       return;
     }
 
     try {
       const res = await fetch(`${API_BASE}/delivery/current`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!res.ok) {
@@ -66,8 +55,8 @@ export default function CurrentDeliveryPage() {
 
       const data = await res.json();
       setCurrentJob(data || null);
-    } catch (err) {
-      console.error('Failed to fetch current job:', err);
+    } catch {
+      /* offline */
     } finally {
       setLoading(false);
     }
@@ -75,7 +64,7 @@ export default function CurrentDeliveryPage() {
 
   useEffect(() => {
     loadCurrentJob();
-  }, [user, accessToken]);
+  }, [accessToken]);
 
   // Real Driver GPS streaming during active delivery
   useEffect(() => {
@@ -100,9 +89,7 @@ export default function CurrentDeliveryPage() {
           lng: longitude,
         });
       },
-      (err) => {
-        console.warn('Geolocation watcher warning:', err.message);
-      },
+      () => {},
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
     );
 
@@ -160,43 +147,11 @@ export default function CurrentDeliveryPage() {
         throw new Error(data.message || 'Invalid pickup code');
       }
 
-      setSuccessMessage('Pickup verified successfully!');
+      setSuccessMessage('Pickup verified successfully! Start delivery trip.');
       setPickupOtp('');
       await loadCurrentJob();
     } catch (err: any) {
       setError(err.message || 'Failed to verify pickup OTP');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyPickupQr = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentJob || !qrTokenInput) return;
-    setError('');
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/verify-pickup-qr`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ qrToken: qrTokenInput }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Invalid QR token');
-      }
-
-      setSuccessMessage('Pickup verified via QR token successfully!');
-      setQrTokenInput('');
-      setQrModalOpen(false);
-      await loadCurrentJob();
-    } catch (err: any) {
-      setError(err.message || 'Failed to verify QR token');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,10 +173,10 @@ export default function CurrentDeliveryPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to start delivery');
+        throw new Error(data.message || 'Failed to start delivery trip');
       }
 
-      setSuccessMessage('Trip started! Proceed to customer delivery address.');
+      setSuccessMessage('Delivery trip started! Navigate to customer address.');
       await loadCurrentJob();
     } catch (err: any) {
       setError(err.message || 'Failed to start delivery');
@@ -248,12 +203,12 @@ export default function CurrentDeliveryPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Invalid customer delivery OTP');
+        throw new Error(data.message || 'Invalid delivery OTP provided by customer');
       }
 
-      setSuccessMessage('Order delivered successfully! Trip earning recorded in settlements ledger.');
+      setSuccessMessage('Order delivered successfully! Payout added to your settlement ledger.');
       setDeliveryOtp('');
-      setCurrentJob(null);
+      await loadCurrentJob();
     } catch (err: any) {
       setError(err.message || 'Failed to verify delivery OTP');
     } finally {
@@ -263,288 +218,275 @@ export default function CurrentDeliveryPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+      <div className="py-16 text-center text-xs font-bold text-gray-400">
+        Loading active delivery console...
       </div>
     );
   }
 
   if (!currentJob) {
     return (
-      <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center shadow-sm max-w-lg mx-auto my-12 space-y-4">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-          <CheckCircle2 className="h-8 w-8" />
-        </div>
-        <h2 className="text-2xl font-black text-gray-900">No Active Delivery Job</h2>
-        <p className="text-xs text-gray-500">
-          You currently have no active trip. Ensure your status is set to 🟢 ONLINE to receive dispatches.
+      <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-gray-200 p-6 space-y-3">
+        <Navigation className="h-10 w-10 mx-auto text-gray-300 mb-1" />
+        <h2 className="text-base font-black text-gray-900">No Active Delivery Job</h2>
+        <p className="text-xs text-gray-500 max-w-sm mx-auto">
+          You do not have any active delivery assigned. Head over to available orders to pick up a delivery request.
         </p>
       </div>
     );
   }
 
-  const orderStatus = currentJob.status || currentJob.jobStatus;
+  const restaurantPhone = currentJob.restaurantPhone || currentJob.restaurant?.phone;
+  const customerPhone = currentJob.customerPhone || currentJob.customer?.phone;
+  const destinationLat = currentJob.deliveryLat || currentJob.deliveryAddress?.latitude;
+  const destinationLng = currentJob.deliveryLng || currentJob.deliveryAddress?.longitude;
+  const restaurantLat = currentJob.pickupLat || currentJob.restaurant?.latitude;
+  const restaurantLng = currentJob.pickupLng || currentJob.restaurant?.longitude;
+
+  // Active Target for Google Maps depending on status
+  const targetLat = currentJob.status === 'ARRIVED_AT_RESTAURANT' || currentJob.status === 'OUT_FOR_DELIVERY' || currentJob.status === 'PICKED_UP'
+    ? destinationLat
+    : restaurantLat;
+  const targetLng = currentJob.status === 'ARRIVED_AT_RESTAURANT' || currentJob.status === 'OUT_FOR_DELIVERY' || currentJob.status === 'PICKED_UP'
+    ? destinationLng
+    : restaurantLng;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
-      {/* Alert Banners */}
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-20">
+      {/* Messages */}
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-800 shadow-sm flex items-center justify-between">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
-          <button onClick={() => setError('')} className="p-1 hover:bg-rose-100 rounded-lg">
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
 
       {successMessage && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 shadow-sm flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-bold text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{successMessage}</span>
-          <button onClick={() => setSuccessMessage('')} className="p-1 hover:bg-emerald-100 rounded-lg">
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
 
-      {/* Header Status Card */}
-      <div className="rounded-3xl bg-gray-900 p-6 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-              TRIP #{currentJob.orderNumber}
-            </span>
-            <span className="text-xs font-bold text-gray-400">Payout: ₹{currentJob.riderPayout}</span>
+      {/* Top Bar: Order ID + Status */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div>
+            <span className="text-xs text-gray-400 font-bold uppercase block">Current Active Job</span>
+            <h1 className="text-lg sm:text-xl font-black text-gray-900">
+              #{currentJob.orderNumber || currentJob.id.slice(0, 8)}
+            </h1>
           </div>
-          <h1 className="text-2xl font-black mt-2 text-white">{currentJob.restaurantName}</h1>
-          <p className="text-xs text-gray-400 mt-0.5">{currentJob.restaurantAddress}</p>
+
+          <span className="rounded-xl bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 text-xs font-black uppercase">
+            {currentJob.status?.replace(/_/g, ' ')}
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {currentJob.restaurantLat && currentJob.restaurantLng && (
+        {/* Lifecycle Step Progress */}
+        <div className="grid grid-cols-4 gap-1 text-center pt-1">
+          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+            ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
+              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            1. Assigned
+          </div>
+          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+            ['ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
+              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            2. Arrived
+          </div>
+          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+            ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
+              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            3. Picked Up
+          </div>
+          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+            currentJob.status === 'DELIVERED'
+              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            4. Delivered
+          </div>
+        </div>
+      </div>
+
+      {/* Restaurant Card with Call & Address */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 mt-0.5">
+              <Store className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">Pickup Location</span>
+              <h3 className="font-black text-sm text-gray-900">{currentJob.restaurantName || 'Restaurant Kitchen'}</h3>
+              <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                {currentJob.restaurantAddress || currentJob.restaurant?.address || 'Restaurant address in city'}
+              </p>
+            </div>
+          </div>
+
+          {restaurantPhone && (
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.restaurantLat},${currentJob.restaurantLng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700 transition-all shadow-md"
+              href={`tel:${restaurantPhone}`}
+              className="flex items-center gap-1 rounded-xl bg-orange-50 border border-orange-200 px-3 py-2 text-xs font-black text-orange-800 hover:bg-orange-100 transition min-h-[40px] shrink-0"
             >
-              <Navigation className="h-4 w-4" /> Navigate to Restaurant
+              <Phone className="h-3.5 w-3.5" />
+              <span>Call</span>
             </a>
           )}
-          <a
-            href={`tel:${currentJob.restaurantPhone}`}
-            className="flex items-center gap-1.5 rounded-2xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
-          >
-            <Phone className="h-4 w-4" /> Call Restaurant
-          </a>
         </div>
       </div>
 
-      {/* STEP 1: DRIVER_ASSIGNED -> ARRIVED */}
-      {orderStatus === 'DRIVER_ASSIGNED' && (
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <span className="text-xs font-black uppercase tracking-wider text-amber-600">STEP 1: EN ROUTE TO RESTAURANT</span>
-            <span className="text-xs font-bold text-gray-500">Distance: {currentJob.distanceKm} km</span>
-          </div>
-
-          <p className="text-xs text-gray-600 font-medium">
-            Navigate to <strong>{currentJob.restaurantName}</strong> and tap <strong>I HAVE ARRIVED AT RESTAURANT</strong> once you reach the location.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {currentJob.restaurantLat && currentJob.restaurantLng ? (
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.restaurantLat},${currentJob.restaurantLng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-xs font-black text-orange-700 hover:bg-orange-100 transition"
-              >
-                <Navigation className="h-4 w-4" /> OPEN RESTAURANT NAVIGATION
-              </a>
-            ) : (
-              <div className="text-xs text-gray-400 font-bold p-3">Restaurant location coordinates pending</div>
-            )}
-
-            <button
-              disabled={isSubmitting}
-              onClick={handleArrived}
-              className="rounded-2xl bg-emerald-600 py-3.5 text-xs font-black text-white shadow-lg hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Updating...' : 'I HAVE ARRIVED AT RESTAURANT'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: ARRIVED_AT_RESTAURANT -> PICKUP VERIFICATION */}
-      {orderStatus === 'ARRIVED_AT_RESTAURANT' && (
-        <div className="rounded-3xl border-2 border-emerald-500/30 bg-emerald-50/50 p-6 shadow-md space-y-6">
-          <div className="flex items-center justify-between border-b border-emerald-200/50 pb-3">
+      {/* Customer Card with Call & Destination */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+              <User className="h-4 w-4" />
+            </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800 block">STEP 2: PICKUP VERIFICATION REQUIRED</span>
-              <h3 className="text-lg font-black text-gray-900">Arrived at {currentJob.restaurantName}</h3>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">Delivery Destination</span>
+              <h3 className="font-black text-sm text-gray-900">{currentJob.customerName || 'Customer'}</h3>
+              <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                {currentJob.customerAddress || currentJob.deliveryAddress?.formattedAddress || 'Customer delivery address'}
+              </p>
             </div>
-            <button
-              onClick={() => setQrModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700"
-            >
-              <QrCode className="h-4 w-4" /> SCAN QR
-            </button>
           </div>
 
-          <form onSubmit={handleVerifyPickup} className="space-y-4">
-            <label className="block text-xs font-bold text-gray-700">
-              Ask restaurant staff for the 4-digit pickup code:
-            </label>
-            <div className="flex items-center gap-3 max-w-xs">
-              <input
-                type="text"
-                maxLength={4}
-                value={pickupOtp}
-                onChange={(e) => setPickupOtp(e.target.value)}
-                placeholder="1234"
-                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-center text-xl font-black tracking-widest text-gray-900 focus:border-emerald-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting || pickupOtp.length !== 4}
-                className="rounded-2xl bg-emerald-600 px-6 py-3.5 text-xs font-black text-white shadow-lg hover:bg-emerald-700 disabled:opacity-50 shrink-0"
-              >
-                {isSubmitting ? 'Verifying...' : 'VERIFY & PICK UP'}
-              </button>
-            </div>
-          </form>
+          {customerPhone && (
+            <a
+              href={`tel:${customerPhone}`}
+              className="flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition min-h-[40px] shrink-0"
+            >
+              <Phone className="h-3.5 w-3.5" />
+              <span>Call</span>
+            </a>
+          )}
         </div>
+      </div>
+
+      {/* One-Touch Real GPS Navigation Button */}
+      {targetLat && targetLng && (
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 py-3.5 text-xs font-black text-white shadow-lg shadow-blue-500/25 transition min-h-[44px]"
+        >
+          <Navigation className="h-4 w-4" />
+          <span>Open Google Maps Turn-by-Turn Navigation</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       )}
 
-      {/* STEP 3: PICKED_UP -> START DELIVERY */}
-      {orderStatus === 'PICKED_UP' && (
-        <div className="rounded-3xl border border-emerald-500/30 bg-white p-6 shadow-md space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <span className="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-black">
-              PICKED UP ✓
-            </span>
-            <span className="text-xs font-bold text-gray-500">Ready to start journey</span>
-          </div>
+      {/* ===================================================================== */}
+      {/* OPERATIONAL LIFECYCLE ACTION PANELS                                   */}
+      {/* ===================================================================== */}
 
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-gray-500 uppercase">Customer Information</h4>
-            <p className="text-base font-black text-gray-900">{currentJob.customerName}</p>
-            <p className="text-xs text-gray-600">{currentJob.customerAddress}</p>
+      {/* 1. If assigned -> Arrived at Restaurant */}
+      {currentJob.status === 'DRIVER_ASSIGNED' && (
+        <div className="rounded-2xl sm:rounded-3xl border border-blue-200 bg-blue-50/50 p-4 sm:p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 text-xs font-black text-blue-900 uppercase">
+            <Clock className="h-4 w-4 text-blue-600" />
+            <span>Step 1: Arrive at Restaurant</span>
           </div>
-
+          <p className="text-xs text-blue-800">
+            Head to the restaurant kitchen. Once you arrive at the counter, tap the button below.
+          </p>
           <button
+            onClick={handleArrived}
             disabled={isSubmitting}
-            onClick={handleStartDelivery}
-            className="w-full rounded-2xl bg-emerald-600 py-4 text-xs font-black text-white shadow-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 py-3.5 text-xs font-black text-white shadow-md transition min-h-[44px]"
           >
-            <Navigation className="h-4 w-4" /> {isSubmitting ? 'Starting...' : 'START DELIVERY TO CUSTOMER'}
+            <span>{isSubmitting ? 'Updating...' : 'I HAVE ARRIVED AT RESTAURANT'}</span>
           </button>
         </div>
       )}
 
-      {/* STEP 4: OUT_FOR_DELIVERY -> CUSTOMER VERIFICATION */}
-      {orderStatus === 'OUT_FOR_DELIVERY' && (
-        <div className="rounded-3xl border-2 border-teal-500/30 bg-teal-50/40 p-6 shadow-md space-y-6">
-          <div className="flex items-center justify-between border-b border-teal-200/50 pb-3">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-teal-800 block">STEP 4: OUT FOR DELIVERY</span>
-              <h3 className="text-lg font-black text-gray-900">Deliver to {currentJob.customerName}</h3>
-            </div>
-            <a
-              href={`tel:${currentJob.customerPhone}`}
-              className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-teal-700"
+      {/* 2. If arrived at restaurant -> Verify Pickup OTP */}
+      {currentJob.status === 'ARRIVED_AT_RESTAURANT' && (
+        <div className="rounded-2xl sm:rounded-3xl border border-amber-200 bg-amber-50/50 p-4 sm:p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 text-xs font-black text-amber-900 uppercase">
+            <ShieldCheck className="h-4 w-4 text-amber-600" />
+            <span>Step 2: Enter 4-Digit Pickup OTP</span>
+          </div>
+          <p className="text-xs text-amber-800">
+            Ask the restaurant kitchen staff for the 4-digit pickup code shown on their KDS.
+          </p>
+
+          <form onSubmit={handleVerifyPickup} className="space-y-3">
+            <input
+              type="text"
+              required
+              maxLength={6}
+              placeholder="Enter Pickup Code"
+              value={pickupOtp}
+              onChange={(e) => setPickupOtp(e.target.value)}
+              className="w-full text-center text-xl font-mono font-black tracking-widest rounded-2xl border border-amber-300 bg-white py-3 text-gray-900 focus:outline-none min-h-[44px]"
+            />
+            <button
+              type="submit"
+              disabled={isSubmitting || !pickupOtp}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-600 hover:bg-amber-700 py-3.5 text-xs font-black text-white shadow-md transition min-h-[44px]"
             >
-              <Phone className="h-4 w-4" /> CALL CUSTOMER
-            </a>
-          </div>
-
-          <div className="rounded-2xl bg-white p-4 border border-teal-100 space-y-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-gray-500 block uppercase">Destination Address</span>
-              {currentJob.customerLat && currentJob.customerLng && (
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${currentJob.customerLat},${currentJob.customerLng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-black text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition"
-                >
-                  <Navigation className="h-3.5 w-3.5" /> Open Navigation
-                </a>
-              )}
-            </div>
-            <p className="font-bold text-gray-900 text-sm">{currentJob.customerAddress}</p>
-          </div>
-
-          <form onSubmit={handleVerifyDelivery} className="space-y-4">
-            <label className="block text-xs font-bold text-gray-700">
-              Ask customer for 4-digit delivery verification OTP:
-            </label>
-            <div className="flex items-center gap-3 max-w-xs">
-              <input
-                type="text"
-                maxLength={4}
-                value={deliveryOtp}
-                onChange={(e) => setDeliveryOtp(e.target.value)}
-                placeholder="1234"
-                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-center text-xl font-black tracking-widest text-gray-900 focus:border-teal-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting || deliveryOtp.length !== 4}
-                className="rounded-2xl bg-teal-600 px-6 py-3.5 text-xs font-black text-white shadow-lg hover:bg-teal-700 disabled:opacity-50 shrink-0"
-              >
-                {isSubmitting ? 'Verifying...' : 'MARK DELIVERED'}
-              </button>
-            </div>
+              <span>{isSubmitting ? 'Verifying...' : 'VERIFY PICKUP & RECEIVE PACKAGE'}</span>
+            </button>
           </form>
         </div>
       )}
 
-      {/* Items Breakdown */}
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-        <h4 className="text-xs font-black text-gray-500 uppercase tracking-wider">Order Package Items</h4>
-        <div className="divide-y divide-gray-100">
-          {(currentJob.items || []).map((item: any, idx: number) => (
-            <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-              <span className="font-bold text-gray-900">{item.quantity}x {item.name}</span>
-              <span className="text-gray-500 font-bold">₹{item.unitPrice}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* QR Scanner Token Modal */}
-      {qrModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-black text-gray-900">Scan QR Code Token</h3>
-              <button onClick={() => setQrModalOpen(false)} className="rounded-full p-1 hover:bg-gray-100 text-gray-400">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleVerifyPickupQr} className="space-y-4">
-              <label className="block text-xs font-bold text-gray-700">
-                Scan or paste signed QR token from restaurant display:
-              </label>
-              <textarea
-                rows={3}
-                value={qrTokenInput}
-                onChange={(e) => setQrTokenInput(e.target.value)}
-                placeholder="Paste signed QR token payload here..."
-                className="w-full rounded-2xl border border-gray-300 p-3 text-xs font-mono text-gray-900 focus:border-purple-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting || !qrTokenInput}
-                className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-lg hover:bg-purple-700 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Verifying QR...' : 'VERIFY QR PICKUP'}
-              </button>
-            </form>
+      {/* 3. If picked up -> Start Delivery Trip */}
+      {currentJob.status === 'PICKED_UP' && (
+        <div className="rounded-2xl sm:rounded-3xl border border-orange-200 bg-orange-50/50 p-4 sm:p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 text-xs font-black text-orange-900 uppercase">
+            <Navigation className="h-4 w-4 text-orange-600" />
+            <span>Step 3: Start Delivery Trip</span>
           </div>
+          <p className="text-xs text-orange-800">
+            Package collected in delivery bag. Tap below to start your trip towards customer location.
+          </p>
+          <button
+            onClick={handleStartDelivery}
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-orange-600 hover:bg-orange-700 py-3.5 text-xs font-black text-white shadow-md transition min-h-[44px]"
+          >
+            <span>{isSubmitting ? 'Starting...' : 'START DELIVERY TRIP'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* 4. If Out for Delivery -> Verify Delivery OTP from Customer */}
+      {currentJob.status === 'OUT_FOR_DELIVERY' && (
+        <div className="rounded-2xl sm:rounded-3xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 text-xs font-black text-emerald-900 uppercase">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            <span>Step 4: Customer Handover &amp; Delivery OTP</span>
+          </div>
+          <p className="text-xs text-emerald-800">
+            Hand over food package to customer and ask them for their 4-digit Delivery OTP.
+          </p>
+
+          <form onSubmit={handleVerifyDelivery} className="space-y-3">
+            <input
+              type="text"
+              required
+              maxLength={6}
+              placeholder="Customer Delivery OTP"
+              value={deliveryOtp}
+              onChange={(e) => setDeliveryOtp(e.target.value)}
+              className="w-full text-center text-xl font-mono font-black tracking-widest rounded-2xl border border-emerald-300 bg-white py-3 text-gray-900 focus:outline-none min-h-[44px]"
+            />
+            <button
+              type="submit"
+              disabled={isSubmitting || !deliveryOtp}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-3.5 text-xs font-black text-white shadow-md transition min-h-[44px]"
+            >
+              <span>{isSubmitting ? 'Verifying...' : 'COMPLETE ORDER & RECORD EARNINGS'}</span>
+            </button>
+          </form>
         </div>
       )}
     </div>

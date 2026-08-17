@@ -29,8 +29,8 @@ export default function AdminAccountSettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'security-questions' | 'account'>('profile');
 
   // Profile State
-  const [firstName, setFirstName] = useState(user?.firstName || 'Rashid');
-  const [lastName, setLastName] = useState(user?.lastName || 'Reshi');
+  const [firstName, setFirstName] = useState(user?.firstName || 'Admin');
+  const [lastName, setLastName] = useState(user?.lastName || 'User');
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
 

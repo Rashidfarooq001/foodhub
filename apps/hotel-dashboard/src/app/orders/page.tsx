@@ -582,14 +582,14 @@ export default function HotelOrdersPage() {
                     <button
                       disabled={processingId === o.id}
                       onClick={() => handleAcceptOrder(o.id)}
-                      className="flex-1 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50"
+                      className="flex-1 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 min-h-[44px]"
                     >
                       {processingId === o.id ? 'Accepting...' : 'ACCEPT ORDER'}
                     </button>
                     <button
                       disabled={processingId === o.id}
                       onClick={() => setRejectingOrder(o)}
-                      className="rounded-2xl border border-rose-200 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                      className="rounded-2xl border border-rose-200 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50 min-h-[44px]"
                     >
                       REJECT
                     </button>
@@ -600,7 +600,7 @@ export default function HotelOrdersPage() {
                   <button
                     disabled={processingId === o.id}
                     onClick={() => handleStartPreparing(o.id)}
-                    className="w-full rounded-2xl bg-orange-600 py-3 text-xs font-black text-white shadow-md hover:bg-orange-700 disabled:opacity-50"
+                    className="w-full rounded-2xl bg-orange-600 py-3 text-xs font-black text-white shadow-md hover:bg-orange-700 disabled:opacity-50 min-h-[44px]"
                   >
                     {processingId === o.id ? 'Updating...' : 'START PREPARING'}
                   </button>
@@ -610,7 +610,7 @@ export default function HotelOrdersPage() {
                   <button
                     disabled={processingId === o.id}
                     onClick={() => handleMarkReady(o.id)}
-                    className="w-full rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50"
+                    className="w-full rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 min-h-[44px]"
                   >
                     {processingId === o.id ? 'Updating...' : 'MARK READY FOR PICKUP'}
                   </button>
@@ -619,7 +619,7 @@ export default function HotelOrdersPage() {
                 {['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status) && (
                   <button
                     onClick={() => handleOpenAssignRiderModal(o)}
-                    className="w-full rounded-2xl bg-purple-600 py-2.5 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5"
+                    className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
                   >
                     <UserCheck className="h-4 w-4" /> SELECT &amp; ASSIGN RIDER
                   </button>

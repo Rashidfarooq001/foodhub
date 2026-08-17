@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, FileText, Eye, X, ExternalLink } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  FileText,
+  Eye,
+  X,
+  ExternalLink,
+  Bike,
+  RefreshCw,
+  Phone,
+  ShieldCheck,
+} from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
 import { getImageUrl } from '@foodhub/config';
 
@@ -9,6 +20,7 @@ interface PendingDriverApplication {
   id: string;
   licenseNumber: string;
   isApproved: boolean;
+  status?: string;
   user?: {
     phone?: string;
     email?: string;
@@ -27,16 +39,20 @@ interface PendingDriverApplication {
 export default function AdminDriverApprovalPage() {
   const [applications, setApplications] = useState<PendingDriverApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchApplications = async () => {
+    setIsLoading(true);
     try {
       const res = await adminFetch('/drivers/applications');
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
       }
-    } catch { /* offline */ } finally {
+    } catch {
+      /* offline */
+    } finally {
       setIsLoading(false);
     }
   };
@@ -46,186 +62,161 @@ export default function AdminDriverApprovalPage() {
   }, []);
 
   const handleAction = async (id: string, isApproved: boolean) => {
+    setIsProcessing(true);
     try {
       const res = await adminFetch(`/drivers/${id}/approval`, {
         method: 'PATCH',
-        body: JSON.stringify({ isApproved }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isApproved, status: isApproved ? 'APPROVED' : 'REJECTED' }),
       });
       if (res.ok) {
-        fetchApplications();
+        await fetchApplications();
       }
-    } catch { /* offline */ }
+    } catch {
+      /* ignore */
+    } finally {
+      setIsProcessing(false);
+    }
   };
-
-  const getDocUrl = (app: PendingDriverApplication, type: string): string | null => {
-    const doc = app.documents?.find((d) => d.documentType === type);
-    return doc?.documentUrl ? getImageUrl(doc.documentUrl) : null;
-  };
-
-  const isPdf = (url: string) => url.toLowerCase().includes('.pdf');
 
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-100 pb-4">
-        <h1 className="text-3xl font-black text-gray-900">
-          Courier Self-Registration Applications ({applications.length})
-        </h1>
-        <p className="text-xs text-gray-500">
-          Verify driving licenses, vehicle RC records &amp; payout bank accounts before approving driver fleet access
-        </p>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Courier Verification Queue
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Verify driving licenses, vehicle RC records &amp; fleet onboarding
+          </p>
+        </div>
+
+        <button
+          onClick={fetchApplications}
+          disabled={isLoading}
+          className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
-      <div className="space-y-4">
+      {/* Applications List */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900">
+          Pending Driver Applications ({applications.length})
+        </h2>
+
         {isLoading ? (
-          <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
-            Loading courier onboarding applications...
-          </div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading driver applications...</div>
         ) : applications.length === 0 ? (
-          <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
+          <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-6">
+            <Bike className="h-8 w-8 mx-auto text-gray-300 mb-1" />
             No pending driver partner applications requiring review right now.
           </div>
         ) : (
-          applications.map((app) => (
-            <div key={app.id} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-              <div className="flex flex-col justify-between gap-2 border-b border-gray-100 pb-3 sm:flex-row sm:items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-black text-gray-900">
-                      {app.user?.profile?.firstName} {app.user?.profile?.lastName || ''}
-                    </h3>
-                    <span className="rounded-full bg-amber-100 px-3 py-0.5 text-[10px] font-black text-amber-800">
-                      PENDING VERIFICATION
+          <div className="space-y-3">
+            {applications.map((app) => {
+              const name = `${app.user?.profile?.firstName || ''} ${app.user?.profile?.lastName || ''}`.trim() || 'Courier Applicant';
+              return (
+                <div
+                  key={app.id}
+                  className="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
+                    <div>
+                      <h3 className="font-black text-sm text-gray-900">{name}</h3>
+                      <p className="text-[11px] text-gray-500 font-medium">{app.user?.phone || 'No phone'}</p>
+                    </div>
+
+                    <span className="rounded-xl bg-amber-100 text-amber-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+                      Pending
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">Phone: {app.user?.phone}</p>
-                </div>
-                <span className="text-xs font-bold text-gray-600">DL: {app.licenseNumber}</span>
-              </div>
 
-              {/* Courier Verification Documents */}
-              <div className="rounded-2xl bg-indigo-50/60 p-4 border border-indigo-100 space-y-2">
-                <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">
-                  Courier Verification Documents
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <span className="block font-semibold text-indigo-700 mb-1">Driving License Photo</span>
-                    {getDocUrl(app, 'DL') ? (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewDoc({
-                          url: getDocUrl(app, 'DL')!,
-                          title: `${app.user?.profile?.firstName || 'Driver'}'s Driving License`,
-                          type: 'DL'
-                        })}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> Preview DL Document
-                      </button>
-                    ) : (
-                      <span className="text-indigo-400 font-bold">Document Pending</span>
-                    )}
+                  <div className="text-xs space-y-1">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Driving License</span>
+                    <span className="font-mono font-bold text-gray-900">{app.licenseNumber || 'DL-2024-XXXX'}</span>
                   </div>
-                  <div>
-                    <span className="block font-semibold text-indigo-700 mb-1">Vehicle RC Document</span>
-                    {getDocUrl(app, 'RC') ? (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewDoc({
-                          url: getDocUrl(app, 'RC')!,
-                          title: `${app.user?.profile?.firstName || 'Driver'}'s Vehicle RC Document`,
-                          type: 'RC'
-                        })}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> Preview RC Document
-                      </button>
-                    ) : (
-                      <span className="text-indigo-400 font-bold">Document Pending</span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="block font-semibold text-indigo-700 mb-1">Aadhaar / ID Proof</span>
-                    {getDocUrl(app, 'AADHAAR') ? (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewDoc({
-                          url: getDocUrl(app, 'AADHAAR')!,
-                          title: `${app.user?.profile?.firstName || 'Driver'}'s Identity Proof`,
-                          type: 'AADHAAR'
-                        })}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> Preview ID Document
-                      </button>
-                    ) : (
-                      <span className="text-indigo-400 font-bold">Document Pending</span>
-                    )}
+
+                  {/* Document Links */}
+                  {app.documents && app.documents.length > 0 && (
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-1.5 text-xs">
+                      <span className="text-[10px] font-black uppercase text-gray-400 block">SUBMITTED KYC DOCUMENTS</span>
+                      <div className="flex flex-wrap gap-2">
+                        {app.documents.map((doc, dIdx) => (
+                          <button
+                            key={dIdx}
+                            type="button"
+                            onClick={() => setPreviewDoc({ url: getImageUrl(doc.documentUrl), title: doc.documentType })}
+                            className="inline-flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-bold text-teal-800 hover:bg-teal-50"
+                          >
+                            <FileText className="h-3 w-3 text-teal-600" />
+                            <span>{doc.documentType}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-2 border-t border-gray-100 flex gap-2">
+                    <button
+                      onClick={() => handleAction(app.id, true)}
+                      disabled={isProcessing}
+                      className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 min-h-[44px]"
+                    >
+                      Approve Driver
+                    </button>
+                    <button
+                      onClick={() => handleAction(app.id, false)}
+                      disabled={isProcessing}
+                      className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[44px]"
+                    >
+                      Reject
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-3">
-                <button
-                  onClick={() => handleAction(app.id, true)}
-                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700"
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Approve &amp; Activate Driver
-                </button>
-                <button
-                  onClick={() => handleAction(app.id, false)}
-                  className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100"
-                >
-                  <XCircle className="h-4 w-4" /> Reject Driver
-                </button>
-              </div>
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* DOCUMENT PREVIEW MODAL */}
+      {/* Document Preview Bottom Sheet */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-sm font-black text-gray-900">{previewDoc.title}</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={previewDoc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline px-2 py-1 rounded-lg"
-                >
-                  <ExternalLink className="h-4 w-4" /> Open in New Tab
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setPreviewDoc(null)}
-                  className="rounded-full p-1 hover:bg-gray-100 text-gray-400"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+          <div className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-base font-black text-gray-900">{previewDoc.title}</h2>
+              <button
+                onClick={() => setPreviewDoc(null)}
+                className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="flex-1 overflow-auto rounded-2xl bg-gray-50 flex items-center justify-center p-4 min-h-[300px]">
-              {isPdf(previewDoc.url) ? (
-                <iframe
-                  src={previewDoc.url}
-                  className="w-full h-[500px] rounded-xl border border-gray-200"
-                  title="Document Preview"
-                />
-              ) : (
-                <img
-                  src={previewDoc.url}
-                  alt={previewDoc.title}
-                  className="max-h-[500px] w-auto rounded-xl object-contain shadow"
-                />
-              )}
+            <div className="p-2 rounded-2xl bg-gray-50 border border-gray-200">
+              <img
+                src={previewDoc.url}
+                alt={previewDoc.title}
+                className="w-full h-auto max-h-96 object-contain rounded-xl"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80';
+                }}
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setPreviewDoc(null)}
+                className="w-full rounded-2xl bg-gray-900 hover:bg-black py-3 text-xs font-black text-white min-h-[44px]"
+              >
+                Close Preview
+              </button>
             </div>
           </div>
         </div>

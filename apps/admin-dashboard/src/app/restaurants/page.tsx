@@ -11,10 +11,11 @@ import {
   RotateCcw,
   Ban,
   Percent,
-  FileText,
   MapPin,
-  ExternalLink,
-  ShieldAlert,
+  RefreshCw,
+  Store,
+  X,
+  Phone,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
@@ -26,7 +27,7 @@ interface Restaurant {
   phone: string;
   email?: string;
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-  deliveryMode?: 'FOODHUB_DELIVERY' | 'RESTAURANT_SELF_DELIVERY';
+  deliveryMode?: string;
   deliveryRadius?: number;
   commissionRate?: number;
   avgRating?: number;
@@ -46,23 +47,19 @@ export default function AdminRestaurantsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  // Multi-select Bulk Actions State
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  const [bulkResults, setBulkResults] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  // Reason & Confirmation Modal State
+  // Modal State
   const [activeModal, setActiveModal] = useState<{
     type: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE' | 'COMMISSION';
-    restaurantId?: string;
-    restaurantName?: string;
-    isBulk?: boolean;
+    restaurantId: string;
+    restaurantName: string;
   } | null>(null);
   const [modalReason, setModalReason] = useState('');
   const [modalCommission, setModalCommission] = useState<number | ''>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchRestaurants = async () => {
+    setIsLoading(true);
     try {
       const res = await adminFetch('/restaurants?admin=true');
       if (res.ok) {
@@ -80,7 +77,6 @@ export default function AdminRestaurantsPage() {
   useEffect(() => {
     fetchRestaurants();
 
-    // Socket.IO Real-time synchronization
     try {
       const apiBase = getApiBaseUrl();
       const socketUrl = apiBase.replace('/api/v1', '');
@@ -92,7 +88,7 @@ export default function AdminRestaurantsPage() {
         socket.emit('joinAdmin');
       });
 
-      socket.on('restaurant.status_changed', (payload: { restaurantId: string; status: any; isOpen: boolean }) => {
+      socket.on('restaurant.status_changed', (payload: { restaurantId: string; status: any }) => {
         if (payload?.restaurantId) {
           setRestaurants((prev) =>
             prev.map((r) =>
@@ -106,566 +102,429 @@ export default function AdminRestaurantsPage() {
         socket.disconnect();
       };
     } catch {
-      /* socket error */
+      /* noop */
     }
   }, []);
 
-  const executeStatusChange = async (
-    id: string,
-    nextStatus: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING_APPROVAL',
-    reason?: string,
-  ) => {
-    try {
-      const res = await adminFetch(`/restaurants/${id}/approval`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: nextStatus === 'PENDING_APPROVAL' ? 'PENDING' : nextStatus, rejectionReason: reason }),
-      });
-      if (res.ok) {
-        setRestaurants((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status: nextStatus } : r)),
-        );
-        return { success: true, id };
-      }
-      const err = await res.json().catch(() => ({}));
-      return { success: false, id, error: err.message || 'Operation failed' };
-    } catch (err: any) {
-      return { success: false, id, error: err.message || 'Network error' };
-    }
-  };
-
-  const handleConfirmModal = async () => {
+  const handleExecuteAction = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!activeModal) return;
+
     setIsProcessing(true);
-
-    if (activeModal.type === 'COMMISSION' && activeModal.restaurantId) {
-      try {
-        const rate = modalCommission === '' ? null : Number(modalCommission);
-        const res = await adminFetch(`/restaurants/${activeModal.restaurantId}/commission`, {
-          method: 'PATCH',
-          body: JSON.stringify({ commissionRate: rate }),
-        });
-        if (res.ok) {
-          setRestaurants((prev) =>
-            prev.map((r) =>
-              r.id === activeModal.restaurantId ? { ...r, commissionRate: rate ?? undefined } : r,
-            ),
-          );
-        }
-      } catch {
-        /* error */
-      }
-      setIsProcessing(false);
-      setActiveModal(null);
-      return;
-    }
-
-    if (activeModal.isBulk) {
-      // BULK EXECUTION
-      const targetStatus: 'APPROVED' | 'SUSPENDED' | 'REJECTED' =
-        activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE'
-          ? 'APPROVED'
-          : activeModal.type === 'SUSPEND'
-          ? 'SUSPENDED'
-          : 'REJECTED';
-
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const id of selectedIds) {
-        const result = await executeStatusChange(id, targetStatus, modalReason);
-        if (result.success) successCount++;
-        else failCount++;
-      }
-
-      setBulkResults({
-        message: `Bulk Action: ${successCount} updated successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
-        type: failCount === 0 ? 'success' : 'info',
-      });
-
-      setSelectedIds([]);
-      setIsProcessing(false);
-      setActiveModal(null);
-      setModalReason('');
-      fetchRestaurants();
-      return;
-    }
-
-    // SINGLE RECORD EXECUTION
-    if (activeModal.restaurantId) {
-      const targetStatus: 'APPROVED' | 'SUSPENDED' | 'REJECTED' =
-        activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE'
-          ? 'APPROVED'
-          : activeModal.type === 'SUSPEND'
-          ? 'SUSPENDED'
-          : 'REJECTED';
-
-      await executeStatusChange(activeModal.restaurantId, targetStatus, modalReason);
-      setIsProcessing(false);
-      setActiveModal(null);
-      setModalReason('');
-      fetchRestaurants();
-    }
-  };
-
-  const handleUpdateRadius = async (id: string, deliveryRadius: number) => {
-    setRestaurants((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, deliveryRadius } : r)),
-    );
+    setActionError(null);
 
     try {
-      await adminFetch(`/restaurants/${id}/delivery-radius`, {
-        method: 'PATCH',
-        body: JSON.stringify({ deliveryRadius }),
-      });
-    } catch {
-      fetchRestaurants();
+      let res;
+      if (activeModal.type === 'APPROVE') {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'APPROVED' }),
+        });
+      } else if (activeModal.type === 'REJECT') {
+        if (!modalReason.trim()) {
+          setActionError('A valid rejection reason is mandatory.');
+          setIsProcessing(false);
+          return;
+        }
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'REJECTED', rejectionReason: modalReason.trim() }),
+        });
+      } else if (activeModal.type === 'SUSPEND') {
+        if (!modalReason.trim()) {
+          setActionError('A suspension reason is mandatory.');
+          setIsProcessing(false);
+          return;
+        }
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'SUSPENDED', rejectionReason: modalReason.trim() }),
+        });
+      } else if (activeModal.type === 'REACTIVATE') {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'APPROVED' }),
+        });
+      } else if (activeModal.type === 'COMMISSION') {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ commissionRate: Number(modalCommission) }),
+        });
+      }
+
+      if (res && res.ok) {
+        setActiveModal(null);
+        setModalReason('');
+        setModalCommission('');
+        await fetchRestaurants();
+      } else {
+        const err = await res?.json().catch(() => ({}));
+        setActionError(err?.message || 'Failed to update restaurant');
+      }
+    } catch (err: any) {
+      setActionError(err?.message || 'Network error');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(filtered.map((r) => r.id));
-    } else {
-      setSelectedIds([]);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return (
+          <span className="flex items-center gap-1 rounded-xl bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+            <CheckCircle2 className="h-3 w-3" />
+            Approved
+          </span>
+        );
+      case 'PENDING_APPROVAL':
+        return (
+          <span className="flex items-center gap-1 rounded-xl bg-amber-100 text-amber-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+            <AlertTriangle className="h-3 w-3" />
+            Pending Review
+          </span>
+        );
+      case 'SUSPENDED':
+        return (
+          <span className="flex items-center gap-1 rounded-xl bg-rose-100 text-rose-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+            <Ban className="h-3 w-3" />
+            Suspended
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="flex items-center gap-1 rounded-xl bg-gray-100 text-gray-700 px-2.5 py-0.5 text-[10px] font-black uppercase">
+            <XCircle className="h-3 w-3" />
+            Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="rounded-xl bg-gray-100 text-gray-700 px-2 py-0.5 text-[10px] font-black uppercase">
+            {status}
+          </span>
+        );
     }
   };
 
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
-  };
-
-  const filtered = Array.isArray(restaurants)
-    ? restaurants.filter((r) => {
-        if (!r) return false;
-        const matchesSearch =
-          (r.name || '').toLowerCase().includes(search.toLowerCase()) ||
-          (r.phone || '').toLowerCase().includes(search.toLowerCase());
-        const matchesStatus =
-          statusFilter === 'ALL' || r.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      })
-    : [];
+  const filtered = restaurants.filter((r) => {
+    const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
+    const matchesSearch =
+      !search ||
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.phone.includes(search) ||
+      (r.owner?.profile?.firstName && r.owner.profile.firstName.toLowerCase().includes(search.toLowerCase()));
+    return matchesStatus && matchesSearch;
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
       {/* Header */}
-      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-            Restaurant Lifecycle Management {isLoading ? '' : `(${restaurants.length})`}
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Restaurant Partners Directory
           </h1>
-          <p className="text-xs text-gray-500">
-            Authoritative merchant approval, suspension, commission &amp; audit lifecycle controls
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Lifecycle operations, commissioned take-rates &amp; store compliance
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search restaurant or phone..."
-              className="w-full rounded-2xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-            />
-          </div>
-
+        <div className="flex items-center gap-2">
           <Link
             href="/restaurants/approval"
-            className="flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-500/20 hover:bg-purple-700 min-h-[40px]"
+            className="flex items-center gap-1.5 rounded-2xl bg-purple-600 hover:bg-purple-700 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-purple-500/20 transition min-h-[44px]"
           >
-            <Plus className="h-4 w-4 shrink-0" /> Pending Applications
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Approval Queue</span>
           </Link>
         </div>
       </div>
 
-      {/* Filter Tabs & Bulk Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        {/* Status Filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl bg-gray-100 p-1">
+      {/* Filters & Search */}
+      <div className="space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by restaurant name, owner, or phone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-500 focus:outline-none min-h-[44px]"
+          />
+        </div>
+
+        {/* Horizontal Status Pill Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {['ALL', 'APPROVED', 'PENDING_APPROVAL', 'SUSPENDED', 'REJECTED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-black transition ${
+              className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
                 statusFilter === st
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {st === 'ALL' ? 'All Stores' : st.replace('_', ' ')}
+              {st.replace(/_/g, ' ')} ({st === 'ALL' ? restaurants.length : restaurants.filter((r) => r.status === st).length})
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Bulk Action Controls */}
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-2xl px-4 py-2 text-xs">
-            <span className="font-bold text-purple-900">{selectedIds.length} Selected</span>
-            <button
-              onClick={() =>
-                setActiveModal({
-                  type: 'APPROVE',
-                  isBulk: true,
-                })
-              }
-              className="rounded-xl bg-emerald-600 px-3 py-1 text-white font-bold hover:bg-emerald-700 transition"
-            >
-              Bulk Approve
-            </button>
-            <button
-              onClick={() =>
-                setActiveModal({
-                  type: 'SUSPEND',
-                  isBulk: true,
-                })
-              }
-              className="rounded-xl bg-rose-600 px-3 py-1 text-white font-bold hover:bg-rose-700 transition"
-            >
-              Bulk Suspend
-            </button>
+      {/* Restaurant List (Mobile Card / Desktop Table) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900">
+          Stores ({filtered.length})
+        </h2>
+
+        {isLoading ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading restaurants...</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+            No restaurants found matching filters.
           </div>
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
+            <div className="block lg:hidden space-y-3">
+              {filtered.map((r) => (
+                <div
+                  key={r.id}
+                  className="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
+                    <div>
+                      <h3 className="font-black text-sm text-gray-900">{r.name}</h3>
+                      <p className="text-[11px] text-gray-500 font-medium">{r.phone}</p>
+                    </div>
+                    {getStatusBadge(r.status)}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Owner</span>
+                      <span className="font-bold text-gray-800">
+                        {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Partner'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] text-purple-700 font-bold uppercase block">Commission Rate</span>
+                      <span className="font-black text-purple-900">{r.commissionRate ?? 15}%</span>
+                    </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="pt-2 border-t border-gray-100 flex flex-wrap gap-1.5">
+                    {r.status === 'PENDING_APPROVAL' && (
+                      <>
+                        <button
+                          onClick={() => setActiveModal({ type: 'APPROVE', restaurantId: r.id, restaurantName: r.name })}
+                          className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-black text-white shadow-sm min-h-[40px]"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => setActiveModal({ type: 'REJECT', restaurantId: r.id, restaurantName: r.name })}
+                          className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+
+                    {r.status === 'APPROVED' && (
+                      <button
+                        onClick={() => setActiveModal({ type: 'SUSPEND', restaurantId: r.id, restaurantName: r.name })}
+                        className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2 text-xs font-bold min-h-[40px]"
+                      >
+                        Suspend Store
+                      </button>
+                    )}
+
+                    {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
+                      <button
+                        onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-black text-white min-h-[40px]"
+                      >
+                        Reactivate Store
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setModalCommission(r.commissionRate ?? 15);
+                        setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
+                      }}
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 min-h-[40px]"
+                    >
+                      Rate %
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="pb-3">Restaurant</th>
+                    <th className="pb-3">Phone</th>
+                    <th className="pb-3">Owner</th>
+                    <th className="pb-3">Commission</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 font-medium">
+                  {filtered.map((r) => (
+                    <tr key={r.id} className="hover:bg-gray-50/50">
+                      <td className="py-3 font-bold text-gray-900">{r.name}</td>
+                      <td className="py-3 text-gray-600">{r.phone}</td>
+                      <td className="py-3 text-gray-700">
+                        {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Partner'}
+                      </td>
+                      <td className="py-3 font-bold text-purple-700">{r.commissionRate ?? 15}%</td>
+                      <td className="py-3">{getStatusBadge(r.status)}</td>
+                      <td className="py-3 text-right space-x-1.5">
+                        {r.status === 'PENDING_APPROVAL' && (
+                          <>
+                            <button
+                              onClick={() => setActiveModal({ type: 'APPROVE', restaurantId: r.id, restaurantName: r.name })}
+                              className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => setActiveModal({ type: 'REJECT', restaurantId: r.id, restaurantName: r.name })}
+                              className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {r.status === 'APPROVED' && (
+                          <button
+                            onClick={() => setActiveModal({ type: 'SUSPEND', restaurantId: r.id, restaurantName: r.name })}
+                            className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                          >
+                            Suspend
+                          </button>
+                        )}
+                        {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
+                          <button
+                            onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                            className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
+                          >
+                            Reactivate
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setModalCommission(r.commissionRate ?? 15);
+                            setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
+                          }}
+                          className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        >
+                          Rate %
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Bulk Result Banner */}
-      {bulkResults && (
-        <div
-          className={`p-3 rounded-2xl text-xs font-bold flex items-center justify-between ${
-            bulkResults.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}
-        >
-          <span>{bulkResults.message}</span>
-          <button onClick={() => setBulkResults(null)} className="text-gray-500 hover:text-gray-800">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* Desktop Table View */}
-      <div className="hidden md:block overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-4 w-10">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && selectedIds.length === filtered.length}
-                    onChange={handleSelectAll}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                </th>
-                <th className="px-6 py-4">Restaurant</th>
-                <th className="px-6 py-4">Owner / Contact</th>
-                <th className="px-6 py-4">Commission</th>
-                <th className="px-6 py-4">Delivery Radius</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Lifecycle Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                    Loading restaurants...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                    No restaurants match the selected criteria.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((r) => {
-                  const isSelected = selectedIds.includes(r.id);
-                  return (
-                    <tr key={r.id} className={`hover:bg-gray-50/50 ${isSelected ? 'bg-purple-50/30' : ''}`}>
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelect(r.id)}
-                          className="rounded text-purple-600 focus:ring-purple-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-gray-900 block">{r.name}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">ID: {r.id.slice(0, 8)}</span>
-                      </td>
-                      <td className="px-6 py-4 font-medium text-gray-700">
-                        {r.owner?.profile?.firstName
-                          ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}`
-                          : 'Merchant Owner'}
-                        <span className="text-gray-400 block text-[11px]">{r.phone}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => {
-                            setModalCommission(r.commissionRate ?? '');
-                            setActiveModal({
-                              type: 'COMMISSION',
-                              restaurantId: r.id,
-                              restaurantName: r.name,
-                            });
-                          }}
-                          className="flex items-center gap-1 rounded-lg bg-gray-100 hover:bg-gray-200 px-2.5 py-1 text-xs font-bold text-gray-800 transition"
-                        >
-                          <Percent className="h-3 w-3 text-purple-600" />
-                          {r.commissionRate !== null && r.commissionRate !== undefined
-                            ? `${r.commissionRate}%`
-                            : 'Global'}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={r.deliveryRadius || 15}
-                          onChange={(e) => handleUpdateRadius(r.id, parseFloat(e.target.value))}
-                          className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                        >
-                          <option value={5}>5 km</option>
-                          <option value={10}>10 km</option>
-                          <option value={15}>15 km (Default)</option>
-                          <option value={20}>20 km</option>
-                          <option value={25}>25 km</option>
-                          <option value={30}>30 km</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-[10px] font-black ${
-                            r.status === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : r.status === 'SUSPENDED'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* State-Aware Action Controls */}
-                          {r.status === 'PENDING_APPROVAL' && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'APPROVE',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'REJECT',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          {r.status === 'APPROVED' && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'SUSPEND',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition"
-                              >
-                                Suspend
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'REJECT',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          {r.status === 'SUSPENDED' && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'REACTIVATE',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                              >
-                                Reactivate
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setActiveModal({
-                                    type: 'REJECT',
-                                    restaurantId: r.id,
-                                    restaurantName: r.name,
-                                  })
-                                }
-                                className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          {r.status === 'REJECTED' && (
-                            <button
-                              onClick={() =>
-                                setActiveModal({
-                                  type: 'APPROVE',
-                                  restaurantId: r.id,
-                                  restaurantName: r.name,
-                                })
-                              }
-                              className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                            >
-                              Reactivate / Approve
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Confirmation & Reason Modal */}
+      {/* ===================================================================== */}
+      {/* ACTION BOTTOM SHEET / MODAL                                           */}
+      {/* ===================================================================== */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-              {activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE' ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 font-bold">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-              ) : activeModal.type === 'COMMISSION' ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 font-bold">
-                  <Percent className="h-5 w-5" />
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 font-bold">
-                  <ShieldAlert className="h-5 w-5" />
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-base font-black text-gray-900">
-                  {activeModal.isBulk
-                    ? `Bulk ${activeModal.type} (${selectedIds.length} Stores)`
-                    : activeModal.type === 'COMMISSION'
-                    ? `Set Commission: ${activeModal.restaurantName}`
-                    : `${activeModal.type} Restaurant: ${activeModal.restaurantName}`}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {activeModal.type === 'COMMISSION'
-                    ? 'Configure custom restaurant commission rate'
-                    : 'Action will be logged to the platform Audit Log with timestamp and admin identity.'}
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-base font-black text-gray-900">
+                {activeModal.type === 'APPROVE' && `Approve ${activeModal.restaurantName}`}
+                {activeModal.type === 'REJECT' && `Reject ${activeModal.restaurantName}`}
+                {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.restaurantName}`}
+                {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.restaurantName}`}
+                {activeModal.type === 'COMMISSION' && `Set Commission % for ${activeModal.restaurantName}`}
+              </h2>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            {/* Modal Body */}
-            {activeModal.type === 'COMMISSION' ? (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-700">Commission Rate (%)</label>
-                <input
-                  type="number"
-                  placeholder="Leave empty for global platform rate"
-                  value={modalCommission}
-                  onChange={(e) => setModalCommission(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  className="w-full rounded-2xl border border-gray-200 p-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-700">
-                  {activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND'
-                    ? 'Reason for Action (Required)'
-                    : 'Notes / Reason (Optional)'}
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder={
-                    activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND'
-                      ? 'Specify reason for suspension or rejection...'
-                      : 'Add optional administrative notes...'
-                  }
-                  value={modalReason}
-                  onChange={(e) => setModalReason(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 p-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-                />
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+                {actionError}
               </div>
             )}
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal(null);
-                  setModalReason('');
-                  setModalCommission('');
-                }}
-                disabled={isProcessing}
-                className="rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmModal}
-                disabled={
-                  isProcessing ||
-                  ((activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND') &&
-                    !modalReason.trim())
-                }
-                className={`rounded-2xl px-5 py-2.5 text-xs font-black text-white shadow-md transition disabled:opacity-50 ${
-                  activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : activeModal.type === 'COMMISSION'
-                    ? 'bg-purple-600 hover:bg-purple-700'
-                    : 'bg-rose-600 hover:bg-rose-700'
-                }`}
-              >
-                {isProcessing ? 'Processing...' : 'Confirm & Apply'}
-              </button>
-            </div>
+            <form onSubmit={handleExecuteAction} className="space-y-4">
+              {(activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND') && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Mandatory Reason *
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Provide detailed compliance, hygiene, or verification failure reason..."
+                    value={modalReason}
+                    onChange={(e) => setModalReason(e.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs font-medium text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {activeModal.type === 'COMMISSION' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Contracted Commission Rate (%) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    max={50}
+                    value={modalCommission}
+                    onChange={(e) => setModalCommission(Number(e.target.value))}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-500 focus:bg-white focus:outline-none min-h-[44px]"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 min-h-[44px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="flex-1 rounded-2xl bg-purple-600 hover:bg-purple-700 py-3 text-xs font-black text-white shadow-md shadow-purple-500/20 transition min-h-[44px]"
+                >
+                  {isProcessing ? 'Processing...' : 'Confirm Action'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

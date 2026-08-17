@@ -39,7 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: 'Kitchen KDS', href: '/kitchen-queue', icon: UtensilsCrossed },
       { name: 'All Orders', href: '/orders', icon: ShoppingBag },
-      { name: 'Delivery Management', href: '/delivery-management', icon: Bike },
+      { name: 'Delivery Tracking', href: '/delivery-management', icon: Bike },
     ],
   },
   {
@@ -86,10 +86,10 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
   };
 
   const SidebarContent = (
-    <div className="flex flex-col h-full justify-between">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full justify-between gap-4">
+      <div className="space-y-4">
         {/* Brand & Mobile Close Button */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-1">
           <Link href="/" onClick={onCloseMobileMenu} className="flex flex-col gap-1">
             <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" />
             <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -100,7 +100,7 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
           {/* Close button for Mobile Drawer */}
           <button
             onClick={onCloseMobileMenu}
-            className="lg:hidden rounded-2xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+            className="lg:hidden rounded-2xl p-2.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Close Navigation"
           >
             <X className="h-6 w-6" />
@@ -108,13 +108,13 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
         </div>
 
         {/* Navigation Groups */}
-        <nav className="space-y-4 overflow-y-auto max-h-[calc(100vh-220px)] pr-1 scrollbar-thin">
+        <nav className="space-y-3.5 overflow-y-auto max-h-[calc(100vh-210px)] pr-1 scrollbar-thin">
           {NAV_GROUPS.map((group) => (
             <div key={group.groupName} className="space-y-1">
-              <span className="px-4 text-[10px] font-black uppercase tracking-wider text-gray-400">
+              <span className="px-3.5 text-[10px] font-black uppercase tracking-wider text-gray-400">
                 {group.groupName}
               </span>
-              <div className="space-y-0.5 pt-1">
+              <div className="space-y-0.5 pt-0.5">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -123,7 +123,7 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
                       key={item.name}
                       href={item.href}
                       onClick={onCloseMobileMenu}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-xs font-bold transition min-h-[40px] ${
+                      className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition min-h-[44px] ${
                         isActive
                           ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -140,14 +140,14 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
 
           {/* ACCOUNT GROUP */}
           <div className="space-y-1 pt-2 border-t border-gray-100">
-            <span className="px-4 text-[10px] font-black uppercase tracking-wider text-gray-400">
+            <span className="px-3.5 text-[10px] font-black uppercase tracking-wider text-gray-400">
               ACCOUNT
             </span>
-            <div className="pt-1">
+            <div className="pt-0.5">
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 rounded-2xl px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition min-h-[40px]"
+                className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition min-h-[44px]"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 <span>Logout</span>
@@ -158,7 +158,7 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
       </div>
 
       {/* Footer Store Info */}
-      <div className="p-3.5 border border-gray-100 bg-gray-50/80 rounded-2xl">
+      <div className="p-3.5 border border-gray-100 bg-gray-50/80 rounded-2xl shrink-0">
         <p className="text-xs font-bold text-gray-900 truncate">{restaurantName}</p>
         <p className="text-[10px] text-gray-500 truncate">ID: {restaurantId.slice(0, 16)}...</p>
       </div>
@@ -182,7 +182,7 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
           />
 
           {/* Slide-out Drawer */}
-          <div className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white p-5 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col justify-between">
+          <div className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white p-5 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col justify-between pb-safe">
             {SidebarContent}
           </div>
         </div>
@@ -190,4 +190,3 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
     </>
   );
 };
-

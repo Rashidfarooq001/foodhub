@@ -2,15 +2,24 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AdminStats } from '../data/admin-mock-data';
-import { DollarSign, ShoppingBag, Store, Bike, ArrowUpRight, CheckSquare } from 'lucide-react';
+import {
+  DollarSign,
+  ShoppingBag,
+  Store,
+  Bike,
+  Users,
+  CheckSquare,
+  Sparkles,
+  TrendingUp,
+  RefreshCw,
+} from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { adminFetch } from '../utils/admin-fetch';
 import { getApiBaseUrl } from '@foodhub/config';
 import { io } from 'socket.io-client';
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = async () => {
@@ -21,7 +30,7 @@ export default function AdminDashboardPage() {
         setStats(data);
       }
     } catch {
-      // Backend offline
+      /* offline */
     } finally {
       setIsLoading(false);
     }
@@ -58,127 +67,169 @@ export default function AdminDashboardPage() {
     todayOrders: stats?.todayOrders ?? 0,
     activeRestaurants: stats?.activeRestaurants ?? 0,
     onlineDrivers: stats?.onlineDrivers ?? 0,
+    totalCustomers: stats?.totalCustomers ?? 0,
     pendingApprovals: stats?.pendingApprovals ?? 0,
-    cancelledOrders: stats?.cancelledOrders ?? 0,
-    refundRequests: stats?.refundRequests ?? 0,
-    platformGrowth: stats?.platformGrowth ?? '--',
-    weeklyRevenueData: stats?.weeklyRevenueData ?? [],
+    pendingDriverApprovals: stats?.pendingDriverApprovals ?? 0,
+    weeklyRevenueData: stats?.weeklyRevenueData ?? [
+      { day: 'Mon', revenue: 0 },
+      { day: 'Tue', revenue: 0 },
+      { day: 'Wed', revenue: 0 },
+      { day: 'Thu', revenue: 0 },
+      { day: 'Fri', revenue: 0 },
+      { day: 'Sat', revenue: 0 },
+      { day: 'Sun', revenue: 0 },
+    ],
   };
 
   return (
-    <div className="space-y-8">
-      {/* Top Welcome Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-gray-100 pb-4">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Platform Command Center</h1>
-          <p className="text-xs text-gray-500">Real-time GMV revenue, order volumes, onboarding approvals &amp; system health</p>
-        </div>
-
-        <div className="flex gap-2">
-          <Link
-            href="/restaurants/approval"
-            className="flex items-center gap-2 rounded-2xl bg-purple-600 px-5 py-3 text-xs font-black text-white shadow-lg shadow-purple-500/20 hover:bg-purple-700"
-          >
-            <CheckSquare className="h-4 w-4" /> Restaurant Approvals ({kpi.pendingApprovals})
-          </Link>
-        </div>
-      </div>
-
-      {/* Platform KPIs */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-            <span>TODAY&apos;S PLATFORM GMV</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-              <DollarSign className="h-4 w-4" />
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="h-8 w-32 animate-pulse rounded-lg bg-gray-100" />
-          ) : (
-            <h3 className="text-3xl font-black text-purple-600">₹{kpi.todayRevenue.toLocaleString()}</h3>
-          )}
-          <p className="text-[10px] text-purple-600 font-bold flex items-center gap-1">
-            <ArrowUpRight className="h-3 w-3" /> {kpi.platformGrowth} vs last week
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Platform Command Center
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Real-time GMV revenue, live orders, onboarding verification &amp; ecosystem health
           </p>
         </div>
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-            <span>TODAY&apos;S TOTAL ORDERS</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-              <ShoppingBag className="h-4 w-4" />
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="h-8 w-24 animate-pulse rounded-lg bg-gray-100" />
-          ) : (
-            <h3 className="text-3xl font-black text-gray-900">{kpi.todayOrders.toLocaleString()}</h3>
-          )}
-          <p className="text-[10px] text-gray-400 font-bold">{kpi.cancelledOrders} cancelled • {kpi.refundRequests} refunds</p>
-        </div>
-
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-            <span>ACTIVE RESTAURANTS</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
-              <Store className="h-4 w-4" />
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="h-8 w-24 animate-pulse rounded-lg bg-gray-100" />
-          ) : (
-            <h3 className="text-3xl font-black text-gray-900">{kpi.activeRestaurants} Stores</h3>
-          )}
-          <p className="text-[10px] text-orange-600 font-bold">18% Platform Commission Rate</p>
-        </div>
-
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-            <span>ONLINE DRIVERS</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-              <Bike className="h-4 w-4" />
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="h-8 w-24 animate-pulse rounded-lg bg-gray-100" />
-          ) : (
-            <h3 className="text-3xl font-black text-emerald-600">{kpi.onlineDrivers} Active</h3>
-          )}
-          <p className="text-[10px] text-emerald-600 font-bold">Average dispatch ETA ~14m</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchStats}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
 
-      {/* Platform GMV Growth Chart */}
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-900">Platform GMV Growth Trend (7 Days)</h3>
-          <span className="text-xs font-bold text-purple-600">
-            {kpi.weeklyRevenueData.length > 0
-              ? `Total GMV: ₹${(kpi.weeklyRevenueData.reduce((s, d) => s + d.revenue, 0) / 100000).toFixed(2)} Lakhs`
-              : '--'}
+      {/* Action Alert Pills for Pending Approvals */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <Link
+          href="/restaurants/approval"
+          className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100/70 transition shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-sm">
+              <Store className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-purple-950 block">Restaurant Approval Queue</span>
+              <span className="text-[10px] text-purple-800 font-bold">Verify merchant licenses &amp; FSSAI</span>
+            </div>
+          </div>
+          <span className="rounded-xl bg-purple-600 px-3 py-1 text-xs font-black text-white">
+            {kpi.pendingApprovals} Pending
+          </span>
+        </Link>
+
+        <Link
+          href="/delivery-partners/approval"
+          className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-teal-200 bg-teal-50/60 hover:bg-teal-100/70 transition shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white shadow-sm">
+              <Bike className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-teal-950 block">Driver Approval Queue</span>
+              <span className="text-[10px] text-teal-800 font-bold">Verify driving licenses &amp; RC documents</span>
+            </div>
+          </div>
+          <span className="rounded-xl bg-teal-600 px-3 py-1 text-xs font-black text-white">
+            {kpi.pendingDriverApprovals} Pending
+          </span>
+        </Link>
+      </div>
+
+      {/* Platform KPIs: 2-col on mobile, 4-col on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        {/* Today GMV */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">TODAY GMV</span>
+            <DollarSign className="h-6 w-6 rounded-xl bg-purple-50 p-1.5 text-purple-600" />
+          </div>
+          <h2 className="text-lg sm:text-2xl font-black text-purple-600">
+            ₹{kpi.todayRevenue.toLocaleString()}
+          </h2>
+          <span className="text-[10px] text-purple-700 font-bold block">
+            Gross food turnover
           </span>
         </div>
 
-        <div className="h-72 w-full pt-4">
-          {isLoading ? (
-            <div className="h-full animate-pulse rounded-2xl bg-gray-50" />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={kpi.weeklyRevenueData}>
-                <defs>
-                  <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#9333ea" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="day" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip />
-                <Area type="monotone" dataKey="revenue" stroke="#9333ea" strokeWidth={3} fillOpacity={1} fill="url(#colorGmv)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+        {/* Today Orders */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">TODAY ORDERS</span>
+            <ShoppingBag className="h-6 w-6 rounded-xl bg-orange-50 p-1.5 text-orange-600" />
+          </div>
+          <h2 className="text-lg sm:text-2xl font-black text-gray-900">
+            {kpi.todayOrders}
+          </h2>
+          <span className="text-[10px] text-gray-500 font-semibold block">
+            Platform volume
+          </span>
+        </div>
+
+        {/* Active Restaurants */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">RESTAURANTS</span>
+            <Store className="h-6 w-6 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
+          </div>
+          <h2 className="text-lg sm:text-2xl font-black text-gray-900">
+            {kpi.activeRestaurants}
+          </h2>
+          <span className="text-[10px] text-emerald-600 font-bold block">
+            Approved &amp; active stores
+          </span>
+        </div>
+
+        {/* Active Riders */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">COURIER FLEET</span>
+            <Bike className="h-6 w-6 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
+          </div>
+          <h2 className="text-lg sm:text-2xl font-black text-gray-900">
+            {kpi.onlineDrivers}
+          </h2>
+          <span className="text-[10px] text-blue-600 font-bold block">
+            Riders on duty
+          </span>
+        </div>
+      </div>
+
+      {/* Revenue & Growth Chart */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm sm:text-base md:text-lg font-black text-gray-900">
+              Weekly Platform GMV
+            </h2>
+            <p className="text-[10px] sm:text-xs text-gray-500">
+              Aggregated merchant sales across city operational hubs
+            </p>
+          </div>
+          <span className="flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+            Active Volume
+          </span>
+        </div>
+
+        <div className="h-56 sm:h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={kpi.weeklyRevenueData}>
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Area dataKey="revenue" stroke="#9333ea" fill="#c084fc" fillOpacity={0.3} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Bell, Search, Power, LogOut, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Power, Menu, Store } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
+import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
-import { getImageUrl } from '@foodhub/config';
 import { ThemeToggle } from '../common/ThemeToggle';
+
+const API_BASE = getApiBaseUrl();
 
 interface HotelHeaderProps {
   onOpenMobileMenu?: () => void;
@@ -13,89 +15,127 @@ interface HotelHeaderProps {
 
 export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) => {
   const router = useRouter();
+  const { user, accessToken } = useHotelAuthStore();
   const [isOpen, setIsOpen] = useState(true);
-  const { user, logout } = useHotelAuthStore();
+  const [loadingToggle, setLoadingToggle] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const restaurantId = user?.restaurantId;
+
+  // Hydrate initial open/closed status from restaurant record
+  useEffect(() => {
+    if (!restaurantId || !accessToken) return;
+    let isMounted = true;
+    fetch(`${API_BASE}/restaurants/${restaurantId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (isMounted && data && typeof data.isOpen === 'boolean') {
+          setIsOpen(data.isOpen);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [restaurantId, accessToken]);
+
+  const toggleStoreStatus = async () => {
+    if (!restaurantId || !accessToken || loadingToggle) return;
+    setLoadingToggle(true);
+    const newStatus = !isOpen;
+    try {
+      const res = await fetch(`${API_BASE}/restaurants/${restaurantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ isOpen: newStatus }),
+      });
+      if (res.ok) {
+        setIsOpen(newStatus);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingToggle(false);
+    }
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 sm:h-20 w-full items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-3 sm:px-6 gap-2 sm:gap-4">
-      {/* Left: Mobile Hamburger & Search */}
-      <div className="flex items-center gap-2 sm:gap-4">
-        {/* Hamburger Menu Toggle for Mobile */}
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-3 sm:px-4 md:px-6 gap-2">
+      {/* Left: Mobile Hamburger & Store Info */}
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button
           onClick={onOpenMobileMenu}
-          className="flex lg:hidden h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none shrink-0"
+          className="flex lg:hidden h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
           aria-label="Open Navigation Menu"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Responsive Search Input */}
-        <div className="relative w-40 sm:w-64 md:w-72">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search orders, items..."
-            className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 sm:pr-4 text-xs font-bold text-gray-900 dark:text-gray-100 focus:border-orange-500 focus:bg-white dark:focus:bg-gray-900 focus:outline-none"
-          />
+        {/* Mobile Brand Logo */}
+        <div className="flex lg:hidden items-center shrink-0">
+          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-7 w-auto object-contain" />
+        </div>
+
+        <div className="hidden md:flex items-center gap-2 truncate">
+          <Store className="h-4 w-4 text-orange-600 shrink-0" />
+          <span className="text-xs font-bold text-gray-900 truncate max-w-[200px] lg:max-w-[300px]">
+            {user?.restaurantName || (user as any)?.name || 'Merchant Kitchen'}
+          </span>
         </div>
       </div>
 
-      {/* Right: Store Status Toggle, Notifications & Profile */}
-      <div className="flex items-center gap-2 sm:gap-4">
-        {/* Store Open/Close Toggle */}
+      {/* Right Controls: Store Status Toggle & Notifications */}
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Prominent Online/Offline Store Toggle */}
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-2xl px-2.5 sm:px-4 py-2 text-xs font-bold transition shadow-sm shrink-0 min-h-[40px] ${
+          onClick={toggleStoreStatus}
+          disabled={loadingToggle}
+          className={`flex items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 text-xs font-black transition shadow-sm min-h-[44px] ${
             isOpen
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
-              : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+              : 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
           }`}
+          title="Toggle Store Online/Offline Availability"
         >
-          <Power className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">{isOpen ? 'STORE ONLINE (OPEN)' : 'STORE CLOSED'}</span>
-          <span className="sm:hidden text-[10px] uppercase">{isOpen ? 'ONLINE' : 'CLOSED'}</span>
+          <Power className={`h-4 w-4 shrink-0 ${isOpen ? 'text-emerald-600' : 'text-rose-600'}`} />
+          <span>
+            {loadingToggle ? 'SAVING...' : isOpen ? 'STORE ONLINE' : 'STORE OFFLINE'}
+          </span>
+          <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
         </button>
 
         <ThemeToggle />
 
         {/* Notifications */}
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0">
+        <button
+          className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
+          aria-label="Notifications"
+        >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-orange-600 ring-2 ring-white dark:ring-gray-900" />
+          <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-orange-600 ring-2 ring-white dark:ring-gray-900" />
         </button>
 
-        {/* Profile & Logout */}
-        <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-100 pl-2 sm:pl-4 shrink-0">
+        {/* Profile Button */}
+        <button
+          onClick={() => router.push('/settings')}
+          className="flex items-center gap-2 rounded-2xl p-1 hover:bg-gray-50 transition shrink-0"
+          title="Restaurant Settings"
+        >
           <img
             key={user?.avatarUrl || 'hotel-avatar-default'}
             src={getImageUrl(user?.avatarUrl)}
-            alt={user?.name || 'Owner'}
+            alt={user?.name || 'Restaurant Owner'}
             onError={(e) => {
               (e.target as HTMLImageElement).src =
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
+                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=100&q=80';
             }}
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover border-2 border-orange-500"
+            className="h-9 w-9 rounded-full object-cover border-2 border-orange-500 shadow-sm"
           />
-          <div className="hidden md:block text-left">
-            <span className="block text-xs font-bold text-gray-900 truncate max-w-[120px]">
-              {user?.name || user?.email || 'Merchant Owner'}
-            </span>
-            <span className="block text-[10px] text-orange-600 font-bold">{user?.role || 'RESTAURANT_OWNER'}</span>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
+        </button>
       </div>
     </header>
   );

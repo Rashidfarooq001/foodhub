@@ -3,16 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Plus,
   Search,
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  RotateCcw,
   Ban,
   Bike,
-  ShieldAlert,
+  RefreshCw,
   Phone,
+  X,
+  FileCheck,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
@@ -42,21 +42,18 @@ export default function AdminDeliveryPartnersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  // Multi-select Bulk Actions State
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkResults, setBulkResults] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  // Reason & Confirmation Modal State
+  // Modal State
   const [activeModal, setActiveModal] = useState<{
     type: 'APPROVE' | 'SUSPEND' | 'REACTIVATE';
-    driverId?: string;
-    driverName?: string;
-    isBulk?: boolean;
+    driverId: string;
+    driverName: string;
   } | null>(null);
   const [modalReason, setModalReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchDrivers = async () => {
+    setIsLoading(true);
     try {
       const res = await adminFetch('/drivers');
       if (res.ok) {
@@ -73,7 +70,6 @@ export default function AdminDeliveryPartnersPage() {
   useEffect(() => {
     fetchDrivers();
 
-    // Socket.IO Real-time synchronization
     try {
       const apiBase = getApiBaseUrl();
       const socketUrl = apiBase.replace('/api/v1', '');
@@ -85,14 +81,14 @@ export default function AdminDeliveryPartnersPage() {
         socket.emit('joinAdmin');
       });
 
-      socket.on('driver.status_changed', (payload: { driverId: string; status?: string; isApproved?: boolean; dutyStatus?: string }) => {
+      socket.on('driver.status_changed', (payload: { driverId: string; status?: string; isApproved?: boolean }) => {
         if (payload?.driverId) {
           setDrivers((prev) =>
             prev.map((d) =>
               d.id === payload.driverId
                 ? {
                     ...d,
-                    status: payload.status || payload.dutyStatus || d.status,
+                    status: payload.status || d.status,
                     isApproved: payload.isApproved !== undefined ? payload.isApproved : d.isApproved,
                   }
                 : d,
@@ -105,409 +101,362 @@ export default function AdminDeliveryPartnersPage() {
         socket.disconnect();
       };
     } catch {
-      /* socket error */
+      /* noop */
     }
   }, []);
 
-  const executeDriverStatusChange = async (driverId: string, isApproved: boolean, reason?: string) => {
-    try {
-      const res = await adminFetch(`/drivers/${driverId}/approval`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isApproved, reason }),
-      });
-      if (res.ok) {
-        return { success: true, driverId };
-      }
-      return { success: false, driverId };
-    } catch {
-      return { success: false, driverId };
-    }
-  };
-
-  const handleConfirmModal = async () => {
+  const handleExecuteAction = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!activeModal) return;
+
     setIsProcessing(true);
+    setActionError(null);
 
-    const isApprovalAction = activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE';
-
-    if (activeModal.isBulk) {
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const id of selectedIds) {
-        const res = await executeDriverStatusChange(id, isApprovalAction, modalReason);
-        if (res.success) successCount++;
-        else failCount++;
+    try {
+      let res;
+      if (activeModal.type === 'APPROVE') {
+        res = await adminFetch(`/drivers/${activeModal.driverId}/approval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
+        });
+      } else if (activeModal.type === 'SUSPEND') {
+        res = await adminFetch(`/drivers/${activeModal.driverId}/approval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isApproved: false, status: 'SUSPENDED', reason: modalReason }),
+        });
+      } else if (activeModal.type === 'REACTIVATE') {
+        res = await adminFetch(`/drivers/${activeModal.driverId}/approval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
+        });
       }
 
-      setBulkResults({
-        message: `Bulk Action: ${successCount} riders updated successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
-        type: failCount === 0 ? 'success' : 'info',
-      });
-
-      setSelectedIds([]);
+      if (res && res.ok) {
+        setActiveModal(null);
+        setModalReason('');
+        await fetchDrivers();
+      } else {
+        const err = await res?.json().catch(() => ({}));
+        setActionError(err?.message || 'Failed to update delivery partner');
+      }
+    } catch (err: any) {
+      setActionError(err?.message || 'Network error');
+    } finally {
       setIsProcessing(false);
-      setActiveModal(null);
-      setModalReason('');
-      fetchDrivers();
-      return;
-    }
-
-    if (activeModal.driverId) {
-      await executeDriverStatusChange(activeModal.driverId, isApprovalAction, modalReason);
-      setIsProcessing(false);
-      setActiveModal(null);
-      setModalReason('');
-      fetchDrivers();
     }
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(filtered.map((d) => d.id));
-    } else {
-      setSelectedIds([]);
+  const getStatusBadge = (driver: DriverPartner) => {
+    if (!driver.isApproved && driver.status === 'PENDING') {
+      return (
+        <span className="flex items-center gap-1 rounded-xl bg-amber-100 text-amber-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+          <AlertTriangle className="h-3 w-3" />
+          Pending
+        </span>
+      );
     }
-  };
-
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    if (driver.status === 'SUSPENDED') {
+      return (
+        <span className="flex items-center gap-1 rounded-xl bg-rose-100 text-rose-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+          <Ban className="h-3 w-3" />
+          Suspended
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 rounded-xl bg-teal-100 text-teal-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
+        <CheckCircle2 className="h-3 w-3" />
+        Approved
+      </span>
     );
   };
 
   const filtered = drivers.filter((d) => {
-    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.toLowerCase();
-    const phone = (d.user?.phone || '').toLowerCase();
-    const license = (d.licenseNumber || '').toLowerCase();
-    const matchesSearch = name.includes(search.toLowerCase()) || phone.includes(search.toLowerCase()) || license.includes(search.toLowerCase());
+    const isPending = !d.isApproved && d.status === 'PENDING';
+    const isSuspended = d.status === 'SUSPENDED';
+    const isApproved = d.isApproved && d.status !== 'SUSPENDED';
 
-    const isSuspended = d.status === 'SUSPENDED' || !d.isApproved;
-    const isOnline = d.status === 'ONLINE';
-    const isOffline = d.status === 'OFFLINE';
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      (statusFilter === 'PENDING' && isPending) ||
+      (statusFilter === 'APPROVED' && isApproved) ||
+      (statusFilter === 'SUSPENDED' && isSuspended);
 
-    let matchesStatus = true;
-    if (statusFilter === 'APPROVED') matchesStatus = d.isApproved && d.status !== 'SUSPENDED';
-    else if (statusFilter === 'SUSPENDED') matchesStatus = isSuspended;
-    else if (statusFilter === 'ONLINE') matchesStatus = isOnline;
+    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim().toLowerCase();
+    const phone = d.user?.phone || '';
+    const vehicle = d.vehicles?.[0]?.vehicleNumber || '';
 
-    return matchesSearch && matchesStatus;
+    const matchesSearch =
+      !search ||
+      name.includes(search.toLowerCase()) ||
+      phone.includes(search) ||
+      vehicle.toLowerCase().includes(search.toLowerCase());
+
+    return matchesStatus && matchesSearch;
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
       {/* Header */}
-      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-            Delivery Partner Fleet {isLoading ? '' : `(${drivers.length})`}
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Delivery Fleet Partners
           </h1>
-          <p className="text-xs text-gray-500">
-            Courier partner lifecycle management, live status stream &amp; suspension controls
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Courier onboarding verification, driver document compliance &amp; duty status
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search rider, phone, license..."
-              className="w-full rounded-2xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-            />
-          </div>
-
+        <div className="flex items-center gap-2">
           <Link
-            href="/delivery-partners/applications"
-            className="flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-purple-500/20 hover:bg-purple-700 min-h-[40px]"
+            href="/delivery-partners/approval"
+            className="flex items-center gap-1.5 rounded-2xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 transition min-h-[44px]"
           >
-            <Plus className="h-4 w-4 shrink-0" /> Pending Applications
+            <FileCheck className="h-4 w-4" />
+            <span>Driver Approvals</span>
           </Link>
         </div>
       </div>
 
-      {/* Filter Tabs & Bulk Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl bg-gray-100 p-1">
-          {['ALL', 'APPROVED', 'ONLINE', 'SUSPENDED'].map((st) => (
+      {/* Filters & Search */}
+      <div className="space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by driver name, phone, or vehicle registration..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-teal-500 focus:outline-none min-h-[44px]"
+          />
+        </div>
+
+        {/* Status Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {['ALL', 'APPROVED', 'PENDING', 'SUSPENDED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-black transition ${
+              className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
                 statusFilter === st
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {st === 'ALL' ? 'All Fleet' : st}
+              {st}
             </button>
           ))}
         </div>
-
-        {/* Bulk Action Controls */}
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-2xl px-4 py-2 text-xs">
-            <span className="font-bold text-purple-900">{selectedIds.length} Selected</span>
-            <button
-              onClick={() =>
-                setActiveModal({
-                  type: 'APPROVE',
-                  isBulk: true,
-                })
-              }
-              className="rounded-xl bg-emerald-600 px-3 py-1 text-white font-bold hover:bg-emerald-700 transition"
-            >
-              Bulk Approve
-            </button>
-            <button
-              onClick={() =>
-                setActiveModal({
-                  type: 'SUSPEND',
-                  isBulk: true,
-                })
-              }
-              className="rounded-xl bg-rose-600 px-3 py-1 text-white font-bold hover:bg-rose-700 transition"
-            >
-              Bulk Suspend
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Bulk Result Banner */}
-      {bulkResults && (
-        <div
-          className={`p-3 rounded-2xl text-xs font-bold flex items-center justify-between ${
-            bulkResults.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}
-        >
-          <span>{bulkResults.message}</span>
-          <button onClick={() => setBulkResults(null)} className="text-gray-500 hover:text-gray-800">
-            Dismiss
-          </button>
-        </div>
-      )}
+      {/* Drivers List (Mobile Card / Desktop Table) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900">
+          Couriers ({filtered.length})
+        </h2>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-4 w-10">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && selectedIds.length === filtered.length}
-                    onChange={handleSelectAll}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                </th>
-                <th className="px-6 py-4">Rider / Partner</th>
-                <th className="px-6 py-4">Vehicle</th>
-                <th className="px-6 py-4">Driving License</th>
-                <th className="px-6 py-4">Duty Status</th>
-                <th className="px-6 py-4">Approval State</th>
-                <th className="px-6 py-4 text-right">Lifecycle Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                    Loading delivery partner fleet...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                    No delivery partners match the selected filter.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((d) => {
-                  const isSelected = selectedIds.includes(d.id);
-                  const riderName = d.user?.profile?.firstName
-                    ? `${d.user.profile.firstName} ${d.user.profile.lastName || ''}`
-                    : 'Courier Partner';
-                  const vehicle = d.vehicles && d.vehicles.length > 0 ? d.vehicles[0] : null;
+        {isLoading ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading delivery fleet...</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+            No delivery partners found matching filters.
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
+            <div className="block lg:hidden space-y-3">
+              {filtered.map((d) => {
+                const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() || 'Courier Driver';
+                const phone = d.user?.phone || '—';
+                const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
 
-                  return (
-                    <tr key={d.id} className={`hover:bg-gray-50/50 ${isSelected ? 'bg-purple-50/30' : ''}`}>
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelect(d.id)}
-                          className="rounded text-purple-600 focus:ring-purple-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-gray-900 block">{riderName}</span>
-                        <span className="text-[11px] text-gray-400">{d.user?.phone || 'No phone'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-gray-800 block">
-                          {vehicle ? vehicle.vehicleType.replace('_', ' ') : 'Motorcycle'}
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-mono">
-                          {vehicle?.vehicleNumber || 'Unregistered'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold text-gray-700">
-                        {d.licenseNumber || 'Verified'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                            d.status === 'ONLINE'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : d.status === 'BUSY'
-                              ? 'bg-blue-100 text-blue-800'
-                              : d.status === 'SUSPENDED'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
+                return (
+                  <div
+                    key={d.id}
+                    className="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-9 w-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                          <Bike className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-sm text-gray-900">{name}</h3>
+                          <p className="text-[11px] text-gray-500 font-medium">{phone}</p>
+                        </div>
+                      </div>
+                      {getStatusBadge(d)}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Vehicle</span>
+                        <span className="font-bold text-gray-800">{vehicle}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">License</span>
+                        <span className="font-mono text-gray-700">{d.licenseNumber || 'DL-2024-8921'}</span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-2 border-t border-gray-100 flex gap-2">
+                      {!d.isApproved && (
+                        <button
+                          onClick={() => setActiveModal({ type: 'APPROVE', driverId: d.id, driverName: name })}
+                          className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-sm min-h-[40px]"
                         >
-                          {d.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                            d.isApproved
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
+                          Approve Driver
+                        </button>
+                      )}
+
+                      {d.isApproved && d.status !== 'SUSPENDED' && (
+                        <button
+                          onClick={() => setActiveModal({ type: 'SUSPEND', driverId: d.id, driverName: name })}
+                          className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
                         >
-                          {d.isApproved ? 'APPROVED' : 'PENDING'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {!d.isApproved ? (
+                          Suspend
+                        </button>
+                      )}
+
+                      {d.status === 'SUSPENDED' && (
+                        <button
+                          onClick={() => setActiveModal({ type: 'REACTIVATE', driverId: d.id, driverName: name })}
+                          className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white min-h-[40px]"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="pb-3">Courier Partner</th>
+                    <th className="pb-3">Phone</th>
+                    <th className="pb-3">Vehicle</th>
+                    <th className="pb-3">License</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 font-medium">
+                  {filtered.map((d) => {
+                    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() || 'Courier Driver';
+                    const phone = d.user?.phone || '—';
+                    const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
+
+                    return (
+                      <tr key={d.id} className="hover:bg-gray-50/50">
+                        <td className="py-3 font-bold text-gray-900">{name}</td>
+                        <td className="py-3 text-gray-600">{phone}</td>
+                        <td className="py-3 text-gray-700">{vehicle}</td>
+                        <td className="py-3 font-mono text-gray-500">{d.licenseNumber || 'DL-2024-8921'}</td>
+                        <td className="py-3">{getStatusBadge(d)}</td>
+                        <td className="py-3 text-right space-x-1.5">
+                          {!d.isApproved && (
                             <button
-                              onClick={() =>
-                                setActiveModal({
-                                  type: 'APPROVE',
-                                  driverId: d.id,
-                                  driverName: riderName,
-                                })
-                              }
-                              className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                              onClick={() => setActiveModal({ type: 'APPROVE', driverId: d.id, driverName: name })}
+                              className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-black text-white hover:bg-teal-700"
                             >
                               Approve
                             </button>
-                          ) : d.status === 'SUSPENDED' ? (
+                          )}
+                          {d.isApproved && d.status !== 'SUSPENDED' && (
                             <button
-                              onClick={() =>
-                                setActiveModal({
-                                  type: 'REACTIVATE',
-                                  driverId: d.id,
-                                  driverName: riderName,
-                                })
-                              }
-                              className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                            >
-                              Reactivate
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                setActiveModal({
-                                  type: 'SUSPEND',
-                                  driverId: d.id,
-                                  driverName: riderName,
-                                })
-                              }
-                              className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
+                              onClick={() => setActiveModal({ type: 'SUSPEND', driverId: d.id, driverName: name })}
+                              className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                             >
                               Suspend
                             </button>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                          {d.status === 'SUSPENDED' && (
+                            <button
+                              onClick={() => setActiveModal({ type: 'REACTIVATE', driverId: d.id, driverName: name })}
+                              className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-black text-white hover:bg-teal-700"
+                            >
+                              Reactivate
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Confirmation & Reason Modal */}
+      {/* Action Bottom Sheet / Modal */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-              {activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE' ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 font-bold">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 font-bold">
-                  <ShieldAlert className="h-5 w-5" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-base font-black text-gray-900">
+                {activeModal.type === 'APPROVE' && `Approve ${activeModal.driverName}`}
+                {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.driverName}`}
+                {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.driverName}`}
+              </h2>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+                {actionError}
+              </div>
+            )}
+
+            <form onSubmit={handleExecuteAction} className="space-y-4">
+              {activeModal.type === 'SUSPEND' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Suspension Reason *
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Provide reason for courier suspension (traffic infraction, document expiry, etc.)..."
+                    value={modalReason}
+                    onChange={(e) => setModalReason(e.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs font-medium text-gray-900 focus:outline-none"
+                  />
                 </div>
               )}
 
-              <div>
-                <h3 className="text-base font-black text-gray-900">
-                  {activeModal.isBulk
-                    ? `Bulk ${activeModal.type} (${selectedIds.length} Riders)`
-                    : `${activeModal.type} Rider: ${activeModal.driverName}`}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Action will be logged to Audit Log with timestamp and admin identity.
-                </p>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 min-h-[44px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="flex-1 rounded-2xl bg-teal-600 hover:bg-teal-700 py-3 text-xs font-black text-white shadow-md shadow-teal-500/20 transition min-h-[44px]"
+                >
+                  {isProcessing ? 'Processing...' : 'Confirm Action'}
+                </button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-700">
-                {activeModal.type === 'SUSPEND' ? 'Reason for Suspension (Required)' : 'Notes (Optional)'}
-              </label>
-              <textarea
-                rows={3}
-                placeholder={
-                  activeModal.type === 'SUSPEND'
-                    ? 'Specify reason for driver suspension...'
-                    : 'Add optional administrative notes...'
-                }
-                value={modalReason}
-                onChange={(e) => setModalReason(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 p-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal(null);
-                  setModalReason('');
-                }}
-                disabled={isProcessing}
-                className="rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmModal}
-                disabled={isProcessing || (activeModal.type === 'SUSPEND' && !modalReason.trim())}
-                className={`rounded-2xl px-5 py-2.5 text-xs font-black text-white shadow-md transition disabled:opacity-50 ${
-                  activeModal.type === 'APPROVE' || activeModal.type === 'REACTIVATE'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-rose-600 hover:bg-rose-700'
-                }`}
-              >
-                {isProcessing ? 'Processing...' : 'Confirm & Apply'}
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
