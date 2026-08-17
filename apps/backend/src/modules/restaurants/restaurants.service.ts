@@ -421,14 +421,21 @@ export class RestaurantsService {
       },
     });
 
-    // Update user status
-    await this.prisma.user.update({
+    // Update user status (NEVER deactivate an ADMIN or SUPER_ADMIN)
+    const ownerUser = await this.prisma.user.findUnique({
       where: { id: restaurant.ownerId },
-      data: {
-        isVerified: prismaStatus === RestaurantStatus.APPROVED,
-        isActive: prismaStatus === RestaurantStatus.APPROVED,
-      },
+      select: { id: true, role: true },
     });
+
+    if (ownerUser && ownerUser.role !== 'SUPER_ADMIN' && ownerUser.role !== 'ADMIN') {
+      await this.prisma.user.update({
+        where: { id: restaurant.ownerId },
+        data: {
+          isVerified: prismaStatus === RestaurantStatus.APPROVED,
+          isActive: prismaStatus === RestaurantStatus.APPROVED,
+        },
+      });
+    }
 
     // Ensure staff record exists if approved
     if (prismaStatus === RestaurantStatus.APPROVED) {

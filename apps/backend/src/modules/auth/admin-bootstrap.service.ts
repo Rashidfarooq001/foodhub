@@ -68,12 +68,36 @@ export class AdminBootstrapService implements OnModuleInit {
               password2Hash: initialP2Hash,
               adminDobHash: existingAdmin.adminDobHash || initialDobHash,
               adminFavoritePersonHash: existingAdmin.adminFavoritePersonHash || initialFavHash,
+              isActive: true,
+              isVerified: true,
+              deletedAt: null,
             },
           });
           this.logger.log(`[AdminBootstrap] Two-password hashes provisioned for existing Admin account.`);
+        } else {
+          await this.prisma.user.update({
+            where: { id: existingAdmin.id },
+            data: {
+              isActive: true,
+              isVerified: true,
+              deletedAt: null,
+            },
+          });
         }
         this.logger.log(`[AdminBootstrap] Single platform ADMIN account verified (${existingAdmin.phone}).`);
       }
+
+      // Ensure all other ADMIN and SUPER_ADMIN users are active
+      await this.prisma.user.updateMany({
+        where: {
+          role: { in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
+        },
+        data: {
+          isActive: true,
+          isVerified: true,
+          deletedAt: null,
+        },
+      });
     } catch (err: any) {
       this.logger.error(`[AdminBootstrap] Failed to verify/provision single admin: ${err?.message || err}`);
     }
