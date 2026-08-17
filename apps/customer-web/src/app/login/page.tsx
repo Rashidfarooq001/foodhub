@@ -74,8 +74,8 @@ export default function LoginPage() {
 
   if (!isAuthEnabled()) {
     return (
-      <div className="flex min-h-[75vh] items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+      <div className="flex min-h-0 items-center justify-center px-4 py-6 sm:py-12">
+        <div className="w-full max-w-md mx-auto text-center space-y-5 sm:space-y-6 rounded-3xl border border-gray-100 bg-white p-5 sm:p-8 shadow-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
             <Lock className="h-8 w-8" />
           </div>
@@ -100,13 +100,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
-            <Sparkles className="h-7 w-7" />
+    <div className="flex min-h-0 items-center justify-center px-4 py-6 sm:py-12">
+      <div className="w-full max-w-md mx-auto space-y-5 sm:space-y-8 rounded-3xl border border-gray-100 bg-white p-5 sm:p-8 shadow-2xl">
+        <div className="text-center space-y-1.5">
+          <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
+            <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
-          <h2 className="text-2xl font-black text-gray-900">Customer Login</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-gray-900">Customer Login</h2>
           <p className="text-xs text-gray-500">
             Enter your mobile number and password to access your account
           </p>
@@ -127,7 +127,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handlePasswordLogin} className="space-y-5" autoComplete="on">
+        <form onSubmit={handlePasswordLogin} className="space-y-4" autoComplete="on">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Number</label>
             <div className="relative">
@@ -177,7 +177,7 @@ export default function LoginPage() {
             <ArrowRight className="h-4 w-4" />
           </button>
 
-          <div className="text-center pt-2 text-xs">
+          <div className="text-center pt-1 text-xs">
             <span className="text-gray-500">Don't have an account? </span>
             <Link href="/signup" className="font-bold text-orange-600 hover:underline">
               Sign Up
@@ -185,7 +185,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-6 text-[11px] text-gray-400">
+        <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-4 sm:pt-6 text-[11px] text-gray-400">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
           <span>Protected by ZaykaFood 256-bit SSL Session Management</span>
         </div>
