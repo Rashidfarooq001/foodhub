@@ -10,6 +10,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'ZaykaFood — Order Food Online | ORDER • DELIVER • ENJOY',
   description: 'ZaykaFood — Fastest food delivery from the finest local restaurants. Order biryani, pizza, burgers, desserts & more. ORDER • DELIVER • ENJOY',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({

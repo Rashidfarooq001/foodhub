@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'ZaykaFood SuperAdmin Control Center',
   description: 'SuperAdmin portal for platform analytics, restaurant onboarding, driver approvals, payouts and system configuration.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({

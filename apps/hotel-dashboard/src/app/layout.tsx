@@ -5,6 +5,11 @@ import { HotelAuthWrapper } from '../components/layout/HotelAuthWrapper';
 export const metadata: Metadata = {
   title: 'ZaykaFood Restaurant & Kitchen Dashboard',
   description: 'ZaykaFood merchant portal for live KDS order management, menu availability, pricing and revenue analytics.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
