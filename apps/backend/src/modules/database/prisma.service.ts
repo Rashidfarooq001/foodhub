@@ -64,6 +64,75 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
               ) THEN
                 ALTER TABLE "food_variants" ADD COLUMN "price_modifier" DECIMAL(10,2);
               END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'created_at'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_variants' AND column_name = 'updated_at'
+              ) THEN
+                ALTER TABLE "food_variants" ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+              END IF;
+            END IF;
+
+            -- Ensure categories columns exist
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'categories') THEN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'categories' AND column_name = 'display_order'
+              ) THEN
+                ALTER TABLE "categories" ADD COLUMN "display_order" INTEGER NOT NULL DEFAULT 0;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'categories' AND column_name = 'is_active'
+              ) THEN
+                ALTER TABLE "categories" ADD COLUMN "is_active" BOOLEAN NOT NULL DEFAULT true;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'categories' AND column_name = 'created_at'
+              ) THEN
+                ALTER TABLE "categories" ADD COLUMN "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'categories' AND column_name = 'updated_at'
+              ) THEN
+                ALTER TABLE "categories" ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+              END IF;
+            END IF;
+
+            -- Ensure food_items columns exist
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'food_items') THEN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_items' AND column_name = 'deleted_at'
+              ) THEN
+                ALTER TABLE "food_items" ADD COLUMN "deleted_at" TIMESTAMP(3);
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_items' AND column_name = 'is_available'
+              ) THEN
+                ALTER TABLE "food_items" ADD COLUMN "is_available" BOOLEAN NOT NULL DEFAULT true;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'food_items' AND column_name = 'is_veg'
+              ) THEN
+                ALTER TABLE "food_items" ADD COLUMN "is_veg" BOOLEAN NOT NULL DEFAULT true;
+              END IF;
             END IF;
 
             -- Ensure order_items variant & snapshot columns exist
