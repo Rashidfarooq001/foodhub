@@ -27,6 +27,17 @@ export class MenusService {
       if (rest && rest.ownerId === actor.userId) {
         return; // Verified restaurant owner
       }
+
+      // Also check RestaurantStaff table
+      const staffLink = await this.prisma.restaurantStaff.findFirst({
+        where: {
+          restaurantId,
+          userId: actor.userId,
+        },
+      });
+      if (staffLink) {
+        return; // Verified restaurant staff
+      }
     }
 
     throw new ForbiddenException('Access denied. You do not own or manage this restaurant catalog.');

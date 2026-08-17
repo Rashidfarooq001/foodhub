@@ -99,16 +99,22 @@ export default function HotelMenuPage() {
     fetchMenuAndCategories();
   }, [restaurantId]);
 
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
+
+    setIsCreatingCategory(true);
+    setCategoryError(null);
 
     try {
       const res = await fetch(`${API_BASE}/menus/categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           restaurantId,
@@ -119,11 +125,20 @@ export default function HotelMenuPage() {
 
       if (res.ok) {
         setNewCategoryName('');
+        setCategoryError(null);
         setIsCategoryModalOpen(false);
-        fetchMenuAndCategories();
+        await fetchMenuAndCategories();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errMsg = Array.isArray(errorData.message)
+          ? errorData.message.join(', ')
+          : errorData.message || 'Failed to create category on server.';
+        setCategoryError(errMsg);
       }
-    } catch {
-      setError('Failed to create category');
+    } catch (err: any) {
+      setCategoryError(err.message || 'Network connection failed while creating category.');
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -704,6 +719,12 @@ export default function HotelMenuPage() {
               </button>
             </div>
 
+            {categoryError && (
+              <div className="rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-700 border border-rose-200">
+                {categoryError}
+              </div>
+            )}
+
             <form onSubmit={handleCreateCategory} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-700">Category Name</label>
@@ -720,16 +741,21 @@ export default function HotelMenuPage() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                  onClick={() => {
+                    setIsCategoryModalOpen(false);
+                    setCategoryError(null);
+                  }}
+                  disabled={isCreatingCategory}
+                  className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-2xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
+                  disabled={isCreatingCategory || !newCategoryName.trim()}
+                  className="rounded-2xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
                 >
-                  Create Category
+                  {isCreatingCategory ? 'Creating...' : 'Create Category'}
                 </button>
               </div>
             </form>
