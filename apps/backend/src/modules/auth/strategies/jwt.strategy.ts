@@ -64,7 +64,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (restaurantStatus === 'SUSPENDED' || restaurantStatus === 'REJECTED') {
       throw new UnauthorizedException(
         restaurantStatus === 'SUSPENDED'
-          ? 'Your restaurant account has been suspended. Please contact FoodHub support.'
+          ? 'Your restaurant account has been suspended. Please contact ZaykaFood support.'
           : 'Your restaurant registration has not been approved.',
       );
     }
@@ -75,7 +75,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (user.driver.status === 'SUSPENDED' || !user.driver.isApproved) {
         throw new UnauthorizedException(
           user.driver.status === 'SUSPENDED'
-            ? 'Your delivery partner account has been suspended. Please contact FoodHub support.'
+            ? 'Your delivery partner account has been suspended. Please contact ZaykaFood support.'
             : 'Your delivery partner registration is pending approval.',
         );
       }

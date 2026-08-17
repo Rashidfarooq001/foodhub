@@ -121,13 +121,9 @@ export default function AdminRestaurantsPage() {
         body: JSON.stringify({ status: nextStatus === 'PENDING_APPROVAL' ? 'PENDING' : nextStatus, rejectionReason: reason }),
       });
       if (res.ok) {
-        if (nextStatus === 'REJECTED') {
-          setRestaurants((prev) => prev.filter((r) => r.id !== id));
-        } else {
-          setRestaurants((prev) =>
-            prev.map((r) => (r.id === id ? { ...r, status: nextStatus } : r)),
-          );
-        }
+        setRestaurants((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: nextStatus } : r)),
+        );
         return { success: true, id };
       }
       const err = await res.json().catch(() => ({}));
@@ -290,7 +286,7 @@ export default function AdminRestaurantsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {/* Status Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl bg-gray-100 p-1">
-          {['ALL', 'APPROVED', 'PENDING_APPROVAL', 'SUSPENDED'].map((st) => (
+          {['ALL', 'APPROVED', 'PENDING_APPROVAL', 'SUSPENDED', 'REJECTED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -487,32 +483,75 @@ export default function AdminRestaurantsPage() {
                           )}
 
                           {r.status === 'APPROVED' && (
-                            <button
-                              onClick={() =>
-                                setActiveModal({
-                                  type: 'SUSPEND',
-                                  restaurantId: r.id,
-                                  restaurantName: r.name,
-                                })
-                              }
-                              className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
-                            >
-                              Suspend
-                            </button>
+                            <>
+                              <button
+                                onClick={() =>
+                                  setActiveModal({
+                                    type: 'SUSPEND',
+                                    restaurantId: r.id,
+                                    restaurantName: r.name,
+                                  })
+                                }
+                                className="rounded-xl bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition"
+                              >
+                                Suspend
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setActiveModal({
+                                    type: 'REJECT',
+                                    restaurantId: r.id,
+                                    restaurantName: r.name,
+                                  })
+                                }
+                                className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
+                              >
+                                Reject
+                              </button>
+                            </>
                           )}
 
                           {r.status === 'SUSPENDED' && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  setActiveModal({
+                                    type: 'REACTIVATE',
+                                    restaurantId: r.id,
+                                    restaurantName: r.name,
+                                  })
+                                }
+                                className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                              >
+                                Reactivate
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setActiveModal({
+                                    type: 'REJECT',
+                                    restaurantId: r.id,
+                                    restaurantName: r.name,
+                                  })
+                                }
+                                className="rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+
+                          {r.status === 'REJECTED' && (
                             <button
                               onClick={() =>
                                 setActiveModal({
-                                  type: 'REACTIVATE',
+                                  type: 'APPROVE',
                                   restaurantId: r.id,
                                   restaurantName: r.name,
                                 })
                               }
                               className="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
                             >
-                              Reactivate
+                              Reactivate / Approve
                             </button>
                           )}
                         </div>

@@ -222,32 +222,13 @@ export class RestaurantsService {
   }
 
   async findPendingApprovalRestaurants(statusFilter?: string) {
-    if (statusFilter && statusFilter.toUpperCase() === 'REJECTED') {
-      const rejectedRecords = await this.prisma.rejectedRestaurantRecord.findMany({
-        orderBy: {
-          rejectedAt: 'desc',
-        },
-      });
-
-      return serializePrisma(
-        rejectedRecords.map((record) => ({
-          id: record.id,
-          name: record.restaurantName,
-          status: record.status,
-          rejectionReason: record.rejectionReason,
-          createdAt: record.rejectedAt,
-          rejectedAt: record.rejectedAt,
-          reviewedByAdminId: record.reviewedByAdminId,
-        })),
-      );
-    }
-
-    let whereCondition: any = {};
+    let whereCondition: any = { deletedAt: null };
     if (statusFilter && statusFilter.toUpperCase() !== 'ALL') {
       const s = statusFilter.toUpperCase();
-      if (s === 'PENDING') whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
+      if (s === 'PENDING' || s === 'PENDING_APPROVAL') whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
       else if (s === 'APPROVED') whereCondition.status = RestaurantStatus.APPROVED;
       else if (s === 'SUSPENDED') whereCondition.status = RestaurantStatus.SUSPENDED;
+      else if (s === 'REJECTED') whereCondition.status = RestaurantStatus.REJECTED;
       else whereCondition.status = s as any;
     } else if (!statusFilter) {
       whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
@@ -288,16 +269,18 @@ export class RestaurantsService {
   }
 
   async findAllRestaurants(adminView = false) {
-    const whereCondition = adminView
-      ? { status: { in: [RestaurantStatus.APPROVED, RestaurantStatus.SUSPENDED] } }
-      : { status: RestaurantStatus.APPROVED };
+    const whereCondition: any = adminView
+      ? { deletedAt: null }
+      : { status: RestaurantStatus.APPROVED, isOpen: true, deletedAt: null };
 
     const restaurants = await this.prisma.restaurant.findMany({
       where: whereCondition,
       include: {
         categories: {
           include: {
-            foodItems: true,
+            foodItems: {
+              where: { deletedAt: null },
+            },
           },
         },
         documents: true,
@@ -326,7 +309,7 @@ export class RestaurantsService {
       : { slug: idOrSlug };
 
     const restaurant = await this.prisma.restaurant.findFirst({
-      where: whereCondition,
+      where: { ...whereCondition, deletedAt: null },
       include: {
         categories: {
           include: {
@@ -396,124 +379,6 @@ export class RestaurantsService {
     rejectionReason?: string,
     adminUserId?: string,
   ) {
-    if (status === 'REJECTED') {
-      if (!rejectionReason || !rejectionReason.trim()) {
-        throw new BadRequestException('A valid rejection reason is mandatory when rejecting a restaurant application.');
-      }
-
-      // Fetch full restaurant application with relations
-      const targetApp = await this.prisma.restaurant.findUnique({
-        where: { id },
-        include: {
-          documents: true,
-          galleries: true,
-          orders: { select: { id: true } },
-        },
-      });
-
-      if (!targetApp) {
-        throw new NotFoundException(`Restaurant application ${id} not found.`);
-      }
-
-      // Do NOT delete if historical financial/operational orders exist
-      if (targetApp.orders && targetApp.orders.length > 0) {
-        throw new BadRequestException('Cannot delete restaurant application with existing historical orders.');
-      }
-
-      // Collect file paths for storage cleanup
-      const fileUrls: string[] = [];
-      if (targetApp.bannerUrl) fileUrls.push(targetApp.bannerUrl);
-      if (targetApp.menuUrl) fileUrls.push(targetApp.menuUrl);
-      if (targetApp.fssaiUrl) fileUrls.push(targetApp.fssaiUrl);
-      if (targetApp.panUrl) fileUrls.push(targetApp.panUrl);
-      targetApp.galleries.forEach((g) => { if (g.imageUrl) fileUrls.push(g.imageUrl); });
-      targetApp.documents.forEach((d) => { if (d.documentUrl) fileUrls.push(d.documentUrl); });
-
-      const ownerId = targetApp.ownerId;
-      const ownerUser = await this.prisma.user.findUnique({
-        where: { id: ownerId },
-        include: { customer: true, driver: true },
-      });
-
-      const otherApprovedCount = await this.prisma.restaurant.count({
-        where: {
-          ownerId,
-          NOT: { id: targetApp.id },
-          status: RestaurantStatus.APPROVED,
-        },
-      });
-
-      // User account is deleted ONLY IF created exclusively for this application
-      // and NOT shared with other approved restaurants or customer/driver accounts
-      const canDeleteOwnerAccount =
-        otherApprovedCount === 0 &&
-        ownerUser?.role === UserRole.RESTAURANT_OWNER &&
-        !ownerUser?.customer &&
-        !ownerUser?.driver;
-
-      // ATOMIC TRANSACTION: Record minimal audit entry, delete application data, delete storage refs
-      await this.prisma.$transaction(async (tx) => {
-        // 1. Create minimal audit rejection record (NO PII, NO document URLs)
-        await tx.rejectedRestaurantRecord.create({
-          data: {
-            restaurantName: targetApp.name,
-            status: 'REJECTED',
-            rejectionReason: rejectionReason.trim(),
-            rejectedAt: new Date(),
-            reviewedByAdminId: adminUserId || null,
-          },
-        });
-
-        // 2. Delete child entities
-        await tx.restaurantBranch.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantTiming.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantGallery.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantDocument.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantStaff.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantDeliveryStaff.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantBankAccount.deleteMany({ where: { restaurantId: id } });
-        await tx.restaurantSetting.deleteMany({ where: { restaurantId: id } });
-        await tx.savedRestaurant.deleteMany({ where: { restaurantId: id } });
-
-        // Delete menu items & categories
-        await tx.foodItem.deleteMany({ where: { restaurantId: id } });
-        await tx.category.deleteMany({ where: { restaurantId: id } });
-
-        // Delete Restaurant application
-        await tx.restaurant.delete({ where: { id } });
-
-        // 3. Delete owner account if exclusive to this application
-        if (canDeleteOwnerAccount && ownerId) {
-          await tx.profile.deleteMany({ where: { userId: ownerId } });
-          await tx.otp.deleteMany({ where: { userId: ownerId } });
-          await tx.session.deleteMany({ where: { userId: ownerId } });
-          await tx.refreshToken.deleteMany({ where: { userId: ownerId } });
-          await tx.loginHistory.deleteMany({ where: { userId: ownerId } });
-          await tx.user.delete({ where: { id: ownerId } });
-        }
-      });
-
-      // Storage cleanup
-      for (const url of fileUrls) {
-        await this.deleteFileIfLocal(url);
-      }
-
-      return {
-        success: true,
-        message: 'Restaurant application rejected and applicant data permanently removed.',
-      };
-    }
-
-    // NON-REJECTED STATUSES (e.g. APPROVED or SUSPENDED)
-    const prismaStatus =
-      status === 'APPROVED'
-        ? RestaurantStatus.APPROVED
-        : status === 'SUSPENDED'
-        ? RestaurantStatus.SUSPENDED
-        : RestaurantStatus.PENDING_APPROVAL;
-
-    const isOpen = prismaStatus === RestaurantStatus.APPROVED;
-
     const prevRestaurant = await this.prisma.restaurant.findUnique({
       where: { id },
       select: { id: true, name: true, status: true, ownerId: true },
@@ -525,14 +390,38 @@ export class RestaurantsService {
 
     const previousStatus = prevRestaurant.status;
 
+    let prismaStatus: RestaurantStatus;
+    if (status === 'APPROVED') {
+      prismaStatus = RestaurantStatus.APPROVED;
+    } else if (status === 'REJECTED') {
+      prismaStatus = RestaurantStatus.REJECTED;
+      if (!rejectionReason || !rejectionReason.trim()) {
+        throw new BadRequestException('A valid rejection reason is mandatory when rejecting a restaurant.');
+      }
+    } else if (status === 'SUSPENDED') {
+      prismaStatus = RestaurantStatus.SUSPENDED;
+      if (!rejectionReason || !rejectionReason.trim()) {
+        throw new BadRequestException('A valid reason is mandatory when suspending a restaurant.');
+      }
+    } else {
+      prismaStatus = RestaurantStatus.PENDING_APPROVAL;
+    }
+
+    const isOpen = prismaStatus === RestaurantStatus.APPROVED;
+
+    // Update restaurant operational state (preserving all historical orders & financial records)
     const restaurant = await this.prisma.restaurant.update({
       where: { id },
       data: {
         status: prismaStatus,
         isOpen,
+        rejectionReason: (prismaStatus === RestaurantStatus.REJECTED || prismaStatus === RestaurantStatus.SUSPENDED)
+          ? rejectionReason?.trim() || null
+          : null,
       },
     });
 
+    // Update user status
     await this.prisma.user.update({
       where: { id: restaurant.ownerId },
       data: {
@@ -541,22 +430,25 @@ export class RestaurantsService {
       },
     });
 
-    await this.prisma.restaurantStaff.upsert({
-      where: {
-        restaurantId_userId: {
+    // Ensure staff record exists if approved
+    if (prismaStatus === RestaurantStatus.APPROVED) {
+      await this.prisma.restaurantStaff.upsert({
+        where: {
+          restaurantId_userId: {
+            restaurantId: id,
+            userId: restaurant.ownerId,
+          },
+        },
+        update: { designation: 'Owner' },
+        create: {
           restaurantId: id,
           userId: restaurant.ownerId,
+          designation: 'Owner',
         },
-      },
-      update: { designation: 'Owner' },
-      create: {
-        restaurantId: id,
-        userId: restaurant.ownerId,
-        designation: 'Owner',
-      },
-    });
+      });
+    }
 
-    // Create Audit Log
+    // Create Audit Log Entry
     try {
       await this.prisma.auditLog.create({
         data: {
@@ -565,34 +457,34 @@ export class RestaurantsService {
           entityName: 'Restaurant',
           entityId: id,
           oldValue: { status: previousStatus },
-          newValue: { status: prismaStatus, reason: rejectionReason || null },
+          newValue: { status: prismaStatus, reason: rejectionReason?.trim() || null },
         },
       });
     } catch {
       /* audit log fallback */
     }
 
-    // Emit Realtime Socket.IO Event
+    // Emit Realtime Socket.IO Events
     if (this.gateway) {
       this.gateway.emitToRestaurant(id, ORDER_EVENTS.RESTAURANT_STATUS_CHANGED as any, {
         restaurantId: id,
         status: prismaStatus,
         isOpen,
-        reason: rejectionReason || null,
+        reason: rejectionReason?.trim() || null,
       });
       this.gateway.emitToAdmin(ORDER_EVENTS.RESTAURANT_STATUS_CHANGED as any, {
         restaurantId: id,
         status: prismaStatus,
         isOpen,
-        reason: rejectionReason || null,
+        reason: rejectionReason?.trim() || null,
       });
     }
 
-    return {
+    return serializePrisma({
       ...restaurant,
       avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
       commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
-    };
+    });
   }
 
   async updateDeliveryMode(id: string, deliveryMode: DeliveryMode) {

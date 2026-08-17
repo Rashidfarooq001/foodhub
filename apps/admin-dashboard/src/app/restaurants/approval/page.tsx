@@ -533,7 +533,7 @@ export default function AdminRestaurantApprovalPage() {
                   <XCircle className="h-5 w-5" /> Reject this restaurant application?
                 </h3>
                 <p className="text-[11px] text-gray-500 mt-1">
-                  Rejecting this application will permanently remove all submitted legal documents, menu items, images, and applicant PII from ZaykaFood.
+                  Rejecting this restaurant will stop it from operating on ZaykaFood. Historical orders, payments, settlements, and financial records will be preserved.
                 </p>
               </div>
               <button

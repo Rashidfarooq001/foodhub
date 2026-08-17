@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 
 /** Haversine formula — returns distance in kilometres */
@@ -602,9 +602,13 @@ export class GeolocationService {
     deliveryLat:  number,
     deliveryLng:  number,
   ): Promise<{ valid: boolean; distanceKm: number; radiusKm: number }> {
-    const restaurant = await this.prisma.restaurant.findUniqueOrThrow({
+    const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
     });
+
+    if (!restaurant) {
+      throw new NotFoundException(`Restaurant with ID "${restaurantId}" not found`);
+    }
 
     const distanceKm = haversineKm(
       restaurant.latitude, restaurant.longitude,

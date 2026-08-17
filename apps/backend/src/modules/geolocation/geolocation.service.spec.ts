@@ -8,6 +8,11 @@ describe('GeolocationService', () => {
   const mockPrisma = {
     restaurant: {
       findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue({
+        latitude:      12.9716,
+        longitude:     77.5946,
+        deliveryRadius: 5.0,
+      }),
       findUniqueOrThrow: jest.fn().mockResolvedValue({
         latitude:      12.9716,
         longitude:     77.5946,

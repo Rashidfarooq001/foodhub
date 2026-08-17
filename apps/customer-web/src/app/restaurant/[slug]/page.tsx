@@ -33,6 +33,10 @@ export default function RestaurantDetailPage() {
           setNotFound(true);
         } else if (res.ok) {
           const data = await res.json();
+          if (data && data.status && data.status !== 'APPROVED') {
+            setNotFound(true);
+            return;
+          }
           const normalized = normalizeRestaurantData(data);
           setRestaurant(normalized);
 
@@ -48,6 +52,8 @@ export default function RestaurantDetailPage() {
               /* ignore reviews fetch error */
             }
           }
+        } else {
+          setNotFound(true);
         }
       } catch {
         setNotFound(true);

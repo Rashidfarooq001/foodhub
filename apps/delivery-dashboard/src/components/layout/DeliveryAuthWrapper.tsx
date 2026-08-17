@@ -30,15 +30,16 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
       (route) => activePath === route || activePath.startsWith(route),
     );
 
-  if (!splashDone) return <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />;
-
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT DeliveryLayout / Session Timeout / Loading Shell
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
-  }
-
-
-  return <ProtectedDeliveryAuthWrapper activePath={activePath}>{children}</ProtectedDeliveryAuthWrapper>;
+  return (
+    <>
+      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
+      {isPublicRoute ? (
+        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
+      ) : (
+        <ProtectedDeliveryAuthWrapper activePath={activePath}>{children}</ProtectedDeliveryAuthWrapper>
+      )}
+    </>
+  );
 }
 
 function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {

@@ -21,6 +21,7 @@ const PUBLIC_ROUTES = [
 
 export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [splashDone, setSplashDone] = React.useState(false);
   const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
   const isPublicRoute =
     !activePath ||
@@ -29,20 +30,21 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
       (route) => activePath === route || activePath.startsWith(route),
     );
 
-  // PUBLIC AUTH ROUTES: Render page directly WITHOUT HotelLayout, Session Timeout, or Auth Restoration
-  if (isPublicRoute) {
-    return <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>;
-  }
-
-  return <ProtectedHotelAuthWrapper activePath={activePath}>{children}</ProtectedHotelAuthWrapper>;
+  return (
+    <>
+      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
+      {isPublicRoute ? (
+        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
+      ) : (
+        <ProtectedHotelAuthWrapper activePath={activePath}>{children}</ProtectedHotelAuthWrapper>
+      )}
+    </>
+  );
 }
 
 function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
-  const [splashDone, setSplashDone] = React.useState(false);
   const router = useRouter();
   const { isAuthenticated, user, accessToken, logout, updateUser } = useHotelAuthStore();
-
-  if (typeof window !== 'undefined' && !splashDone) return <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />;
 
   useSessionTimeout({
     portalName: 'hotel',
