@@ -506,14 +506,14 @@ export default function OrderDetailsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-lg font-black text-gray-900">FoodHub Tax Invoice</h3>
+                <h3 className="text-lg font-black text-gray-900">ZaykaFood Tax Invoice</h3>
                 <button onClick={() => setShowReceipt(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="text-xs space-y-3 font-mono bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <p className="font-bold text-center text-sm">FOODHUB OFFICIAL RECEIPT</p>
+                <p className="font-bold text-center text-sm">ZAYKAFOOD OFFICIAL RECEIPT</p>
                 <p>Invoice #: INV-{order.orderNumber}</p>
                 <p>Date: {new Date(order.createdAt).toLocaleString()}</p>
                 <p>Store: {order.restaurant?.name}</p>

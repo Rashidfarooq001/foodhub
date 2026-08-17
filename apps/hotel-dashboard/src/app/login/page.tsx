@@ -110,8 +110,8 @@ export default function HotelLoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 shadow-sm">
-            <UtensilsCrossed className="h-8 w-8" />
+          <div className="mx-auto flex justify-center mb-4">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain" />
           </div>
           <h1 className="text-2xl font-black text-gray-900">Merchant Partner Portal</h1>
           <p className="text-xs text-gray-500 font-medium">
@@ -198,14 +198,14 @@ export default function HotelLoginPage() {
 
         <div className="border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400 flex items-center justify-center gap-1 font-semibold">
           <ShieldCheck className="h-3.5 w-3.5 text-orange-600" />
-          <span>Protected by FoodHub Restaurant Role Based Access Control</span>
+          <span>Protected by ZaykaFood Restaurant Role Based Access Control</span>
         </div>
       </div>
 
       {/* Footer Navigation */}
       <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
-          <span>FoodHub Partner</span>
+          <span>ZaykaFood Partner</span>
           <span>•</span>
           <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
           <span>•</span>

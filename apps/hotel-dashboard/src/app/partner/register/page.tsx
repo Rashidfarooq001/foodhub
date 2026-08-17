@@ -450,7 +450,7 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant partnership application has been received and is currently under review by FoodHub Operations.
+              Your restaurant partnership application has been received and is currently under review by ZaykaFood Operations.
             </p>
           </div>
 
@@ -478,10 +478,10 @@ export default function RestaurantPartnerRegisterPage() {
       <div className="mx-auto max-w-4xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-2 text-white">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
-            <UtensilsCrossed className="h-8 w-8" />
+          <div className="mx-auto flex justify-center mb-4">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain" />
           </div>
-          <h1 className="text-3xl font-black">Become a FoodHub Partner</h1>
+          <h1 className="text-3xl font-black">Become a ZaykaFood Partner</h1>
           <p className="text-xs text-gray-400 max-w-md mx-auto">
             Register your restaurant, upload required documents &amp; start receiving orders upon Admin approval
           </p>

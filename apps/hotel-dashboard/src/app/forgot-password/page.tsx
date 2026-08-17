@@ -301,7 +301,7 @@ export default function RestaurantForgotPasswordPage() {
       {/* Footer */}
       <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
-          <span>FoodHub Partner</span>
+          <span>ZaykaFood Partner</span>
           <span>•</span>
           <Link href="/login" className="hover:text-white transition">Login</Link>
           <span>•</span>

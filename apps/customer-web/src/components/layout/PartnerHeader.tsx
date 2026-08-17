@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, Building2, Bike, HelpCircle, LogIn, ChevronDown } from 'lucide-react';
+import { Building2, Bike, HelpCircle, LogIn, ChevronDown } from 'lucide-react';
 import { getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export const PartnerHeader: React.FC = () => {
@@ -14,12 +14,7 @@ export const PartnerHeader: React.FC = () => {
         {/* Left: Brand Logo & Partner Network Badge */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <span className="text-2xl font-black tracking-tight text-gray-900">
-              Food<span className="text-orange-600">Hub</span>
-            </span>
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-10 w-auto object-contain" />
           </Link>
 
           <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700 border border-orange-200">

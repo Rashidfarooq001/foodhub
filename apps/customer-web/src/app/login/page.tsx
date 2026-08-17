@@ -173,7 +173,7 @@ export default function LoginPage() {
             disabled={isLoading}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
           >
-            <span>{isLoading ? 'Signing In...' : 'Sign In to FoodHub'}</span>
+            <span>{isLoading ? 'Signing In...' : 'Sign In to ZaykaFood'}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
 
@@ -187,7 +187,7 @@ export default function LoginPage() {
 
         <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-6 text-[11px] text-gray-400">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>Protected by FoodHub 256-bit SSL Session Management</span>
+          <span>Protected by ZaykaFood 256-bit SSL Session Management</span>
         </div>
       </div>
     </div>

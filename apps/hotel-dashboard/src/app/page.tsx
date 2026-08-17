@@ -232,10 +232,10 @@ export default function HotelDashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-orange-100 pb-3">
           <div>
             <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Sec 9(5) ECO Settlement &amp; Tax Statement</h2>
-            <p className="text-[11px] text-gray-500">Statutory GST treatment &amp; FoodHub commission deduction breakdown</p>
+            <p className="text-[11px] text-gray-500">Statutory GST treatment &amp; ZaykaFood commission deduction breakdown</p>
           </div>
           <span className="text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-200 px-3 py-1 rounded-full uppercase">
-            Sec 9(5) Remitted by FoodHub
+            Sec 9(5) Remitted by ZaykaFood
           </span>
         </div>
 
@@ -249,7 +249,7 @@ export default function HotelDashboardPage() {
           <div className="p-3.5 rounded-2xl bg-white border border-gray-100 space-y-1">
             <span className="text-[10px] font-bold text-teal-700 uppercase block">Sec 9(5) Food GST (5%)</span>
             <span className="text-xl font-black text-teal-800">₹{Math.round(kpi.todayRevenue * 0.05).toLocaleString()}</span>
-            <span className="text-[10px] text-teal-600 font-bold block">Collected &amp; Remitted by FoodHub</span>
+            <span className="text-[10px] text-teal-600 font-bold block">Collected &amp; Remitted by ZaykaFood</span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-white border border-gray-100 space-y-1">

@@ -391,7 +391,7 @@ export default function AdminPricingConfigPage() {
                 <span className="font-bold text-gray-900">₹{riderPayout}</span>
               </div>
               <div className="flex justify-between py-2 font-black text-sm text-purple-700 border-t border-purple-200">
-                <span>FoodHub Contribution Margin</span>
+                <span>ZaykaFood Contribution Margin</span>
                 <span>₹{contributionMargin}</span>
               </div>
             </div>

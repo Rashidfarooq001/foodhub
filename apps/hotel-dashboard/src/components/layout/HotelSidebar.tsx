@@ -90,18 +90,11 @@ export const HotelSidebar: React.FC<HotelSidebarProps> = ({
       <div className="space-y-6">
         {/* Brand & Mobile Close Button */}
         <div className="flex items-center justify-between">
-          <Link href="/" onClick={onCloseMobileMenu} className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/20">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <span className="text-xl font-black text-gray-900">
-                Food<span className="text-orange-600">Hub</span>
-              </span>
-              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Merchant Operations
-              </span>
-            </div>
+          <Link href="/" onClick={onCloseMobileMenu} className="flex flex-col gap-1">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" />
+            <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Merchant Operations
+            </span>
           </Link>
 
           {/* Close button for Mobile Drawer */}

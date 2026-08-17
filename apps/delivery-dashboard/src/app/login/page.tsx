@@ -16,7 +16,7 @@ export default function DeliveryLoginPage() {
   const [loginMode, setLoginMode] = useState<'OTP' | 'PASSWORD'>('OTP');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
 
-  const [email, setEmail] = useState('driver@foodhub.com');
+  const [email, setEmail] = useState('driver@zaykafood.com');
   const [password, setPassword] = useState('DriverPass123!');
   const [phone, setPhone] = useState('9876500999');
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -225,8 +225,8 @@ export default function DeliveryLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-            <Bike className="h-8 w-8" />
+          <div className="mx-auto flex h-16 items-center justify-center">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
           </div>
           <h1 className="text-2xl font-black text-gray-900">Courier Partner Portal</h1>
           <p className="text-xs text-gray-500">Sign in to view trip dispatches, earnings &amp; GPS navigation</p>
@@ -399,14 +399,14 @@ export default function DeliveryLoginPage() {
 
         <div className="border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400 flex items-center justify-center gap-1">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          <span>Protected by FoodHub Courier Role Based Access Control</span>
+          <span>Protected by ZaykaFood Courier Role Based Access Control</span>
         </div>
       </div>
 
       {/* Footer Navigation */}
       <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
-          <span>FoodHub Delivery</span>
+          <span>ZaykaFood Delivery</span>
           <span>•</span>
           <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
         </div>

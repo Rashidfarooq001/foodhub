@@ -146,8 +146,8 @@ export default function DeliveryForgotPasswordPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl border border-gray-100">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-            <Bike className="h-8 w-8" />
+          <div className="mx-auto flex h-16 items-center justify-center">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
           </div>
           <h1 className="text-2xl font-black text-gray-900">Courier Password Recovery</h1>
           <p className="text-xs text-gray-500">
@@ -300,7 +300,7 @@ export default function DeliveryForgotPasswordPage() {
       {/* Footer */}
       <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
-          <span>FoodHub Delivery</span>
+          <span>ZaykaFood Delivery</span>
           <span>•</span>
           <Link href="/login" className="hover:text-white transition">Login</Link>
           <span>•</span>

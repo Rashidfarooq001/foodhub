@@ -7,6 +7,7 @@ import { HotelLayout } from './HotelLayout';
 import { useSessionTimeout } from '@foodhub/hooks';
 import { Clock, XCircle, LogOut } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { ZaykaFoodSplash } from '../layout/ZaykaFoodSplash';
 
 const API_BASE = getApiBaseUrl();
 
@@ -37,8 +38,11 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
+  const [splashDone, setSplashDone] = React.useState(false);
   const router = useRouter();
   const { isAuthenticated, user, accessToken, logout, updateUser } = useHotelAuthStore();
+
+  if (typeof window !== 'undefined' && !splashDone) return <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />;
 
   useSessionTimeout({
     portalName: 'hotel',
@@ -156,7 +160,7 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-gray-900">Application Pending Admin Approval</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant registration application has been received and is currently under review by FoodHub Operations.
+              Your restaurant registration application has been received and is currently under review by ZaykaFood Operations.
             </p>
           </div>
 
@@ -199,7 +203,7 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-gray-900">Application Rejected</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant registration application was reviewed and rejected by FoodHub Operations.
+              Your restaurant registration application was reviewed and rejected by ZaykaFood Operations.
             </p>
           </div>
 

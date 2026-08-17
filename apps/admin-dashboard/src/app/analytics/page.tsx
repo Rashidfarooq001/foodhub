@@ -234,7 +234,7 @@ export default function AdminAnalyticsPage() {
           </div>
 
           <div className="p-3.5 rounded-2xl bg-white border border-teal-100 space-y-1">
-            <span className="text-[10px] font-bold text-purple-700 uppercase block">FoodHub Net Revenue</span>
+            <span className="text-[10px] font-bold text-purple-700 uppercase block">ZaykaFood Net Revenue</span>
             <span className="text-xl font-black text-purple-900">₹{kpis.foodhubNetRevenue.toLocaleString('en-IN')}</span>
             <span className="text-[10px] text-purple-600 font-medium block">Commission + Platform Fee (₹3)</span>
           </div>

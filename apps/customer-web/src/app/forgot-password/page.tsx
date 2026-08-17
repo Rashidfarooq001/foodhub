@@ -468,7 +468,7 @@ export default function ForgotPasswordPage() {
 
         <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-6 text-[11px] text-gray-400">
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>Protected by FoodHub 256-bit SSL Session Management</span>
+          <span>Protected by ZaykaFood 256-bit SSL Session Management</span>
         </div>
       </div>
     </div>

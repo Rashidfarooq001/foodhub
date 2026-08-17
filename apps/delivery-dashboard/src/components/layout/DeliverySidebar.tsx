@@ -57,12 +57,7 @@ export const DeliverySidebar: React.FC<DeliverySidebarProps> = ({
               <Bike className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-xl font-black text-gray-900">
-                Food<span className="text-emerald-600">Hub</span>
-              </span>
-              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Courier Partner
-              </span>
+              <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain dark:invert" />
             </div>
           </Link>
 

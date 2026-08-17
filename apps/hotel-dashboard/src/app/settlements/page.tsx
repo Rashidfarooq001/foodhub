@@ -242,7 +242,7 @@ export default function MerchantSettlementsPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-gray-400">No bank account registered. Contact FoodHub support to configure payout details.</p>
+              <p className="text-xs text-gray-400">No bank account registered. Contact ZaykaFood support to configure payout details.</p>
             )}
           </div>
 

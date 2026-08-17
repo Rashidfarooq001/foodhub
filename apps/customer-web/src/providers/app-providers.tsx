@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CustomerSessionGuard } from './customer-session-guard';
+import { ZaykaFoodSplash } from '../components/layout/ZaykaFoodSplash';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -17,8 +18,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }),
   );
 
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
+      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
       <CustomerSessionGuard>{children}</CustomerSessionGuard>
     </QueryClientProvider>
   );

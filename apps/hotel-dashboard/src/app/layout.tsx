@@ -3,8 +3,8 @@ import './globals.css';
 import { HotelAuthWrapper } from '../components/layout/HotelAuthWrapper';
 
 export const metadata: Metadata = {
-  title: 'FoodHub Hotel & Kitchen Dashboard',
-  description: 'Merchant portal for live KDS order management, menu item availability, pricing and revenue analytics.',
+  title: 'ZaykaFood Restaurant & Kitchen Dashboard',
+  description: 'ZaykaFood merchant portal for live KDS order management, menu availability, pricing and revenue analytics.',
 };
 
 export default function RootLayout({

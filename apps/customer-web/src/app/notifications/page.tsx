@@ -15,7 +15,7 @@ export default function NotificationsPage() {
     {
       id: 'n2',
       title: '50% OFF Weekend Discount Active',
-      message: 'Use code FOODHUB50 on your next order above ₹199.',
+      message: 'Use code ZAYKA50 on your next order above ₹199.',
       time: '2 hours ago',
       type: 'PROMO',
     },

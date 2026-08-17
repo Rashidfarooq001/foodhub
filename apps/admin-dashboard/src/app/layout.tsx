@@ -6,7 +6,7 @@ import { AdminAuthWrapper } from '../components/layout/AdminAuthWrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FoodHub SuperAdmin Control Center',
+  title: 'ZaykaFood SuperAdmin Control Center',
   description: 'SuperAdmin portal for platform analytics, restaurant onboarding, driver approvals, payouts and system configuration.',
 };
 

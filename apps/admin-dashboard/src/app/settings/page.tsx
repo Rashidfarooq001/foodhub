@@ -688,7 +688,7 @@ export default function AdminAccountSettingsPage() {
 
           <div className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 text-xs font-bold text-indigo-900">
             <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0" />
-            <span>Protected by FoodHub Two-Password Authentication &amp; 256-Bit SSL JWT Session Management</span>
+            <span>Protected by ZaykaFood Two-Password Authentication &amp; 256-Bit SSL JWT Session Management</span>
           </div>
         </div>
       )}

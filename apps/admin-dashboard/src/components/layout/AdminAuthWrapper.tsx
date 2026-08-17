@@ -15,8 +15,11 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
 ];
 
+import { ZaykaFoodSplash } from './ZaykaFoodSplash';
+
 export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [splashDone, setSplashDone] = React.useState(false);
   const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
   const isPublicRoute =
     !activePath ||
@@ -24,6 +27,8 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
     PUBLIC_ROUTES.some(
       (route) => activePath === route || activePath.startsWith(route),
     );
+
+  if (!splashDone) return <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />;
 
   // PUBLIC AUTH ROUTES: Render page directly WITHOUT AdminLayout / Session Timeout / Loading Shell
   if (isPublicRoute) {

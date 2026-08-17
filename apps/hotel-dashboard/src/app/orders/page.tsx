@@ -765,7 +765,7 @@ export default function HotelOrdersPage() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block">RESTAURANT RIDER ASSIGNMENT</span>
-                <h3 className="text-lg font-black text-gray-900">Select FoodHub Partner for #{assigningOrder.orderNumber}</h3>
+                <h3 className="text-lg font-black text-gray-900">Select ZaykaFood Partner for #{assigningOrder.orderNumber}</h3>
               </div>
               <button onClick={() => setAssigningOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
                 <X className="h-5 w-5" />
@@ -773,20 +773,20 @@ export default function HotelOrdersPage() {
             </div>
 
             {isFetchingRiders ? (
-              <div className="py-12 text-center text-xs font-bold text-gray-400">Searching nearby eligible FoodHub riders...</div>
+              <div className="py-12 text-center text-xs font-bold text-gray-400">Searching nearby eligible ZaykaFood riders...</div>
             ) : (
               <div className="space-y-4">
-                {/* SECTION 1: AVAILABLE FOODHUB RIDERS */}
+                {/* SECTION 1: AVAILABLE ZAYKAFOOD RIDERS */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Available FoodHub Riders ({availableRidersList.length})
+                    <CheckCircle2 className="h-4 w-4" /> Available ZaykaFood Riders ({availableRidersList.length})
                   </h4>
 
                   {availableRidersList.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center space-y-2">
                       <Bike className="h-8 w-8 mx-auto text-gray-300" />
-                      <p className="text-xs font-bold text-gray-700">No FoodHub riders are currently available nearby.</p>
-                      <p className="text-[11px] text-gray-400">FoodHub platform fleet will auto-dispatch as soon as a delivery partner becomes online.</p>
+                      <p className="text-xs font-bold text-gray-700">No ZaykaFood riders are currently available nearby.</p>
+                      <p className="text-[11px] text-gray-400">ZaykaFood platform fleet will auto-dispatch as soon as a delivery partner becomes online.</p>
                     </div>
                   ) : (
                     availableRidersList.map((r) => (

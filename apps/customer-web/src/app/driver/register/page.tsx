@@ -27,7 +27,7 @@ export default function DriverRegisterPage() {
               href="/"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
             >
-              <span>Return to FoodHub Home</span>
+              <span>Return to ZaykaFood Home</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -96,14 +96,14 @@ export default function DriverRegisterPage() {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-900 space-y-2">
           <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
           <p className="text-xs text-emerald-700">
-            Thank you for registering with FoodHub. Our team will review your application and reach you within 24 hours.
+            Thank you for registering with ZaykaFood. Our team will review your application and reach you within 24 hours.
           </p>
         </div>
         <Link
           href="/"
           className="inline-flex items-center gap-2 rounded-2xl bg-gray-900 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-gray-800"
         >
-          Return to FoodHub Home <ArrowRight className="h-4 w-4" />
+          Return to ZaykaFood Home <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     );

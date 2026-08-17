@@ -7,7 +7,7 @@ import { useAdminStore } from '../../stores/use-admin-store';
 export default function AdminSystemSettingsPage() {
   const { platformCommissionRate, setCommissionRate } = useAdminStore();
 
-  const [name, setName] = useState('FoodHub Enterprise Platform');
+  const [name, setName] = useState('ZaykaFood Enterprise Platform');
   const [taxRate, setTaxRate] = useState('5.0');
   const [deliveryFee, setDeliveryFee] = useState('30');
   const [packagingFee, setPackagingFee] = useState('0');

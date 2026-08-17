@@ -62,13 +62,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Brand & Mobile Close */}
         <div className="flex items-center justify-between">
           <Link href="/" onClick={onCloseMobileMenu} className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-              <Shield className="h-5 w-5" />
-            </div>
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" />
             <div>
-              <span className="text-xl font-black text-gray-900">
-                Food<span className="text-purple-600">Hub</span>
-              </span>
               <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 SuperAdmin Control
               </span>

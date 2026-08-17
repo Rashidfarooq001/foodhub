@@ -60,13 +60,8 @@ export const Navbar: React.FC = () => {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 md:h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1.5 shrink-0">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-600 text-white">
-              <span className="text-sm font-black">F</span>
-            </div>
-            <span className="text-xl font-black tracking-tight text-gray-900">
-              Food<span className="text-orange-600">Hub</span>
-            </span>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-9 w-auto object-contain" />
           </Link>
 
           {/* Desktop Search — hidden on mobile */}

@@ -6,7 +6,7 @@ import { DeliveryAuthWrapper } from '../components/layout/DeliveryAuthWrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FoodHub Delivery Partner Dashboard',
+  title: 'ZaykaFood Delivery Partner Dashboard',
   description: 'Courier app for order dispatches, live navigation, wallet earnings and payout management.',
 };
 

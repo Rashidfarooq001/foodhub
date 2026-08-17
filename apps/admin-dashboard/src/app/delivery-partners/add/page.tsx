@@ -167,7 +167,7 @@ export default function AddDriverPage() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="driver@foodhub.com"
+                placeholder="driver@zaykafood.com"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
               />
             </div>

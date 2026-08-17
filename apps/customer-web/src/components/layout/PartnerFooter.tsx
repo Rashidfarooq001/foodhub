@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Sparkles, Building2, ShieldCheck, PhoneCall, Mail } from 'lucide-react';
+import { Building2, ShieldCheck, PhoneCall, Mail } from 'lucide-react';
 import { getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 
 export const PartnerFooter: React.FC = () => {
@@ -12,12 +12,8 @@ export const PartnerFooter: React.FC = () => {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-black text-white">
-                Food<span className="text-orange-500">Hub</span> Partner
-              </span>
+              <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" style={{filter: 'brightness(0) invert(1)'}} />
+              <span className="text-sm font-bold text-orange-400 ml-1">Partner Network</span>
             </Link>
             <p className="text-xs text-gray-400 leading-relaxed">
               Empowering local restaurants and gig delivery couriers with hyper-fast dispatch, zero-hassle settlements, and real-time operations tools.
@@ -47,15 +43,15 @@ export const PartnerFooter: React.FC = () => {
           <div>
             <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-white">Partner Desk Support</h4>
             <div className="space-y-2 text-xs text-gray-300">
-              <p className="flex items-center gap-2"><PhoneCall className="h-4 w-4 text-orange-500" /> +91-1800-FOOD-HUB (Toll Free)</p>
-              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-orange-500" /> partner-support@foodhub.com</p>
+              <p className="flex items-center gap-2"><PhoneCall className="h-4 w-4 text-orange-500" /> +91-1800-ZAYKA-FOOD (Toll Free)</p>
+              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-orange-500" /> partner-support@zaykafood.com</p>
               <p className="text-[10px] text-gray-500 pt-2">Mon - Sun: 8:00 AM - 11:00 PM IST</p>
             </div>
           </div>
         </div>
 
         <div className="mt-8 border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
-          © 2026 FoodHub Technologies Inc. All Merchant &amp; Delivery Partner Rights Reserved.
+          © 2026 ZaykaFood Technologies. All Partner Rights Reserved.
         </div>
       </div>
     </footer>

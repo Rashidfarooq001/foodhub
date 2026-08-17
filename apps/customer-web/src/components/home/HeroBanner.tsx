@@ -9,7 +9,7 @@ const BANNERS = [
     id: 1,
     title: '50% OFF On Your First Order',
     subtitle: 'Taste top rated meals from handpicked local kitchens near you.',
-    code: 'FOODHUB50',
+    code: 'ZAYKA50',
     bg: 'bg-orange-600',
     image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&q=80',
   },

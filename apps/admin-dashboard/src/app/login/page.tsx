@@ -228,10 +228,8 @@ export default function AdminLoginPage() {
         {mode === 'LOGIN' && (
           <>
             <div className="text-center space-y-2">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 shadow-sm">
-                <ShieldCheck className="h-9 w-9" />
-              </div>
-              <h1 className="text-2xl font-black tracking-tight text-gray-900">FoodHub Admin Portal</h1>
+              <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
+              <h1 className="text-2xl font-black tracking-tight text-gray-900">ZaykaFood Admin Portal</h1>
               <p className="text-xs text-gray-500 font-medium">
                 Two-Password Authentication System (Restricted to ADMIN / SUPER_ADMIN)
               </p>
@@ -324,7 +322,7 @@ export default function AdminLoginPage() {
             </form>
 
             <div className="text-center text-[10px] text-gray-400 font-semibold pt-2 border-t border-gray-100">
-              Protected by FoodHub Two-Password Authentication &amp; RBAC Security
+              Protected by ZaykaFood Two-Password Authentication &amp; RBAC Security
             </div>
           </>
         )}

@@ -48,7 +48,7 @@ export default function ReferralPage() {
   const handleShare = () => {
     if (navigator.share) {
       void navigator.share({
-        title: 'Join FoodHub!',
+        title: 'Join ZaykaFood!',
         text:  `Use my code ${userCode} and get ₹30 off your first order!`,
         url:   `https://foodhub.app/join?ref=${userCode}`,
       });
@@ -95,7 +95,7 @@ export default function ReferralPage() {
           <Gift className="mb-3 h-10 w-10" />
           <h1 className="text-2xl font-black">Refer & Earn</h1>
           <p className="mt-1 text-sm text-purple-100">
-            Invite friends to FoodHub. You earn <strong>₹50</strong>, they get <strong>₹30</strong>.
+            Invite friends to ZaykaFood. You earn <strong>₹50</strong>, they get <strong>₹30</strong>.
           </p>
           <div className="mt-4 flex items-center gap-3">
             <div className="flex-1 rounded-2xl bg-white/20 px-4 py-3 backdrop-blur-sm">

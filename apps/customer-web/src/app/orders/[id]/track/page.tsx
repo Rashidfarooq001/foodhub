@@ -190,7 +190,7 @@ export default function LiveOrderTrackingPage() {
             </p>
             <p className="text-xs mt-0.5 opacity-90">
               {order.status === 'DELIVERED'
-                ? 'Thank you for ordering with FoodHub!'
+                ? 'Thank you for ordering with ZaykaFood!'
                 : isDriverAssigned && driverLoc
                 ? 'Live location active on map below.'
                 : isDriverAssigned

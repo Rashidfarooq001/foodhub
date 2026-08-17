@@ -49,7 +49,7 @@ describe('useCartStore', () => {
       addons: [],
     });
 
-    useCartStore.getState().applyCoupon('FOODHUB50', 50);
+    useCartStore.getState().applyCoupon('ZAYKA50', 50);
     expect(useCartStore.getState().getDiscountAmount()).toBe(50);
   });
 });

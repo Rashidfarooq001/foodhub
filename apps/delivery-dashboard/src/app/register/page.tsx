@@ -149,7 +149,7 @@ export default function DeliveryPartnerRegisterPage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your FoodHub Delivery Partner application has been received and is under review by FoodHub Operations.
+              Your ZaykaFood Delivery Partner application has been received and is under review by ZaykaFood Operations.
             </p>
           </div>
 
@@ -177,10 +177,10 @@ export default function DeliveryPartnerRegisterPage() {
       <div className="mx-auto max-w-2xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-2 text-white">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
-            <Bike className="h-8 w-8" />
+          <div className="mx-auto flex h-16 items-center justify-center">
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
           </div>
-          <h1 className="text-3xl font-black">Become a FoodHub Delivery Partner</h1>
+          <h1 className="text-3xl font-black">Become a ZaykaFood Delivery Partner</h1>
           <p className="text-xs text-gray-400 max-w-md mx-auto">
             Earn flexible income delivering food orders across your city
           </p>

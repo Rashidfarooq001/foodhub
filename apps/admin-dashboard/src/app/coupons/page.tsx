@@ -28,7 +28,7 @@ export default function AdminCouponsPage() {
     },
     {
       id: 'cp-2',
-      code: 'FOODHUB20',
+      code: 'ZAYKA20',
       discountType: 'PERCENTAGE',
       discountValue: 20,
       minOrderAmount: 300,
@@ -77,7 +77,7 @@ export default function AdminCouponsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Platform Coupon Management</h1>
-          <p className="text-xs text-gray-500">Create & manage promotional promo codes across FoodHub</p>
+          <p className="text-xs text-gray-500">Create & manage promotional promo codes across ZaykaFood</p>
         </div>
 
         <button

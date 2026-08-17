@@ -340,7 +340,7 @@ export default function AdminSettlementsPage() {
                 <span className="font-black text-gray-900">₹0</span>
               </div>
               <div className="flex justify-between py-3 font-black text-sm text-emerald-600 border-t border-gray-200">
-                <span>Total FoodHub Yield</span>
+                <span>Total ZaykaFood Yield</span>
                 <span>₹{summary.netPlatformRevenue}</span>
               </div>
             </div>

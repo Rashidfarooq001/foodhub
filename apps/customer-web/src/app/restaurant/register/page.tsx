@@ -27,7 +27,7 @@ export default function RestaurantRegisterPage() {
               href="/"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
             >
-              <span>Return to FoodHub Home</span>
+              <span>Return to ZaykaFood Home</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -194,14 +194,14 @@ export default function RestaurantRegisterPage() {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-900 space-y-2">
           <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
           <p className="text-xs text-emerald-700">
-            Thank you for applying to partner with FoodHub. Our operations team will verify your FSSAI license and bank details. Once approved, you can log in to your Merchant Dashboard.
+            Thank you for applying to partner with ZaykaFood. Our operations team will verify your FSSAI license and bank details. Once approved, you can log in to your Merchant Dashboard.
           </p>
         </div>
         <Link
           href="/"
           className="inline-flex items-center gap-2 rounded-2xl bg-gray-900 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-gray-800"
         >
-          Return to FoodHub Home <ArrowRight className="h-4 w-4" />
+          Return to ZaykaFood Home <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     );
@@ -213,7 +213,7 @@ export default function RestaurantRegisterPage() {
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
           <Store className="h-8 w-8" />
         </div>
-        <h1 className="text-3xl font-black text-gray-900">Partner with FoodHub</h1>
+        <h1 className="text-3xl font-black text-gray-900">Partner with ZaykaFood</h1>
         <p className="text-xs text-gray-500 max-w-md mx-auto">
           Expand your restaurant business with thousands of online orders every day
         </p>

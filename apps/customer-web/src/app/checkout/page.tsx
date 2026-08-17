@@ -382,9 +382,9 @@ export default function CheckoutPage() {
       /* Fallback to local validation */
     }
 
-    if (cleanCode === 'FOODHUB50') {
+    if (cleanCode === 'ZAYKA50') {
       const disc = Math.round(subtotal * 0.5);
-      applyCoupon('FOODHUB50', Math.min(disc, 150));
+      applyCoupon('ZAYKA50', Math.min(disc, 150));
       setCouponError(null);
       setCouponCodeInput('');
     } else if (cleanCode === 'WELCOME100') {
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
       setCouponError(null);
       setCouponCodeInput('');
     } else {
-      setCouponError('Invalid coupon code. Try FOODHUB50 or WELCOME100');
+      setCouponError('Invalid coupon code. Try ZAYKA50 or WELCOME100');
     }
 
     setIsApplyingCoupon(false);
@@ -1203,7 +1203,7 @@ export default function CheckoutPage() {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Coupon (e.g. FOODHUB50)"
+                        placeholder="Coupon (e.g. ZAYKA50)"
                         value={couponCodeInput}
                         onChange={(e) => {
                           setCouponCodeInput(e.target.value);

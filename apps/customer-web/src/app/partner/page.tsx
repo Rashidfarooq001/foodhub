@@ -13,11 +13,11 @@ export default function PartnerLandingPage() {
     <div className="min-h-screen bg-gray-900 px-4 py-16 text-white flex flex-col items-center justify-center">
       <div className="max-w-4xl w-full text-center space-y-4 mb-12">
         <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-4 py-1.5 text-xs font-bold text-orange-400 border border-orange-500/20">
-          <ShieldCheck className="h-4 w-4" /> FoodHub Partner Network
+          <ShieldCheck className="h-4 w-4" /> ZaykaFood Partner Network
         </div>
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tight">Become a FoodHub Partner</h1>
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight">Become a ZaykaFood Partner</h1>
         <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto">
-          Choose how you want to partner with FoodHub. Expand your food business or earn on flexible hours as a delivery partner.
+          Choose how you want to partner with ZaykaFood. Expand your food business or earn on flexible hours as a delivery partner.
         </p>
       </div>
 
@@ -30,7 +30,7 @@ export default function PartnerLandingPage() {
             </div>
             <h2 className="text-2xl font-black text-white">Restaurant Partner</h2>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Register your restaurant, hotel, or cloud kitchen. Get listed on FoodHub, manage live KDS orders, and grow your customer base.
+              Register your restaurant, hotel, or cloud kitchen. Get listed on ZaykaFood, manage live KDS orders, and grow your customer base.
             </p>
             <ul className="space-y-2 text-xs font-semibold text-gray-300 pt-2">
               <li className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export default function PartnerLandingPage() {
             </div>
             <h2 className="text-2xl font-black text-white">Delivery Partner</h2>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Join FoodHub as a delivery courier. Deliver meals on your own schedule with weekly payouts, insurance &amp; trip bonuses.
+              Join ZaykaFood as a delivery courier. Deliver meals on your own schedule with weekly payouts, insurance &amp; trip bonuses.
             </p>
             <ul className="space-y-2 text-xs font-semibold text-gray-300 pt-2">
               <li className="flex items-center gap-2">

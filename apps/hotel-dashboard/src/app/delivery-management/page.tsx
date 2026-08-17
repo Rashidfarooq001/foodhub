@@ -204,7 +204,7 @@ export default function HotelDeliveryManagementPage() {
             const driverProfile = driverUser?.profile;
             const driverName = driverProfile?.firstName
               ? `${driverProfile.firstName} ${driverProfile.lastName || ''}`.trim()
-              : (driverInfo?.name || 'FoodHub Fleet Courier');
+              : (driverInfo?.name || 'ZaykaFood Fleet Courier');
             const driverPhone = driverUser?.phone || driverInfo?.phone || null;
 
             const customerUser = order.customer?.user;

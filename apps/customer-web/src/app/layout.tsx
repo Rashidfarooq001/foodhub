@@ -8,8 +8,8 @@ import { Footer } from '../components/layout/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FoodHub - Order Food Online From Top Local Restaurants',
-  description: 'Fastest food delivery from handpicked restaurants in your city. Order biryani, pizza, burgers, desserts & more on FoodHub.',
+  title: 'ZaykaFood — Order Food Online | ORDER • DELIVER • ENJOY',
+  description: 'ZaykaFood — Fastest food delivery from the finest local restaurants. Order biryani, pizza, burgers, desserts & more. ORDER • DELIVER • ENJOY',
 };
 
 export default function RootLayout({

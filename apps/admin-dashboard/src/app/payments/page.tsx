@@ -293,7 +293,7 @@ export default function AdminPaymentsPage() {
           { id: 'settlements', label: 'RESTAURANT SETTLEMENTS', icon: Store },
           { id: 'payments', label: 'CUSTOMER PAYMENTS', icon: CreditCard },
           { id: 'riders', label: 'RIDER PAYOUTS', icon: Bike },
-          { id: 'revenue', label: 'FOODHUB REVENUE', icon: TrendingUp },
+          { id: 'revenue', label: 'ZAYKAFOOD REVENUE', icon: TrendingUp },
           { id: 'reconciliation', label: 'FINANCIAL RECONCILIATION', icon: ShieldCheck },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -407,7 +407,7 @@ export default function AdminPaymentsPage() {
             <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-1">
               <p className="text-[11px] font-bold text-gray-400 uppercase">Restaurant Commission</p>
               <h3 className="text-xl font-black text-blue-600">₹{(settlementSummary?.totalCommission ?? 0).toLocaleString('en-IN')}</h3>
-              <p className="text-[10px] text-blue-600 font-bold">FoodHub commission cut</p>
+              <p className="text-[10px] text-blue-600 font-bold">ZaykaFood commission cut</p>
             </div>
 
             <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-1">
@@ -652,7 +652,7 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      {/* TAB 4: FOODHUB REVENUE */}
+      {/* TAB 4: ZAYKAFOOD REVENUE */}
       {activeTab === 'revenue' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xs space-y-4">

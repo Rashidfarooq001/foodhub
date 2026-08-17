@@ -8,7 +8,7 @@ export default function HotelSupportPage() {
     <div className="space-y-6 max-w-3xl">
       <div className="border-b border-gray-100 pb-4">
         <h1 className="text-3xl font-black text-gray-900">Merchant Support</h1>
-        <p className="text-xs text-gray-500">Contact FoodHub Partner Helpdesk & account managers</p>
+        <p className="text-xs text-gray-500">Contact ZaykaFood Partner Helpdesk & account managers</p>
       </div>
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">

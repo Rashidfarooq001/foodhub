@@ -18,14 +18,9 @@ export const Footer: React.FC = () => {
         {/* Logo + Tagline */}
         <div className="mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-600 text-white">
-              <span className="text-sm font-black">F</span>
-            </div>
-            <span className="text-xl font-black text-white">
-              Food<span className="text-orange-500">Hub</span>
-            </span>
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" style={{filter: 'brightness(0) invert(1)'}} />
           </Link>
-          <p className="mt-2 text-sm text-gray-400">Fresh meals from top local restaurants, fast.</p>
+          <p className="mt-2 text-sm text-gray-400">ORDER • DELIVER • ENJOY</p>
         </div>
 
         {/* Links */}
@@ -44,7 +39,7 @@ export const Footer: React.FC = () => {
 
         {/* Copyright */}
         <p className="text-center text-xs text-gray-600">
-          © {new Date().getFullYear()} FoodHub. All rights reserved.
+          © {new Date().getFullYear()} ZaykaFood Technologies. All rights reserved.
         </p>
       </div>
     </footer>
