@@ -40,10 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
     });
 
-    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
-    const isAccountActive = user && !user.deletedAt && (isAdmin || user.isActive);
-
-    if (!user || !isAccountActive) {
+    if (!user || !user.isActive || user.deletedAt) {
       throw new UnauthorizedException('User account is inactive or disabled');
     }
 

@@ -14,8 +14,8 @@ export class AdminBootstrapService implements OnModuleInit {
   }
 
   async ensureSingleAdminExists() {
-    const adminPhone = process.env.ADMIN_PHONE || '+917006298795';
-    const adminEmail = process.env.ADMIN_EMAIL || 'www.rashidreshi2005@gmail.com';
+    const adminPhone = process.env.ADMIN_PHONE || '+910000000000';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@zaykafood.com';
     const rawPassword = process.env.ADMIN_PASSWORD || 'SuperAdmin123!';
 
     try {
@@ -33,10 +33,10 @@ export class AdminBootstrapService implements OnModuleInit {
       const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
       const initialP2Hash = await bcrypt.hash('88887777', 10);
       const initialDobHash = await bcrypt.hash('2005-01-01', 10);
-      const initialFavHash = await bcrypt.hash('reshi', 10);
+      const initialFavHash = await bcrypt.hash('zaykafood', 10);
 
       if (!existingAdmin) {
-        this.logger.log(`[AdminBootstrap] No Admin account found. Provisioning single platform ADMIN (${adminPhone} / ${adminEmail})...`);
+        this.logger.log(`[AdminBootstrap] No Admin account found. Provisioning initial platform ADMIN (${adminPhone} / ${adminEmail})...`);
         const passwordHash = await bcrypt.hash(rawPassword, 12);
         await this.prisma.user.create({
           data: {
@@ -52,13 +52,13 @@ export class AdminBootstrapService implements OnModuleInit {
             isActive: true,
             profile: {
               create: {
-                firstName: 'FoodHub',
+                firstName: 'ZaykaFood',
                 lastName: 'Admin',
               },
             },
           },
         });
-        this.logger.log(`[AdminBootstrap] Single platform ADMIN provisioned successfully.`);
+        this.logger.log(`[AdminBootstrap] Initial platform ADMIN provisioned successfully.`);
       } else {
         if (!existingAdmin.password1Hash || !existingAdmin.password2Hash) {
           await this.prisma.user.update({
@@ -73,33 +73,12 @@ export class AdminBootstrapService implements OnModuleInit {
               deletedAt: null,
             },
           });
-          this.logger.log(`[AdminBootstrap] Two-password hashes provisioned for existing Admin account.`);
-        } else {
-          await this.prisma.user.update({
-            where: { id: existingAdmin.id },
-            data: {
-              isActive: true,
-              isVerified: true,
-              deletedAt: null,
-            },
-          });
+          this.logger.log(`[AdminBootstrap] Two-password security hashes provisioned for existing Admin account.`);
         }
-        this.logger.log(`[AdminBootstrap] Single platform ADMIN account verified (${existingAdmin.phone}).`);
+        this.logger.log(`[AdminBootstrap] Platform ADMIN account verified.`);
       }
-
-      // Ensure all other ADMIN and SUPER_ADMIN users are active
-      await this.prisma.user.updateMany({
-        where: {
-          role: { in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
-        },
-        data: {
-          isActive: true,
-          isVerified: true,
-          deletedAt: null,
-        },
-      });
     } catch (err: any) {
-      this.logger.error(`[AdminBootstrap] Failed to verify/provision single admin: ${err?.message || err}`);
+      this.logger.error(`[AdminBootstrap] Failed to verify/provision admin: ${err?.message || err}`);
     }
   }
 }

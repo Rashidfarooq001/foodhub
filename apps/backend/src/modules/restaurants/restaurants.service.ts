@@ -421,20 +421,44 @@ export class RestaurantsService {
       },
     });
 
-    // Update user status (NEVER deactivate an ADMIN or SUPER_ADMIN)
-    const ownerUser = await this.prisma.user.findUnique({
-      where: { id: restaurant.ownerId },
-      select: { id: true, role: true },
-    });
-
-    if (ownerUser && ownerUser.role !== 'SUPER_ADMIN' && ownerUser.role !== 'ADMIN') {
-      await this.prisma.user.update({
+    // Update merchant user status ONLY if the user is strictly a dedicated RESTAURANT_OWNER.
+    // NEVER modify isActive for ADMIN, SUPER_ADMIN, CUSTOMER, or DELIVERY_PARTNER accounts.
+    if (restaurant.ownerId) {
+      const ownerUser = await this.prisma.user.findUnique({
         where: { id: restaurant.ownerId },
-        data: {
-          isVerified: prismaStatus === RestaurantStatus.APPROVED,
-          isActive: prismaStatus === RestaurantStatus.APPROVED,
-        },
+        select: { id: true, role: true, isActive: true },
       });
+
+      if (ownerUser && ownerUser.role === UserRole.RESTAURANT_OWNER) {
+        if (prismaStatus === RestaurantStatus.APPROVED) {
+          await this.prisma.user.update({
+            where: { id: ownerUser.id },
+            data: {
+              isVerified: true,
+              isActive: true,
+            },
+          });
+        } else if (prismaStatus === RestaurantStatus.REJECTED || prismaStatus === RestaurantStatus.SUSPENDED) {
+          // Check if merchant owns any other approved active restaurant before deactivating account
+          const otherApprovedRestaurant = await this.prisma.restaurant.findFirst({
+            where: {
+              ownerId: ownerUser.id,
+              id: { not: id },
+              status: RestaurantStatus.APPROVED,
+              deletedAt: null,
+            },
+          });
+
+          if (!otherApprovedRestaurant) {
+            await this.prisma.user.update({
+              where: { id: ownerUser.id },
+              data: {
+                isActive: false,
+              },
+            });
+          }
+        }
+      }
     }
 
     // Ensure staff record exists if approved

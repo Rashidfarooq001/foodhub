@@ -224,13 +224,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 ALTER TABLE "settlements" ADD COLUMN "deductions" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
               END IF;
             END IF;
-
-            -- Ensure all ADMIN and SUPER_ADMIN users are active and verified
-            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
-              UPDATE "users"
-              SET "is_active" = true, "deleted_at" = NULL, "is_verified" = true
-              WHERE "role"::text IN ('ADMIN', 'SUPER_ADMIN') OR "phone" IN ('9596689385', '+919596689385', '7006298795', '+917006298795');
-            END IF;
           END $$;
         `);
         this.logger.log('Database schema self-heal check completed.');
