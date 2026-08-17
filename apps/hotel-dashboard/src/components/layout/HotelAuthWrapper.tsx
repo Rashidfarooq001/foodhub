@@ -21,30 +21,18 @@ const PUBLIC_ROUTES = [
 
 export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [splashDone, setSplashDone] = React.useState(false);
-  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute =
-    !activePath ||
-    activePath === '' ||
-    PUBLIC_ROUTES.some(
-      (route) => activePath === route || activePath.startsWith(route),
-    );
-
-  return (
-    <>
-      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
-      {isPublicRoute ? (
-        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
-      ) : (
-        <ProtectedHotelAuthWrapper activePath={activePath}>{children}</ProtectedHotelAuthWrapper>
-      )}
-    </>
-  );
-}
-
-function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
   const router = useRouter();
+  const [splashDone, setSplashDone] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
   const { isAuthenticated, user, accessToken, logout, updateUser } = useHotelAuthStore();
+
+  const isPublicRoute =
+    Boolean(pathname) &&
+    PUBLIC_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(route),
+    );
 
   useSessionTimeout({
     portalName: 'hotel',
@@ -56,8 +44,6 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
     timeoutMs: 5 * 60 * 1000,
   });
 
-  const [mounted, setMounted] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<string | null>(
     user?.applicationStatus || null,
   );
@@ -78,7 +64,7 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
     };
   }, []);
 
-  // Hydrate latest Hotel profile (incl. avatarUrl) from database on mount / auth restore
+  // Hydrate latest Hotel profile from database on mount / auth restore
   useEffect(() => {
     if (!isAuthenticated || !accessToken || !mounted) return;
     let alive = true;
@@ -103,7 +89,7 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
 
   // Fetch latest restaurant approval status when user is authenticated on protected route
   useEffect(() => {
-    if (!isAuthenticated || !user || !mounted) return;
+    if (!isAuthenticated || !user || !mounted || isPublicRoute) return;
 
     let isMounted = true;
     const fetchStatus = async () => {
@@ -127,112 +113,106 @@ function ProtectedHotelAuthWrapper({ children, activePath }: { children: React.R
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, user, accessToken, mounted]);
+  }, [isAuthenticated, user, accessToken, mounted, isPublicRoute]);
 
-  // Initial Auth Loading State (Clean screen, NO sidebar flash)
-  if (!mounted || !hydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Protected Route Unauthenticated Guard: Redirect to /login if NOT on public route
-  if (!isAuthenticated) {
-    if (typeof window !== 'undefined' && activePath !== '/login' && !activePath.startsWith('/login')) {
+  // Handle protected route redirection
+  useEffect(() => {
+    if (mounted && hydrated && !isAuthenticated && !isPublicRoute) {
       router.push('/login');
     }
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
-      </div>
-    );
-  }
+  }, [mounted, hydrated, isAuthenticated, isPublicRoute, router]);
 
-  // Application Pending Admin Approval Screen
-  if (user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'PENDING_APPROVAL') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
-        <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-            <Clock className="h-10 w-10 animate-pulse" />
-          </div>
+  return (
+    <>
+      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
 
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">Application Pending Admin Approval</h1>
-            <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant registration application has been received and is currently under review by ZaykaFood Operations.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-              <span className="uppercase tracking-wider text-[10px] text-amber-700">Status: PENDING APPROVAL</span>
+      {/* PUBLIC AUTH ROUTES */}
+      {isPublicRoute ? (
+        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
+      ) : !mounted || !hydrated || !isAuthenticated ? (
+        /* INITIAL LOADING / UNAUTHENTICATED SHELL */
+        <div className="flex min-h-screen items-center justify-center bg-gray-950">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+        </div>
+      ) : user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'PENDING_APPROVAL' ? (
+        /* PENDING APPROVAL SCREEN */
+        <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
+          <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+              <Clock className="h-10 w-10 animate-pulse" />
             </div>
-            <p className="text-[11px] text-amber-800 font-normal">
-              Full operational features (Kitchen Queue, Menu Management, Orders &amp; Settings) will unlock automatically once an administrator approves your FSSAI &amp; legal documents.
-            </p>
-          </div>
 
-          <div className="border-t border-gray-100 pt-4 flex justify-center">
-            <button
-              onClick={() => {
-                logout();
-                router.push('/login');
-              }}
-              className="flex items-center gap-2 rounded-2xl bg-gray-100 px-6 py-3 text-xs font-bold text-gray-700 hover:bg-gray-200 transition"
-            >
-              <LogOut className="h-4 w-4 text-gray-500" />
-              <span>Log Out of Merchant Account</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-gray-900">Application Pending Admin Approval</h1>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                Your restaurant registration application has been received and is currently under review by ZaykaFood Operations.
+              </p>
+            </div>
 
-  // Application Rejected Screen
-  if (user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'REJECTED') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
-        <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-            <XCircle className="h-10 w-10" />
-          </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                <span className="uppercase tracking-wider text-[10px] text-amber-700">Status: PENDING APPROVAL</span>
+              </div>
+              <p className="text-[11px] text-amber-800 font-normal">
+                Full operational features (Kitchen Queue, Menu Management, Orders &amp; Settings) will unlock automatically once an administrator approves your FSSAI &amp; legal documents.
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">Application Rejected</h1>
-            <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant registration application was reviewed and rejected by ZaykaFood Operations.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-900 space-y-2 text-left">
-            <span className="uppercase tracking-wider text-[10px] text-rose-700 block font-black">Rejection Reason</span>
-            <p className="text-xs font-semibold text-rose-800 bg-white p-3 rounded-xl border border-rose-200">
-              {rejectionReason || 'FSSAI License / PAN Card document verification failed.'}
-            </p>
-          </div>
-
-          <div className="border-t border-gray-100 pt-4 flex justify-center">
-            <button
-              onClick={() => {
-                logout();
-                router.push('/login');
-              }}
-              className="flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-xs font-bold text-white hover:bg-rose-700 transition"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Log Out</span>
-            </button>
+            <div className="border-t border-gray-100 pt-4 flex justify-center">
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="flex items-center gap-2 rounded-2xl bg-gray-100 px-6 py-3 text-xs font-bold text-gray-700 hover:bg-gray-200 transition"
+              >
+                <LogOut className="h-4 w-4 text-gray-500" />
+                <span>Log Out of Merchant Account</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      ) : user?.role === 'RESTAURANT_OWNER' && restaurantStatus === 'REJECTED' ? (
+        /* REJECTED SCREEN */
+        <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
+          <div className="w-full max-w-lg space-y-6 rounded-3xl bg-white p-8 sm:p-10 shadow-2xl text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+              <XCircle className="h-10 w-10" />
+            </div>
 
-  // PROTECTED AUTHENTICATED ROUTES ONLY: Wrap inside HotelLayout (Sidebar + Header)
-  return <HotelLayout>{children}</HotelLayout>;
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-gray-900">Application Rejected</h1>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                Your restaurant registration application was reviewed and rejected by ZaykaFood Operations.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-900 space-y-2 text-left">
+              <span className="uppercase tracking-wider text-[10px] text-rose-700 block font-black">Rejection Reason</span>
+              <p className="text-xs font-semibold text-rose-800 bg-white p-3 rounded-xl border border-rose-200">
+                {rejectionReason || 'FSSAI License / PAN Card document verification failed.'}
+              </p>
+            </div>
+
+            <div className="border-t border-gray-100 pt-4 flex justify-center">
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-xs font-bold text-white hover:bg-rose-700 transition"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* AUTHENTICATED HOTEL LAYOUT */
+        <HotelLayout>{children}</HotelLayout>
+      )}
+    </>
+  );
 }

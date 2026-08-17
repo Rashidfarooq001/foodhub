@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { DeliveryLayout } from './DeliveryLayout';
-
 import { useSessionTimeout } from '@foodhub/hooks';
 import { getApiBaseUrl } from '@foodhub/config';
+import { ZaykaFoodSplash } from './ZaykaFoodSplash';
 
 const API_BASE = getApiBaseUrl();
 
@@ -16,35 +16,20 @@ const PUBLIC_ROUTES = [
   '/reset-password',
 ];
 
-import { ZaykaFoodSplash } from './ZaykaFoodSplash';
-
 export function DeliveryAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [splashDone, setSplashDone] = React.useState(false);
-
-  const activePath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
-  const isPublicRoute =
-    !activePath ||
-    activePath === '' ||
-    PUBLIC_ROUTES.some(
-      (route) => activePath === route || activePath.startsWith(route),
-    );
-
-  return (
-    <>
-      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
-      {isPublicRoute ? (
-        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
-      ) : (
-        <ProtectedDeliveryAuthWrapper activePath={activePath}>{children}</ProtectedDeliveryAuthWrapper>
-      )}
-    </>
-  );
-}
-
-function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: React.ReactNode; activePath: string }) {
   const router = useRouter();
+  const [splashDone, setSplashDone] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
   const { isAuthenticated, accessToken, logout, updateUser } = useDeliveryAuthStore();
+
+  const isPublicRoute =
+    Boolean(pathname) &&
+    PUBLIC_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(route),
+    );
 
   useSessionTimeout({
     portalName: 'delivery',
@@ -55,9 +40,6 @@ function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: Reac
     loginPath: '/login',
     timeoutMs: 5 * 60 * 1000,
   });
-
-  const [mounted, setMounted] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -72,9 +54,9 @@ function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: Reac
     };
   }, []);
 
-  // Hydrate latest Delivery profile (incl. avatarUrl) from database on mount / auth restore
+  // Hydrate latest Delivery profile from database on mount / auth restore
   useEffect(() => {
-    if (!isAuthenticated || !accessToken || !mounted) return;
+    if (!isAuthenticated || !accessToken || !mounted || isPublicRoute) return;
     let alive = true;
     fetch(`${API_BASE}/auth/profile`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -93,29 +75,31 @@ function ProtectedDeliveryAuthWrapper({ children, activePath }: { children: Reac
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [isAuthenticated, accessToken, mounted, updateUser]);
+  }, [isAuthenticated, accessToken, mounted, updateUser, isPublicRoute]);
 
-  // Initial Auth Loading State (Clean screen, NO sidebar flash)
-  if (!mounted || !hydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Protected Route Unauthenticated Guard: Redirect to /login if NOT on public route
-  if (!isAuthenticated) {
-    if (typeof window !== 'undefined' && activePath !== '/login' && !activePath.startsWith('/login')) {
+  // Handle protected route redirection
+  useEffect(() => {
+    if (mounted && hydrated && !isAuthenticated && !isPublicRoute) {
       router.push('/login');
     }
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
-      </div>
-    );
-  }
+  }, [mounted, hydrated, isAuthenticated, isPublicRoute, router]);
 
-  // PROTECTED AUTHENTICATED ROUTES ONLY: Wrap inside DeliveryLayout (Sidebar + Header)
-  return <DeliveryLayout>{children}</DeliveryLayout>;
+  return (
+    <>
+      {!splashDone && <ZaykaFoodSplash onComplete={() => setSplashDone(true)} />}
+
+      {/* PUBLIC AUTH ROUTES */}
+      {isPublicRoute ? (
+        <main className="min-h-screen w-full bg-gray-950 flex flex-col flex-1">{children}</main>
+      ) : !mounted || !hydrated || !isAuthenticated ? (
+        /* INITIAL LOADING / UNAUTHENTICATED SHELL */
+        <div className="flex min-h-screen items-center justify-center bg-gray-950">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        </div>
+      ) : (
+        /* AUTHENTICATED DELIVERY LAYOUT */
+        <DeliveryLayout>{children}</DeliveryLayout>
+      )}
+    </>
+  );
 }
