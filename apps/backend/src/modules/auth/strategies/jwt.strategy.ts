@@ -44,32 +44,43 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User account is inactive or disabled');
     }
 
-    // Check Restaurant status if user is restaurant staff or owner
     let restaurantId: string | undefined = undefined;
     let restaurantStatus: string | undefined = undefined;
-    if (user.restaurantStaff?.[0]?.restaurant) {
-      restaurantId = user.restaurantStaff[0].restaurant.id;
-      restaurantStatus = user.restaurantStaff[0].restaurant.status;
-    } else if (user.role === 'RESTAURANT_OWNER') {
-      const rest = await this.prisma.restaurant.findFirst({
-        where: { ownerId: user.id },
-        select: { id: true, status: true },
-      });
-      if (rest) {
-        restaurantId = rest.id;
-        restaurantStatus = rest.status;
+
+    // Check Restaurant status ONLY for merchant / restaurant staff roles
+    const isRestaurantRole =
+      user.role === 'RESTAURANT_OWNER' ||
+      user.role === 'RESTAURANT_MANAGER' ||
+      user.role === 'RESTAURANT_STAFF';
+
+    if (isRestaurantRole) {
+      if (user.restaurantStaff?.[0]?.restaurant) {
+        restaurantId = user.restaurantStaff[0].restaurant.id;
+        restaurantStatus = user.restaurantStaff[0].restaurant.status;
+      } else if (user.role === 'RESTAURANT_OWNER') {
+        const rest = await this.prisma.restaurant.findFirst({
+          where: { ownerId: user.id },
+          select: { id: true, status: true },
+        });
+        if (rest) {
+          restaurantId = rest.id;
+          restaurantStatus = rest.status;
+        }
       }
+
+      if (restaurantStatus === 'SUSPENDED' || restaurantStatus === 'REJECTED') {
+        throw new UnauthorizedException(
+          restaurantStatus === 'SUSPENDED'
+            ? 'Your restaurant account has been suspended. Please contact ZaykaFood support.'
+            : 'Your restaurant registration has not been approved.',
+        );
+      }
+    } else if (user.restaurantStaff?.[0]?.restaurant) {
+      // For Admin / Customer roles who might have created or tested a restaurant, provide restaurantId without enforcing suspension
+      restaurantId = user.restaurantStaff[0].restaurant.id;
     }
 
-    if (restaurantStatus === 'SUSPENDED' || restaurantStatus === 'REJECTED') {
-      throw new UnauthorizedException(
-        restaurantStatus === 'SUSPENDED'
-          ? 'Your restaurant account has been suspended. Please contact ZaykaFood support.'
-          : 'Your restaurant registration has not been approved.',
-      );
-    }
-
-    // Check Driver status if user is a driver
+    // Check Driver status ONLY if user is acting as a courier partner
     const driverId = user.driver?.id;
     if (user.role === 'DELIVERY_PARTNER' && user.driver) {
       if (user.driver.status === 'SUSPENDED' || !user.driver.isApproved) {
