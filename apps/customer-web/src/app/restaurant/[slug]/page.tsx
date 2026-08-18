@@ -22,6 +22,8 @@ export default function RestaurantDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [menuSearch, setMenuSearch] = useState('');
   const [selectedFoodForCustomization, setSelectedFoodForCustomization] = useState<FoodItemData | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
   const { addItem } = useCartStore();
 
@@ -96,9 +98,6 @@ export default function RestaurantDetailPage() {
   const filteredItems = (restaurant.foodItems ?? []).filter((f) =>
     f.name.toLowerCase().includes(menuSearch.toLowerCase()),
   );
-
-  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
-  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
   // When opening customization modal, select the first available variant if variants exist
   const openCustomization = (food: FoodItemData) => {
