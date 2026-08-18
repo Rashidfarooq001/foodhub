@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Phone,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
 import { getImageUrl } from '@foodhub/config';
@@ -40,18 +41,24 @@ export default function AdminDriverApprovalPage() {
   const [applications, setApplications] = useState<PendingDriverApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string } | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fetchApplications = async () => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       const res = await adminFetch('/drivers/applications');
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setErrorMsg(err.message || 'Failed to load driver applications.');
       }
     } catch {
-      /* offline */
+      setErrorMsg('Connection error loading applications queue.');
     } finally {
       setIsLoading(false);
     }
@@ -62,20 +69,47 @@ export default function AdminDriverApprovalPage() {
   }, []);
 
   const handleAction = async (id: string, isApproved: boolean) => {
-    setIsProcessing(true);
+    setProcessingId(id);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    // Optimistically remove from view for instant feedback
+    const previousList = [...applications];
+    setApplications((prev) => prev.filter((app) => app.id !== id));
+
     try {
       const res = await adminFetch(`/drivers/${id}/approval`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isApproved, status: isApproved ? 'APPROVED' : 'REJECTED' }),
+        body: JSON.stringify({
+          isApproved,
+          status: isApproved ? 'APPROVED' : 'REJECTED',
+          reason: isApproved ? 'Approved by Admin' : 'Rejected by Admin',
+        }),
       });
+
       if (res.ok) {
-        await fetchApplications();
+        setSuccessMsg(
+          isApproved
+            ? 'Courier partner approved and activated successfully!'
+            : 'Courier partner application rejected and removed from pending queue.',
+        );
+        // Refresh silently from backend
+        const refreshRes = await adminFetch('/drivers/applications');
+        if (refreshRes.ok) {
+          const freshData = await refreshRes.json();
+          setApplications(Array.isArray(freshData) ? freshData : []);
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setErrorMsg(err.message || `Failed to ${isApproved ? 'approve' : 'reject'} driver.`);
+        setApplications(previousList);
       }
-    } catch {
-      /* ignore */
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error performing action.');
+      setApplications(previousList);
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -102,6 +136,21 @@ export default function AdminDriverApprovalPage() {
         </button>
       </div>
 
+      {/* Notifications */}
+      {successMsg && (
+        <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs font-bold text-emerald-800 shadow-sm">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="flex items-center gap-2 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-700 shadow-sm">
+          <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       {/* Applications List */}
       <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
         <h2 className="text-sm sm:text-base font-black text-gray-900">
@@ -119,10 +168,14 @@ export default function AdminDriverApprovalPage() {
           <div className="space-y-3">
             {applications.map((app) => {
               const name = `${app.user?.profile?.firstName || ''} ${app.user?.profile?.lastName || ''}`.trim() || 'Courier Applicant';
+              const isItemProcessing = processingId === app.id;
+
               return (
                 <div
                   key={app.id}
-                  className="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3"
+                  className={`p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3 transition ${
+                    isItemProcessing ? 'opacity-50 pointer-events-none' : ''
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
                     <div>
@@ -150,10 +203,10 @@ export default function AdminDriverApprovalPage() {
                             key={dIdx}
                             type="button"
                             onClick={() => setPreviewDoc({ url: getImageUrl(doc.documentUrl), title: doc.documentType })}
-                            className="inline-flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-bold text-teal-800 hover:bg-teal-50"
+                            className="inline-flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-bold text-teal-800 hover:bg-teal-50 min-h-[32px]"
                           >
                             <FileText className="h-3 w-3 text-teal-600" />
-                            <span>{doc.documentType}</span>
+                            <span>{doc.documentType.replace('_', ' ')}</span>
                           </button>
                         ))}
                       </div>
@@ -164,17 +217,17 @@ export default function AdminDriverApprovalPage() {
                   <div className="pt-2 border-t border-gray-100 flex gap-2">
                     <button
                       onClick={() => handleAction(app.id, true)}
-                      disabled={isProcessing}
-                      className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 min-h-[44px]"
+                      disabled={isItemProcessing}
+                      className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 min-h-[44px] transition"
                     >
-                      Approve Driver
+                      {isItemProcessing ? 'Processing...' : 'Approve Driver'}
                     </button>
                     <button
                       onClick={() => handleAction(app.id, false)}
-                      disabled={isProcessing}
-                      className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[44px]"
+                      disabled={isItemProcessing}
+                      className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[44px] transition"
                     >
-                      Reject
+                      {isItemProcessing ? 'Processing...' : 'Reject'}
                     </button>
                   </div>
                 </div>

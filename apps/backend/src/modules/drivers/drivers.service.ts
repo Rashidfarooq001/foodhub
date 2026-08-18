@@ -21,21 +21,34 @@ export class DriversService {
   ) {}
 
   /**
-   * Admin direct creation of a delivery partner account.
-   * All data must come from the submitted DTO — no defaults invented here.
+   * Driver creation: creates User + Driver + DriverVehicle + DriverDocument in an atomic transaction.
+   * Accepts password directly from Admin form with bcrypt 12-round hashing.
    */
   async createDriver(dto: CreateDriverDto, isApprovedByAdmin = true) {
-    // 1. Validate required fields that cannot be defaulted
-    if (!dto.password || !dto.password.trim()) {
-      throw new BadRequestException('Password is required to create a delivery partner account.');
+    // 1. Validate required fields
+    if (!dto.name || !dto.name.trim()) {
+      throw new BadRequestException('Delivery partner full name is required.');
+    }
+    if (!dto.phone || !dto.phone.trim()) {
+      throw new BadRequestException('Mobile number is required.');
     }
     if (!dto.licenseNumber || !dto.licenseNumber.trim()) {
       throw new BadRequestException('Driving license number is required.');
     }
+    if (!dto.password || dto.password.trim().length < 8) {
+      throw new BadRequestException('A temporary password of at least 8 characters is required.');
+    }
 
-    // 2. If vehicleNumber is provided, vehicleType must also be provided
-    if (dto.vehicleNumber && !dto.vehicleType) {
-      throw new BadRequestException('Vehicle type is required when a vehicle registration number is provided.');
+    // 2. Validate Indian phone format: exactly 10 digits starting with 6-9
+    const rawDigits = dto.phone.replace(/\D/g, '');
+    const cleanDigits = rawDigits.startsWith('91') && rawDigits.length === 12
+      ? rawDigits.substring(2)
+      : rawDigits;
+
+    if (cleanDigits.length !== 10 || !/^[6-9]\d{9}$/.test(cleanDigits)) {
+      throw new BadRequestException(
+        'Invalid Indian phone number. Must be 10 digits starting with 6, 7, 8, or 9.',
+      );
     }
 
     // 3. Normalize phone to canonical +91XXXXXXXXXX format
@@ -101,12 +114,12 @@ export class DriversService {
           email: canonicalEmail,
           passwordHash,
           role: UserRole.DELIVERY_PARTNER,
-          isVerified: true,
           isActive: true,
+          isVerified: true,
           profile: {
             create: {
               firstName,
-              lastName,
+              lastName: lastName || undefined,
             },
           },
         },
@@ -140,6 +153,7 @@ export class DriversService {
             driverId: driver.id,
             documentType: 'DL',
             documentUrl: dto.licenseUrl,
+            isVerified: isApprovedByAdmin,
           },
         });
       }
@@ -149,6 +163,7 @@ export class DriversService {
             driverId: driver.id,
             documentType: 'RC',
             documentUrl: dto.rcUrl,
+            isVerified: isApprovedByAdmin,
           },
         });
       }
@@ -158,6 +173,7 @@ export class DriversService {
             driverId: driver.id,
             documentType: 'AADHAAR',
             documentUrl: dto.idProofUrl,
+            isVerified: isApprovedByAdmin,
           },
         });
       }
@@ -182,10 +198,17 @@ export class DriversService {
     };
   }
 
+  async getVehicleTypes() {
+    return [
+      { code: 'MOTORCYCLE', name: 'Motorcycle / Bike' },
+      { code: 'SCOOTER', name: 'Scooter' },
+      { code: 'EV_SCOOTER', name: 'Electric Scooter (EV)' },
+      { code: 'BICYCLE', name: 'Bicycle' },
+    ];
+  }
+
   async findAllDrivers() {
     return this.prisma.driver.findMany({
-      take: 100,
-      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           include: { profile: true },
@@ -193,12 +216,19 @@ export class DriversService {
         vehicles: true,
         documents: true,
       },
+      orderBy: { id: 'desc' },
     });
   }
 
   async findPendingApplications() {
     return this.prisma.driver.findMany({
-      where: { isApproved: false },
+      where: {
+        isApproved: false,
+        user: {
+          isActive: true,
+          deletedAt: null,
+        },
+      },
       include: {
         user: {
           include: { profile: true },
@@ -206,11 +236,15 @@ export class DriversService {
         vehicles: true,
         documents: true,
       },
+      orderBy: { id: 'desc' },
     });
   }
 
   async updateApprovalStatus(driverId: string, isApproved: boolean, reason?: string, adminUserId?: string) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: { user: true },
+    });
     if (!driver) throw new NotFoundException('Driver not found');
 
     const previousStatus = driver.status;
@@ -224,6 +258,17 @@ export class DriversService {
       },
       include: { user: { include: { profile: true } } },
     });
+
+    // Update user status: if rejected, deactivate the user account so it is removed from the pending queue
+    if (driver.userId && driver.user?.role === UserRole.DELIVERY_PARTNER) {
+      await this.prisma.user.update({
+        where: { id: driver.userId },
+        data: {
+          isVerified: isApproved,
+          isActive: isApproved,
+        },
+      });
+    }
 
     // Create Audit Log
     try {
