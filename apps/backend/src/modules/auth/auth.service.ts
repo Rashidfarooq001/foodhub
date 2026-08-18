@@ -1284,83 +1284,81 @@ export class AuthService {
       `[Admin Two-Password Auth] Attempt: password1Present=${!!p1}, password2Present=${!!p2}`,
     );
 
-    // 2. Locate platform Admin / SuperAdmin account in PostgreSQL
-    let adminUser = await (this.usersService as any).prisma.user.findFirst({
+    // 2. Locate platform Admin / SuperAdmin accounts in PostgreSQL
+    const adminUsers = await (this.usersService as any).prisma.user.findMany({
       where: {
         OR: [
           { role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] } },
           { phone: '+917006298795' },
           { email: 'www.rashidreshi2005@gmail.com' },
+          { phone: process.env.ADMIN_PHONE || '+910000000000' },
+          { email: process.env.ADMIN_EMAIL || 'admin@zaykafood.com' },
         ],
       },
       include: { profile: true },
     });
 
-    if (!adminUser) {
-      this.logger.warn('[Admin Two-Password Auth] Provisioning fallback SuperAdmin account...');
-      const fallbackP1Hash = await bcrypt.hash('9999888877776666', 10);
-      const fallbackP2Hash = await bcrypt.hash('88887777', 10);
-      const fallbackPassHash = await bcrypt.hash('SuperAdmin123!', 12);
-      adminUser = await (this.usersService as any).prisma.user.create({
-        data: {
-          phone: '+917006298795',
-          email: 'www.rashidreshi2005@gmail.com',
-          passwordHash: fallbackPassHash,
-          password1Hash: fallbackP1Hash,
-          password2Hash: fallbackP2Hash,
-          role: UserRole.SUPER_ADMIN,
-          isVerified: true,
-          isActive: true,
-          profile: {
-            create: {
-              firstName: 'FoodHub',
-              lastName: 'Admin',
+    let authenticatedAdmin: any = null;
+
+    for (const adminUser of adminUsers) {
+      const isP1Valid = adminUser.password1Hash ? await bcrypt.compare(p1, adminUser.password1Hash) : false;
+      const isP2Valid = adminUser.password2Hash ? await bcrypt.compare(p2, adminUser.password2Hash) : false;
+
+      if (isP1Valid && isP2Valid) {
+        authenticatedAdmin = adminUser;
+        break;
+      }
+    }
+
+    // Default bootstrap fallback if using master default credentials
+    if (!authenticatedAdmin && p1 === '9999888877776666' && p2 === '88887777') {
+      let targetUser = adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN) || adminUsers[0];
+      if (!targetUser) {
+        const fallbackP1Hash = await bcrypt.hash('9999888877776666', 10);
+        const fallbackP2Hash = await bcrypt.hash('88887777', 10);
+        const fallbackPassHash = await bcrypt.hash('SuperAdmin123!', 12);
+        targetUser = await (this.usersService as any).prisma.user.create({
+          data: {
+            phone: '+917006298795',
+            email: 'www.rashidreshi2005@gmail.com',
+            passwordHash: fallbackPassHash,
+            password1Hash: fallbackP1Hash,
+            password2Hash: fallbackP2Hash,
+            role: UserRole.SUPER_ADMIN,
+            isVerified: true,
+            isActive: true,
+            profile: {
+              create: {
+                firstName: 'ZaykaFood',
+                lastName: 'Admin',
+              },
             },
           },
-        },
-        include: { profile: true },
-      });
+          include: { profile: true },
+        });
+      } else {
+        const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
+        const initialP2Hash = await bcrypt.hash('88887777', 10);
+        targetUser = await (this.usersService as any).prisma.user.update({
+          where: { id: targetUser.id },
+          data: {
+            password1Hash: initialP1Hash,
+            password2Hash: initialP2Hash,
+            isActive: true,
+            isVerified: true,
+          },
+          include: { profile: true },
+        });
+      }
+      authenticatedAdmin = targetUser;
     }
 
-    // 3. Auto-provision initial bcrypt hashes if password1Hash or password2Hash are null
-    if (!adminUser.password1Hash || !adminUser.password2Hash) {
-      this.logger.log('[Admin Two-Password Auth] Provisioning initial bcrypt hashes for Admin account...');
-      const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
-      const initialP2Hash = await bcrypt.hash('88887777', 10);
-
-      adminUser = await (this.usersService as any).prisma.user.update({
-        where: { id: adminUser.id },
-        data: {
-          password1Hash: initialP1Hash,
-          password2Hash: initialP2Hash,
-        },
-        include: { profile: true },
-      });
-    }
-
-    // 4. Verify BOTH passwords using bcrypt (or initialize if matched default)
-    let isP1Valid = adminUser.password1Hash ? await bcrypt.compare(p1, adminUser.password1Hash) : false;
-    let isP2Valid = adminUser.password2Hash ? await bcrypt.compare(p2, adminUser.password2Hash) : false;
-
-    // Standard fallback initialization for default admin credentials
-    if ((!isP1Valid || !isP2Valid) && p1 === '9999888877776666' && p2 === '88887777') {
-      const initialP1Hash = await bcrypt.hash('9999888877776666', 10);
-      const initialP2Hash = await bcrypt.hash('88887777', 10);
-      await (this.usersService as any).prisma.user.update({
-        where: { id: adminUser.id },
-        data: {
-          password1Hash: initialP1Hash,
-          password2Hash: initialP2Hash,
-        },
-      });
-      isP1Valid = true;
-      isP2Valid = true;
-    }
-
-    if (!isP1Valid || !isP2Valid) {
-      this.logger.warn(`[Admin Two-Password Auth] Credentials verification failed for adminUser=${adminUser.id}`);
+    if (!authenticatedAdmin) {
+      this.logger.warn(`[Admin Two-Password Auth] Credentials verification failed for provided 16-digit/8-digit pair.`);
       throw new UnauthorizedException('Invalid admin credentials.');
     }
+
+    const adminUser = authenticatedAdmin;
 
     // 5. Authenticate Admin session & issue JWT token pair
     this.logger.log(`[Admin Two-Password Auth] Successful login for Admin ID=${adminUser.id}, role=${adminUser.role}`);
