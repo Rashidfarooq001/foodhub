@@ -1,25 +1,35 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DriverStats } from '../../data/delivery-mock-data';
-import { DollarSign, Award, Gift, ArrowUpRight } from 'lucide-react';
+import { DollarSign, Award, Gift, ArrowUpRight, RefreshCw, TrendingUp } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { getApiBaseUrl } from '@foodhub/config';
+import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 
 const API_BASE = getApiBaseUrl();
 
 export default function DeliveryEarningsPage() {
-  const [stats, setStats] = useState<DriverStats | null>(null);
+  const { accessToken } = useDeliveryAuthStore();
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStats = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/delivery/stats`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      if (res.ok) setStats(await res.json());
+    } catch {
+      /* offline */
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/delivery/stats`);
-        if (res.ok) setStats(await res.json());
-      } catch { /* backend offline */ }
-    };
     fetchStats();
-  }, []);
+  }, [accessToken]);
 
   const weeklyData = stats?.weeklyEarnings
     ? [
@@ -42,40 +52,81 @@ export default function DeliveryEarningsPage() {
       ];
 
   return (
-    <div className="space-y-8">
-      <div className="border-b border-gray-100 pb-4">
-        <h1 className="text-3xl font-black text-gray-900">Earnings & Payout Ledger</h1>
-        <p className="text-xs text-gray-500">Trip base pay, peak hour incentives, tips & weekly settlements</p>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Earnings &amp; Payout Ledger
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Trip base compensation, distance bonuses, customer tips &amp; weekly bank disbursements
+          </p>
+        </div>
+
+        <button
+          onClick={fetchStats}
+          disabled={isLoading}
+          className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-gray-400">TODAY'S EARNINGS</p>
-          <h3 className="text-3xl font-black text-emerald-600">₹{stats?.todayEarnings ?? 0}</h3>
-          <p className="text-[10px] text-emerald-600 font-bold">{stats?.todayDeliveries ?? 0} Deliveries completed</p>
+      {/* Summary Cards: 2-col on mobile, 3-col on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">TODAY EARNINGS</span>
+          <div className="text-lg sm:text-2xl font-black text-emerald-900">
+            ₹{stats?.todayEarnings ?? 0}
+          </div>
+          <span className="text-[10px] text-emerald-700 font-bold block truncate">
+            {stats?.todayDeliveries ?? 0} trips delivered
+          </span>
         </div>
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-gray-400">THIS WEEK'S TOTAL</p>
-          <h3 className="text-3xl font-black text-gray-900">₹{stats?.weeklyEarnings ?? 0}</h3>
-          <p className="text-[10px] text-emerald-600 font-bold">+18.5% vs last week</p>
+
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">THIS WEEK TOTAL</span>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">
+            ₹{stats?.weeklyEarnings ?? 0}
+          </div>
+          <span className="text-[10px] text-emerald-600 font-bold block truncate">
+            Scheduled Monday payout
+          </span>
         </div>
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-gray-400">MONTHLY PAYOUT</p>
-          <h3 className="text-3xl font-black text-gray-900">₹{stats?.monthlyEarnings ?? 0}</h3>
-          <p className="text-[10px] text-gray-400 font-bold">Direct Bank Deposit</p>
+
+        <div className="col-span-2 sm:col-span-1 rounded-2xl border border-blue-200 bg-blue-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">LIFETIME DISBURSED</span>
+          <div className="text-lg sm:text-2xl font-black text-blue-950">
+            ₹{stats?.totalEarnings ?? stats?.monthlyEarnings ?? 0}
+          </div>
+          <span className="text-[10px] text-blue-700 font-bold block truncate">
+            Transferred via NEFT / IMPS
+          </span>
         </div>
       </div>
 
-      {/* Earnings Graph */}
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-        <h3 className="text-lg font-bold text-gray-900">Weekly Earnings Trend</h3>
-        <div className="h-72 w-full pt-4">
+      {/* Earnings Trend Bar Chart */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm sm:text-base font-black text-gray-900">Weekly Earnings Trend</h3>
+            <p className="text-[10px] sm:text-xs text-gray-400">Daily rider payout breakdown across current weekly cycle</p>
+          </div>
+          <span className="flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl">
+            <TrendingUp className="h-3 w-3 text-emerald-600" />
+            Active
+          </span>
+        </div>
+
+        <div className="h-56 sm:h-72 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weeklyData}>
-              <XAxis dataKey="day" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
+              <XAxis dataKey="day" stroke="#9ca3af" fontSize={10} />
+              <YAxis stroke="#9ca3af" fontSize={10} />
               <Tooltip />
-              <Bar dataKey="pay" fill="#059669" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="pay" fill="#059669" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

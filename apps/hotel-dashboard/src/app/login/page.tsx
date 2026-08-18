@@ -141,7 +141,9 @@ export default function HotelLoginPage() {
               Registered Phone Number / Email
             </label>
             <div className="relative flex items-center">
-              <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+              {!identity.includes('@') && (
+                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+              )}
               <input
                 type="text"
                 required
@@ -155,7 +157,7 @@ export default function HotelLoginPage() {
                   }
                 }}
                 placeholder="7006298759 or email"
-                className="w-full rounded-2xl border border-gray-200 py-3.5 pl-14 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                className={`w-full rounded-2xl border border-gray-200 py-3.5 ${!identity.includes('@') ? 'pl-14' : 'pl-4'} pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20`}
               />
             </div>
           </div>

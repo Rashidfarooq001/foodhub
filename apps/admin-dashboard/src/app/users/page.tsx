@@ -1,10 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, ShieldCheck, CheckCircle, XCircle, UserCheck, UserX, AlertCircle } from 'lucide-react';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const API_BASE = getApiBaseUrl();
+import {
+  Users,
+  Search,
+  CheckCircle2,
+  XCircle,
+  UserCheck,
+  UserX,
+  AlertCircle,
+  RefreshCw,
+  Phone,
+  Mail,
+  Store,
+  Bike,
+} from 'lucide-react';
+import { adminFetch } from '../../utils/admin-fetch';
 
 interface UserItem {
   id: string;
@@ -43,17 +54,11 @@ export default function AdminUsersManagementPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('foodhub_admin_token');
       const params = new URLSearchParams();
       if (roleFilter !== 'ALL') params.set('role', roleFilter);
       if (search.trim()) params.set('search', search.trim());
 
-      const res = await fetch(`${API_BASE}/users?${params.toString()}`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-        },
-      });
-
+      const res = await adminFetch(`/users?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -75,13 +80,8 @@ export default function AdminUsersManagementPage() {
   const handleToggleStatus = async (userId: string, currentIsActive: boolean) => {
     setActionSuccess(null);
     try {
-      const token = localStorage.getItem('foodhub_admin_token');
-      const res = await fetch(`${API_BASE}/users/${userId}/status`, {
+      const res = await adminFetch(`/users/${userId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
         body: JSON.stringify({ isActive: !currentIsActive }),
       });
 
@@ -98,164 +98,154 @@ export default function AdminUsersManagementPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
       {/* Header */}
-      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">User Account Management</h1>
-          <p className="text-xs text-gray-500">
-            Real-time PostgreSQL user directory (Customers, Restaurant Owners, Delivery Partners &amp; Admins)
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            User Account Management
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Real-time user directory (Customers, Restaurant Owners, Couriers &amp; Admins)
           </p>
         </div>
+
+        <button
+          onClick={fetchUsers}
+          disabled={isLoading}
+          className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {actionSuccess && (
-        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2 shadow-sm">
-          <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs font-bold text-emerald-800 flex items-center gap-2 shadow-sm">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
           <span>{actionSuccess}</span>
         </div>
       )}
 
       {error && (
-        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-800 flex items-center gap-2 shadow-sm">
-          <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-800 flex items-center gap-2 shadow-sm">
+          <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Filters & Search */}
-      <div className="flex flex-col gap-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <span className="text-xs font-bold text-gray-700">Role Filter:</span>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-          >
-            <option value="ALL">All Roles</option>
-            <option value="CUSTOMER">Customer</option>
-            <option value="RESTAURANT_OWNER">Restaurant Owner</option>
-            <option value="DELIVERY_PARTNER">Delivery Partner</option>
-            <option value="ADMIN">Admin / SuperAdmin</option>
-          </select>
-        </div>
-
+      {/* Search & Filters */}
+      <div className="space-y-2.5">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             fetchUsers();
           }}
-          className="flex items-center gap-2"
+          className="flex gap-2"
         >
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, phone, email..."
-              className="w-full rounded-2xl border border-gray-200 py-2 pl-9 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+              placeholder="Search by name, phone, or email..."
+              className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-500 focus:outline-none min-h-[44px]"
             />
           </div>
           <button
             type="submit"
-            className="rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 shadow-sm"
+            className="rounded-2xl bg-purple-600 hover:bg-purple-700 px-5 py-3 text-xs font-black text-white shadow-md shadow-purple-500/20 transition min-h-[44px]"
           >
             Search
           </button>
         </form>
+
+        {/* Role Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {['ALL', 'CUSTOMER', 'RESTAURANT_OWNER', 'DELIVERY_PARTNER', 'ADMIN'].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
+                roleFilter === r
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {r.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Users Directory Table */}
-      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-gray-50 uppercase tracking-wider text-[10px] font-black text-gray-400 border-b border-gray-100">
-            <tr>
-              <th className="px-6 py-4">User Info</th>
-              <th className="px-6 py-4">Phone / Email</th>
-              <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4">Associated Entity</th>
-              <th className="px-6 py-4">Account Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 text-gray-700">
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-xs font-bold text-gray-400">
-                  Loading user records from PostgreSQL database...
-                </td>
-              </tr>
-            ) : users.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-xs font-bold text-gray-400">
-                  No user accounts found matching your query.
-                </td>
-              </tr>
-            ) : (
-              users.map((u) => {
+      {/* Users Directory (Dual Mobile Card / Desktop Table) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900">
+          User Accounts ({users.length})
+        </h2>
+
+        {isLoading ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading user accounts...</div>
+        ) : users.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+            No user accounts found matching query.
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
+            <div className="block lg:hidden space-y-3">
+              {users.map((u) => {
                 const fullName = u.profile?.firstName
                   ? `${u.profile.firstName} ${u.profile.lastName || ''}`.trim()
                   : 'User';
 
                 return (
-                  <tr key={u.id} className="hover:bg-gray-50/80 transition">
-                    <td className="px-6 py-4 font-bold text-gray-900">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 font-black text-orange-700 text-xs">
+                  <div
+                    key={u.id}
+                    className="p-4 rounded-2xl border border-gray-200 bg-white shadow-sm space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 font-black text-purple-700 text-xs shrink-0">
                           {fullName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div>{fullName}</div>
-                          <div className="text-[10px] font-semibold text-gray-400 font-mono">{u.id}</div>
+                          <h3 className="font-black text-sm text-gray-900">{fullName}</h3>
+                          <p className="text-[11px] text-gray-500 font-medium">{u.phone}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono font-medium">
-                      <div>{u.phone}</div>
-                      {u.email && <div className="text-[11px] text-gray-500 font-sans">{u.email}</div>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-block rounded-xl bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase text-gray-800">
-                        {u.role}
+
+                      <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                        u.isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
+                      }`}>
+                        {u.isActive ? 'Active' : 'Disabled'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-gray-800">
-                      {u.restaurant ? (
-                        <div className="flex items-center gap-1.5 text-xs text-amber-900 font-bold">
-                          <span>🏬 {u.restaurant.name}</span>
-                          <span className="text-[9px] bg-amber-100 px-1.5 py-0.5 rounded font-black text-amber-800">
-                            {u.restaurant.status}
-                          </span>
-                        </div>
-                      ) : u.driver ? (
-                        <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold">
-                          <span>🛵 Rider ({(u.driver as any).vehicles?.[0]?.vehicleNumber || u.driver.id.slice(0, 8)})</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${u.driver.isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {u.driver.isApproved ? 'APPROVED' : 'REVIEW'}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-[11px]">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {u.isActive ? (
-                        <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700 border border-emerald-200">
-                          <CheckCircle className="h-3 w-3" /> ACTIVE
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-xl bg-rose-50 px-2.5 py-1 text-[10px] font-black text-rose-700 border border-rose-200">
-                          <XCircle className="h-3 w-3" /> DEACTIVATED
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Role</span>
+                        <span className="font-bold text-gray-900">{u.role.replace('_', ' ')}</span>
+                      </div>
+
+                      <div>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Associated</span>
+                        {u.restaurant ? (
+                          <span className="font-bold text-amber-900 truncate block">🏬 {u.restaurant.name}</span>
+                        ) : u.driver ? (
+                          <span className="font-bold text-blue-900 truncate block">🛵 Courier</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-100 flex justify-end">
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(u.id, u.isActive)}
-                        className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-sm ${
+                        className={`w-full rounded-xl py-2.5 text-xs font-bold transition shadow-sm min-h-[40px] flex items-center justify-center gap-1.5 ${
                           u.isActive
                             ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
                             : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
@@ -263,21 +253,90 @@ export default function AdminUsersManagementPage() {
                       >
                         {u.isActive ? (
                           <>
-                            <UserX className="h-3.5 w-3.5" /> Deactivate
+                            <UserX className="h-4 w-4" /> Deactivate Account
                           </>
                         ) : (
                           <>
-                            <UserCheck className="h-3.5 w-3.5" /> Activate
+                            <UserCheck className="h-4 w-4" /> Activate Account
                           </>
                         )}
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
-              })
-            )}
-          </tbody>
-        </table>
+              })}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="pb-3">User Info</th>
+                    <th className="pb-3">Phone / Email</th>
+                    <th className="pb-3">Role</th>
+                    <th className="pb-3">Associated Entity</th>
+                    <th className="pb-3">Account Status</th>
+                    <th className="pb-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 font-medium">
+                  {users.map((u) => {
+                    const fullName = u.profile?.firstName
+                      ? `${u.profile.firstName} ${u.profile.lastName || ''}`.trim()
+                      : 'User';
+
+                    return (
+                      <tr key={u.id} className="hover:bg-gray-50/50">
+                        <td className="py-3 font-bold text-gray-900 flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 font-black text-purple-700 text-xs">
+                            {fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{fullName}</span>
+                        </td>
+                        <td className="py-3 font-mono text-gray-600">{u.phone}</td>
+                        <td className="py-3">
+                          <span className="rounded-lg bg-gray-100 px-2 py-0.5 text-[10px] font-black uppercase text-gray-800">
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="py-3 text-gray-700">
+                          {u.restaurant ? (
+                            <span className="text-amber-900 font-bold">🏬 {u.restaurant.name}</span>
+                          ) : u.driver ? (
+                            <span className="text-blue-900 font-bold">🛵 Courier</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                            u.isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
+                          }`}>
+                            {u.isActive ? 'Active' : 'Disabled'}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(u.id, u.isActive)}
+                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                              u.isActive
+                                ? 'border border-rose-200 text-rose-600 hover:bg-rose-50'
+                                : 'border border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {u.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

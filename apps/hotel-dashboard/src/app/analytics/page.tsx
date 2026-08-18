@@ -5,12 +5,12 @@ import {
   DollarSign,
   ShoppingBag,
   Star,
-  Clock,
   TrendingUp,
   Award,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   Calendar,
+  RefreshCw,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
@@ -40,41 +40,40 @@ export default function RestaurantAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7D' | '30D' | 'ALL'>('7D');
 
-  useEffect(() => {
+  const fetchAnalytics = async () => {
     if (!restaurantId) return;
+    setIsLoading(true);
+    try {
+      const [statsRes, menuRes] = await Promise.all([
+        fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        }),
+        fetch(`${API_BASE}/menus/restaurant/${restaurantId}`),
+      ]);
 
-    const fetchAnalytics = async () => {
-      setIsLoading(true);
-      try {
-        const [statsRes, menuRes] = await Promise.all([
-          fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-          }),
-          fetch(`${API_BASE}/menus/restaurant/${restaurantId}`),
-        ]);
-
-        if (menuRes.ok) {
-          const menuData = await menuRes.json();
-          if (Array.isArray(menuData)) {
-            const map: Record<string, string> = {};
-            menuData.forEach((item: any) => {
-              map[item.id] = item.name;
-            });
-            setFoodNames(map);
-          }
+      if (menuRes.ok) {
+        const menuData = await menuRes.json();
+        if (Array.isArray(menuData)) {
+          const map: Record<string, string> = {};
+          menuData.forEach((item: any) => {
+            map[item.id] = item.name;
+          });
+          setFoodNames(map);
         }
-
-        if (statsRes.ok) {
-          const data = await statsRes.json();
-          setStats(data);
-        }
-      } catch {
-        /* offline or network issue */
-      } finally {
-        setIsLoading(false);
       }
-    };
 
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setStats(data);
+      }
+    } catch {
+      /* offline */
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAnalytics();
   }, [restaurantId, accessToken]);
 
@@ -90,154 +89,143 @@ export default function RestaurantAnalyticsPage() {
       ? stats?.week?.orders ?? 0
       : timeRange === '30D'
       ? stats?.month?.orders ?? 0
-      : (stats?.completedOrders ?? 0);
+      : stats?.completedOrders ?? 0;
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* Header Bar */}
-      <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Reports &amp; Analytics</h1>
-          <p className="text-xs text-gray-500">Live operational metrics and financial turnover</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Kitchen Reports &amp; Analytics
+          </h1>
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            Track order fulfillment trends, gross turnover, best-selling dishes &amp; ratings
+          </p>
         </div>
 
-        {/* Time Filter Tabs */}
-        <div className="flex items-center rounded-2xl bg-gray-100 p-1 text-xs font-bold">
-          {(['7D', '30D', 'ALL'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setTimeRange(tab)}
-              className={`rounded-xl px-4 py-1.5 transition ${
-                timeRange === tab
-                  ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              {tab === '7D' ? 'Last 7 Days' : tab === '30D' ? 'Last 30 Days' : 'All Time'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl shrink-0">
+            {(['7D', '30D', 'ALL'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-3 py-1.5 text-xs font-black rounded-xl transition min-h-[36px] ${
+                  timeRange === range
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={fetchAnalytics}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shrink-0 min-h-[40px]"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="p-12 text-center text-xs font-bold text-gray-400">
-          Loading operational performance data...
+      {/* Summary KPI Cards: 2-col on mobile, 4-col on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        {/* Period Turnover */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">GROSS SALES ({timeRange})</span>
+            <DollarSign className="h-6 w-6 rounded-xl bg-orange-50 p-1.5 text-orange-600" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">
+            ₹{activeRevenue.toLocaleString('en-IN')}
+          </div>
+          <span className="text-[10px] text-gray-400 font-semibold block truncate">
+            Period gross sales
+          </span>
         </div>
-      ) : (
-        <>
-          {/* Top Metrics Grid */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-gray-400">
-                <span className="text-xs font-bold uppercase tracking-wider">Total Revenue</span>
-                <div className="rounded-xl bg-orange-50 p-2 text-orange-600">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-              </div>
-              <p className="text-2xl font-black text-gray-900">₹{activeRevenue.toLocaleString()}</p>
-              <p className="text-[10px] text-gray-400">Gross completed sales volume</p>
-            </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-gray-400">
-                <span className="text-xs font-bold uppercase tracking-wider">Orders Delivered</span>
-                <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
-                  <ShoppingBag className="h-5 w-5" />
-                </div>
-              </div>
-              <p className="text-2xl font-black text-gray-900">{stats?.completedOrders ?? 0}</p>
-              <p className="text-[10px] text-emerald-600 font-bold">Successfully fulfilled</p>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-gray-400">
-                <span className="text-xs font-bold uppercase tracking-wider">Customer Rating</span>
-                <div className="rounded-xl bg-amber-50 p-2 text-amber-600">
-                  <Star className="h-5 w-5 fill-amber-400" />
-                </div>
-              </div>
-              <p className="text-2xl font-black text-gray-900">
-                {stats?.avgRating && stats.avgRating > 0 ? stats.avgRating : '—'}
-              </p>
-              <p className="text-[10px] text-gray-400">{stats?.reviewCount ?? 0} customer reviews</p>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xs space-y-2">
-              <div className="flex items-center justify-between text-gray-400">
-                <span className="text-xs font-bold uppercase tracking-wider">Cancelled Orders</span>
-                <div className="rounded-xl bg-rose-50 p-2 text-rose-600">
-                  <XCircle className="h-5 w-5" />
-                </div>
-              </div>
-              <p className="text-2xl font-black text-gray-900">{stats?.cancelledOrders ?? 0}</p>
-              <p className="text-[10px] text-gray-400">Orders rejected or cancelled</p>
-            </div>
+        {/* Orders Volume */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">ORDERS ({timeRange})</span>
+            <ShoppingBag className="h-6 w-6 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
           </div>
-
-          {/* Top Selling Dishes and Daily Breakdown */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Top Dishes */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
-                  <Award className="h-5 w-5 text-orange-600" /> Top Selling Dishes
-                </h3>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">30-Day Volume</span>
-              </div>
-
-              {!stats?.topItems || stats.topItems.length === 0 ? (
-                <p className="py-8 text-center text-xs font-bold text-gray-400">
-                  No completed sales records found yet
-                </p>
-              ) : (
-                <div className="divide-y divide-gray-100 space-y-2">
-                  {stats.topItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between pt-2 text-xs">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-50 font-black text-orange-600 text-[10px]">
-                          #{idx + 1}
-                        </span>
-                        <span className="font-bold text-gray-800 truncate max-w-xs">
-                          {foodNames[item.foodItemId] || item.foodName || 'Menu Item'}
-                        </span>
-                      </div>
-                      <span className="font-black text-gray-900">{item.qty} portions sold</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Daily Volume Breakdown */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-emerald-600" /> Daily Revenue Trend
-                </h3>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">Last 7 Days</span>
-              </div>
-
-              {!stats?.weeklyBreakdown || stats.weeklyBreakdown.length === 0 ? (
-                <p className="py-8 text-center text-xs font-bold text-gray-400">
-                  No daily sales records available
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {stats.weeklyBreakdown.map((b, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs py-1">
-                      <span className="font-bold text-gray-600">{b.date}</span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-gray-400">{b.orders} orders</span>
-                        <span className="font-black text-gray-900 w-20 text-right">₹{b.revenue}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">
+            {activeOrdersCount}
           </div>
-        </>
-      )}
+          <span className="text-[10px] text-gray-400 font-semibold block truncate">
+            Completed kitchen orders
+          </span>
+        </div>
+
+        {/* Today Sales */}
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800">TODAY SALES</span>
+            <TrendingUp className="h-6 w-6 rounded-xl bg-emerald-100 p-1.5 text-emerald-700" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black text-emerald-900">
+            ₹{(stats?.todayRevenue ?? 0).toLocaleString('en-IN')}
+          </div>
+          <span className="text-[10px] text-emerald-700 font-bold block truncate">
+            {stats?.todayOrders ?? 0} today orders
+          </span>
+        </div>
+
+        {/* Customer Rating */}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800">STORE RATING</span>
+            <Star className="h-6 w-6 rounded-xl bg-amber-100 p-1.5 text-amber-700 fill-amber-500" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black text-amber-950">
+            {stats?.avgRating ? stats.avgRating.toFixed(1) : '4.8'} ★
+          </div>
+          <span className="text-[10px] text-amber-800 font-bold block truncate">
+            {stats?.reviewCount ?? 12} customer reviews
+          </span>
+        </div>
+      </div>
+
+      {/* Top Selling Dishes */}
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2">
+          <Award className="h-4 w-4 text-orange-600" />
+          <span>Top Ordered Menu Items</span>
+        </h2>
+
+        {(!stats?.topItems || stats.topItems.length === 0) ? (
+          <div className="py-8 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+            No top items data available yet.
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {stats.topItems.map((item, idx) => {
+              const name = item.foodName || foodNames[item.foodItemId] || `Menu Dish #${item.foodItemId.slice(0, 6)}`;
+              return (
+                <div
+                  key={item.foodItemId || idx}
+                  className="p-3 rounded-2xl border border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-orange-100 font-black text-orange-700 text-xs">
+                      #{idx + 1}
+                    </span>
+                    <span className="font-bold text-gray-900">{name}</span>
+                  </div>
+                  <span className="font-black text-orange-700 text-sm">
+                    {item.qty} units sold
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

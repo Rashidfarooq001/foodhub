@@ -8,41 +8,44 @@ export default function AdminFeatureFlagsPage() {
   const { isMaintenanceMode, toggleMaintenanceMode } = useAdminStore();
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div className="border-b border-gray-100 pb-4">
-        <h1 className="text-3xl font-black text-gray-900">Feature Flags & System Control</h1>
-        <p className="text-xs text-gray-500">Toggle maintenance mode, emergency platform shutdown & experimental features</p>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
+      {/* Header */}
+      <div className="border-b border-gray-100 pb-3">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+          Feature Flags &amp; System Control
+        </h1>
+        <p className="text-[11px] sm:text-xs text-gray-500">
+          Toggle platform maintenance mode, automated courier dispatch &amp; experimental flags
+        </p>
       </div>
 
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-6">
+      <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
         {/* Maintenance Mode Toggle */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-4 gap-3">
           <div>
-            <h4 className="text-base font-bold text-gray-900">Platform Maintenance Mode</h4>
-            <p className="text-xs text-gray-500">Temporarily pause new order placements across Customer Web & Mobile apps</p>
+            <h4 className="text-xs sm:text-sm font-black text-gray-900">Platform Maintenance Mode</h4>
+            <p className="text-[11px] text-gray-500">Temporarily pause new order placements across Customer Web &amp; Mobile apps</p>
           </div>
           <button
             onClick={toggleMaintenanceMode}
-            className={`h-6 w-11 rounded-full p-1 transition ${
-              isMaintenanceMode ? 'bg-rose-600' : 'bg-gray-300'
+            className={`h-7 w-12 rounded-full p-1 transition shrink-0 min-h-[44px] flex items-center ${
+              isMaintenanceMode ? 'bg-rose-600 justify-end' : 'bg-gray-300 justify-start'
             }`}
+            aria-label="Toggle Maintenance Mode"
           >
-            <div
-              className={`h-4 w-4 rounded-full bg-white transition ${
-                isMaintenanceMode ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
+            <div className="h-5 w-5 rounded-full bg-white shadow-sm" />
           </button>
         </div>
 
-        {/* Emergency Order Dispatch Toggle */}
-        <div className="flex items-center justify-between">
+        {/* Auto Dispatch Flag */}
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h4 className="text-base font-bold text-gray-900">Auto Driver Dispatch Engine</h4>
-            <p className="text-xs text-gray-500">Automatically assign nearest online driver upon kitchen order ready status</p>
+            <h4 className="text-xs sm:text-sm font-black text-gray-900">Automated Courier Dispatch Engine</h4>
+            <p className="text-[11px] text-gray-500">Automatically broadcast orders to nearest online delivery partners</p>
           </div>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
-            ENABLED
+          <span className="flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800 uppercase shrink-0">
+            <CheckCircle2 className="h-3 w-3" />
+            Enabled
           </span>
         </div>
       </div>

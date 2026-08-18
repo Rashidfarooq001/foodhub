@@ -145,7 +145,7 @@ export default function AddDriverPage() {
                 value={form.name}
                 onChange={handleChange}
                 placeholder="e.g. Vikram Singh"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
@@ -157,7 +157,7 @@ export default function AddDriverPage() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+919876500999"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
@@ -168,7 +168,7 @@ export default function AddDriverPage() {
                 value={form.email}
                 onChange={handleChange}
                 placeholder="driver@zaykafood.com"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function AddDriverPage() {
                 value={form.password}
                 onChange={handleChange}
                 placeholder="DriverPass123!"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function AddDriverPage() {
                 value={form.licenseNumber}
                 onChange={handleChange}
                 placeholder="DL-918273645019"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
@@ -211,7 +211,7 @@ export default function AddDriverPage() {
                 value={form.vehicleType}
                 onChange={handleChange}
                 required
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               >
                 <option value="" disabled>Select vehicle type *</option>
                 {vehicleTypes.map((vt) => (
@@ -227,7 +227,7 @@ export default function AddDriverPage() {
                 value={form.vehicleNumber}
                 onChange={handleChange}
                 placeholder="KA-01-AB-1234"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
@@ -238,7 +238,7 @@ export default function AddDriverPage() {
                 value={form.address}
                 onChange={handleChange}
                 placeholder="Bengaluru, Karnataka"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
           </div>
