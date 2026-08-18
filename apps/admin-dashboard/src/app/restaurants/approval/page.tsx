@@ -80,7 +80,7 @@ export default function AdminRestaurantApprovalPage() {
   const handleApprove = async (id: string) => {
     setIsSubmittingAction(true);
     try {
-      const res = await adminFetch(`/restaurants/${id}/verify`, {
+      const res = await adminFetch(`/restaurants/${id}/approval`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'APPROVED' }),
@@ -106,7 +106,7 @@ export default function AdminRestaurantApprovalPage() {
     setRejectionError(null);
 
     try {
-      const res = await adminFetch(`/restaurants/${rejectingAppId}/verify`, {
+      const res = await adminFetch(`/restaurants/${rejectingAppId}/approval`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

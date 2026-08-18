@@ -63,6 +63,20 @@ export class RestaurantsController {
     return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
   }
 
+  @Patch(':id/verify')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Approve or Reject restaurant onboarding alias (Admin Only)' })
+  async verifyStatus(
+    @Param('id') id: string,
+    @Body('status') status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING',
+    @Body('rejectionReason') rejectionReason?: string,
+    @CurrentUser() currentUser?: any,
+  ) {
+    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
+  }
+
   @Patch(':id/delivery-mode')
   @ApiOperation({ summary: 'Update restaurant delivery mode (FoodHub vs Self Delivery)' })
   async updateDeliveryMode(
@@ -95,6 +109,31 @@ export class RestaurantsController {
     @Body('deliveryRadius') deliveryRadius: number,
   ) {
     return this.restaurantsService.updateDeliveryRadius(id, deliveryRadius);
+  }
+
+  @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Generic restaurant update handler for status, commission, radius (Admin Only)' })
+  async patchRestaurant(
+    @Param('id') id: string,
+    @Body() body: any,
+    @CurrentUser() currentUser?: any,
+  ) {
+    if (body.status) {
+      return this.restaurantsService.updateVerificationStatus(id, body.status, body.rejectionReason, currentUser?.id);
+    }
+    if (body.commissionRate !== undefined) {
+      return this.restaurantsService.updateCommissionRate(id, body.commissionRate, currentUser?.id);
+    }
+    if (body.deliveryRadius !== undefined) {
+      return this.restaurantsService.updateDeliveryRadius(id, body.deliveryRadius);
+    }
+    if (body.deliveryMode !== undefined) {
+      return this.restaurantsService.updateDeliveryMode(id, body.deliveryMode);
+    }
+    return this.restaurantsService.findRestaurantById(id);
   }
 
   @Get(':id/delivery-staff')

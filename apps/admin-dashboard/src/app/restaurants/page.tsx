@@ -116,7 +116,7 @@ export default function AdminRestaurantsPage() {
     try {
       let res;
       if (activeModal.type === 'APPROVE') {
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'APPROVED' }),
@@ -127,7 +127,7 @@ export default function AdminRestaurantsPage() {
           setIsProcessing(false);
           return;
         }
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'REJECTED', rejectionReason: modalReason.trim() }),
@@ -138,19 +138,19 @@ export default function AdminRestaurantsPage() {
           setIsProcessing(false);
           return;
         }
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'SUSPENDED', rejectionReason: modalReason.trim() }),
         });
       } else if (activeModal.type === 'REACTIVATE') {
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/verify`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'APPROVED' }),
         });
       } else if (activeModal.type === 'COMMISSION') {
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/commission`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ commissionRate: Number(modalCommission) }),
