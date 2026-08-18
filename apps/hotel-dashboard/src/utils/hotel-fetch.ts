@@ -1,18 +1,18 @@
 import { getApiBaseUrl } from '@foodhub/config';
-import { useAdminAuthStore } from '../stores/use-admin-auth-store';
+import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
 
 const getApiBase = () =>
   typeof window !== 'undefined'
     ? getApiBaseUrl()
     : 'https://foodhub-backend-enq2.onrender.com/api/v1';
 
-export function getAdminAccessToken(): string | null {
-  const storeToken = useAdminAuthStore.getState().accessToken;
+export function getHotelAccessToken(): string | null {
+  const storeToken = useHotelAuthStore.getState().accessToken;
   if (storeToken) return storeToken;
 
   if (typeof window !== 'undefined') {
     try {
-      const persisted = localStorage.getItem('foodhub-admin-auth');
+      const persisted = localStorage.getItem('foodhub-hotel-auth');
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (parsed?.state?.accessToken) {
@@ -27,13 +27,13 @@ export function getAdminAccessToken(): string | null {
   return null;
 }
 
-export function getAdminRefreshToken(): string | null {
-  const storeRefreshToken = useAdminAuthStore.getState().refreshToken;
+export function getHotelRefreshToken(): string | null {
+  const storeRefreshToken = useHotelAuthStore.getState().refreshToken;
   if (storeRefreshToken) return storeRefreshToken;
 
   if (typeof window !== 'undefined') {
     try {
-      const persisted = localStorage.getItem('foodhub-admin-auth');
+      const persisted = localStorage.getItem('foodhub-hotel-auth');
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (parsed?.state?.refreshToken) {
@@ -57,7 +57,7 @@ function onTokenRefreshed(newToken: string) {
 }
 
 async function attemptRefreshToken(): Promise<string | null> {
-  const refreshToken = getAdminRefreshToken();
+  const refreshToken = getHotelRefreshToken();
   if (!refreshToken) return null;
 
   try {
@@ -74,9 +74,9 @@ async function attemptRefreshToken(): Promise<string | null> {
       const newRefreshToken = data.tokens?.refreshToken || data.refreshToken || refreshToken;
 
       if (newAccessToken) {
-        const currentUser = useAdminAuthStore.getState().user;
+        const currentUser = useHotelAuthStore.getState().user;
         if (currentUser) {
-          useAdminAuthStore.getState().setAuth(currentUser, newAccessToken, newRefreshToken);
+          useHotelAuthStore.getState().setAuth(currentUser, newAccessToken, newRefreshToken);
         }
         return newAccessToken;
       }
@@ -88,12 +88,12 @@ async function attemptRefreshToken(): Promise<string | null> {
   return null;
 }
 
-export async function adminFetch(
+export async function hotelFetch(
   endpoint: string,
   options: RequestInit = {},
   requireAuth = true,
 ): Promise<Response> {
-  let token = getAdminAccessToken();
+  let token = getHotelAccessToken();
 
   const baseUrl = getApiBase();
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -117,7 +117,6 @@ export async function adminFetch(
     headers: buildHeaders(token),
   });
 
-  // If 401 Unauthorized, attempt silent token refresh
   if (response.status === 401 && requireAuth) {
     if (!isRefreshing) {
       isRefreshing = true;
@@ -126,20 +125,17 @@ export async function adminFetch(
 
       if (newToken) {
         onTokenRefreshed(newToken);
-        // Retry original request with fresh token
         return fetch(url, {
           ...options,
           headers: buildHeaders(newToken),
         });
       } else {
-        // Refresh failed: unauthenticated session
-        useAdminAuthStore.getState().logout();
+        useHotelAuthStore.getState().logout();
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
           window.location.href = '/login?expired=true';
         }
       }
     } else {
-      // Queue requests while token is refreshing
       return new Promise<Response>((resolve) => {
         refreshSubscribers.push((newToken) => {
           resolve(
