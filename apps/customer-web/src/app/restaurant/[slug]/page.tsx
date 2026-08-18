@@ -249,7 +249,7 @@ export default function RestaurantDetailPage() {
           <p className="text-xs text-gray-400 mt-1">This restaurant hasn&apos;t published any menu items yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((food) => (
             <FoodCard
               key={food.id}

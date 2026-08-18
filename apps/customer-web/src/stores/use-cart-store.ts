@@ -38,7 +38,7 @@ interface CartState {
   appliedCoupon: AppliedCoupon | null;
   orderQuote: CustomerOrderQuoteData | null;
 
-  addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
+  addItem: (item: Omit<CartItem, 'id' | 'quantity'>, quantityToAdd?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -64,7 +64,7 @@ export const useCartStore = create<CartState>()(
       appliedCoupon: null,
       orderQuote: null,
 
-      addItem: (newItem) => {
+      addItem: (newItem, quantityToAdd = 1) => {
         const { items, restaurantId } = get();
 
         // If ordering from a different restaurant, clear previous cart items
@@ -84,16 +84,17 @@ export const useCartStore = create<CartState>()(
 
         const currentItems = get().items;
         const existingIndex = currentItems.findIndex((i) => i.id === itemKey);
+        const qty = quantityToAdd && quantityToAdd > 0 ? quantityToAdd : 1;
 
         if (existingIndex > -1) {
           const updated = [...currentItems];
-          updated[existingIndex].quantity += 1;
+          updated[existingIndex].quantity += qty;
           set({ items: updated, orderQuote: null });
         } else {
           set({
             items: [
               ...currentItems,
-              { ...newItem, id: itemKey, quantity: 1 },
+              { ...newItem, id: itemKey, quantity: qty },
             ],
             restaurantId: newItem.restaurantId,
             restaurantName: newItem.restaurantName,

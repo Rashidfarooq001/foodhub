@@ -136,7 +136,7 @@ export default function SearchPage() {
               {(activeTab === 'all' || activeTab === 'dishes') && filteredFood.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Dishes</h3>
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredFood.map((f: FoodItemData) => (
                       <FoodCard key={f.id} food={f} />
                     ))}

@@ -50,7 +50,7 @@ export default function WishlistPage() {
           No favorite items saved yet. Click the heart icon on any dish to add it here.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {wishlistedItems.map((food: FoodItemData) => (
             <FoodCard key={food.id} food={food} />
           ))}
