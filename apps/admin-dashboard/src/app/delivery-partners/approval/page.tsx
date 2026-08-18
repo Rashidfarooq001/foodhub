@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   CheckCircle2,
   XCircle,
@@ -13,6 +14,7 @@ import {
   Phone,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { adminFetch } from '../../../utils/admin-fetch';
 import { getImageUrl } from '@foodhub/config';
@@ -78,21 +80,28 @@ export default function AdminDriverApprovalPage() {
     setApplications((prev) => prev.filter((app) => app.id !== id));
 
     try {
-      const res = await adminFetch(`/drivers/${id}/approval`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isApproved,
-          status: isApproved ? 'APPROVED' : 'REJECTED',
-          reason: isApproved ? 'Approved by Admin' : 'Rejected by Admin',
-        }),
-      });
+      let res;
+      if (isApproved) {
+        res = await adminFetch(`/drivers/${id}/approval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isApproved: true,
+            status: 'APPROVED',
+            reason: 'Approved by Admin',
+          }),
+        });
+      } else {
+        res = await adminFetch(`/drivers/${id}`, {
+          method: 'DELETE',
+        });
+      }
 
-      if (res.ok) {
+      if (res && res.ok) {
         setSuccessMsg(
           isApproved
             ? 'Courier partner approved and activated successfully!'
-            : 'Courier partner application rejected and removed from pending queue.',
+            : 'Courier application rejected and deleted successfully.',
         );
         // Refresh silently from backend
         const refreshRes = await adminFetch('/drivers/applications');
@@ -101,12 +110,12 @@ export default function AdminDriverApprovalPage() {
           setApplications(Array.isArray(freshData) ? freshData : []);
         }
       } else {
-        const err = await res.json().catch(() => ({}));
-        setErrorMsg(err.message || `Failed to ${isApproved ? 'approve' : 'reject'} driver.`);
+        const err = await res?.json().catch(() => ({}));
+        setErrorMsg(err?.message || `Failed to ${isApproved ? 'approve' : 'reject'} driver.`);
         setApplications(previousList);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Network error performing action.');
+      setErrorMsg(err?.message || 'Network error performing action.');
       setApplications(previousList);
     } finally {
       setProcessingId(null);
@@ -126,27 +135,36 @@ export default function AdminDriverApprovalPage() {
           </p>
         </div>
 
-        <button
-          onClick={fetchApplications}
-          disabled={isLoading}
-          className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/delivery-partners"
+            className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition min-h-[44px]"
+          >
+            <Bike className="h-4 w-4 text-teal-600" />
+            <span>All Delivery Partners</span>
+          </Link>
+          <button
+            onClick={fetchApplications}
+            disabled={isLoading}
+            className="rounded-2xl border border-gray-200 bg-white p-2.5 text-gray-600 hover:bg-gray-50 shadow-sm min-h-[44px] min-w-[44px] flex items-center justify-center transition"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Notifications */}
+      {/* Success Notification */}
       {successMsg && (
-        <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs font-bold text-emerald-800 shadow-sm">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-2xl bg-teal-50 border border-teal-200 p-3.5 text-xs font-bold text-teal-800 shadow-sm">
+          <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
+      {/* Error Notification */}
       {errorMsg && (
-        <div className="flex items-center gap-2 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-700 shadow-sm">
-          <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-800 shadow-sm">
+          <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -218,16 +236,18 @@ export default function AdminDriverApprovalPage() {
                     <button
                       onClick={() => handleAction(app.id, true)}
                       disabled={isItemProcessing}
-                      className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 min-h-[44px] transition"
+                      className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 min-h-[44px] transition flex items-center justify-center gap-1.5"
                     >
-                      {isItemProcessing ? 'Processing...' : 'Approve Driver'}
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>{isItemProcessing ? 'Processing...' : 'Approve Driver'}</span>
                     </button>
                     <button
                       onClick={() => handleAction(app.id, false)}
                       disabled={isItemProcessing}
-                      className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[44px] transition"
+                      className="flex-1 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 py-2.5 text-xs font-bold min-h-[44px] transition flex items-center justify-center gap-1.5"
                     >
-                      {isItemProcessing ? 'Processing...' : 'Reject'}
+                      <XCircle className="h-4 w-4" />
+                      <span>{isItemProcessing ? 'Processing...' : 'Reject & Delete'}</span>
                     </button>
                   </div>
                 </div>

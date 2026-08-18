@@ -209,6 +209,9 @@ export class DriversService {
 
   async findAllDrivers() {
     return this.prisma.driver.findMany({
+      where: {
+        deletedAt: null,
+      },
       include: {
         user: {
           include: { profile: true },
@@ -224,7 +227,9 @@ export class DriversService {
     return this.prisma.driver.findMany({
       where: {
         isApproved: false,
+        deletedAt: null,
         user: {
+          role: UserRole.DELIVERY_PARTNER,
           isActive: true,
           deletedAt: null,
         },
@@ -259,7 +264,7 @@ export class DriversService {
       include: { user: { include: { profile: true } } },
     });
 
-    // Update user status: if rejected, deactivate the user account so it is removed from the pending queue
+    // Update user status: if rejected, deactivate the driver profile so it is removed from the pending queue
     if (driver.userId && driver.user?.role === UserRole.DELIVERY_PARTNER) {
       await this.prisma.user.update({
         where: { id: driver.userId },
@@ -303,5 +308,93 @@ export class DriversService {
     }
 
     return updated;
+  }
+
+  async deleteDriver(driverId: string, adminUserId?: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: {
+        user: true,
+        deliveryJobs: { where: { status: { in: ['ASSIGNED', 'PICKED_UP'] } } },
+      },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Delivery partner not found');
+    }
+
+    if (driver.deliveryJobs && driver.deliveryJobs.length > 0) {
+      throw new BadRequestException('Cannot delete a driver with active, in-progress delivery assignments.');
+    }
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Clean up relations
+      await tx.driverDocument.deleteMany({ where: { driverId } });
+      await tx.driverVehicle.deleteMany({ where: { driverId } });
+      await tx.driverLocation.deleteMany({ where: { driverId } });
+      await tx.driverShift.deleteMany({ where: { driverId } });
+      await tx.driverWallet.deleteMany({ where: { driverId } });
+
+      const countJobs = await tx.deliveryJob.count({ where: { driverId } });
+
+      if (countJobs === 0) {
+        // Safe to hard-delete driver record
+        await tx.driver.delete({ where: { id: driverId } });
+
+        // If the user only has DELIVERY_PARTNER role and no orders, delete user
+        if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+          const userOrders = await tx.order.count({ where: { customerId: driver.userId } });
+          if (userOrders === 0) {
+            await tx.user.delete({ where: { id: driver.userId } }).catch(async () => {
+              await tx.user.update({
+                where: { id: driver.userId },
+                data: { isActive: false, deletedAt: now },
+              });
+            });
+          } else {
+            await tx.user.update({
+              where: { id: driver.userId },
+              data: { isActive: false, deletedAt: now },
+            });
+          }
+        }
+      } else {
+        // Soft delete for historical referential integrity
+        await tx.driver.update({
+          where: { id: driverId },
+          data: {
+            deletedAt: now,
+            status: DriverStatus.SUSPENDED,
+            isApproved: false,
+          },
+        });
+        if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+          await tx.user.update({
+            where: { id: driver.userId },
+            data: { isActive: false, deletedAt: now },
+          });
+        }
+      }
+
+      // Record audit log
+      if (adminUserId) {
+        await tx.auditLog.create({
+          data: {
+            userId: adminUserId,
+            action: AuditAction.DELETE,
+            entityName: 'Driver',
+            entityId: driverId,
+            oldValue: {
+              licenseNumber: driver.licenseNumber,
+              driverUserId: driver.userId,
+            },
+          },
+        }).catch(() => {});
+      }
+    });
+
+    return { success: true, message: 'Delivery partner deleted successfully' };
   }
 }

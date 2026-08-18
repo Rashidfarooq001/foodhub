@@ -13,6 +13,7 @@ import {
   Phone,
   X,
   FileCheck,
+  Trash2,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
@@ -44,7 +45,7 @@ export default function AdminDeliveryPartnersPage() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
-    type: 'APPROVE' | 'SUSPEND' | 'REACTIVATE';
+    type: 'APPROVE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
     driverId: string;
     driverName: string;
   } | null>(null);
@@ -132,6 +133,10 @@ export default function AdminDeliveryPartnersPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
         });
+      } else if (activeModal.type === 'DELETE') {
+        res = await adminFetch(`/drivers/${activeModal.driverId}`, {
+          method: 'DELETE',
+        });
       }
 
       if (res && res.ok) {
@@ -140,7 +145,7 @@ export default function AdminDeliveryPartnersPage() {
         await fetchDrivers();
       } else {
         const err = await res?.json().catch(() => ({}));
-        setActionError(err?.message || 'Failed to update delivery partner');
+        setActionError(err?.message || 'Failed to perform driver action');
       }
     } catch (err: any) {
       setActionError(err?.message || 'Network error');
@@ -331,6 +336,15 @@ export default function AdminDeliveryPartnersPage() {
                           Reactivate
                         </button>
                       )}
+
+                      <button
+                        onClick={() => setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })}
+                        className="rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2.5 text-xs font-bold min-h-[40px] flex items-center justify-center gap-1 shrink-0"
+                        title="Delete Driver"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -388,6 +402,14 @@ export default function AdminDeliveryPartnersPage() {
                               Reactivate
                             </button>
                           )}
+                          <button
+                            onClick={() => setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                            title="Delete Delivery Partner"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -408,6 +430,7 @@ export default function AdminDeliveryPartnersPage() {
                 {activeModal.type === 'APPROVE' && `Approve ${activeModal.driverName}`}
                 {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.driverName}`}
                 {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.driverName}`}
+                {activeModal.type === 'DELETE' && `Delete ${activeModal.driverName}`}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -424,6 +447,13 @@ export default function AdminDeliveryPartnersPage() {
             )}
 
             <form onSubmit={handleExecuteAction} className="space-y-4">
+              {activeModal.type === 'DELETE' && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
+                  <p className="font-bold">Are you sure you want to permanently delete this delivery partner?</p>
+                  <p className="text-[11px] text-rose-600">This will remove their courier partner profile and KYC records from the platform.</p>
+                </div>
+              )}
+
               {activeModal.type === 'SUSPEND' && (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -451,9 +481,13 @@ export default function AdminDeliveryPartnersPage() {
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="flex-1 rounded-2xl bg-teal-600 hover:bg-teal-700 py-3 text-xs font-black text-white shadow-md shadow-teal-500/20 transition min-h-[44px]"
+                  className={`flex-1 rounded-2xl py-3 text-xs font-black text-white shadow-md transition min-h-[44px] ${
+                    activeModal.type === 'DELETE'
+                      ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20'
+                      : 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20'
+                  }`}
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm Action'}
+                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'Delete Driver' : 'Confirm Action'}
                 </button>
               </div>
             </form>

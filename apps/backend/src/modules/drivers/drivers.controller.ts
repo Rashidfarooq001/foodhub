@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DriversService } from './drivers.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
@@ -77,5 +77,15 @@ export class DriversController {
   ) {
     const adminUserId = req?.user?.id || req?.user?.sub;
     return this.driversService.updateApprovalStatus(id, isApproved, reason, adminUserId);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Delete or remove delivery partner' })
+  async deleteDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.deleteDriver(id, adminUserId);
   }
 }
