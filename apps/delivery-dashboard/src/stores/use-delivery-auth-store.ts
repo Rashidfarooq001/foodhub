@@ -40,8 +40,13 @@ export const useDeliveryAuthStore = create<DeliveryAuthState>()(
       refreshToken: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true }),
+      setAuth: (user, accessToken, refreshToken) => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('foodhub_session_left_delivery');
+          localStorage.removeItem('foodhub_logout_event_delivery');
+        }
+        set({ user, accessToken, refreshToken, isAuthenticated: true });
+      },
 
       updateUser: (profile) =>
         set((state) => ({

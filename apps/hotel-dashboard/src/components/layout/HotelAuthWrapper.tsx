@@ -41,7 +41,7 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     logout,
     apiBaseUrl: API_BASE,
     loginPath: '/login',
-    timeoutMs: 5 * 60 * 1000,
+    timeoutMs: 24 * 60 * 60 * 1000,
   });
 
   const [restaurantStatus, setRestaurantStatus] = useState<string | null>(

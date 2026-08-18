@@ -41,8 +41,13 @@ export const useHotelAuthStore = create<HotelAuthState>()(
       refreshToken: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true }),
+      setAuth: (user, accessToken, refreshToken) => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('foodhub_session_left_hotel');
+          localStorage.removeItem('foodhub_logout_event_hotel');
+        }
+        set({ user, accessToken, refreshToken, isAuthenticated: true });
+      },
 
       updateUser: (profile) =>
         set((state) => ({

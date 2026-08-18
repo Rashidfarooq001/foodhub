@@ -9,11 +9,11 @@ export interface UseSessionTimeoutOptions {
   logout: () => void;
   apiBaseUrl: string;
   loginPath?: string;
-  timeoutMs?: number; // Default 5 minutes (300,000ms)
+  timeoutMs?: number; // Default 24 hours
   isProtectedPath?: (pathname: string) => boolean;
 }
 
-const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function useSessionTimeout({
   portalName,
@@ -108,6 +108,14 @@ export function useSessionTimeout({
     }
   }, [accessToken, apiBaseUrl, loginPath, logout, storageKey, logoutTriggerKey]);
 
+  // Clean stale keys on mount when authenticated
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isAuthenticated) {
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(logoutTriggerKey);
+    }
+  }, [isAuthenticated, storageKey, logoutTriggerKey]);
+
   // Handle return to dashboard / tab focus
   const handleReturn = useCallback(() => {
     if (!isAuthenticated) return;
@@ -135,7 +143,7 @@ export function useSessionTimeout({
     }
   }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
 
-  // Handle leaving dashboard / tab blur
+  // Handle leaving dashboard
   const handleLeave = useCallback(() => {
     if (!isAuthenticated) return;
 
@@ -214,23 +222,16 @@ export function useSessionTimeout({
       }
     };
 
-    const handleFocus = () => handleReturn();
-    const handleBlur = () => handleLeave();
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
     window.addEventListener('pagehide', handleLeave);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('pagehide', handleLeave);
     };
   }, [isAuthenticated, handleLeave, handleReturn]);
 
-  // 3. In-Page Inactivity Listener (Triggers auto-logout after timeoutMs of inactivity)
+  // 3. In-Page Inactivity Listener
   useEffect(() => {
     if (typeof window === 'undefined' || !isAuthenticated) return;
 
@@ -250,7 +251,6 @@ export function useSessionTimeout({
       }, timeoutMs);
     };
 
-    // Initialize timer on protected page load
     resetInactivityTimer();
 
     let activityThrottleTimer: any = null;
@@ -261,7 +261,7 @@ export function useSessionTimeout({
       activityThrottleTimer = setTimeout(() => {
         activityThrottleTimer = null;
         resetInactivityTimer();
-      }, 2000);
+      }, 5000);
     };
 
     window.addEventListener('mousemove', handleUserActivity);

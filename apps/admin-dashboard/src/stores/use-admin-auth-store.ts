@@ -45,8 +45,13 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     (set) => ({
       ...getInitialAuthState(),
 
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true }),
+      setAuth: (user, accessToken, refreshToken) => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('foodhub_session_left_admin');
+          localStorage.removeItem('foodhub_logout_event_admin');
+        }
+        set({ user, accessToken, refreshToken, isAuthenticated: true });
+      },
 
       updateUser: (profile) =>
         set((state) => ({
