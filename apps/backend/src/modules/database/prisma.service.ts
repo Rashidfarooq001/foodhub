@@ -157,6 +157,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
               ) THEN
                 ALTER TABLE "order_items" ADD COLUMN "unit_price" DECIMAL(10,2) NOT NULL DEFAULT 0.00;
               END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'order_items' AND column_name = 'item_snapshot'
+              ) THEN
+                ALTER TABLE "order_items" ADD COLUMN "item_snapshot" JSONB;
+              END IF;
+
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'order_items' AND column_name = 'addons_json'
+              ) THEN
+                ALTER TABLE "order_items" ADD COLUMN "addons_json" JSONB;
+              END IF;
             END IF;
 
             -- Ensure settlements table has all weekly settlement columns
