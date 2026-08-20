@@ -211,28 +211,55 @@ export class OtpService {
 
     if (rawPhone) {
       const cleanDigits = rawPhone.replace(/\D/g, '');
-      const mobile = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+      let mobile = cleanDigits;
+      if (cleanDigits.length === 10) {
+        mobile = `91${cleanDigits}`;
+      } else if (cleanDigits.length === 11 && cleanDigits.startsWith('0')) {
+        mobile = `91${cleanDigits.slice(1)}`;
+      } else if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
+        mobile = cleanDigits;
+      }
+
       const authKey = process.env.MSG91_AUTH_KEY;
+      const flowId = process.env.MSG91_FLOW_ID || process.env.MSG91_DELIVERY_FLOW_ID;
+      const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID;
       const senderId = process.env.MSG91_SENDER_ID || 'FOODHB';
 
       if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
         try {
-          // Use MSG91 Send SMS (transactional route 4) — no OTP template registration required.
-          // OTP is embedded directly in the message body.
-          const message = `Your FoodHub delivery OTP for Order #${order.orderNumber} is ${rawOtp}. Share this code ONLY with your delivery partner upon receiving your order. Valid for 2 hours.`;
-          const msg91Payload = {
-            sender: senderId,
-            route: '4',
-            country: '91',
-            sms: [{ message, to: [mobile] }],
-          };
-          const res = await fetch('https://api.msg91.com/api/v5/flow/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', authkey: authKey },
-            body: JSON.stringify(msg91Payload),
-          });
-          const resData = await res.json().catch(() => ({}));
-          this.logger.log(`[MSG91 Delivery OTP SMS] Dispatched OTP to ${mobile} for Order #${order.orderNumber}. Response: ${JSON.stringify(resData)}`);
+          if (flowId) {
+            const flowPayload = {
+              flow_id: flowId,
+              sender: senderId,
+              recipients: [
+                {
+                  mobiles: mobile,
+                  otp: rawOtp,
+                  OTP: rawOtp,
+                  order: order.orderNumber,
+                  ORDER: order.orderNumber,
+                },
+              ],
+            };
+            const flowRes = await fetch('https://control.msg91.com/api/v5/flow', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                authkey: authKey,
+              },
+              body: JSON.stringify(flowPayload),
+            });
+            const flowData = await flowRes.json().catch(() => ({}));
+            this.logger.log(`[MSG91 Flow SMS] OTP sent to ${mobile} for Order #${order.orderNumber} (HTTP ${flowRes.status}): ${JSON.stringify(flowData)}`);
+          } else {
+            const otpUrl = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId || '')}&mobile=${mobile}&authkey=${encodeURIComponent(authKey)}&otp=${encodeURIComponent(rawOtp)}&otp_expiry=120`;
+            const otpRes = await fetch(otpUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            const otpData = await otpRes.json().catch(() => ({}));
+            this.logger.log(`[MSG91 OTP SMS] OTP dispatched to ${mobile} for Order #${order.orderNumber} (HTTP ${otpRes.status}): ${JSON.stringify(otpData)}`);
+          }
         } catch (err: any) {
           this.logger.error(`[MSG91 Delivery OTP SMS Error] Failed to send SMS to ${mobile}: ${err?.message}`);
         }

@@ -746,9 +746,16 @@ export class OrderStateMachineService {
       }
     }
 
-    if (targetStatus === OrderStatus.PREPARING || targetStatus === OrderStatus.READY_FOR_PICKUP) {
-      if (!isRestaurantActor) {
-        throw new ForbiddenException('Only the restaurant can update cooking preparation stages.');
+    if (
+      (
+        [
+          OrderStatus.PREPARING,
+          OrderStatus.READY_FOR_PICKUP,
+        ] as OrderStatus[]
+      ).includes(targetStatus)
+    ) {
+      if (!isRestaurantStaff && !isAdmin) {
+        throw new ForbiddenException('Only authorized restaurant staff or admins can update order prep status.');
       }
     }
 
@@ -812,55 +819,63 @@ export class OrderStateMachineService {
 
       if (!fullOrder) return;
 
-      let deliveryOtp = fullOrder.deliveryOtp;
-      if (!deliveryOtp || deliveryOtp === 'USED') {
-        deliveryOtp = generate4DigitOtp();
-        await this.prisma.order.update({
-          where: { id: fullOrder.id },
-          data: {
-            deliveryOtp,
-            deliveryOtpHash: hashOtp(deliveryOtp),
-            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
-          },
-        });
-      }
+      const deliveryOtp = fullOrder.deliveryOtp;
+      if (!deliveryOtp) return;
 
       const deliveryAddress: any = fullOrder.deliveryAddress || {};
       const rawPhone = deliveryAddress.phone || deliveryAddress.contactPhone || fullOrder.customer?.user?.phone;
 
       if (rawPhone) {
         const cleanDigits = rawPhone.replace(/\D/g, '');
-        const mobile = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+        let mobile = cleanDigits;
+        if (cleanDigits.length === 10) {
+          mobile = `91${cleanDigits}`;
+        } else if (cleanDigits.length === 11 && cleanDigits.startsWith('0')) {
+          mobile = `91${cleanDigits.slice(1)}`;
+        } else if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
+          mobile = cleanDigits;
+        }
+
         const authKey = process.env.MSG91_AUTH_KEY;
+        const flowId = process.env.MSG91_FLOW_ID || process.env.MSG91_DELIVERY_FLOW_ID;
+        const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID;
         const senderId = process.env.MSG91_SENDER_ID || 'FOODHB';
 
         if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
-          // Use MSG91 Send SMS transactional route — no pre-registered OTP template required.
-          // The delivery OTP is embedded directly in the message body.
-          const message = `Your FoodHub delivery OTP for Order #${fullOrder.orderNumber} is ${deliveryOtp}. Share this code ONLY with your delivery partner when you receive your order. Valid for 2 hrs. -FOODHB`;
-          const msg91Payload = {
-            sender: senderId,
-            route: '4',
-            country: '91',
-            sms: [
-              {
-                message,
-                to: [mobile],
+          if (flowId) {
+            const flowPayload = {
+              flow_id: flowId,
+              sender: senderId,
+              recipients: [
+                {
+                  mobiles: mobile,
+                  otp: deliveryOtp,
+                  OTP: deliveryOtp,
+                  order: fullOrder.orderNumber,
+                  ORDER: fullOrder.orderNumber,
+                },
+              ],
+            };
+            const flowRes = await fetch('https://control.msg91.com/api/v5/flow', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                authkey: authKey,
               },
-            ],
-          };
-          const res = await fetch('https://api.msg91.com/api/v5/flow/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              authkey: authKey,
-            },
-            body: JSON.stringify(msg91Payload),
-          });
-          const resData = await res.json().catch(() => ({}));
-          this.logger.log(`[MSG91 Delivery OTP SMS] Dispatched OTP to ${mobile} for Order #${fullOrder.orderNumber}: ${JSON.stringify(resData)}`);
+              body: JSON.stringify(flowPayload),
+            });
+            const flowData = await flowRes.json().catch(() => ({}));
+            this.logger.log(`[MSG91 Flow SMS] OTP sent to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${flowRes.status}): ${JSON.stringify(flowData)}`);
+          } else {
+            const otpUrl = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId || '')}&mobile=${mobile}&authkey=${encodeURIComponent(authKey)}&otp=${encodeURIComponent(deliveryOtp)}&otp_expiry=120`;
+            const otpRes = await fetch(otpUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            const otpData = await otpRes.json().catch(() => ({}));
+            this.logger.log(`[MSG91 OTP SMS] OTP dispatched to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${otpRes.status}): ${JSON.stringify(otpData)}`);
+          }
         } else {
-          // Dev/simulation mode — log the OTP so developers can test end-to-end without real SMS credits.
           this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile} | OTP: ${deliveryOtp}`);
         }
       } else {
