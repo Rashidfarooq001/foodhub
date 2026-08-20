@@ -53,13 +53,19 @@ export class DriversController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all registered drivers' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List all registered drivers (Admin Only)' })
   async findAll() {
     return this.driversService.findAllDrivers();
   }
 
   @Get('applications')
-  @ApiOperation({ summary: 'List pending driver onboarding applications' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List pending driver onboarding applications (Admin Only)' })
   async findApplications() {
     return this.driversService.findPendingApplications();
   }

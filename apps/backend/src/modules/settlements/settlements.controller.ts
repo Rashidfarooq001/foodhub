@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SettlementsService } from './settlements.service';
@@ -40,7 +41,14 @@ export class SettlementsController {
     @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
+    @CurrentUser() user?: any,
   ) {
+    if (user?.role === 'RESTAURANT_OWNER') {
+      const owns = user.restaurantId === restaurantId || (user.id && await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id));
+      if (!owns) {
+        throw new ForbiddenException('Access denied. You can only view settlements for your own restaurant.');
+      }
+    }
     return this.settlementsService.getRestaurantSettlementDetail(restaurantId, periodType || 'current', customStart, customEnd);
   }
 
@@ -58,7 +66,16 @@ export class SettlementsController {
   @Get('restaurant/:restaurantId/history')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'RESTAURANT_OWNER')
   @ApiOperation({ summary: 'Get historical weekly settlements for a restaurant' })
-  async getRestaurantHistory(@Param('restaurantId') restaurantId: string) {
+  async getRestaurantHistory(
+    @Param('restaurantId') restaurantId: string,
+    @CurrentUser() user?: any,
+  ) {
+    if (user?.role === 'RESTAURANT_OWNER') {
+      const owns = user.restaurantId === restaurantId || (user.id && await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id));
+      if (!owns) {
+        throw new ForbiddenException('Access denied. You can only view settlement history for your own restaurant.');
+      }
+    }
     return this.settlementsService.getSettlementHistory(restaurantId);
   }
 

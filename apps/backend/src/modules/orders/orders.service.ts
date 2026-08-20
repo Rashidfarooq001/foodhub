@@ -842,19 +842,44 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       throw new BadRequestException(`Order ${orderId} not found`);
     }
 
-    // STRICT CUSTOMER & ROLE SECURITY CHECK
+    // STRICT CUSTOMER, RESTAURANT & DRIVER AUTHORIZATION CHECK
     const isCustomerOwner =
       order.customer.userId === userId ||
       order.customerId === userId ||
       order.customer.id === userId;
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
-    const isRestaurantStaff =
-      role === 'RESTAURANT_OWNER' ||
-      role === 'RESTAURANT_MANAGER' ||
-      role === 'RESTAURANT_STAFF';
-    const isDriver = role === 'DRIVER';
 
-    if (!isCustomerOwner && !isAdmin && !isRestaurantStaff && !isDriver) {
+    let isAuthorized = isCustomerOwner || isAdmin;
+
+    if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
+      const isOwner = order.restaurant.ownerId === userId;
+      const isStaff = await this.prisma.restaurantStaff.findFirst({
+        where: { restaurantId: order.restaurantId, userId },
+        select: { id: true },
+      });
+      if (isOwner || isStaff) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && (role === 'DRIVER' || role === 'DELIVERY_PARTNER')) {
+      const driver = await this.prisma.driver.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      if (driver) {
+        const isAssigned = order.assignedRestaurantDriverId === driver.id;
+        const job = await this.prisma.deliveryJob.findFirst({
+          where: { orderId: order.id, driverId: driver.id },
+          select: { id: true },
+        });
+        if (isAssigned || job) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       throw new ForbiddenException('You do not have permission to view this order.');
     }
 
@@ -892,10 +917,38 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       order.customer.id === userId;
 
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
-    const isRestaurantStaff = role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF';
-    const isDriver = role === 'DRIVER';
 
-    if (!isCustomerOwner && !isAdmin && !isRestaurantStaff && !isDriver) {
+    let isAuthorized = isCustomerOwner || isAdmin;
+
+    if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
+      const isOwner = order.restaurant.ownerId === userId;
+      const isStaff = await this.prisma.restaurantStaff.findFirst({
+        where: { restaurantId: order.restaurantId, userId },
+        select: { id: true },
+      });
+      if (isOwner || isStaff) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && (role === 'DRIVER' || role === 'DELIVERY_PARTNER')) {
+      const driver = await this.prisma.driver.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+      if (driver) {
+        const isAssigned = order.assignedRestaurantDriverId === driver.id;
+        const job = await this.prisma.deliveryJob.findFirst({
+          where: { orderId: order.id, driverId: driver.id },
+          select: { id: true },
+        });
+        if (isAssigned || job) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       throw new ForbiddenException('You do not have permission to view delivery tracking for this order.');
     }
 

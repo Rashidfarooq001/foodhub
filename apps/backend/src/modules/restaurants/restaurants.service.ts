@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, Optional, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, UnauthorizedException, ForbiddenException, Optional, Inject } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode, AuditAction } from '@prisma/client';
@@ -19,6 +19,32 @@ export class RestaurantsService {
     private readonly prisma: PrismaService,
     @Optional() private readonly gateway?: OrdersGateway,
   ) {}
+
+  async verifyRestaurantAccess(restaurantId: string, user: any) {
+    if (!user) {
+      throw new UnauthorizedException('Authentication required to access restaurant management.');
+    }
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      return true;
+    }
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { ownerId: true },
+    });
+    if (!restaurant) {
+      throw new NotFoundException(`Restaurant ${restaurantId} not found`);
+    }
+    if (restaurant.ownerId === user.id) {
+      return true;
+    }
+    const staff = await this.prisma.restaurantStaff.findFirst({
+      where: { restaurantId, userId: user.id },
+    });
+    if (staff) {
+      return true;
+    }
+    throw new ForbiddenException('Access denied. You do not own or manage this restaurant.');
+  }
 
   async createRestaurant(dto: CreateRestaurantDto) {
     // Validate required fields — never invent defaults

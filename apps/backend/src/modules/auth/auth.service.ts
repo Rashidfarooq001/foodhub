@@ -1153,7 +1153,17 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    return this.usersService.findUserById(userId);
+    const user = await this.usersService.findUserById(userId);
+    const {
+      passwordHash,
+      password1Hash,
+      password2Hash,
+      adminDobHash,
+      adminFavoritePersonHash,
+      twoFactorSecret,
+      ...safeUser
+    } = user as any;
+    return safeUser;
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

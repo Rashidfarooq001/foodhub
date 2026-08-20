@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigModule } from './modules/config/config.module';
 import { CommonModule } from './modules/common/common.module';
 import { HealthModule } from './modules/health/health.module';
@@ -45,7 +46,7 @@ import { SupportTicketsModule } from './modules/support-tickets/support-tickets.
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     AppConfigModule,
     CommonModule,
     HealthModule,
@@ -87,6 +88,12 @@ import { SupportTicketsModule } from './modules/support-tickets/support-tickets.
     PricingModule,
     TaxModule,
     SupportTicketsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -54,11 +54,28 @@ export class OrdersController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
+    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN';
     const targetRestId = restaurantId || req.user?.restaurantId;
+
     if (targetRestId) {
+      if (!isAdmin) {
+        const userId = req.user?.id || req.user?.sub;
+        const ownsRestaurant = await this.prisma.restaurant.findFirst({
+          where: { id: targetRestId, ownerId: userId },
+          select: { id: true },
+        });
+        const isStaff = await this.prisma.restaurantStaff.findFirst({
+          where: { restaurantId: targetRestId, userId },
+          select: { id: true },
+        });
+        if (!ownsRestaurant && !isStaff) {
+          throw new ForbiddenException('Access denied. You do not own or manage this restaurant orders.');
+        }
+      }
       return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
     }
-    if (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN') {
+
+    if (isAdmin) {
       return this.ordersService.getAllOrders(status as any, +page, +limit);
     }
     return this.ordersService.getCustomerOrders(req.user.id || req.user.sub, +page, +limit);

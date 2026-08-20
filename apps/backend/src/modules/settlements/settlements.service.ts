@@ -60,6 +60,20 @@ export class SettlementsService {
     private readonly gateway?: OrdersGateway,
   ) {}
 
+  async verifyRestaurantOwner(restaurantId: string, userId: string): Promise<boolean> {
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { id: restaurantId, ownerId: userId },
+      select: { id: true },
+    });
+    if (restaurant) return true;
+
+    const staff = await this.prisma.restaurantStaff.findFirst({
+      where: { restaurantId, userId },
+      select: { id: true },
+    });
+    return !!staff;
+  }
+
   /**
    * Authoritative restaurant-by-restaurant weekly settlements summary from PostgreSQL
    */

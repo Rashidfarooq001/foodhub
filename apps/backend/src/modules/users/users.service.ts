@@ -294,8 +294,18 @@ export class UsersService {
       },
     });
 
+    const {
+      passwordHash,
+      password1Hash,
+      password2Hash,
+      adminDobHash,
+      adminFavoritePersonHash,
+      twoFactorSecret,
+      ...safeUser
+    } = user as any;
+
     return {
-      ...user,
+      ...safeUser,
       profile: updatedProfile,
     };
   }

@@ -7,11 +7,15 @@ import {
   UploadedFile,
   BadRequestException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import * as path from 'path';
 import { StorageService } from './storage.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Media Storage & Uploads')
 @Controller('storage')
@@ -29,7 +33,7 @@ export class StorageController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }))
   async uploadFile(
     @UploadedFile() file: any,
     @Query('type') type?: 'image' | 'video' | 'any',
@@ -43,7 +47,10 @@ export class StorageController {
   }
 
   @Delete('file/:filename')
-  @ApiOperation({ summary: 'Delete uploaded media file' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'RESTAURANT_OWNER')
+  @ApiOperation({ summary: 'Delete uploaded media file (Admin / Restaurant Owner)' })
   async deleteFile(@Param('filename') filename: string) {
     return this.storageService.deleteFile(filename);
   }

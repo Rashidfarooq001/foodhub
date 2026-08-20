@@ -10,7 +10,9 @@ export class MenusService {
    * Helper to verify that the requesting user owns or manages the restaurant.
    */
   async verifyRestaurantOwnership(restaurantId: string, actor: { userId?: string; role?: string; restaurantId?: string }) {
-    if (!actor) return;
+    if (!actor || !actor.userId) {
+      throw new ForbiddenException('Authentication required to modify menu catalog.');
+    }
     if (actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN') {
       return; // Admins have full access
     }

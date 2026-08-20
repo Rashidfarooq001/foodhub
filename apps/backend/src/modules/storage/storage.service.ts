@@ -20,37 +20,42 @@ export class StorageService {
       throw new BadRequestException('No file uploaded');
     }
 
-    const imageMimes = [
+    const allowedImageMimes = [
       'image/jpeg',
       'image/png',
       'image/webp',
       'image/jpg',
-      'image/pjpeg',
-      'image/x-png',
-      'image/gif',
-      'application/octet-stream',
     ];
-    const videoMimes = [
+    const allowedVideoMimes = [
       'video/mp4',
       'video/quicktime',
       'video/webm',
-      'video/x-matroska',
-      'video/avi',
-      'video/mpeg',
-      'video/3gpp',
-      'application/octet-stream',
     ];
 
-    if (acceptType === 'image' && !imageMimes.includes(file.mimetype) && !file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Invalid image format. Allowed formats: JPG, JPEG, PNG, WEBP');
+    const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+    const allowedVideoExts = ['.mp4', '.mov', '.webm'];
+
+    const fileExt = path.extname(file.originalname || '').toLowerCase();
+
+    if (acceptType === 'image') {
+      if (!allowedImageMimes.includes(file.mimetype) || !allowedImageExts.includes(fileExt)) {
+        throw new BadRequestException('Invalid image format. Allowed formats: JPG, JPEG, PNG, WEBP');
+      }
+    } else if (acceptType === 'video') {
+      if (!allowedVideoMimes.includes(file.mimetype) || !allowedVideoExts.includes(fileExt)) {
+        throw new BadRequestException('Invalid video format. Allowed formats: MP4, MOV, WEBM');
+      }
+    } else {
+      // 'any' allowed media
+      const isAllowedImage = allowedImageMimes.includes(file.mimetype) && allowedImageExts.includes(fileExt);
+      const isAllowedVideo = allowedVideoMimes.includes(file.mimetype) && allowedVideoExts.includes(fileExt);
+      if (!isAllowedImage && !isAllowedVideo) {
+        throw new BadRequestException('Unsupported media format. Allowed formats: JPG, JPEG, PNG, WEBP, MP4, MOV, WEBM');
+      }
     }
 
-    if (acceptType === 'video' && !videoMimes.includes(file.mimetype) && !file.mimetype.startsWith('video/')) {
-      throw new BadRequestException('Invalid video format. Allowed formats: MP4, MOV, WEBM');
-    }
-
-    const isVideo = acceptType === 'video' || file.mimetype.startsWith('video/');
-    const maxSize = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+    const isVideo = acceptType === 'video' || allowedVideoMimes.includes(file.mimetype);
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
 
     if (file.size > maxSize) {
       const sizeMb = (maxSize / (1024 * 1024)).toFixed(0);
@@ -135,7 +140,18 @@ export class StorageService {
 
 
   deleteFile(filename: string) {
-    const filePath = path.join(this.uploadDir, filename);
+    if (!filename || typeof filename !== 'string') {
+      throw new BadRequestException('Filename parameter is required.');
+    }
+
+    const safeFilename = path.basename(filename);
+    const filePath = path.resolve(this.uploadDir, safeFilename);
+
+    // Verify resolved path stays strictly within uploads directory
+    if (!filePath.startsWith(path.resolve(this.uploadDir))) {
+      throw new BadRequestException('Invalid file path.');
+    }
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       return { success: true, message: 'File deleted' };

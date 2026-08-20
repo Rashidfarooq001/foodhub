@@ -7,6 +7,8 @@ import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import type { Request } from 'express';
 
 @ApiTags('Payments (Phase 11)')
@@ -43,7 +45,8 @@ export class PaymentsController {
 
   @Get('admin')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
   @ApiOperation({ summary: 'Get payment transactions and GMV metrics for Admin' })
   async getPaymentsForAdmin(
     @Query('page') page = 1,
@@ -54,7 +57,8 @@ export class PaymentsController {
 
   @Post('refund/:orderId')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Initiate refund for an order (Admin/System)' })
   async refund(
     @Param('orderId') orderId: string,

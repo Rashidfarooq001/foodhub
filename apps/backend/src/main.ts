@@ -87,9 +87,9 @@ async function bootstrap() {
 
 
 
-  // Body Size
-  app.use(express.json({ limit: '120mb' }));
-  app.use(express.urlencoded({ limit: '120mb', extended: true }));
+  // Body Size (Strict 10MB limit for general API payloads to prevent DoS)
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Global Prefix
   app.setGlobalPrefix('api/v1');
@@ -100,6 +100,7 @@ async function bootstrap() {
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:3003',
+    'https://zaykafood.online',
     ...(process.env.ALLOWED_ORIGINS || '')
       .split(',')
       .map((origin) => origin.trim())
@@ -109,8 +110,19 @@ async function bootstrap() {
   // CORS
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow cross-origin requests from Vercel, localhost, and all client origins
-      callback(null, true);
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const isExplicitlyAllowed = allowedOrigins.includes(origin);
+      const isZaykaDomain = /^https:\/\/([a-zA-Z0-9-]+\.)*zaykafood\.online$/.test(origin);
+      const isVercelDomain = /^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(origin);
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+      if (isExplicitlyAllowed || isZaykaDomain || isVercelDomain || isLocalhost) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
+      }
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],

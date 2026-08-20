@@ -78,11 +78,15 @@ export class RestaurantsController {
   }
 
   @Patch(':id/delivery-mode')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Update restaurant delivery mode (FoodHub vs Self Delivery)' })
   async updateDeliveryMode(
     @Param('id') id: string,
     @Body('deliveryMode') deliveryMode: any,
+    @CurrentUser() user: any,
   ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.updateDeliveryMode(id, deliveryMode);
   }
 
@@ -137,42 +141,60 @@ export class RestaurantsController {
   }
 
   @Get(':id/delivery-staff')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'List delivery staff for restaurant self delivery' })
-  async getDeliveryStaff(@Param('id') id: string) {
+  async getDeliveryStaff(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.getDeliveryStaff(id);
   }
 
   @Post(':id/delivery-staff')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Add a new self-delivery rider' })
   async createDeliveryStaff(
     @Param('id') id: string,
     @Body() dto: any,
+    @CurrentUser() user: any,
   ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.createDeliveryStaff(id, dto);
   }
 
   @Patch(':id/delivery-staff/:staffId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Update self-delivery rider details/status' })
   async updateDeliveryStaff(
     @Param('id') id: string,
     @Param('staffId') staffId: string,
     @Body() dto: any,
+    @CurrentUser() user: any,
   ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.updateDeliveryStaff(id, staffId, dto);
   }
 
   @Delete(':id/delivery-staff/:staffId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Delete a self-delivery rider' })
   async deleteDeliveryStaff(
     @Param('id') id: string,
     @Param('staffId') staffId: string,
+    @CurrentUser() user: any,
   ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.deleteDeliveryStaff(id, staffId);
   }
 
   @Get(':id/delivery-analytics')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Get self-delivery performance metrics' })
-  async getDeliveryAnalytics(@Param('id') id: string) {
+  async getDeliveryAnalytics(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.getDeliveryAnalytics(id);
   }
 }

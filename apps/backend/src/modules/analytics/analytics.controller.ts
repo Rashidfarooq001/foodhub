@@ -1,6 +1,6 @@
 import {
   Controller, Get, Query, Param, Res,
-  UseGuards, Request, Header,
+  UseGuards, Request, Header, ForbiddenException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -49,7 +49,12 @@ async restaurantStats(@Request() req: any) {
 
   @Get('driver/:id')
   @ApiOperation({ summary: 'Driver performance analytics' })
-  async driverStats(@Param('id') id: string) {
+  async driverStats(@Param('id') id: string, @Request() req: any) {
+    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN';
+    const isOwnerDriver = req.user?.driverId === id || req.user?.id === id || req.user?.sub === id;
+    if (!isAdmin && !isOwnerDriver) {
+      throw new ForbiddenException('Access denied. You can only view your own driver statistics.');
+    }
     return this.analyticsService.getDriverStats(id);
   }
 
