@@ -17,11 +17,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://zaykafood.online'),
   title: {
-    default: 'Zayka Food – Online Food Delivery in Kashmir',
+    default: 'ZaykaFood — Fast Food Delivery in Kashmir',
     template: '%s | Zayka Food',
   },
   description:
-    'Order delicious food online with Zayka Food. Discover local restaurants, explore menus, order your favorite meals and get food delivered to your doorstep across Kashmir.',
+    'Order food online from ZaykaFood. Discover restaurants, biryani, pizza, burgers, desserts and more. Fast food delivery in Kashmir.',
   keywords: [
     'Zayka Food',
     'ZaykaFood',

@@ -123,6 +123,16 @@ export default function CustomerHomePage() {
           </div>
         )}
 
+        {/* ─── Hero Heading ────────────────────────────────── */}
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight sm:text-3xl lg:text-4xl">
+            Order Food Online in Kashmir
+          </h1>
+          <p className="text-sm text-gray-500 font-medium">
+            Fast food delivery from top verified restaurants, cafes, and cloud kitchens across Kashmir.
+          </p>
+        </div>
+
         {/* ─── Mobile Search Box ───────────────────────────── */}
         <div className="w-full min-w-0">
           <div
