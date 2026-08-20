@@ -13,8 +13,52 @@ interface DeliveryHeaderProps {
 
 export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu }) => {
   const router = useRouter();
-  const { user } = useDeliveryAuthStore();
+  const { user, accessToken } = useDeliveryAuthStore();
   const [isOnDuty, setIsOnDuty] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
+
+  React.useEffect(() => {
+    if (!accessToken) return;
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`${getImageUrl('') ? '' : ''}${typeof window !== 'undefined' ? (window as any).__API_BASE__ || 'https://foodhub-backend-enq2.onrender.com/api/v1' : 'https://foodhub-backend-enq2.onrender.com/api/v1'}/delivery/me/status`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsOnDuty(data.dutyStatus === 'ONLINE' || data.operationalStatus === 'ONLINE');
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchStatus();
+  }, [accessToken]);
+
+  const handleToggle = async () => {
+    if (!accessToken || isToggling) return;
+    setIsToggling(true);
+    const newStatus = !isOnDuty;
+    try {
+      const apiBase = typeof window !== 'undefined' ? (window as any).__API_BASE__ || 'https://foodhub-backend-enq2.onrender.com/api/v1' : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+      const res = await fetch(`${apiBase}/delivery/duty/toggle`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isOnline: newStatus }),
+      });
+      if (res.ok) {
+        setIsOnDuty(newStatus);
+        window.location.reload();
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-3 sm:px-4 md:px-6 gap-2">
@@ -45,7 +89,8 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Prominent Duty Status Toggle */}
         <button
-          onClick={() => setIsOnDuty(!isOnDuty)}
+          onClick={handleToggle}
+          disabled={isToggling}
           className={`flex items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 text-xs font-black transition shadow-sm min-h-[44px] ${
             isOnDuty
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
@@ -55,7 +100,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
         >
           <Power className={`h-4 w-4 shrink-0 ${isOnDuty ? 'text-emerald-600' : 'text-gray-500'}`} />
           <span>
-            {isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
+            {isToggling ? '...' : isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
           </span>
           <span className={`h-2 w-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
         </button>

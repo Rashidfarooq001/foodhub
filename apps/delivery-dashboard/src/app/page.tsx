@@ -42,7 +42,7 @@ export default function DeliveryDashboardPage() {
       const [statsRes, currentRes, jobsRes, statusRes] = await Promise.all([
         fetch(`${API_BASE}/delivery/stats`, { headers }),
         fetch(`${API_BASE}/delivery/current`, { headers }),
-        fetch(`${API_BASE}/delivery/available`, { headers }),
+        fetch(`${API_BASE}/delivery/jobs/available`, { headers }).catch(() => fetch(`${API_BASE}/delivery/available`, { headers })),
         fetch(`${API_BASE}/delivery/me/status`, { headers }),
       ]);
 
@@ -56,7 +56,7 @@ export default function DeliveryDashboardPage() {
         setCurrentDelivery(currentData || null);
       }
 
-      if (jobsRes.ok) {
+      if (jobsRes && jobsRes.ok) {
         const jobsData = await jobsRes.json();
         setAvailableJobs(Array.isArray(jobsData) ? jobsData : jobsData.jobs || []);
       }
@@ -98,14 +98,26 @@ export default function DeliveryDashboardPage() {
     setIsTogglingDuty(true);
     const newStatus = !isOnDuty;
     try {
-      const res = await fetch(`${API_BASE}/delivery/duty/toggle`, {
+      let res = await fetch(`${API_BASE}/delivery/duty/toggle`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ isOnline: newStatus }),
+        body: JSON.stringify({ isOnline: newStatus, status: newStatus ? 'ONLINE' : 'OFFLINE' }),
       });
+
+      if (!res.ok) {
+        res = await fetch(`${API_BASE}/delivery/duty-status`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus ? 'ONLINE' : 'OFFLINE' }),
+        });
+      }
+
       if (res.ok) {
         setIsOnDuty(newStatus);
       }

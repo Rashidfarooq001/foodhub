@@ -21,9 +21,14 @@ export default function AvailableOrdersPage() {
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/delivery/available`, {
+      let res = await fetch(`${API_BASE}/delivery/jobs/available`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
+      if (!res.ok) {
+        res = await fetch(`${API_BASE}/delivery/available`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         setAvailableJobs(Array.isArray(data) ? data : data.jobs ?? []);

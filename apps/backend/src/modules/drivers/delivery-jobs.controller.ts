@@ -552,12 +552,29 @@ export class DeliveryJobsController {
     }));
   }
 
+  @Get('available')
+  @ApiOperation({ summary: 'Get available delivery jobs (alias)' })
+  async getAvailableJobsAlias(@Request() req: any) {
+    return this.getAvailableJobs(req);
+  }
+
   @Patch('duty-status')
   @ApiOperation({ summary: 'Toggle driver online/offline duty status' })
   async toggleDutyStatus(@Body('status') status: string, @Request() req: any) {
     if (status === 'ONLINE') return this.goOnline(req);
     if (status === 'OFFLINE') return this.goOffline(req);
     throw new BadRequestException('Invalid status value. Use "ONLINE" or "OFFLINE".');
+  }
+
+  @Post('duty/toggle')
+  @ApiOperation({ summary: 'Toggle driver duty online/offline (alias)' })
+  async toggleDutyPost(@Body('isOnline') isOnline: boolean, @Body('status') status: string, @Request() req: any) {
+    const shouldGoOnline = isOnline === true || status === 'ONLINE';
+    if (shouldGoOnline) {
+      return this.goOnline(req);
+    } else {
+      return this.goOffline(req);
+    }
   }
 
   @Post('jobs/:id/accept')
