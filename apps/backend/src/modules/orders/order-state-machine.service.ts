@@ -147,8 +147,9 @@ export class OrderStateMachineService {
       ].includes(j.status as string),
     );
 
-    if (activeJobs.length > 0) {
-      throw new ConflictException('Selected delivery partner is currently busy executing another delivery.');
+    const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
+    if (activeJobs.length >= maxActiveOrders) {
+      throw new ConflictException(`Selected delivery partner has reached the maximum of ${maxActiveOrders} simultaneous active orders.`);
     }
 
     const rawPickupOtp = generate4DigitOtp();

@@ -78,13 +78,15 @@ export class DeliveryJobsController {
         throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
       }
 
-      const activeJob = (driver.deliveryJobs || []).find((j) =>
+      const activeJobs = (driver.deliveryJobs || []).filter((j) =>
         [
           DeliveryJobStatus.ASSIGNED as string,
           DeliveryJobStatus.ARRIVED as string,
           DeliveryJobStatus.PICKED_UP as string,
         ].includes(j.status as string),
       );
+
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
 
       let operationalStatus = 'ONLINE_AVAILABLE';
       let unavailabilityReason: string | null = null;
@@ -98,9 +100,9 @@ export class DeliveryJobsController {
       } else if (driver.status === DriverStatus.OFFLINE) {
         operationalStatus = 'OFFLINE';
         unavailabilityReason = 'Rider is currently offline';
-      } else if (activeJob) {
+      } else if (activeJobs.length >= maxActiveOrders) {
         operationalStatus = 'BUSY';
-        unavailabilityReason = 'Rider is currently executing another delivery';
+        unavailabilityReason = `Rider has reached max capacity (${maxActiveOrders} active orders)`;
       }
 
       return {
@@ -108,15 +110,23 @@ export class DeliveryJobsController {
         userId: driver.userId,
         operationalStatus,
         dutyStatus: driver.status === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
-        isAvailable: operationalStatus === 'ONLINE_AVAILABLE',
+        isAvailable: operationalStatus === 'ONLINE_AVAILABLE' || (operationalStatus !== 'SUSPENDED' && operationalStatus !== 'PENDING_APPROVAL' && operationalStatus !== 'OFFLINE' && operationalStatus !== 'BUSY'),
         unavailabilityReason,
         isApproved: driver.isApproved,
-        activeDelivery: activeJob
+        activeOrderCount: activeJobs.length,
+        activeDeliveries: activeJobs.map((j) => ({
+          jobId: j.id,
+          orderId: j.orderId,
+          orderNumber: j.order?.orderNumber,
+          status: j.status,
+        })),
+        // Legacy field — first active job for backwards compat
+        activeDelivery: activeJobs.length > 0
           ? {
-              jobId: activeJob.id,
-              orderId: activeJob.orderId,
-              orderNumber: activeJob.order.orderNumber,
-              status: activeJob.status,
+              jobId: activeJobs[0].id,
+              orderId: activeJobs[0].orderId,
+              orderNumber: activeJobs[0].order?.orderNumber,
+              status: activeJobs[0].status,
             }
           : null,
       };
@@ -586,7 +596,7 @@ export class DeliveryJobsController {
         throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
       }
 
-      const activeJob = await this.prisma.deliveryJob.findFirst({
+      const activeJobCount = await this.prisma.deliveryJob.count({
         where: {
           driverId: driver.id,
           status: {
@@ -599,8 +609,9 @@ export class DeliveryJobsController {
         },
       });
 
-      if (activeJob) {
-        throw new ConflictException('You already have an active delivery in progress. Complete your current delivery before accepting another job.');
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
+      if (activeJobCount >= maxActiveOrders) {
+        throw new ConflictException(`You have reached the maximum of ${maxActiveOrders} simultaneous active deliveries. Complete one before accepting another.`);
       }
 
       const job = await this.prisma.deliveryJob.findFirst({
