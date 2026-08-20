@@ -837,6 +837,7 @@ export class OrderStateMachineService {
         }
 
         const authKey = process.env.MSG91_AUTH_KEY;
+        const widgetId = process.env.MSG91_WIDGET_ID || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
         const flowId = process.env.MSG91_FLOW_ID || process.env.MSG91_DELIVERY_FLOW_ID;
         const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID;
         const senderId = process.env.MSG91_SENDER_ID || 'FOODHB';
@@ -866,14 +867,29 @@ export class OrderStateMachineService {
             });
             const flowData = await flowRes.json().catch(() => ({}));
             this.logger.log(`[MSG91 Flow SMS] OTP sent to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${flowRes.status}): ${JSON.stringify(flowData)}`);
-          } else {
-            const otpUrl = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId || '')}&mobile=${mobile}&authkey=${encodeURIComponent(authKey)}&otp=${encodeURIComponent(deliveryOtp)}&otp_expiry=120`;
+          } else if (templateId) {
+            const otpUrl = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId)}&mobile=${mobile}&authkey=${encodeURIComponent(authKey)}&otp=${encodeURIComponent(deliveryOtp)}&otp_expiry=120`;
             const otpRes = await fetch(otpUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
             });
             const otpData = await otpRes.json().catch(() => ({}));
             this.logger.log(`[MSG91 OTP SMS] OTP dispatched to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${otpRes.status}): ${JSON.stringify(otpData)}`);
+          } else if (widgetId) {
+            // Dispatches OTP via the configured MSG91 Widget
+            const widgetRes = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                authkey: authKey,
+              },
+              body: JSON.stringify({
+                widgetId,
+                identifier: mobile,
+              }),
+            });
+            const widgetData = await widgetRes.json().catch(() => ({}));
+            this.logger.log(`[MSG91 Widget SMS] Dispatched OTP to ${mobile} via Widget ${widgetId} (HTTP ${widgetRes.status}): ${JSON.stringify(widgetData)}`);
           }
         } else {
           this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile} | OTP: ${deliveryOtp}`);
