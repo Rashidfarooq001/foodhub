@@ -844,4 +844,114 @@ export class DeliveryJobsController {
       });
     }
   }
+
+  @Post('jobs/:id/unassign')
+  @ApiOperation({ summary: 'Unassign driver from delivery job and return to pool' })
+  async unassignJob(@Param('id') id: string, @Request() req: any) {
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { OR: [{ id }, { orderId: id }] },
+    });
+    if (!job) throw new NotFoundException('Delivery job not found.');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.deliveryJob.update({
+        where: { id: job.id },
+        data: {
+          driverId: null,
+          status: DeliveryJobStatus.AVAILABLE,
+          acceptedAt: null,
+          arrivedAt: null,
+          pickedAt: null,
+        },
+      });
+
+      await tx.order.update({
+        where: { id: job.orderId },
+        data: {
+          status: OrderStatus.READY_FOR_PICKUP,
+          assignedRestaurantDriverId: null,
+        },
+      });
+    });
+
+    return { success: true, message: 'Delivery job unassigned successfully.' };
+  }
+
+  @Post('jobs/reset-my-active')
+  @ApiOperation({ summary: 'Reset active assigned jobs for current rider' })
+  async resetMyActiveJobs(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+    const activeJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        driverId: driver.id,
+        status: { in: [DeliveryJobStatus.ASSIGNED, DeliveryJobStatus.ARRIVED, DeliveryJobStatus.PICKED_UP] },
+      },
+    });
+
+    for (const job of activeJobs) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.deliveryJob.update({
+          where: { id: job.id },
+          data: {
+            driverId: null,
+            status: DeliveryJobStatus.AVAILABLE,
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
+
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            status: OrderStatus.READY_FOR_PICKUP,
+            assignedRestaurantDriverId: null,
+          },
+        });
+      });
+    }
+
+    return { success: true, message: `Unassigned ${activeJobs.length} active delivery jobs.`, count: activeJobs.length };
+  }
+
+  @Post('admin/unassign-all')
+  @ApiOperation({ summary: 'Admin unassigns all assigned active rider jobs' })
+  async unassignAllRiderJobs(@Request() req: any) {
+    const assignedJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        status: { in: [DeliveryJobStatus.ASSIGNED, DeliveryJobStatus.ARRIVED, DeliveryJobStatus.PICKED_UP] },
+      },
+    });
+
+    for (const job of assignedJobs) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.deliveryJob.update({
+          where: { id: job.id },
+          data: {
+            driverId: null,
+            status: DeliveryJobStatus.AVAILABLE,
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
+
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            status: OrderStatus.READY_FOR_PICKUP,
+            assignedRestaurantDriverId: null,
+          },
+        });
+      });
+    }
+
+    return {
+      success: true,
+      message: `Successfully unassigned ${assignedJobs.length} active delivery jobs across all riders.`,
+      count: assignedJobs.length,
+    };
+  }
 }

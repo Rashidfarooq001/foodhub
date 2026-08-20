@@ -216,6 +216,32 @@ export default function CurrentDeliveryPage() {
     }
   };
 
+  const handleUnassignJob = async () => {
+    if (!currentJob || !accessToken) return;
+    if (!confirm('Are you sure you want to unassign and release this active order back to the queue?')) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/unassign`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (res.ok) {
+        setSuccessMessage('Order released successfully.');
+        await loadCurrentJob();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setError(d.message || 'Failed to unassign job');
+      }
+    } catch {
+      setError('Network error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-16 text-center text-xs font-bold text-gray-400">
@@ -252,7 +278,7 @@ export default function CurrentDeliveryPage() {
     : restaurantLng;
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-20">
+    <div className="space-y-4 max-w-2xl mx-auto pb-12">
       {/* Messages */}
       {error && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 flex items-center gap-2">
@@ -278,9 +304,18 @@ export default function CurrentDeliveryPage() {
             </h1>
           </div>
 
-          <span className="rounded-xl bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 text-xs font-black uppercase">
-            {currentJob.status?.replace(/_/g, ' ')}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleUnassignJob}
+              disabled={isSubmitting}
+              className="rounded-xl border border-gray-200 bg-gray-50 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 px-3 py-1 text-[11px] font-bold text-gray-600 transition"
+            >
+              Release Order
+            </button>
+            <span className="rounded-xl bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 text-xs font-black uppercase">
+              {currentJob.status?.replace(/_/g, ' ')}
+            </span>
+          </div>
         </div>
 
         {/* Lifecycle Step Progress */}
