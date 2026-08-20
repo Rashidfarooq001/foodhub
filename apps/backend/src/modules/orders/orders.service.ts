@@ -890,7 +890,22 @@ if (!allowed.includes(dto.status as OrderStatus)) {
 
     // STRICT DELIVERY OTP PRIVACY:
     // Only the authenticated ordering customer receives deliveryOtp, and ONLY when the order is OUT_FOR_DELIVERY
-    if (!isCustomerOwner || order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+    if (isCustomerOwner && order.status === OrderStatus.OUT_FOR_DELIVERY) {
+      if (!order.deliveryOtp || order.deliveryOtp === 'USED') {
+        const generatedOtp = generateDeliveryOtp();
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            deliveryOtp: generatedOtp,
+            deliveryOtpHash: hashOtp(generatedOtp),
+            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
+          },
+        });
+        serialized.deliveryOtp = generatedOtp;
+      } else {
+        serialized.deliveryOtp = order.deliveryOtp;
+      }
+    } else {
       delete serialized.deliveryOtp;
       delete serialized.deliveryOtpHash;
     }
@@ -965,6 +980,24 @@ const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
     );
     const etaMins = Math.max(5, Math.ceil((distKm / 25) * 60) + 5);
 
+    let customerDeliveryOtp: string | undefined = undefined;
+    if (isCustomerOwner && order.status === OrderStatus.OUT_FOR_DELIVERY) {
+      if (!order.deliveryOtp || order.deliveryOtp === 'USED') {
+        const generatedOtp = generateDeliveryOtp();
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            deliveryOtp: generatedOtp,
+            deliveryOtpHash: hashOtp(generatedOtp),
+            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
+          },
+        });
+        customerDeliveryOtp = generatedOtp;
+      } else {
+        customerDeliveryOtp = order.deliveryOtp;
+      }
+    }
+
     return serializePrisma({
       orderId: order.id,
       orderNumber: order.orderNumber,
@@ -982,6 +1015,7 @@ const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
       driverPhone: order.assignedRestaurantDriver?.phone || '+919876543210',
       vehicleNumber: order.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482',
       etaMins,
+      deliveryOtp: customerDeliveryOtp,
       updatedAt: order.tracking?.updatedAt || new Date(),
     });
   }
