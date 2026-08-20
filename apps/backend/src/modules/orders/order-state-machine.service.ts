@@ -788,6 +788,66 @@ export class OrderStateMachineService {
         status: toStatus,
       });
     }
+
+    if (toStatus === OrderStatus.OUT_FOR_DELIVERY) {
+      this.dispatchCustomerDeliveryOtpSms(order).catch((err) => {
+        this.logger.error(`Failed to dispatch Delivery OTP SMS: ${err?.message}`);
+      });
+    }
+  }
+
+  private async dispatchCustomerDeliveryOtpSms(order: any) {
+    try {
+      const fullOrder = await this.prisma.order.findUnique({
+        where: { id: order.id },
+        include: {
+          customer: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      if (!fullOrder) return;
+
+      let deliveryOtp = fullOrder.deliveryOtp;
+      if (!deliveryOtp || deliveryOtp === 'USED') {
+        deliveryOtp = generate4DigitOtp();
+        await this.prisma.order.update({
+          where: { id: fullOrder.id },
+          data: {
+            deliveryOtp,
+            deliveryOtpHash: hashOtp(deliveryOtp),
+            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
+          },
+        });
+      }
+
+      const deliveryAddress: any = fullOrder.deliveryAddress || {};
+      const rawPhone = deliveryAddress.phone || deliveryAddress.contactPhone || fullOrder.customer?.user?.phone;
+
+      if (rawPhone) {
+        const cleanDigits = rawPhone.replace(/\D/g, '');
+        const mobile = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+        const authKey = process.env.MSG91_AUTH_KEY;
+        const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID;
+
+        if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
+          const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${templateId || ''}&mobile=${mobile}&authkey=${authKey}&otp=${deliveryOtp}`;
+          const res = await fetch(msg91Url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const resData = await res.json().catch(() => ({}));
+          this.logger.log(`[MSG91 Delivery OTP SMS] Dispatched OTP to ${mobile} for Order #${fullOrder.orderNumber}: ${JSON.stringify(resData)}`);
+        } else {
+          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] Dispatched OTP ${deliveryOtp} to ${mobile} for Order #${fullOrder.orderNumber}`);
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`[MSG91 SMS Dispatch Error] Order #${order?.orderNumber}: ${err?.message}`);
+    }
   }
 
   private getTimelineMessage(status: OrderStatus, reason?: string): string {

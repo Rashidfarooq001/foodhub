@@ -174,6 +174,13 @@ export class OtpService {
   async sendDeliveryOtp(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        customer: {
+          include: {
+            user: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -184,7 +191,9 @@ export class OtpService {
       throw new BadRequestException(`Order is already ${order.status}. Delivery OTP cannot be generated.`);
     }
 
-    const rawOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const rawOtp = order.deliveryOtp && order.deliveryOtp !== 'USED'
+      ? order.deliveryOtp
+      : Math.floor(1000 + Math.random() * 9000).toString();
 
     await this.prisma.order.update({
       where: { id: orderId },
@@ -194,11 +203,38 @@ export class OtpService {
       },
     });
 
-    this.logger.log(`[Delivery OTP] Order ${orderId} OTP generated.`);
+    this.logger.log(`[Delivery OTP] Order #${order.orderNumber} (${orderId}) OTP generated: ${rawOtp}`);
+
+    // Extract customer phone
+    const deliveryAddress: any = order.deliveryAddress || {};
+    const rawPhone = deliveryAddress.phone || deliveryAddress.contactPhone || order.customer?.user?.phone;
+
+    if (rawPhone) {
+      const cleanDigits = rawPhone.replace(/\D/g, '');
+      const mobile = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+      const authKey = process.env.MSG91_AUTH_KEY;
+      const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID;
+
+      if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
+        try {
+          const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${templateId || ''}&mobile=${mobile}&authkey=${authKey}&otp=${rawOtp}`;
+          const res = await fetch(msg91Url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const resData = await res.json().catch(() => ({}));
+          this.logger.log(`[MSG91 Delivery OTP SMS] Dispatched OTP to ${mobile} for Order #${order.orderNumber}. Response: ${JSON.stringify(resData)}`);
+        } catch (err: any) {
+          this.logger.error(`[MSG91 Delivery OTP SMS Error] Failed to send SMS to ${mobile}: ${err?.message}`);
+        }
+      } else {
+        this.logger.log(`[MSG91 Delivery OTP SMS Simulation] Dispatched OTP ${rawOtp} to ${mobile} for Order #${order.orderNumber}`);
+      }
+    }
 
     return {
       success: true,
-      message: 'Delivery OTP generated successfully.',
+      message: 'Delivery OTP generated and dispatched to customer mobile.',
       orderId,
     };
   }
