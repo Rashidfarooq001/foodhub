@@ -831,19 +831,39 @@ export class OrderStateMachineService {
         const cleanDigits = rawPhone.replace(/\D/g, '');
         const mobile = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
         const authKey = process.env.MSG91_AUTH_KEY;
-        const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID;
+        const senderId = process.env.MSG91_SENDER_ID || 'FOODHB';
 
         if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
-          const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${templateId || ''}&mobile=${mobile}&authkey=${authKey}&otp=${deliveryOtp}`;
-          const res = await fetch(msg91Url, {
+          // Use MSG91 Send SMS transactional route — no pre-registered OTP template required.
+          // The delivery OTP is embedded directly in the message body.
+          const message = `Your FoodHub delivery OTP for Order #${fullOrder.orderNumber} is ${deliveryOtp}. Share this code ONLY with your delivery partner when you receive your order. Valid for 2 hrs. -FOODHB`;
+          const msg91Payload = {
+            sender: senderId,
+            route: '4',
+            country: '91',
+            sms: [
+              {
+                message,
+                to: [mobile],
+              },
+            ],
+          };
+          const res = await fetch('https://api.msg91.com/api/v5/flow/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              authkey: authKey,
+            },
+            body: JSON.stringify(msg91Payload),
           });
           const resData = await res.json().catch(() => ({}));
           this.logger.log(`[MSG91 Delivery OTP SMS] Dispatched OTP to ${mobile} for Order #${fullOrder.orderNumber}: ${JSON.stringify(resData)}`);
         } else {
-          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] Dispatched OTP ${deliveryOtp} to ${mobile} for Order #${fullOrder.orderNumber}`);
+          // Dev/simulation mode — log the OTP so developers can test end-to-end without real SMS credits.
+          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile} | OTP: ${deliveryOtp}`);
         }
+      } else {
+        this.logger.warn(`[MSG91 Delivery OTP SMS] No phone found for Order #${fullOrder.orderNumber} — SMS skipped.`);
       }
     } catch (err: any) {
       this.logger.error(`[MSG91 SMS Dispatch Error] Order #${order?.orderNumber}: ${err?.message}`);
