@@ -194,7 +194,7 @@ export class OrdersController {
         status = 'OFFLINE';
         isAvailable = false;
         unavailabilityReason = 'Rider is currently offline';
-      } else if (activeJobs.length >= parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10)) {
+      } else if (activeJobs.length >= parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10)) {
         status = 'BUSY';
         isAvailable = false;
         unavailabilityReason = `Rider is at max capacity (${activeJobs.length} active orders)`;

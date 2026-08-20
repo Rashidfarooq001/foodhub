@@ -147,7 +147,7 @@ export class OrderStateMachineService {
       ].includes(j.status as string),
     );
 
-    const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
+    const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
     if (activeJobs.length >= maxActiveOrders) {
       throw new ConflictException(`Selected delivery partner has reached the maximum of ${maxActiveOrders} simultaneous active orders.`);
     }

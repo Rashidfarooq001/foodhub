@@ -86,7 +86,7 @@ export class DeliveryJobsController {
         ].includes(j.status as string),
       );
 
-      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
 
       let operationalStatus = 'ONLINE_AVAILABLE';
       let unavailabilityReason: string | null = null;
@@ -609,7 +609,7 @@ export class DeliveryJobsController {
         },
       });
 
-      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '5', 10);
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
       if (activeJobCount >= maxActiveOrders) {
         throw new ConflictException(`You have reached the maximum of ${maxActiveOrders} simultaneous active deliveries. Complete one before accepting another.`);
       }
