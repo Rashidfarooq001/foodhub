@@ -17,20 +17,13 @@ exports.getMapplsClientId = getMapplsClientId;
 exports.getMapplsClientSecret = getMapplsClientSecret;
 function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
-    if (envUrl &&
-        envUrl.trim() &&
-        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
+    if (envUrl && envUrl.trim() && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
         let url = envUrl.trim().replace(/\/+$/, '');
         url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
         if (!url.endsWith('/api/v1')) {
             url = `${url}/api/v1`;
         }
         return url;
-    }
-    if (process.env.NODE_ENV !== 'production' &&
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        return 'http://localhost:4000/api/v1';
     }
     return 'https://foodhub-backend-enq2.onrender.com/api/v1';
 }
@@ -71,13 +64,9 @@ function getImageUrl(url) {
             }
         }
     }
-    // Handle localhost:4000 URL when app is running in remote production environment (e.g. on Vercel)
-    if (cleanUrl.includes('localhost:4000') || cleanUrl.includes('127.0.0.1:4000')) {
-        if (typeof window !== 'undefined' &&
-            window.location.hostname !== 'localhost' &&
-            window.location.hostname !== '127.0.0.1') {
-            return cleanUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1):4000/, serverOrigin);
-        }
+    // Replace any localhost URLs with production backend domain
+    if (cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) {
+        return cleanUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, serverOrigin);
     }
     // Handle relative upload paths e.g. "/uploads/filename.jpg" or "uploads/filename.jpg"
     if (cleanUrl.startsWith('/uploads/') || cleanUrl.startsWith('uploads/')) {
