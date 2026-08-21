@@ -67,11 +67,23 @@ describe('SettlementsService Weekly System', () => {
       },
       auditLog: {
         create: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       user: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn().mockResolvedValue(null),
       },
+      driver: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      deliveryJob: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      payment: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      $transaction: jest.fn(async (cb) => (typeof cb === 'function' ? cb(prisma) : cb)),
     };
 
     const mockGateway = {
@@ -188,8 +200,8 @@ describe('SettlementsService Weekly System', () => {
       });
 
       await expect(
-        service.initiateRestaurantPayout('rest-a-uuid', { periodType: 'current' }, 'admin-1'),
-      ).rejects.toThrow(ConflictException);
+        service.initiateRestaurantPayout('rest-a-uuid', { periodType: 'current', amount: 870, transactionReference: 'UTR123' }, 'admin-1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('rejects payout when net payable is ₹0', async () => {

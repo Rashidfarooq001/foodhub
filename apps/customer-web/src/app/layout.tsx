@@ -96,6 +96,14 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/manifest.json',
+  verification: {
+    other: {
+      'msvalidate.01': '4F8BD6D7FAB37854018B8AAABD434C9C',
+    },
+  },
+  other: {
+    'msvalidate.01': '4F8BD6D7FAB37854018B8AAABD434C9C',
+  },
 };
 
 const websiteSchema = {
@@ -137,6 +145,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-white">
       <head>
+        <meta name="msvalidate.01" content="4F8BD6D7FAB37854018B8AAABD434C9C" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />

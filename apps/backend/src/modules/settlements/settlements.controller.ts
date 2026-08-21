@@ -15,16 +15,27 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@ApiTags('Settlements (Phase 11)')
+@ApiTags('Settlements & Finance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('settlements')
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 
-  @Get(['weekly', 'overview'])
+  @Get('overview')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
-  @ApiOperation({ summary: 'Get authoritative restaurant-by-restaurant weekly settlements summary' })
+  @ApiOperation({ summary: 'Get unified authoritative finance overview metrics' })
+  async getFinanceOverview(
+    @Query('periodType') periodType?: string,
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getFinanceOverview(periodType || 'current', customStart, customEnd);
+  }
+
+  @Get(['weekly', 'restaurants'])
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get authoritative restaurant-by-restaurant settlements summary' })
   async getWeeklySettlements(
     @Query('periodType') periodType?: string,
     @Query('customStart') customStart?: string,
@@ -52,15 +63,23 @@ export class SettlementsController {
     return this.settlementsService.getRestaurantSettlementDetail(restaurantId, periodType || 'current', customStart, customEnd);
   }
 
-  @Post('restaurant/:restaurantId/payout')
-  @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Initiate bank payout for a restaurant with idempotency protection' })
-  async initiatePayout(
+  @Post(['restaurant/:restaurantId/record-payment', 'restaurant/:restaurantId/payout'])
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Record manual settlement payment for a restaurant' })
+  async recordRestaurantPayment(
     @Param('restaurantId') restaurantId: string,
-    @Body() dto: { periodType?: 'current' | 'previous' | 'custom'; customStart?: string; customEnd?: string; notes?: string },
+    @Body() dto: {
+      amount: number;
+      paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
+      transactionReference: string;
+      notes?: string;
+      periodType?: string;
+      customStart?: string;
+      customEnd?: string;
+    },
     @CurrentUser() user: any,
   ) {
-    return this.settlementsService.initiateRestaurantPayout(restaurantId, dto, user.id);
+    return this.settlementsService.recordRestaurantManualPayment(restaurantId, dto, user.id);
   }
 
   @Get('restaurant/:restaurantId/history')
@@ -77,6 +96,66 @@ export class SettlementsController {
       }
     }
     return this.settlementsService.getSettlementHistory(restaurantId);
+  }
+
+  @Get('riders')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get authoritative rider settlements summary' })
+  async getRiderSettlements(
+    @Query('periodType') periodType?: string,
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getRiderSettlements(periodType || 'current', customStart, customEnd);
+  }
+
+  @Get('rider/:driverId/detail')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get detailed delivery-level breakdown for a rider' })
+  async getRiderDetail(
+    @Param('driverId') driverId: string,
+    @Query('periodType') periodType?: string,
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getRiderSettlementDetail(driverId, periodType || 'current', customStart, customEnd);
+  }
+
+  @Post('rider/:driverId/record-payment')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Record manual settlement payment for a delivery partner' })
+  async recordRiderPayment(
+    @Param('driverId') driverId: string,
+    @Body() dto: {
+      amount: number;
+      paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
+      transactionReference: string;
+      notes?: string;
+      periodType?: string;
+      customStart?: string;
+      customEnd?: string;
+    },
+    @CurrentUser() user: any,
+  ) {
+    return this.settlementsService.recordRiderManualPayment(driverId, dto, user.id);
+  }
+
+  @Get('transactions')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get unified transaction ledger' })
+  async getTransactions(
+    @Query('periodType') periodType?: string,
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+  ) {
+    return this.settlementsService.getUnifiedTransactions(periodType || 'current', customStart, customEnd);
+  }
+
+  @Get('audit-logs')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
+  @ApiOperation({ summary: 'Get financial audit logs of manual settlement recordings' })
+  async getAuditLogs() {
+    return this.settlementsService.getFinancialAuditLogs();
   }
 
   @Get('reconciliation')

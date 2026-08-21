@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CommissionService } from './commission.service';
-import { SettlementStatus, OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import { SettlementStatus, OrderStatus, PaymentStatus, DeliveryJobStatus, Prisma } from '@prisma/client';
 import { OrdersGateway } from '../orders/orders.gateway';
 import { ORDER_EVENTS } from '../orders/orders.events';
 
@@ -359,6 +359,7 @@ export class SettlementsService {
       },
       summary: {
         totalRestaurants: restaurants.length,
+        totalOrders: orders.length,
         weeklyGmv: Math.round(totalGmv * 100) / 100,
         totalCommission: Math.round(totalCommission * 100) / 100,
         totalGst: Math.round(totalGst * 100) / 100,
@@ -574,207 +575,766 @@ export class SettlementsService {
   }
 
   /**
-   * Initiate Real Bank / RazorpayX Payout with strict idempotency and audit logging
+   * Record Manual Restaurant Settlement Payment (No automatic transfers)
+   * Authoritative server timestamp, double-payment prevention, partial payment support, audit logging.
    */
-  async initiateRestaurantPayout(
+  async recordRestaurantManualPayment(
     restaurantId: string,
-    dto: { periodType?: 'current' | 'previous' | 'custom'; customStart?: string; customEnd?: string; notes?: string },
+    dto: {
+      amount: number;
+      paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
+      transactionReference: string;
+      notes?: string;
+      periodType?: string;
+      customStart?: string;
+      customEnd?: string;
+    },
     adminUserId: string,
   ) {
+    if (!dto.transactionReference || !dto.transactionReference.trim()) {
+      throw new BadRequestException('Transaction reference (UTR / Ref Number) is strictly required.');
+    }
+    if (!dto.amount || Number(dto.amount) <= 0) {
+      throw new BadRequestException('Payment amount must be greater than ₹0.');
+    }
+
+    const detail = await this.getRestaurantSettlementDetail(
+      restaurantId,
+      dto.periodType || 'current',
+      dto.customStart,
+      dto.customEnd,
+    );
+
+    const netPayable = detail.financialSummary.netPayable;
+    const currentPaid = detail.financialSummary.paidAmount;
+    const pendingAmount = detail.financialSummary.pendingAmount;
+
+    if (pendingAmount <= 0) {
+      throw new BadRequestException('This restaurant settlement has already been fully paid.');
+    }
+
+    const payAmount = Math.round(Number(dto.amount) * 100) / 100;
+    if (payAmount > pendingAmount + 0.01) {
+      throw new BadRequestException(
+        `Payment amount (₹${payAmount}) exceeds the pending balance (₹${pendingAmount}).`,
+      );
+    }
+
     const period = getWeeklyPeriod(dto.periodType || 'current', dto.customStart, dto.customEnd);
     const { periodStart, periodEnd } = period;
+    const serverTimestamp = new Date();
 
-    const detail = await this.getRestaurantSettlementDetail(restaurantId, dto.periodType, dto.customStart, dto.customEnd);
+    const newPaidAmount = Math.round((currentPaid + payAmount) * 100) / 100;
+    const newPendingAmount = Math.max(0, Math.round((netPayable - newPaidAmount) * 100) / 100);
+    const newStatus =
+      newPendingAmount === 0 ? SettlementStatus.SETTLED : SettlementStatus.PROCESSING;
 
-    if (detail.financialSummary.netPayable <= 0) {
-      throw new BadRequestException('Cannot initiate payout for ₹0 net payable.');
-    }
-
-    // 1. Idempotency Check: Existing settlement status
-    const existing = await this.prisma.settlement.findFirst({
-      where: {
-        restaurantId,
-        periodStart: { gte: new Date(periodStart.getTime() - 1000), lte: new Date(periodStart.getTime() + 1000) },
-        periodEnd: { gte: new Date(periodEnd.getTime() - 1000), lte: new Date(periodEnd.getTime() + 1000) },
-      },
-    });
-
-    if (existing && (existing.status === SettlementStatus.SETTLED)) {
-      throw new ConflictException('Settlement has already been settled and paid.');
-    }
-
-    if (existing && existing.status === SettlementStatus.PROCESSING) {
-      throw new ConflictException('Settlement is currently being processed by payout provider.');
-    }
-
-    // 2. Mark settlement as PROCESSING in transaction
-    const now = new Date();
-    const settlement = await this.prisma.settlement.upsert({
-      where: {
-        restaurantId_periodStart_periodEnd: {
+    // Database transaction: update settlement + create audit log
+    const settlement = await this.prisma.$transaction(async (tx) => {
+      const rec = await tx.settlement.upsert({
+        where: {
+          restaurantId_periodStart_periodEnd: {
+            restaurantId,
+            periodStart,
+            periodEnd,
+          },
+        },
+        create: {
           restaurantId,
           periodStart,
           periodEnd,
+          orderCount: detail.financialSummary.orderCount,
+          grossAmount: detail.financialSummary.grossSales,
+          commissionRate: detail.restaurant.commissionRate,
+          commissionAmount: detail.financialSummary.commissionAmount,
+          netPayable,
+          paidAmount: newPaidAmount,
+          pendingAmount: newPendingAmount,
+          status: newStatus,
+          utrNumber: dto.transactionReference.trim(),
+          settledAt: serverTimestamp,
+          adminId: adminUserId,
+          notes: dto.notes?.trim() || null,
         },
-      },
-      create: {
-        restaurantId,
-        periodStart,
-        periodEnd,
-        orderCount: detail.financialSummary.orderCount,
-        grossAmount: detail.financialSummary.grossSales,
-        commissionRate: detail.restaurant.commissionRate,
-        commissionAmount: detail.financialSummary.commissionAmount,
-        netPayable: detail.financialSummary.netPayable,
-        pendingAmount: detail.financialSummary.netPayable,
-        paidAmount: 0,
-        status: SettlementStatus.PROCESSING,
-        initiatedAt: now,
-        adminId: adminUserId,
-        notes: dto.notes,
-      },
-      update: {
-        status: SettlementStatus.PROCESSING,
-        initiatedAt: now,
-        failureReason: null,
-        adminId: adminUserId,
-        notes: dto.notes,
-      },
-    });
-
-    // 3. Real RazorpayX Payout Verification
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
-    const razorpayAccountNumber = process.env.RAZORPAYX_ACCOUNT_NUMBER;
-
-    const isPayoutProviderConfigured = Boolean(razorpayKeyId && razorpayKeySecret && razorpayAccountNumber);
-
-    if (!isPayoutProviderConfigured) {
-      // Leave in PENDING / PAYOUT_FAILED with descriptive message, NEVER pretend money transferred
-      await this.prisma.settlement.update({
-        where: { id: settlement.id },
-        data: {
-          status: SettlementStatus.PENDING,
-          failureReason: 'Payout provider not configured (RazorpayX credentials not set in environment).',
+        update: {
+          orderCount: detail.financialSummary.orderCount,
+          grossAmount: detail.financialSummary.grossSales,
+          commissionAmount: detail.financialSummary.commissionAmount,
+          netPayable,
+          paidAmount: newPaidAmount,
+          pendingAmount: newPendingAmount,
+          status: newStatus,
+          utrNumber: dto.transactionReference.trim(),
+          settledAt: serverTimestamp,
+          adminId: adminUserId,
+          notes: dto.notes?.trim() || null,
         },
       });
 
-      throw new BadRequestException('Payout provider not configured. RazorpayX payout credentials missing in system settings.');
-    }
-
-    try {
-      // Execute live RazorpayX Payout API call when configured
-      const authHeader = 'Basic ' + Buffer.from(`${razorpayKeyId}:${razorpayKeySecret}`).toString('base64');
-      const payoutRes = await fetch('https://api.razorpay.com/v1/payouts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
-          'X-Payout-Idempotency': `fh-settle-${settlement.id}`,
-        },
-        body: JSON.stringify({
-          account_number: razorpayAccountNumber,
-          amount: Math.round(Number(detail.financialSummary.netPayable) * 100), // in paise
-          currency: 'INR',
-          mode: 'NEFT',
-          purpose: 'payout',
-          fund_account: {
-            account_type: 'bank_account',
-            bank_account: {
-              name: detail.bankAccount.accountHolder,
-              ifsc: detail.bankAccount.ifscCode,
-              account_number: detail.bankAccount.accountNumber,
-            },
-            contact: {
-              name: detail.restaurant.name,
-              email: detail.restaurant.email,
-              contact: detail.restaurant.phone,
-              type: 'vendor',
-            },
-          },
-          queue_if_low_balance: true,
-          notes: {
-            settlementId: settlement.id,
-            period: period.periodLabel,
-          },
-        }),
-      });
-
-      const payoutData = await payoutRes.json();
-
-      if (payoutRes.ok && (payoutData.status === 'processed' || payoutData.status === 'processing' || payoutData.status === 'queued')) {
-        const isCompleted = payoutData.status === 'processed';
-        const finalStatus = isCompleted ? SettlementStatus.SETTLED : SettlementStatus.PROCESSING;
-        const utr = payoutData.utr || (isCompleted ? `UTR${Date.now()}` : null);
-
-        const updated = await this.prisma.settlement.update({
-          where: { id: settlement.id },
-          data: {
-            status: finalStatus,
-            payoutId: payoutData.id,
-            utrNumber: utr,
-            paidAmount: isCompleted ? detail.financialSummary.netPayable : 0,
-            pendingAmount: isCompleted ? 0 : detail.financialSummary.netPayable,
-            settledAt: isCompleted ? new Date() : null,
-          },
-        });
-
-        // Audit log
-        await this.prisma.auditLog.create({
+      if (tx.auditLog?.create) {
+        await tx.auditLog.create({
           data: {
             userId: adminUserId,
             action: 'UPDATE',
-            entityName: 'SETTLEMENT',
-            entityId: settlement.id,
+            entityName: 'RestaurantSettlement',
+            entityId: rec.id,
+            oldValue: {
+              previousStatus: detail.financialSummary.status,
+              previousPaid: currentPaid,
+              previousPending: pendingAmount,
+            },
             newValue: {
               restaurantId,
-              payoutId: payoutData.id,
-              status: finalStatus,
-              amount: detail.financialSummary.netPayable,
+              restaurantName: detail.restaurant.name,
+              recordedAmount: payAmount,
+              paymentMethod: dto.paymentMethod,
+              transactionReference: dto.transactionReference.trim(),
+              newPaidAmount,
+              newPendingAmount,
+              newStatus,
+              serverTimestamp: serverTimestamp.toISOString(),
+              notes: dto.notes?.trim() || null,
             },
           },
         });
-
-        // Emit realtime update to admin and merchant
-        if (this.gateway) {
-          this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, {
-            type: 'settlement.updated',
-            settlementId: settlement.id,
-            restaurantId,
-            status: finalStatus,
-          });
-          this.gateway.emitToRestaurant(restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
-            type: 'settlement.updated',
-            settlementId: settlement.id,
-            status: finalStatus,
-          });
-        }
-
-        return {
-          message: isCompleted ? 'Restaurant settlement paid successfully.' : 'Payout queued with banking partner.',
-          settlement: updated,
-        };
-      } else {
-        const failureReason = payoutData.error?.description || 'Bank payout rejected by gateway.';
-        await this.prisma.settlement.update({
-          where: { id: settlement.id },
-          data: {
-            status: SettlementStatus.PAYOUT_FAILED,
-            failureReason,
-          },
-        });
-        throw new BadRequestException(`Payout failed: ${failureReason}`);
       }
-    } catch (err: any) {
-      await this.prisma.settlement.update({
-        where: { id: settlement.id },
+
+      return rec;
+    });
+
+    // Realtime notification
+    if (this.gateway) {
+      this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, {
+        type: 'settlement.manual_paid',
+        settlementId: settlement.id,
+        restaurantId,
+        amount: payAmount,
+        status: newStatus,
+      });
+      this.gateway.emitToRestaurant(restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
+        type: 'settlement.manual_paid',
+        settlementId: settlement.id,
+        amount: payAmount,
+        status: newStatus,
+      });
+    }
+
+    return {
+      success: true,
+      message:
+        newStatus === SettlementStatus.SETTLED
+          ? `Settlement of ₹${payAmount} recorded successfully (Fully Settled).`
+          : `Partial settlement of ₹${payAmount} recorded successfully (₹${newPendingAmount} remaining).`,
+      settlement,
+    };
+  }
+
+  /**
+   * Alias for backward compatibility with initiateRestaurantPayout
+   */
+  async initiateRestaurantPayout(
+    restaurantId: string,
+    dto: any,
+    adminUserId: string,
+  ) {
+    return this.recordRestaurantManualPayment(
+      restaurantId,
+      {
+        amount: dto.amount || 0,
+        paymentMethod: dto.paymentMethod || 'BANK_TRANSFER',
+        transactionReference: dto.transactionReference || dto.utrNumber || `MANUAL-${Date.now()}`,
+        notes: dto.notes,
+        periodType: dto.periodType,
+        customStart: dto.customStart,
+        customEnd: dto.customEnd,
+      },
+      adminUserId,
+    );
+  }
+
+  /**
+   * Authoritative Rider Settlements Summary
+   */
+  async getRiderSettlements(
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
+    const period = getWeeklyPeriod(periodType, customStart, customEnd);
+    const { periodStart, periodEnd } = period;
+
+    // Fetch approved drivers
+    const drivers = await this.prisma.driver.findMany({
+      where: { isApproved: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        vehicles: {
+          take: 1,
+          select: { vehicleNumber: true, vehicleType: true },
+        },
+        driverWallet: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Fetch delivered jobs in period
+    const deliveryJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        status: DeliveryJobStatus.DELIVERED,
+        deliveredAt: {
+          gte: periodStart,
+          lte: periodEnd,
+        },
+      },
+      select: {
+        id: true,
+        driverId: true,
+        riderPayout: true,
+        deliveryFee: true,
+        distanceKm: true,
+        deliveredAt: true,
+      },
+    });
+
+    // Fetch manual payment audit logs for riders in this period
+    const manualPaymentLogs = (await this.prisma.auditLog?.findMany?.({
+      where: {
+        entityName: 'RiderSettlement',
+        createdAt: { gte: periodStart, lte: periodEnd },
+      },
+      orderBy: { createdAt: 'desc' },
+    })) || [];
+
+    let totalRidersEarnings = 0;
+    let totalRidersPaid = 0;
+    let totalRidersPending = 0;
+
+    const riderRows = drivers.map((d) => {
+      const riderJobs = deliveryJobs.filter((j) => j.driverId === d.id);
+      const totalEarned = riderJobs.reduce((sum, j) => {
+        const payout = Number(j.riderPayout || 0);
+        return sum + (payout > 0 ? payout : 40.0);
+      }, 0);
+
+      // Find recorded payments from audit logs or wallet
+      const driverLogs = manualPaymentLogs.filter((l: any) => l.entityId === d.id);
+      const paid = driverLogs.reduce((sum: number, l: any) => {
+        const val = l.newValue as any;
+        return sum + (val?.recordedAmount ? Number(val.recordedAmount) : 0);
+      }, 0);
+
+      const pending = Math.max(0, Math.round((totalEarned - paid) * 100) / 100);
+      const status =
+        totalEarned === 0
+          ? 'SETTLED'
+          : pending === 0
+          ? 'SETTLED'
+          : paid > 0
+          ? 'PROCESSING'
+          : 'PENDING';
+
+      totalRidersEarnings += totalEarned;
+      totalRidersPaid += paid;
+      totalRidersPending += pending;
+
+      const driverName = d.user?.profile
+        ? `${d.user.profile.firstName} ${d.user.profile.lastName || ''}`.trim()
+        : 'Delivery Partner';
+
+      const lastLog = driverLogs[0] as any;
+
+      return {
+        driverId: d.id,
+        driverName: driverName || 'Delivery Partner',
+        phone: d.user?.phone || '',
+        email: d.user?.email || '',
+        vehicleNumber: d.vehicles[0]?.vehicleNumber || 'Registered Vehicle',
+        vehicleType: d.vehicles[0]?.vehicleType || 'SCOOTER',
+        status: d.status,
+        completedDeliveries: riderJobs.length,
+        totalEarnings: Math.round(totalEarned * 100) / 100,
+        paidAmount: Math.round(paid * 100) / 100,
+        pendingAmount: pending,
+        settlementStatus: status,
+        lastSettlementDate: lastLog?.createdAt ? new Date(lastLog.createdAt).toISOString() : null,
+        lastUtrNumber: (lastLog?.newValue as any)?.transactionReference || null,
+      };
+    });
+
+    return {
+      period: {
+        type: periodType,
+        start: periodStart,
+        end: periodEnd,
+        label: period.periodLabel,
+      },
+      summary: {
+        totalRiders: drivers.length,
+        totalDeliveries: deliveryJobs.length,
+        totalEarnings: Math.round(totalRidersEarnings * 100) / 100,
+        totalPaid: Math.round(totalRidersPaid * 100) / 100,
+        totalPending: Math.round(totalRidersPending * 100) / 100,
+      },
+      riders: riderRows,
+    };
+  }
+
+  /**
+   * Authoritative Rider Settlement Detail View
+   */
+  async getRiderSettlementDetail(
+    driverId: string,
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
+    const period = getWeeklyPeriod(periodType, customStart, customEnd);
+    const { periodStart, periodEnd } = period;
+
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        vehicles: true,
+        driverWallet: true,
+      },
+    });
+
+    if (!driver) {
+      throw new NotFoundException(`Delivery Partner ${driverId} not found`);
+    }
+
+    const deliveryJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        driverId,
+        status: DeliveryJobStatus.DELIVERED,
+        deliveredAt: {
+          gte: periodStart,
+          lte: periodEnd,
+        },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            customer: {
+              select: {
+                user: {
+                  select: {
+                    profile: {
+                      select: { firstName: true, lastName: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { deliveredAt: 'desc' },
+    });
+
+    // Historical payment logs for this driver
+    const paymentLogs = (await this.prisma.auditLog?.findMany?.({
+      where: {
+        entityName: 'RiderSettlement',
+        entityId: driverId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        user: {
+          select: {
+            profile: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    })) || [];
+
+    const deliveries = deliveryJobs.map((j) => {
+      const payout = Number(j.riderPayout || 0);
+      const baseEarning = payout > 0 ? 25.0 : 25.0;
+      const distanceEarning = payout > 0 ? Math.max(0, payout - 25.0) : 15.0;
+      const incentive = 0.0;
+      const total = baseEarning + distanceEarning + incentive;
+
+      const customerName = j.order?.customer?.user?.profile
+        ? `${j.order.customer.user.profile.firstName} ${j.order.customer.user.profile.lastName || ''}`.trim()
+        : 'Customer';
+
+      return {
+        jobId: j.id,
+        orderId: j.orderId,
+        orderNumber: j.order?.orderNumber || 'FH-ORD',
+        deliveredAt: j.deliveredAt,
+        customerName,
+        distanceKm: j.distanceKm || 2.5,
+        baseEarning,
+        distanceEarning,
+        incentive,
+        totalEarning: Math.round(total * 100) / 100,
+        settlementStatus: 'PENDING',
+      };
+    });
+
+    const totalEarned = deliveries.reduce((sum, d) => sum + d.totalEarning, 0);
+    const paidAmount = paymentLogs.reduce((sum: number, l: any) => {
+      const val = l.newValue as any;
+      return sum + (val?.recordedAmount ? Number(val.recordedAmount) : 0);
+    }, 0);
+
+    const pendingAmount = Math.max(0, Math.round((totalEarned - paidAmount) * 100) / 100);
+    const status =
+      totalEarned === 0
+        ? 'SETTLED'
+        : pendingAmount === 0
+        ? 'SETTLED'
+        : paidAmount > 0
+        ? 'PROCESSING'
+        : 'PENDING';
+
+    const driverName = driver.user?.profile
+      ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}`.trim()
+      : 'Delivery Partner';
+
+    const history = paymentLogs.map((l: any) => {
+      const val = l.newValue as any;
+      const adminName = l.user?.profile
+        ? `${l.user.profile.firstName} ${l.user.profile.lastName || ''}`.trim()
+        : 'Finance Admin';
+
+      return {
+        id: l.id,
+        amount: val?.recordedAmount || 0,
+        paymentMethod: val?.paymentMethod || 'BANK_TRANSFER',
+        transactionReference: val?.transactionReference || 'REF',
+        notes: val?.notes || null,
+        processedBy: adminName,
+        processedAt: l.createdAt,
+      };
+    });
+
+    return {
+      period: {
+        type: periodType,
+        start: periodStart,
+        end: periodEnd,
+        label: period.periodLabel,
+      },
+      driver: {
+        id: driver.id,
+        name: driverName || 'Delivery Partner',
+        phone: driver.user?.phone || '',
+        email: driver.user?.email || '',
+        licenseNumber: driver.licenseNumber,
+        vehicleNumber: driver.vehicles[0]?.vehicleNumber || 'Registered Vehicle',
+        vehicleType: driver.vehicles[0]?.vehicleType || 'SCOOTER',
+        status: driver.status,
+      },
+      financialSummary: {
+        deliveryCount: deliveries.length,
+        totalEarnings: Math.round(totalEarned * 100) / 100,
+        paidAmount: Math.round(paidAmount * 100) / 100,
+        pendingAmount,
+        status,
+      },
+      deliveries,
+      history,
+    };
+  }
+
+  /**
+   * Record Manual Rider Settlement Payment
+   */
+  async recordRiderManualPayment(
+    driverId: string,
+    dto: {
+      amount: number;
+      paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
+      transactionReference: string;
+      notes?: string;
+      periodType?: string;
+      customStart?: string;
+      customEnd?: string;
+    },
+    adminUserId: string,
+  ) {
+    if (!dto.transactionReference || !dto.transactionReference.trim()) {
+      throw new BadRequestException('Transaction reference (UTR / Ref Number) is strictly required.');
+    }
+    if (!dto.amount || Number(dto.amount) <= 0) {
+      throw new BadRequestException('Payment amount must be greater than ₹0.');
+    }
+
+    const detail = await this.getRiderSettlementDetail(
+      driverId,
+      dto.periodType || 'current',
+      dto.customStart,
+      dto.customEnd,
+    );
+
+    const pendingAmount = detail.financialSummary.pendingAmount;
+    if (pendingAmount <= 0) {
+      throw new BadRequestException('This rider settlement has already been fully paid.');
+    }
+
+    const payAmount = Math.round(Number(dto.amount) * 100) / 100;
+    if (payAmount > pendingAmount + 0.01) {
+      throw new BadRequestException(
+        `Payment amount (₹${payAmount}) exceeds the pending balance (₹${pendingAmount}).`,
+      );
+    }
+
+    const serverTimestamp = new Date();
+
+    if (this.prisma.auditLog?.create) {
+      await this.prisma.auditLog.create({
         data: {
-          status: SettlementStatus.PAYOUT_FAILED,
-          failureReason: err.message || 'Network exception during payout',
+          userId: adminUserId,
+          action: 'UPDATE',
+          entityName: 'RiderSettlement',
+          entityId: driverId,
+          newValue: {
+            driverId,
+            driverName: detail.driver.name,
+            recordedAmount: payAmount,
+            paymentMethod: dto.paymentMethod,
+            transactionReference: dto.transactionReference.trim(),
+            serverTimestamp: serverTimestamp.toISOString(),
+            notes: dto.notes?.trim() || null,
+          },
         },
       });
-      throw err;
     }
+
+    return {
+      success: true,
+      message: `Manual rider settlement of ₹${payAmount} recorded successfully.`,
+    };
+  }
+
+  /**
+   * Unified Finance Overview (Single Source of Truth)
+   */
+  async getFinanceOverview(
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
+    const period = getWeeklyPeriod(periodType, customStart, customEnd);
+    const { periodStart, periodEnd } = period;
+
+    const [restaurantSettlements, riderSettlements] = await Promise.all([
+      this.getWeeklyRestaurantSettlements(periodType, customStart, customEnd),
+      this.getRiderSettlements(periodType, customStart, customEnd),
+    ]);
+
+    const restSum = restaurantSettlements.summary;
+    const riderSum = riderSettlements.summary;
+
+    const totalGrossSales = restSum.weeklyGmv || 0;
+    const totalRestaurantPayable = restSum.totalRestaurantPayable || 0;
+    const totalRiderPayable = riderSum.totalEarnings || 0;
+    const totalCommission = restSum.totalCommission || 0;
+    const totalPlatformRevenue = totalCommission + restSum.totalOrders * 3.0;
+
+    return {
+      period: {
+        type: periodType,
+        start: periodStart,
+        end: periodEnd,
+        label: period.periodLabel,
+      },
+      overview: {
+        orderCount: restSum.totalOrders || 0,
+        grossSales: Math.round(totalGrossSales * 100) / 100,
+        restaurantPayable: Math.round(totalRestaurantPayable * 100) / 100,
+        riderPayable: Math.round(totalRiderPayable * 100) / 100,
+        zaykaRevenue: Math.round(totalPlatformRevenue * 100) / 100,
+        pendingRestaurantSettlements: Math.round((restSum.totalPendingPayable || 0) * 100) / 100,
+        pendingRiderSettlements: Math.round((riderSum.totalPending || 0) * 100) / 100,
+        paidRestaurantSettlements: Math.round((restSum.totalAlreadyPaid || 0) * 100) / 100,
+        paidRiderSettlements: Math.round((riderSum.totalPaid || 0) * 100) / 100,
+        failedSettlements: restSum.failedCount || 0,
+      },
+    };
+  }
+
+  /**
+   * Unified Transaction Ledger
+   */
+  async getUnifiedTransactions(
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
+    const period = getWeeklyPeriod(periodType, customStart, customEnd);
+    const { periodStart, periodEnd } = period;
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        createdAt: { gte: periodStart, lte: periodEnd },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            restaurant: { select: { name: true } },
+            customer: {
+              select: {
+                user: {
+                  select: { profile: { select: { firstName: true, lastName: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    const manualLogs = (await this.prisma.auditLog?.findMany?.({
+      where: {
+        entityName: { in: ['RestaurantSettlement', 'RiderSettlement'] },
+        createdAt: { gte: periodStart, lte: periodEnd },
+      },
+      include: {
+        user: { select: { profile: { select: { firstName: true, lastName: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })) || [];
+
+    const transactions: any[] = [];
+
+    // Customer Inflows
+    for (const p of payments) {
+      const custName = p.order?.customer?.user?.profile
+        ? `${p.order.customer.user.profile.firstName} ${p.order.customer.user.profile.lastName || ''}`.trim()
+        : 'Customer';
+
+      transactions.push({
+        id: p.id,
+        date: p.createdAt,
+        type: 'CUSTOMER_PAYMENT',
+        orderNumber: p.order?.orderNumber || 'ORD',
+        recipientOrPayer: custName,
+        amount: Number(p.amount),
+        direction: 'INFLOW',
+        status: p.status,
+        reference: p.razorpayPaymentId || p.razorpayOrderId || 'DIRECT',
+        processedBy: 'Customer Gateway',
+      });
+    }
+
+    // Manual Settlement Outflows
+    for (const l of manualLogs) {
+      const val = l.newValue as any;
+      const adminName = l.user?.profile
+        ? `${l.user.profile.firstName} ${l.user.profile.lastName || ''}`.trim()
+        : 'Finance Admin';
+
+      const isRest = l.entityName === 'RestaurantSettlement';
+      transactions.push({
+        id: l.id,
+        date: l.createdAt,
+        type: isRest ? 'RESTAURANT_SETTLEMENT' : 'RIDER_SETTLEMENT',
+        orderNumber: isRest ? (val?.restaurantName || 'Restaurant') : (val?.driverName || 'Rider'),
+        recipientOrPayer: isRest ? (val?.restaurantName || 'Restaurant') : (val?.driverName || 'Rider'),
+        amount: Number(val?.recordedAmount || 0),
+        direction: 'OUTFLOW',
+        status: 'PAID',
+        reference: val?.transactionReference || 'MANUAL_REF',
+        processedBy: adminName,
+      });
+    }
+
+    // Sort chronologically desc
+    transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return {
+      period: {
+        type: periodType,
+        start: periodStart,
+        end: periodEnd,
+        label: period.periodLabel,
+      },
+      total: transactions.length,
+      transactions,
+    };
+  }
+
+  /**
+   * Financial Audit Logs
+   */
+  async getFinancialAuditLogs() {
+    const logs = (await this.prisma.auditLog?.findMany?.({
+      where: {
+        entityName: { in: ['RestaurantSettlement', 'RiderSettlement', 'SETTLEMENT', 'FINANCE'] },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })) || [];
+
+    return logs.map((l: any) => {
+      const adminName = l.user?.profile
+        ? `${l.user.profile.firstName} ${l.user.profile.lastName || ''}`.trim()
+        : l.user?.email || 'Admin';
+
+      const val = l.newValue as any;
+      return {
+        id: l.id,
+        adminId: l.userId,
+        adminName,
+        entityName: l.entityName,
+        entityId: l.entityId,
+        action: l.action,
+        recipient: val?.restaurantName || val?.driverName || 'Vendor',
+        amount: val?.recordedAmount || val?.amount || 0,
+        paymentMethod: val?.paymentMethod || 'BANK_TRANSFER',
+        transactionReference: val?.transactionReference || 'N/A',
+        notes: val?.notes || null,
+        previousStatus: (l.oldValue as any)?.previousStatus || 'PENDING',
+        newStatus: val?.newStatus || 'PAID',
+        createdAt: l.createdAt,
+      };
+    });
   }
 
   /**
@@ -791,7 +1351,11 @@ export class SettlementsService {
   /**
    * Double-entry mathematical reconciliation audit
    */
-  async getReconciliationReport(periodType: 'current' | 'previous' | 'custom' = 'current', customStart?: string, customEnd?: string) {
+  async getReconciliationReport(
+    periodType: 'current' | 'previous' | 'custom' = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
     const period = getWeeklyPeriod(periodType, customStart, customEnd);
     const { periodStart, periodEnd } = period;
 
@@ -821,14 +1385,23 @@ export class SettlementsService {
     for (const o of orders) {
       const snap: any = o.pricingSnapshot || {};
       const customerPaid = Number(o.totalAmount || 0);
-      const foodSubtotal = Number(snap.restaurantGross !== undefined ? snap.restaurantGross : (o.subtotal || o.totalAmount));
-      const commRate = snap.commissionRate !== undefined && snap.commissionRate !== null
-        ? Number(snap.commissionRate)
-        : (o.restaurant.commissionRate !== null ? Number(o.restaurant.commissionRate) : 0);
-      const comm = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : (foodSubtotal * commRate / 100));
+      const foodSubtotal = Number(
+        snap.restaurantGross !== undefined ? snap.restaurantGross : o.subtotal || o.totalAmount,
+      );
+      const commRate =
+        snap.commissionRate !== undefined && snap.commissionRate !== null
+          ? Number(snap.commissionRate)
+          : o.restaurant.commissionRate !== null
+          ? Number(o.restaurant.commissionRate)
+          : 0;
+      const comm = Number(
+        snap.commissionAmount !== undefined
+          ? snap.commissionAmount
+          : (foodSubtotal * commRate) / 100,
+      );
       const restNet = Math.max(0, foodSubtotal - comm);
       const platFee = Number(snap.platformFee ?? 3.0);
-      const delivFee = Number(snap.customerDeliveryFee ?? (o.deliveryFee || 15));
+      const delivFee = Number((snap.customerDeliveryFee ?? o.deliveryFee) || 15);
       const gst = Number(o.taxAmount || 0);
       const riderPay = Number(snap.riderPayout || o.deliveryJob?.riderPayout || 0);
 
@@ -853,8 +1426,14 @@ export class SettlementsService {
       }
     }
 
-    const reconstructedTotal = totalRestaurantPayable + totalCommission + totalPlatformFees + totalDeliveryRevenue + totalStatutoryGst;
-    const totalDiscrepancy = Math.round(Math.abs(totalCustomerCollections - reconstructedTotal) * 100) / 100;
+    const reconstructedTotal =
+      totalRestaurantPayable +
+      totalCommission +
+      totalPlatformFees +
+      totalDeliveryRevenue +
+      totalStatutoryGst;
+    const totalDiscrepancy =
+      Math.round(Math.abs(totalCustomerCollections - reconstructedTotal) * 100) / 100;
     const isBalanced = totalDiscrepancy < 0.05 && discrepancies.length === 0;
 
     return {

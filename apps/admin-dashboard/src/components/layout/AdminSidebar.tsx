@@ -30,7 +30,7 @@ const NAVIGATION = [
   { name: 'Delivery Partners', href: '/delivery-partners', icon: Bike },
   { name: 'Customer Directory', href: '/customers', icon: Users },
   { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
-  { name: 'Payments & Settlements', href: '/payments', icon: CreditCard },
+  { name: 'Finance & Settlements', href: '/finance', icon: CreditCard },
   { name: 'Coupons & Campaigns', href: '/coupons', icon: Tag },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
   { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
