@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'super-secret-jwt-key-foodhub-2026-enterprise',
+      secretOrKey: (configService ? configService.get<string>('JWT_SECRET') : process.env.JWT_SECRET) || 'super-secret-jwt-key-foodhub-2026-enterprise',
     });
   }
 

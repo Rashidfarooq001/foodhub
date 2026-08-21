@@ -1263,6 +1263,28 @@ export default function CheckoutPage() {
                     <span className="text-orange-600 text-base">₹{finalPayableTotal}</span>
                   </div>
                 </div>
+
+                {/* Legal & Policy Acknowledgment */}
+                <div className="border-t border-gray-100 pt-3 text-[11px] text-gray-500 leading-relaxed">
+                  <p>
+                    By placing this order, you agree to Zayka Food&apos;s{' '}
+                    <Link href="/terms-and-conditions" target="_blank" className="font-bold text-orange-600 hover:underline">
+                      Terms &amp; Conditions
+                    </Link>{' '}
+                    and acknowledge our{' '}
+                    <Link href="/refund-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                      Refund Policy
+                    </Link>
+                    ,{' '}
+                    <Link href="/delivery-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                      Delivery Policy
+                    </Link>
+                    , and{' '}
+                    <Link href="/privacy-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                      Privacy Policy
+                    </Link>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

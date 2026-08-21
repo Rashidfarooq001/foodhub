@@ -388,6 +388,20 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Legal Terms & Privacy Acknowledgment */}
+            <div className="rounded-xl bg-gray-50 p-2.5 text-center border border-gray-100">
+              <p className="text-[11px] text-gray-600 leading-normal">
+                By creating an account, you agree to the{' '}
+                <Link href="/terms-and-conditions" target="_blank" className="font-bold text-orange-600 hover:underline">
+                  Terms &amp; Conditions
+                </Link>{' '}
+                and acknowledge the{' '}
+                <Link href="/privacy-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                  Privacy Policy
+                </Link>.
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}

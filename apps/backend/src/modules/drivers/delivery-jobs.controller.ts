@@ -825,6 +825,44 @@ export class DeliveryJobsController {
     }
   }
 
+  @Post('jobs/:id/arrived-at-customer')
+  @ApiOperation({ summary: 'Rider signals arrival at customer delivery location' })
+  async arrivedAtCustomer(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.stateMachineService.riderArrivedAtCustomer(id, actor);
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`arrivedAtCustomer failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to record arrival at customer location',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('orders/:orderId/arrived')
+  @ApiOperation({ summary: 'Rider signals arrival at customer delivery location (order alias)' })
+  async arrivedAtCustomerAlias(
+    @Param('orderId') orderId: string,
+    @Request() req: any,
+  ) {
+    return this.arrivedAtCustomer(orderId, req);
+  }
+
   @Post('jobs/:id/verify-delivery')
   @ApiOperation({ summary: 'Rider verifies 4-digit customer delivery OTP' })
   async verifyDeliveryOtp(
@@ -843,7 +881,7 @@ export class DeliveryJobsController {
         driverId: driver.id,
       };
 
-      return await this.stateMachineService.verifyDeliveryOtp(id, otp, actor);
+      return await this.stateMachineService.completeDeliveryWithOtp(id, otp, actor);
     } catch (err: any) {
       if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
         throw err;
@@ -854,6 +892,16 @@ export class DeliveryJobsController {
         details: err?.stack || String(err),
       });
     }
+  }
+
+  @Post('orders/:id/verify-delivery')
+  @ApiOperation({ summary: 'Rider verifies delivery OTP (order alias)' })
+  async verifyDeliveryOtpAlias(
+    @Param('id') id: string,
+    @Body('otp') otp: string,
+    @Request() req: any,
+  ) {
+    return this.verifyDeliveryOtp(id, otp, req);
   }
 
   @Post('jobs/:id/unassign')

@@ -573,17 +573,29 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     };
   }
 
-  async repeatOrder(orderId: string) {
-    const order = await this.repo.findById(orderId);
+  async repeatOrder(orderId: string, userId?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: { include: { foodItem: true } },
+        restaurant: true,
+      },
+    });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
 
-    return {
+    return serializePrisma({
+      orderId: order.id,
       restaurantId: order.restaurantId,
-      items: order.orderItems.map((i) => ({
-        foodItemId: i.foodItemId,
-        quantity:   i.quantity,
-        addonsJson: i.addonsJson ?? undefined,
+      restaurantName: order.restaurant?.name || 'Restaurant',
+      items: order.orderItems.map((item) => ({
+        foodItemId: item.foodItemId,
+        name: item.foodItem?.name || 'Food Item',
+        price: Number(item.unitPrice),
+        quantity: item.quantity,
+        addonsJson: item.addonsJson ?? undefined,
       })),
-    };
+      totalAmount: Number(order.totalAmount),
+    });
   }
 
   async assignSelfDeliveryRider(orderId: string, riderId: string) {
@@ -681,26 +693,26 @@ if (!allowed.includes(dto.status as OrderStatus)) {
 
   // --- CUSTOMER ORDER TRACKING & HISTORY METHODS ---
 
+  // --- CUSTOMER ORDER TRACKING & HISTORY METHODS ---
+
   async getActiveCustomerOrder(userId: string) {
     try {
-      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId);
-
-      const customer = isUuid
-        ? await this.prisma.customer.findFirst({
-            where: { OR: [{ userId }, { id: userId }] },
-          })
-        : null;
-
-      const customerId = customer?.id || (isUuid ? userId : undefined);
-
-      if (!customerId) return null;
-
       const activeOrder = await this.prisma.order.findFirst({
         where: {
-          customerId,
+          customer: { userId },
           status: {
-            notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+            in: [
+              OrderStatus.PENDING,
+              OrderStatus.ACCEPTED,
+              OrderStatus.PREPARING,
+              OrderStatus.READY_FOR_PICKUP,
+              OrderStatus.DRIVER_ASSIGNED,
+              OrderStatus.ARRIVED_AT_RESTAURANT,
+              OrderStatus.PICKED_UP,
+              OrderStatus.OUT_FOR_DELIVERY,
+            ],
           },
+          deletedAt: null,
         },
         include: {
           restaurant: true,
@@ -708,6 +720,16 @@ if (!allowed.includes(dto.status as OrderStatus)) {
           orderTimelines: { orderBy: { createdAt: 'asc' } },
           tracking: true,
           assignedRestaurantDriver: true,
+          deliveryJob: {
+            include: {
+              driver: {
+                include: {
+                  user: { include: { profile: true } },
+                  vehicles: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -734,6 +756,17 @@ if (!allowed.includes(dto.status as OrderStatus)) {
           [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') ||
           'Delivery Address';
 
+      const foodHubDriver = activeOrder.deliveryJob?.driver;
+      const driverProfile = foodHubDriver?.user?.profile;
+      const driverName = driverProfile
+        ? `${driverProfile.firstName} ${driverProfile.lastName || ''}`.trim()
+        : activeOrder.assignedRestaurantDriver
+        ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
+        : 'Assigned Partner';
+
+      const driverPhone = foodHubDriver?.user?.phone || activeOrder.assignedRestaurantDriver?.phone || '+919876543210';
+      const vehicleNumber = foodHubDriver?.vehicles?.[0]?.vehicleNumber || activeOrder.assignedRestaurantDriver?.vehicleNumber || 'JK-15-A-1001';
+
       return serializePrisma({
         orderId: activeOrder.id,
         orderNumber: activeOrder.orderNumber,
@@ -746,12 +779,10 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         customerLng,
         driverLat,
         driverLng,
-        driverName: activeOrder.assignedRestaurantDriver
-          ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
-          : 'Assigned Partner',
-        driverPhone: activeOrder.assignedRestaurantDriver?.phone || '+919876543210',
-        vehicleNumber: activeOrder.assignedRestaurantDriver?.vehicleNumber || 'JK-15-A-1001',
-        deliveryOtp: activeOrder.deliveryOtp,
+        driverName,
+        driverPhone,
+        vehicleNumber,
+        deliveryOtp: activeOrder.status === OrderStatus.OUT_FOR_DELIVERY ? activeOrder.deliveryOtp : undefined,
         etaMins,
         status: activeOrder.status,
         placedAt: activeOrder.createdAt,
@@ -769,19 +800,35 @@ if (!allowed.includes(dto.status as OrderStatus)) {
   }
 
   async getCustomerOrderHistory(userId: string, statusFilter?: string) {
-    const customer = await this.prisma.customer.findFirst({
-      where: { userId },
-    });
-    const customerId = customer?.id || userId;
+    let whereClause: any = {
+      customer: { userId },
+      deletedAt: null,
+    };
 
-    let whereClause: any = { customerId };
     if (statusFilter && statusFilter !== 'ALL') {
       if (statusFilter === 'ACTIVE') {
-        whereClause.status = { notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] };
+        whereClause.status = {
+          in: [
+            OrderStatus.PENDING,
+            OrderStatus.ACCEPTED,
+            OrderStatus.PREPARING,
+            OrderStatus.READY_FOR_PICKUP,
+            OrderStatus.DRIVER_ASSIGNED,
+            OrderStatus.ARRIVED_AT_RESTAURANT,
+            OrderStatus.PICKED_UP,
+            OrderStatus.OUT_FOR_DELIVERY,
+          ],
+        };
       } else if (statusFilter === 'DELIVERED') {
         whereClause.status = OrderStatus.DELIVERED;
       } else if (statusFilter === 'CANCELLED') {
-        whereClause.status = OrderStatus.CANCELLED;
+        whereClause.status = {
+          in: [
+            OrderStatus.CANCELLED,
+            OrderStatus.REJECTED,
+            OrderStatus.FAILED,
+          ],
+        };
       } else {
         whereClause.status = statusFilter as any;
       }
@@ -796,6 +843,15 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         tracking: true,
         cancellation: true,
         refund: true,
+        deliveryJob: {
+          include: {
+            driver: {
+              include: {
+                user: { include: { profile: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -804,13 +860,21 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       orders.map((ord) => ({
         id: ord.id,
         orderNumber: ord.orderNumber,
-        restaurantName: ord.restaurant.name,
-        restaurantBanner: ord.restaurant.bannerUrl,
+        restaurantName: ord.restaurant?.name || 'Restaurant',
+        restaurantBanner: ord.restaurant?.bannerUrl,
         date: ord.createdAt.toLocaleDateString() + ' ' + ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         createdAt: ord.createdAt,
+        deliveredAt: ord.deliveryJob?.deliveredAt || ord.deliveryOtpVerifiedAt || ord.updatedAt,
         totalAmount: Number(ord.totalAmount),
         itemCount: ord.orderItems.reduce((acc, i) => acc + i.quantity, 0),
         itemsSummary: ord.orderItems.map((i) => `${i.quantity}x ${i.foodItem?.name || 'Item'}`).join(', '),
+        items: ord.orderItems.map((i) => ({
+          id: i.id,
+          name: i.foodItem?.name || 'Item',
+          quantity: i.quantity,
+          unitPrice: Number(i.unitPrice),
+          totalPrice: Number(i.totalPrice),
+        })),
         status: ord.status,
         paymentStatus: ord.paymentStatus,
         paymentMethod: ord.paymentMethod,

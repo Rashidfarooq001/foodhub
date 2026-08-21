@@ -552,6 +552,21 @@ export default function RestaurantRegisterPage() {
           </div>
         </div>
 
+        {/* Merchant Statutory & Legal Acknowledgment */}
+        <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-2">
+          <p className="font-bold text-gray-900">Merchant Onboarding Acknowledgment &amp; FSSAI Declaration:</p>
+          <p className="text-[11px] leading-relaxed">
+            By submitting this application, you declare that your food business holds a valid FSSAI license/registration, agree to adhere to all food safety and hygiene standards, agree to the{' '}
+            <Link href="/terms-and-conditions" target="_blank" className="font-bold text-orange-600 hover:underline">
+              Zayka Food Terms &amp; Conditions
+            </Link>
+            , and acknowledge our{' '}
+            <Link href="/privacy-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+              Privacy Policy
+            </Link>.
+          </p>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}

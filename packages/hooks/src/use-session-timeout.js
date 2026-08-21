@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useSessionTimeout = useSessionTimeout;
 const react_1 = require("react");
-const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
 function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, apiBaseUrl, loginPath = '/login', timeoutMs = DEFAULT_TIMEOUT_MS, isProtectedPath, }) {
     const timerRef = (0, react_1.useRef)(null);
     const channelRef = (0, react_1.useRef)(null);
@@ -76,6 +76,13 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
             window.location.href = `${loginPath}?expired=true`;
         }
     }, [accessToken, apiBaseUrl, loginPath, logout, storageKey, logoutTriggerKey]);
+    // Clean stale keys on mount when authenticated
+    (0, react_1.useEffect)(() => {
+        if (typeof window !== 'undefined' && isAuthenticated) {
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(logoutTriggerKey);
+        }
+    }, [isAuthenticated, storageKey, logoutTriggerKey]);
     // Handle return to dashboard / tab focus
     const handleReturn = (0, react_1.useCallback)(() => {
         if (!isAuthenticated)
@@ -102,7 +109,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
             }
         }
     }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
-    // Handle leaving dashboard / tab blur
+    // Handle leaving dashboard
     const handleLeave = (0, react_1.useCallback)(() => {
         if (!isAuthenticated)
             return;
@@ -175,20 +182,14 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
                 handleReturn();
             }
         };
-        const handleFocus = () => handleReturn();
-        const handleBlur = () => handleLeave();
         document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-        window.addEventListener('blur', handleBlur);
         window.addEventListener('pagehide', handleLeave);
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('blur', handleBlur);
             window.removeEventListener('pagehide', handleLeave);
         };
     }, [isAuthenticated, handleLeave, handleReturn]);
-    // 3. In-Page Inactivity Listener (Triggers auto-logout after timeoutMs of inactivity)
+    // 3. In-Page Inactivity Listener
     (0, react_1.useEffect)(() => {
         if (typeof window === 'undefined' || !isAuthenticated)
             return;
@@ -207,7 +208,6 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
                 performAutoLogout();
             }, timeoutMs);
         };
-        // Initialize timer on protected page load
         resetInactivityTimer();
         let activityThrottleTimer = null;
         const handleUserActivity = () => {
@@ -216,7 +216,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
             activityThrottleTimer = setTimeout(() => {
                 activityThrottleTimer = null;
                 resetInactivityTimer();
-            }, 2000);
+            }, 5000);
         };
         window.addEventListener('mousemove', handleUserActivity);
         window.addEventListener('mousedown', handleUserActivity);

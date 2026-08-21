@@ -223,6 +223,9 @@ model User {
   supportTickets  SupportTicket[]
   notifications   Notification[]
   reviewVotes     ReviewVote[]
+  privacyConsents   PrivacyConsent[]
+  privacyRequests   PrivacyRequest[]
+  privacyComplaints PrivacyComplaint[]
 
   @@index([phone])
   @@index([email])
@@ -1611,3 +1614,203 @@ model TaxRuleAuditLog {
 
   @@map("tax_rule_audit_logs")
 }
+
+// ==========================================
+// MODULE 22: DATA PROTECTION & PRIVACY (DPDP ACT 2023 / 2025)
+// ==========================================
+
+enum PrivacyConsentType {
+  TERMS_AND_PRIVACY_NOTICE
+  MARKETING_COMMUNICATIONS
+  LOCATION_DATA_PROCESSING
+  ORDER_NOTIFICATIONS
+  ANALYTICS_COOKIES
+}
+
+enum PrivacyRequestType {
+  DATA_ACCESS
+  DATA_CORRECTION
+  DATA_DELETION
+  CONSENT_WITHDRAWAL
+}
+
+enum PrivacyRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum ComplaintCategory {
+  PRIVACY_CONCERN
+  INCORRECT_DATA
+  UNAUTHORIZED_ACCESS
+  LOCATION_TRACKING
+  UNAUTHORIZED_SHARING
+  ACCOUNT_SECURITY
+  OTHER
+}
+
+enum ComplaintStatus {
+  RECEIVED
+  UNDER_INVESTIGATION
+  RESOLVED
+  REJECTED
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  DETECTED
+  INVESTIGATING
+  CONTAINED
+  REMEDIATING
+  NOTIFICATION_REQUIRED
+  NOTIFICATION_COMPLETED
+  RESOLVED
+  CLOSED
+}
+
+model PrivacyConsent {
+  id          String             @id @default(uuid()) @db.Uuid
+  userId      String             @map("user_id") @db.Uuid
+  consentType PrivacyConsentType @map("consent_type")
+  purpose     String
+  version     String             @default("2026.1")
+  granted     Boolean            @default(true)
+  grantedAt   DateTime           @default(now()) @map("granted_at")
+  withdrawnAt DateTime?          @map("withdrawn_at")
+  source      String             @default("WEB_APP")
+  ipAddress   String?            @map("ip_address")
+  userAgent   String?            @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, consentType])
+  @@index([userId])
+  @@index([consentType])
+  @@map("privacy_consents")
+}
+
+model PrivacyRequest {
+  id              String               @id @default(uuid()) @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  type            PrivacyRequestType
+  status          PrivacyRequestStatus @default(PENDING)
+  reason          String?
+  requestedData   Json?                @map("requested_data")
+  correctionData  Json?                @map("correction_data")
+  responsePayload Json?                @map("response_payload")
+  rejectionReason String?              @map("rejection_reason")
+  assignedTo      String?              @map("assigned_to") @db.Uuid
+  requestedAt     DateTime             @default(now()) @map("requested_at")
+  verifiedAt      DateTime?            @map("verified_at")
+  completedAt     DateTime?            @map("completed_at")
+  rejectedAt      DateTime?            @map("rejected_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("privacy_requests")
+}
+
+model PrivacyComplaint {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String?           @map("user_id") @db.Uuid
+  name        String
+  email       String
+  phone       String?
+  orderNumber String?           @map("order_number")
+  category    ComplaintCategory @default(PRIVACY_CONCERN)
+  subject     String
+  description String            @db.Text
+  evidenceUrls Json?            @map("evidence_urls")
+  status      ComplaintStatus   @default(RECEIVED)
+  priority    TicketPriority    @default(MEDIUM)
+  assignedTo  String?           @map("assigned_to") @db.Uuid
+  resolution  String?           @db.Text
+  resolvedAt  DateTime?         @map("resolved_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@map("privacy_complaints")
+}
+
+model DataBreachIncident {
+  id                   String           @id @default(uuid()) @db.Uuid
+  incidentTitle        String           @map("incident_title")
+  incidentType         String           @map("incident_type")
+  severity             IncidentSeverity @default(LOW)
+  status               IncidentStatus   @default(DETECTED)
+  detectedAt           DateTime         @default(now()) @map("detected_at")
+  containedAt          DateTime?        @map("contained_at")
+  resolvedAt           DateTime?        @map("resolved_at")
+  affectedRecordsCount Int              @default(0) @map("affected_records_count")
+  affectedSystems      String[]         @default([]) @map("affected_systems")
+  description          String           @db.Text
+  mitigationSteps      String?          @map("mitigation_steps") @db.Text
+  notificationRequired Boolean          @default(false) @map("notification_required")
+  notifiedAt           DateTime?        @map("notified_at")
+  dpbiNotified         Boolean          @default(false) @map("dpbi_notified")
+  assignedAdminId      String?          @map("assigned_admin_id") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([severity])
+  @@map("data_breach_incidents")
+}
+
+model PrivacyAuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorRole  String?  @map("actor_role")
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("privacy_audit_logs")
+}
+
+model DataRetentionPolicy {
+  id            String    @id @default(uuid()) @db.Uuid
+  category      String    @unique
+  description   String
+  retentionDays Int       @map("retention_days")
+  legalBasis    String    @map("legal_basis")
+  isAuditable   Boolean   @default(true) @map("is_auditable")
+  lastCleanedAt DateTime? @map("last_cleaned_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("data_retention_policies")
+}
+

@@ -91,8 +91,28 @@ export class OrdersController {
   @Get('active')
   @ApiOperation({ summary: 'Get active order tracking for current customer' })
   async getActiveOrder(@Request() req: any) {
-    const customerId = req.user.id || req.user.sub;
-    return this.ordersService.getActiveCustomerOrder(customerId);
+    const userId = req.user.id || req.user.sub;
+    return this.ordersService.getActiveCustomerOrder(userId);
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get customer order history with status filter' })
+  async getOrderHistory(
+    @Request() req: any,
+    @Query('status') status?: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.ordersService.getCustomerOrderHistory(userId, status);
+  }
+
+  @Get('my')
+  @ApiOperation({ summary: 'Get customer order history' })
+  async getMyOrdersAlias(
+    @Request() req: any,
+    @Query('status') status?: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.ordersService.getCustomerOrderHistory(userId, status);
   }
 
   @Get('my-orders')
@@ -101,9 +121,39 @@ export class OrdersController {
     @Request() req: any,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('status') status?: string,
   ) {
-    const customerId = req.user.id || req.user.sub;
-    return this.ordersService.getCustomerOrders(customerId, +page, +limit);
+    const userId = req.user.id || req.user.sub;
+    if (status) {
+      return this.ordersService.getCustomerOrderHistory(userId, status);
+    }
+    return this.ordersService.getCustomerOrders(userId, +page, +limit);
+  }
+
+  @Post(':id/confirm-delivery')
+  @ApiOperation({ summary: 'Customer or authorized actor confirms order delivery via OTP' })
+  async confirmDelivery(
+    @Param('id') id: string,
+    @Body('otp') otp: string,
+    @Request() req: any,
+  ) {
+    if (!otp) throw new BadRequestException('Delivery confirmation OTP is required.');
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      driverId: req.user?.driverId,
+    };
+    return this.stateMachineService.completeDeliveryWithOtp(id, otp, actor);
+  }
+
+  @Post(':id/verify-delivery')
+  @ApiOperation({ summary: 'Verify delivery OTP (authoritative alias)' })
+  async verifyDelivery(
+    @Param('id') id: string,
+    @Body('otp') otp: string,
+    @Request() req: any,
+  ) {
+    return this.confirmDelivery(id, otp, req);
   }
 
   @Get(':id')
@@ -384,5 +434,39 @@ export class OrdersController {
   ) {
     const userId = req.user?.id || req.user?.sub;
     return this.ordersService.submitOrderReview(id, rating, comment, userId);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({ summary: 'Customer submits review (alias)' })
+  async submitReviewAlias(
+    @Param('id') id: string,
+    @Body('rating') rating: number,
+    @Body('comment') comment: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.submitOrderReview(id, rating, comment, userId);
+  }
+
+  @Post(':id/repeat')
+  @ApiOperation({ summary: 'Customer fetches items to repeat previous order' })
+  async repeatOrder(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.repeatOrder(id, userId);
+  }
+
+  @Post(':id/support')
+  @ApiOperation({ summary: 'Customer reports an issue with an order' })
+  async submitSupportTicket(
+    @Param('id') id: string,
+    @Body('issueType') issueType: string,
+    @Body('description') description: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.ordersService.submitSupportTicket(id, issueType, description, userId);
   }
 }

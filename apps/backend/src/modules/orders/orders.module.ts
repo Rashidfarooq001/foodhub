@@ -8,8 +8,11 @@ import { OrderStateMachineService } from './order-state-machine.service';
 import { TaxModule } from '../tax/tax.module';
 import { PricingModule } from '../pricing/pricing.module';
 
+import { DatabaseModule } from '../database/database.module';
+import { TokensModule } from '../tokens/tokens.module';
+
 @Module({
-  imports:     [TaxModule, PricingModule],
+  imports:     [TaxModule, PricingModule, DatabaseModule, TokensModule],
   controllers: [OrdersController],
   providers:   [
     OrdersService,

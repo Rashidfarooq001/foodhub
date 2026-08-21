@@ -120,6 +120,28 @@ class MockCompletePrisma {
       if (include?.orderItems) res.orderItems = (ord.orderItems || []).map((i: any) => ({ ...i, foodItem: this.foodItems.get(i.foodItemId) }));
       return res;
     },
+    findFirst: async ({ where, include }: any) => {
+      const all = Array.from(this.orders.values());
+      const ord = all.find(o => {
+        if (where.id && o.id !== where.id) return false;
+        if (where.orderNumber && o.orderNumber !== where.orderNumber) return false;
+        if (where.customerId && o.customerId !== where.customerId) return false;
+        return true;
+      });
+      if (!ord) return null;
+      const res: any = { ...ord };
+      if (include?.restaurant) res.restaurant = this.restaurants.get(ord.restaurantId);
+      if (include?.customer) {
+        const cust = this.customers.get(ord.customerId);
+        res.customer = cust ? { ...cust, user: this.users.get(cust.userId) } : null;
+      }
+      if (include?.deliveryJob) res.deliveryJob = Array.from(this.deliveryJobs.values()).find(j => j.orderId === ord.id) || null;
+      if (include?.orderItems) res.orderItems = (ord.orderItems || []).map((i: any) => ({ ...i, foodItem: this.foodItems.get(i.foodItemId) }));
+      return res;
+    },
+    findMany: async ({ where, include }: any) => {
+      return Array.from(this.orders.values());
+    },
     update: async ({ where, data }: any) => {
       const ord = this.orders.get(where.id);
       if (data.deliveryOtpAttempts?.increment) {
@@ -217,8 +239,8 @@ async function runEndToEndVerification() {
   const pricingService = new PricingService(prisma as any);
   const distanceService = new DistanceService(prisma as any);
   const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
-  const gateway = new OrdersGateway();
-  const stateMachine = new OrderStateMachineService(prisma as any);
+  const gateway = new OrdersGateway({} as any, {} as any, prisma as any);
+  const stateMachine = new OrderStateMachineService(prisma as any, gateway);
   const ordersRepo = new OrdersRepository(prisma as any);
   const ordersValidation = new OrdersValidationService(prisma as any);
   const ordersService = new OrdersService(prisma as any, ordersRepo, ordersValidation, gateway, quoteService);
@@ -449,20 +471,17 @@ async function runEndToEndVerification() {
   }
   console.log('  ✓ Step 9 Passed: Delivery verified, internal settlement ledger updated idempotently.');
 
-  // 10. DUPLICATE DELIVERY RE-SUBMISSION PROTECTION
-  console.log('\nSTEP 10: Duplicate Delivery Confirmation Protection:');
-  let duplicateDeliveryCaught = false;
-  try {
-    await stateMachine.verifyDeliveryOtp(createdOrder.id, deliveryOtp, {
-      userId: riderUser.id,
-      role: 'DELIVERY_PARTNER',
-      driverId: driver.id,
-    });
-  } catch (err: any) {
-    duplicateDeliveryCaught = true;
-    console.log(`  ✓ Correctly rejected duplicate delivery confirmation: "${err?.message}"`);
+  // 10. DUPLICATE DELIVERY RE-SUBMISSION (IDEMPOTENT PROTECTION)
+  console.log('\nSTEP 10: Duplicate Delivery Confirmation Idempotency:');
+  const duplicateRes = await stateMachine.verifyDeliveryOtp(createdOrder.id, deliveryOtp, {
+    userId: riderUser.id,
+    role: 'DELIVERY_PARTNER',
+    driverId: driver.id,
+  });
+  if (duplicateRes.status !== OrderStatus.DELIVERED || !duplicateRes.message?.includes('already delivered')) {
+    throw new Error('Duplicate delivery confirmation did not return idempotent DELIVERED status!');
   }
-  if (!duplicateDeliveryCaught) throw new Error('Duplicate delivery confirmation allowed!');
+  console.log(`  ✓ Idempotency verified: "${duplicateRes.message}"`);
 
   console.log('\n========================================================================');
   console.log('ALL FOODHUB END-TO-END LIFECYCLE & SECURITY TESTS: 100% PASSED!');

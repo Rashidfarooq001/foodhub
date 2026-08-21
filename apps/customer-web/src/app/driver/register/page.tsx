@@ -322,6 +322,25 @@ export default function DriverRegisterPage() {
           </div>
         </div>
 
+        {/* Courier Statutory & Legal Acknowledgment */}
+        <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-2">
+          <p className="font-bold text-gray-900">Courier Fleet Terms &amp; Road Safety Declaration:</p>
+          <p className="text-[11px] leading-relaxed">
+            By submitting this application, you declare that you possess a valid driving license, agree to follow all traffic safety rules, agree to the{' '}
+            <Link href="/terms-and-conditions" target="_blank" className="font-bold text-emerald-600 hover:underline">
+              Zayka Food Terms &amp; Conditions
+            </Link>
+            , acknowledge the{' '}
+            <Link href="/delivery-policy" target="_blank" className="font-bold text-emerald-600 hover:underline">
+              Delivery Policy
+            </Link>
+            , and acknowledge our{' '}
+            <Link href="/privacy-policy" target="_blank" className="font-bold text-emerald-600 hover:underline">
+              Privacy Policy
+            </Link>.
+          </p>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}

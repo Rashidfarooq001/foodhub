@@ -50,8 +50,17 @@ export const PartnerFooter: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
-          © 2026 ZaykaFood Technologies. All Partner Rights Reserved.
+        <div className="mt-8 border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link href="/privacy-policy" className="hover:text-orange-400">Privacy Policy</Link>
+            <span>•</span>
+            <Link href="/terms-and-conditions" className="hover:text-orange-400">Terms &amp; Conditions</Link>
+            <span>•</span>
+            <Link href="/grievance-redressal" className="hover:text-orange-400">Grievance Redressal</Link>
+          </div>
+          <div>
+            © {new Date().getFullYear()} Zayka Food. All Partner Rights Reserved.
+          </div>
         </div>
       </div>
     </footer>

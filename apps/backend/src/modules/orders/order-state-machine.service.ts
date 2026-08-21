@@ -399,43 +399,324 @@ export class OrderStateMachineService {
   }
 
   /**
-   * Rider Submits Customer Delivery OTP to Transition Order OUT_FOR_DELIVERY -> DELIVERED
+   * Rider Signals Arrival at Customer Delivery Location
    */
-  async verifyDeliveryOtp(orderId: string, otp: string, actor: AuthenticatedActor) {
+  async riderArrivedAtCustomer(jobOrOrderId: string, actor: AuthenticatedActor) {
     const job = await this.prisma.deliveryJob.findFirst({
-      where: { OR: [{ id: orderId }, { orderId }] },
-      include: { order: true },
+      where: { OR: [{ id: jobOrOrderId }, { orderId: jobOrOrderId }] },
+      include: {
+        order: {
+          include: {
+            customer: { include: { user: true } },
+            restaurant: true,
+          },
+        },
+      },
     });
 
     if (!job) {
       throw new NotFoundException('Delivery job not found.');
     }
 
-    if (job.driverId !== actor.driverId) {
+    const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
+    if (!isAdmin && job.driverId !== actor.driverId) {
       throw new ForbiddenException('You are not the assigned delivery partner for this job.');
     }
 
-    if (job.order.status !== OrderStatus.OUT_FOR_DELIVERY) {
-      throw new BadRequestException(`Cannot mark delivered. Order status is "${job.order.status}", expected "OUT_FOR_DELIVERY".`);
+    if (job.order.status === OrderStatus.DELIVERED) {
+      return {
+        message: 'Order has already been delivered.',
+        orderId: job.orderId,
+        status: OrderStatus.DELIVERED,
+      };
     }
 
-    if (job.order.deliveryOtpAttempts >= 5) {
-      throw new BadRequestException('Maximum delivery OTP verification attempts (5) exceeded.');
+    if (job.order.status === OrderStatus.CANCELLED || job.order.status === OrderStatus.REJECTED) {
+      throw new BadRequestException(`Cannot signal arrival. Order is ${job.order.status}.`);
     }
 
-    const submittedHash = hashOtp(otp);
-    const validHashMatch = job.order.deliveryOtpHash && job.order.deliveryOtpHash === submittedHash;
-    const validPlaintextMatch = job.order.deliveryOtp && job.order.deliveryOtp.trim() === otp.trim();
+    if (job.order.status !== OrderStatus.OUT_FOR_DELIVERY && job.order.status !== OrderStatus.PICKED_UP) {
+      throw new BadRequestException(`Cannot signal arrival. Order status is "${job.order.status}", expected "OUT_FOR_DELIVERY".`);
+    }
+
+    const now = new Date();
+
+    // Ensure Delivery OTP is generated & hashed for the customer
+    let customerOtp = job.order.deliveryOtp;
+    let otpHash = job.order.deliveryOtpHash;
+
+    if (!customerOtp || customerOtp === 'USED' || !otpHash) {
+      customerOtp = generate4DigitOtp();
+      otpHash = hashOtp(customerOtp);
+      await this.prisma.order.update({
+        where: { id: job.orderId },
+        data: {
+          deliveryOtp: customerOtp,
+          deliveryOtpHash: otpHash,
+          deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000), // 2 hours
+          deliveryOtpAttempts: 0,
+        },
+      });
+    }
+
+    await this.prisma.deliveryJob.update({
+      where: { id: job.id },
+      data: {
+        arrivedAt: now,
+      },
+    });
+
+    await this.prisma.orderTimeline.create({
+      data: {
+        orderId: job.orderId,
+        status: job.order.status,
+        message: 'Delivery partner has arrived at your delivery address.',
+      },
+    });
+
+    // Dispatch OTP SMS strictly to customer's registered phone (redacted from logs)
+    this.dispatchCustomerDeliveryOtpSms(job.order).catch((err) => {
+      this.logger.error(`Failed to dispatch customer arrival OTP SMS: ${err?.message}`);
+    });
+
+    if (this.gateway) {
+      this.gateway.emitToOrder(job.orderId, ORDER_EVENTS.RIDER_ARRIVED, {
+        orderId: job.orderId,
+        orderNumber: job.order.orderNumber,
+        driverId: job.driverId,
+        arrivedAt: now.toISOString(),
+        message: 'Your delivery partner has arrived at your address.',
+      });
+
+      this.gateway.emitToOrder(job.orderId, ORDER_EVENTS.STATUS_UPDATED, {
+        orderId: job.orderId,
+        orderNumber: job.order.orderNumber,
+        status: job.order.status,
+        message: 'Delivery partner has arrived at your delivery address.',
+      });
+    }
+
+    return {
+      message: 'Arrival recorded. Customer notified with delivery confirmation code.',
+      orderId: job.orderId,
+      arrivedAt: now,
+    };
+  }
+
+  /**
+   * Single Authoritative Delivery Completion Service
+   * Atomically validates ownership/assignment, stage, OTP, marks consumed, transitions to DELIVERED,
+   * updates DeliveryJob, credits rider wallet idempotently, and emits completion events.
+   */
+  async completeDeliveryWithOtp(orderIdOrJobId: string, otp: string, actor: AuthenticatedActor) {
+    if (!otp || typeof otp !== 'string' || !otp.trim()) {
+      throw new BadRequestException('Delivery confirmation OTP is required.');
+    }
+
+    const cleanOtp = otp.trim();
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: [
+          { id: orderIdOrJobId },
+          { deliveryJob: { id: orderIdOrJobId } },
+        ],
+      },
+      include: {
+        restaurant: true,
+        customer: { include: { user: true } },
+        deliveryJob: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found.');
+    }
+
+    // Idempotent completion check
+    if (order.status === OrderStatus.DELIVERED) {
+      return {
+        message: 'Order is already delivered.',
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: OrderStatus.DELIVERED,
+      };
+    }
+
+    const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
+    const isAssignedDriver = actor.driverId && (order.deliveryJob?.driverId === actor.driverId || order.assignedRestaurantDriverId === actor.driverId);
+    const isCustomer = actor.userId && (order.customer.userId === actor.userId || order.customerId === actor.userId);
+
+    if (!isAdmin && !isAssignedDriver && !isCustomer) {
+      throw new ForbiddenException('You are not authorized to complete delivery for this order.');
+    }
+
+    if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      throw new BadRequestException(`Cannot complete delivery. Order status is "${order.status}", expected "OUT_FOR_DELIVERY".`);
+    }
+
+    if (order.deliveryOtpAttempts >= 5) {
+      throw new BadRequestException('Maximum delivery OTP verification attempts (5) exceeded. Please contact support.');
+    }
+
+    if (order.deliveryOtpExpiresAt && new Date() > order.deliveryOtpExpiresAt) {
+      throw new BadRequestException('Delivery OTP has expired. Ask delivery partner to re-signal arrival.');
+    }
+
+    const submittedHash = hashOtp(cleanOtp);
+    const validHashMatch = order.deliveryOtpHash && order.deliveryOtpHash === submittedHash;
+    const validPlaintextMatch = order.deliveryOtp && order.deliveryOtp.trim() === cleanOtp && order.deliveryOtp !== 'USED';
 
     if (!validHashMatch && !validPlaintextMatch) {
       await this.prisma.order.update({
-        where: { id: job.orderId },
+        where: { id: order.id },
         data: { deliveryOtpAttempts: { increment: 1 } },
       });
       throw new BadRequestException('Invalid customer delivery OTP.');
     }
 
-    return this.transition(job.orderId, OrderStatus.DELIVERED, actor);
+    const now = new Date();
+
+    const updatedOrderRecord = await this.prisma.$transaction(async (tx) => {
+      // Re-check status inside transaction for concurrency protection
+      const liveOrder = await tx.order.findUnique({
+        where: { id: order.id },
+        select: { status: true },
+      });
+
+      if (liveOrder?.status === OrderStatus.DELIVERED) {
+        return order;
+      }
+
+      if (liveOrder?.status !== OrderStatus.OUT_FOR_DELIVERY) {
+        throw new ConflictException(`Order status changed to "${liveOrder?.status}" during processing.`);
+      }
+
+      // Update DeliveryJob if FoodHub rider delivery
+      let updatedJob: any = null;
+      if (order.deliveryJob) {
+        updatedJob = await tx.deliveryJob.update({
+          where: { id: order.deliveryJob.id },
+          data: {
+            status: DeliveryJobStatus.DELIVERED,
+            deliveredAt: now,
+          },
+          select: { id: true, status: true, driverId: true, riderPayout: true, deliveryFee: true },
+        });
+
+        // Idempotent Driver Wallet Credit for assigned FoodHub rider
+        if (updatedJob.driverId) {
+          const driver = await tx.driver.findUnique({
+            where: { id: updatedJob.driverId },
+            select: { userId: true },
+          });
+
+          if (driver?.userId) {
+            const payoutAmount = Number(updatedJob.riderPayout || Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)));
+
+            let driverWallet = await tx.wallet.findUnique({
+              where: { userId: driver.userId },
+            });
+
+            if (!driverWallet) {
+              driverWallet = await tx.wallet.create({
+                data: { userId: driver.userId, balance: 0 },
+              });
+            }
+
+            const existingTx = await tx.walletTransaction.findFirst({
+              where: {
+                walletId: driverWallet.id,
+                referenceId: order.id,
+              },
+            });
+
+            if (!existingTx && payoutAmount > 0) {
+              await tx.wallet.update({
+                where: { id: driverWallet.id },
+                data: { balance: { increment: payoutAmount } },
+              });
+
+              await tx.walletTransaction.create({
+                data: {
+                  walletId: driverWallet.id,
+                  type: 'CREDIT',
+                  amount: payoutAmount,
+                  description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
+                  referenceId: order.id,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      // If restaurant self-delivery staff, set back to AVAILABLE
+      if (order.assignedRestaurantDriverId) {
+        await tx.restaurantDeliveryStaff.update({
+          where: { id: order.assignedRestaurantDriverId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
+
+      // Atomically invalidate OTP and set DELIVERED
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.DELIVERED,
+          paymentStatus: 'COMPLETED' as any,
+          deliveryOtp: 'USED',
+          deliveryOtpHash: null,
+          deliveryOtpExpiresAt: null,
+          deliveryOtpVerifiedAt: now,
+          version: { increment: 1 },
+        },
+        include: {
+          restaurant: true,
+          deliveryJob: true,
+          orderItems: { include: { foodItem: true } },
+          customer: { include: { user: { include: { profile: true } } } },
+        },
+      });
+
+      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          fromStatus: OrderStatus.OUT_FOR_DELIVERY,
+          toStatus: OrderStatus.DELIVERED,
+          changedBy: validActorUserId,
+        },
+      });
+
+      await tx.orderTimeline.create({
+        data: {
+          orderId: order.id,
+          status: OrderStatus.DELIVERED,
+          message: 'Order delivered successfully to customer.',
+        },
+      });
+
+      return updated;
+    });
+
+    this.emitRealtimeEvents(updatedOrderRecord, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED);
+
+    return {
+      message: 'Order delivered successfully.',
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: OrderStatus.DELIVERED,
+      deliveredAt: now,
+    };
+  }
+
+  /**
+   * Rider Submits Customer Delivery OTP to Transition Order OUT_FOR_DELIVERY -> DELIVERED
+   * Delegates directly to authoritative completeDeliveryWithOtp method.
+   */
+  async verifyDeliveryOtp(orderId: string, otp: string, actor: AuthenticatedActor) {
+    return this.completeDeliveryWithOtp(orderId, otp, actor);
   }
 
   /**
@@ -655,6 +936,7 @@ export class OrderStateMachineService {
         where: { id: order.id },
         data: {
           status: targetStatus,
+          version: { increment: 1 },
           ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any, deliveryOtpVerifiedAt: now } : {}),
         },
         include: {
@@ -664,6 +946,7 @@ export class OrderStateMachineService {
               id: true,
               status: true,
               driverId: true,
+              riderPayout: true,
               driver: {
                 select: {
                   id: true,
@@ -675,6 +958,7 @@ export class OrderStateMachineService {
             },
           },
           orderItems: { include: { foodItem: true } },
+          customer: { select: { id: true, userId: true } },
         },
       });
 
@@ -711,7 +995,7 @@ export class OrderStateMachineService {
     actor: AuthenticatedActor,
   ) {
     const isCustomer = actor.userId === order.customerId;
-    const isRestaurantOwner = actor.userId === order.restaurant.ownerId;
+    const isRestaurantOwner = actor.userId === order.restaurant?.ownerId;
     const isRestaurantStaff = actor.restaurantId === order.restaurantId;
     const isAssignedDriver = actor.driverId && order.deliveryJob?.driverId === actor.driverId;
     const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
@@ -778,23 +1062,122 @@ export class OrderStateMachineService {
   private emitRealtimeEvents(order: any, fromStatus: OrderStatus, toStatus: OrderStatus) {
     this.logger.log(`[STATE MACHINE EVENT] Order #${order.orderNumber} transitioned from ${fromStatus} to ${toStatus}`);
     if (this.gateway) {
-      this.gateway.emitToOrder(order.id, ORDER_EVENTS.STATUS_UPDATED, {
+      const sanitizedPayload = {
         orderId: order.id,
         orderNumber: order.orderNumber,
         fromStatus,
         toStatus,
-        order,
-      });
-      if (order.restaurantId) {
-        this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
-          orderId: order.id,
-          status: toStatus,
-        });
-      }
-      this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, {
-        orderId: order.id,
         status: toStatus,
-      });
+        version: order.version,
+        restaurantId: order.restaurantId,
+        customerId: order.customerId,
+        driverId: order.deliveryJob?.driverId || order.assignedRestaurantDriverId,
+        driverName: order.deliveryJob?.driver?.user?.profile
+          ? `${order.deliveryJob.driver.user.profile.firstName || ''} ${order.deliveryJob.driver.user.profile.lastName || ''}`.trim()
+          : undefined,
+        totalAmount: order.totalAmount,
+        timestamp: new Date().toISOString(),
+      };
+
+      // 1. Broad generic update to order room
+      this.gateway.emitToOrder(order.id, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+
+      // 2. Direct notifications to user / restaurant / driver rooms
+      const customerUserId = order.customer?.userId || order.customerId;
+      if (customerUserId) {
+        this.gateway.emitToUser(customerUserId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      }
+      if (order.restaurantId) {
+        this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      }
+      const activeDriverId = order.deliveryJob?.driverId || order.assignedRestaurantDriverId;
+      if (activeDriverId) {
+        this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      }
+      this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+
+      // 3. Specific semantic event dispatch
+      switch (toStatus) {
+        case OrderStatus.ACCEPTED:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_ACCEPTED, sanitizedPayload);
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CONFIRMED, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_CONFIRMED, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_ACCEPTED, sanitizedPayload);
+          break;
+
+        case OrderStatus.PREPARING:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
+          break;
+
+        case OrderStatus.READY_FOR_PICKUP:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
+
+          // Broadcast job opportunity to available driver fleet if not yet claimed
+          if (!activeDriverId) {
+            this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              jobId: order.deliveryJob?.id,
+              restaurantName: order.restaurant?.name || 'Restaurant Partner',
+              restaurantAddress: order.restaurant?.addressLine || 'Restaurant Location',
+              deliveryFee: order.deliveryFee || 40,
+              estimatedPayout: order.deliveryJob?.riderPayout || 35,
+              timestamp: new Date().toISOString(),
+            });
+          }
+          break;
+
+        case OrderStatus.DRIVER_ASSIGNED:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
+          break;
+
+        case OrderStatus.ARRIVED_AT_RESTAURANT:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
+          break;
+
+        case OrderStatus.PICKED_UP:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
+          break;
+
+        case OrderStatus.OUT_FOR_DELIVERY:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
+          break;
+
+        case OrderStatus.DELIVERED:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
+          break;
+
+        case OrderStatus.CANCELLED:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
+          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
+          break;
+
+        case OrderStatus.REJECTED:
+          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
+          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
+          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
+          break;
+      }
     }
 
     if (toStatus === OrderStatus.OUT_FOR_DELIVERY) {
@@ -892,7 +1275,7 @@ export class OrderStateMachineService {
             this.logger.log(`[MSG91 Widget SMS] Dispatched OTP to ${mobile} via Widget ${widgetId} (HTTP ${widgetRes.status}): ${JSON.stringify(widgetData)}`);
           }
         } else {
-          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile} | OTP: ${deliveryOtp}`);
+          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile.slice(0, 4)}**** | Delivery confirmation code dispatched`);
         }
       } else {
         this.logger.warn(`[MSG91 Delivery OTP SMS] No phone found for Order #${fullOrder.orderNumber} — SMS skipped.`);

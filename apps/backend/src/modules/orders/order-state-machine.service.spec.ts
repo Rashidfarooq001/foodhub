@@ -41,6 +41,8 @@ describe('OrderStateMachineService', () => {
       emitToRestaurant: jest.fn(),
       emitToDriver: jest.fn(),
       emitToAdmin: jest.fn(),
+      emitToUser: jest.fn(),
+      emitToAvailableDrivers: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { User, Phone, Mail, Camera, Save, CheckCircle2, AlertCircle, Trash2, KeyRound, Lock, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -242,6 +243,12 @@ export default function ProfilePage() {
         >
           <KeyRound className="h-4 w-4" /> Security
         </button>
+        <Link
+          href="/privacy"
+          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition ml-auto"
+        >
+          <ShieldCheck className="h-4 w-4 text-emerald-600" /> Privacy &amp; Data Center
+        </Link>
       </div>
 
       {/* TAB 1: PROFILE */}

@@ -43,6 +43,7 @@ import { SecurityModule } from './modules/security/security.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { TaxModule } from './modules/tax/tax.module';
 import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { SupportTicketsModule } from './modules/support-tickets/support-tickets.
     PricingModule,
     TaxModule,
     SupportTicketsModule,
+    PrivacyModule,
   ],
   providers: [
     {

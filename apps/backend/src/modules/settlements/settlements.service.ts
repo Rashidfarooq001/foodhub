@@ -124,12 +124,18 @@ export class SettlementsService {
     });
 
     // 3. Fetch existing settlement records for this period
-    const existingSettlements = await this.prisma.settlement.findMany({
-      where: {
-        periodStart: { gte: new Date(periodStart.getTime() - 1000), lte: new Date(periodStart.getTime() + 1000) },
-        periodEnd: { gte: new Date(periodEnd.getTime() - 1000), lte: new Date(periodEnd.getTime() + 1000) },
-      },
-    });
+    let existingSettlements: any[] = [];
+    try {
+      existingSettlements = await this.prisma.settlement.findMany({
+        where: {
+          periodStart: { gte: new Date(periodStart.getTime() - 1000), lte: new Date(periodStart.getTime() + 1000) },
+          periodEnd: { gte: new Date(periodEnd.getTime() - 1000), lte: new Date(periodEnd.getTime() + 1000) },
+        },
+      });
+    } catch (e: any) {
+      this.logger.warn(`Could not load existing settlements: ${e?.message}`);
+      existingSettlements = [];
+    }
 
     // 4. Map and calculate totals per restaurant
     const restOrderMap: Record<string, typeof orders> = {};
