@@ -4,6 +4,7 @@ import './globals.css';
 import { AppProviders } from '../providers/app-providers';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
+import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -11,17 +12,17 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#ea580c',
+  themeColor: '#e11d48',
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zaykafood.online'),
   title: {
-    default: 'ZaykaFood — Fast Food Delivery in Kashmir',
+    default: 'ZaykaFood — Fast Food Delivery in Kashmir | ORDER • DELIVER • ENJOY',
     template: '%s | Zayka Food',
   },
   description:
-    'Order food online from ZaykaFood. Discover restaurants, biryani, pizza, burgers, desserts and more. Fast food delivery in Kashmir.',
+    'Order food online from ZaykaFood. Discover restaurants, biryani, pizza, burgers, Kashmiri cuisine, desserts and more. Fast food delivery in Kashmir.',
   keywords: [
     'Zayka Food',
     'ZaykaFood',
@@ -94,12 +95,6 @@ export const metadata: Metadata = {
       { url: '/icon.png', sizes: '512x512', type: 'image/png' },
     ],
   },
-  verification: {
-    google: 'googlef347593ceeccec2e',
-  },
-  other: {
-    'google-site-verification': 'googlef347593ceeccec2e.html',
-  },
   manifest: '/manifest.json',
 };
 
@@ -140,7 +135,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-gray-50/50">
+    <html lang="en" className="h-full bg-white">
       <head>
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
@@ -157,10 +152,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
       </head>
-      <body className={`${inter.className} flex min-h-full w-full max-w-full overflow-x-hidden flex-col font-sans antialiased text-gray-900`}>
+      <body className={`${inter.className} flex min-h-full w-full max-w-full overflow-x-hidden flex-col font-sans antialiased text-gray-900 bg-white`}>
         <AppProviders>
           <Navbar />
           <main className="flex-1 w-full max-w-full min-w-0">{children}</main>
+          <MobileBottomNav />
           <Footer />
         </AppProviders>
       </body>
