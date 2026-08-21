@@ -68,6 +68,10 @@ describe('SettlementsService Weekly System', () => {
       auditLog: {
         create: jest.fn(),
       },
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
     };
 
     const mockGateway = {

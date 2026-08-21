@@ -12,14 +12,26 @@ export interface WeeklyPeriod {
 }
 
 /**
- * Calculates start and end Date objects in Asia/Kolkata (IST) time
+ * Calculates start and end Date objects for various period types in IST time
  */
-export function getWeeklyPeriod(periodType: 'current' | 'previous' | 'custom', customStart?: string, customEnd?: string): WeeklyPeriod {
+export function getWeeklyPeriod(
+  periodType: string = 'current',
+  customStart?: string,
+  customEnd?: string,
+): WeeklyPeriod {
   const now = new Date();
-  
-  if (periodType === 'custom' && customStart && customEnd) {
+
+  if (
+    (periodType === 'custom' ||
+      !['today', 'current', 'this_week', 'previous', 'previous_week', 'this_month', 'previous_month'].includes(
+        periodType,
+      )) &&
+    customStart &&
+    customEnd
+  ) {
     const start = new Date(customStart);
     const end = new Date(customEnd);
+    end.setHours(23, 59, 59, 999);
     return {
       periodStart: start,
       periodEnd: end,
@@ -27,14 +39,45 @@ export function getWeeklyPeriod(periodType: 'current' | 'previous' | 'custom', c
     };
   }
 
-  // Calculate current week Monday 00:00:00 to Sunday 23:59:59.999 in IST
-  // In IST, offset is +05:30
+  if (periodType === 'today') {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    return {
+      periodStart: start,
+      periodEnd: end,
+      periodLabel: `Today (${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })})`,
+    };
+  }
+
+  if (periodType === 'this_month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return {
+      periodStart: start,
+      periodEnd: end,
+      periodLabel: `This Month (${start.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})`,
+    };
+  }
+
+  if (periodType === 'previous_month') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    return {
+      periodStart: start,
+      periodEnd: end,
+      periodLabel: `Previous Month (${start.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})`,
+    };
+  }
+
+  // Weekly calculations (Monday - Sunday)
   const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday ...
   const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
 
   const monday = new Date(now);
   monday.setDate(now.getDate() + diffToMonday);
-  if (periodType === 'previous') {
+  if (periodType === 'previous' || periodType === 'previous_week') {
     monday.setDate(monday.getDate() - 7);
   }
   monday.setHours(0, 0, 0, 0);
@@ -43,10 +86,11 @@ export function getWeeklyPeriod(periodType: 'current' | 'previous' | 'custom', c
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
 
+  const prefix = periodType === 'previous' || periodType === 'previous_week' ? 'Previous Week' : 'This Week';
   return {
     periodStart: monday,
     periodEnd: sunday,
-    periodLabel: `${monday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} → ${sunday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+    periodLabel: `${prefix} (${monday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} → ${sunday.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })})`,
   };
 }
 
@@ -77,11 +121,15 @@ export class SettlementsService {
   /**
    * Authoritative restaurant-by-restaurant weekly settlements summary from PostgreSQL
    */
-  async getWeeklyRestaurantSettlements(periodType: 'current' | 'previous' | 'custom' = 'current', customStart?: string, customEnd?: string) {
+  async getWeeklyRestaurantSettlements(
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
     const period = getWeeklyPeriod(periodType, customStart, customEnd);
     const { periodStart, periodEnd } = period;
 
-    // 1. Fetch all approved/active restaurants
+    // 1. Fetch all approved/active restaurants with bank accounts & owner info
     const restaurants = await this.prisma.restaurant.findMany({
       select: {
         id: true,
@@ -89,6 +137,7 @@ export class SettlementsService {
         phone: true,
         email: true,
         status: true,
+        ownerId: true,
         commissionRate: true,
         bankAccount: {
           select: {
@@ -101,6 +150,26 @@ export class SettlementsService {
       },
       orderBy: { name: 'asc' },
     });
+
+    const ownerIds = restaurants.map((r) => r.ownerId).filter(Boolean);
+    const ownerUsers =
+      this.prisma.user?.findMany && ownerIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: ownerIds } },
+            select: {
+              id: true,
+              phone: true,
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          })
+        : [];
+    const ownerMap = new Map(ownerUsers.map((u: any) => [u.id, u]));
 
     // 2. Fetch delivered + paid orders within the period
     const orders = await this.prisma.order.findMany({
@@ -148,6 +217,8 @@ export class SettlementsService {
 
     let totalGmv = 0;
     let totalCommission = 0;
+    let totalGst = 0;
+    let totalPlatformFees = 0;
     let totalRestaurantPayable = 0;
     let totalAlreadyPaid = 0;
     let totalPendingPayable = 0;
@@ -158,17 +229,38 @@ export class SettlementsService {
       const restOrders = restOrderMap[r.id] || [];
       let grossFoodSales = 0;
       let commissionAmount = 0;
+      let restaurantGst = 0;
+      let restaurantPlatformFees = 0;
 
       for (const o of restOrders) {
         const snap: any = o.pricingSnapshot || {};
-        const foodSubtotal = Number(snap.restaurantGross !== undefined ? snap.restaurantGross : (o.subtotal || o.totalAmount));
-        const commRate = snap.commissionRate !== undefined && snap.commissionRate !== null
-          ? Number(snap.commissionRate)
-          : (r.commissionRate !== null ? Number(r.commissionRate) : 0);
-        const comm = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : (foodSubtotal * commRate / 100));
+        const foodSubtotal = Number(
+          snap.restaurantGross !== undefined ? snap.restaurantGross : o.subtotal || o.totalAmount,
+        );
+        const commRate =
+          snap.commissionRate !== undefined && snap.commissionRate !== null
+            ? Number(snap.commissionRate)
+            : r.commissionRate !== null
+            ? Number(r.commissionRate)
+            : 0;
+        const comm = Number(
+          snap.commissionAmount !== undefined
+            ? snap.commissionAmount
+            : (foodSubtotal * commRate) / 100,
+        );
+        const gst = Number(
+          snap.restaurantFoodGst !== undefined
+            ? snap.restaurantFoodGst
+            : snap.totalCustomerTaxes !== undefined
+            ? snap.totalCustomerTaxes
+            : foodSubtotal * 0.05,
+        );
+        const platFee = Number(snap.platformFee !== undefined ? snap.platformFee : 3.0);
 
         grossFoodSales += foodSubtotal;
         commissionAmount += comm;
+        restaurantGst += gst;
+        restaurantPlatformFees += platFee;
       }
 
       const netPayable = Math.max(0, grossFoodSales - commissionAmount);
@@ -185,7 +277,13 @@ export class SettlementsService {
       if (settlementRecord) {
         status = settlementRecord.status;
         paidAmount = Number(settlementRecord.paidAmount || 0);
-        pendingAmount = Number(settlementRecord.pendingAmount !== undefined ? settlementRecord.pendingAmount : (status === SettlementStatus.SETTLED ? 0 : netPayable));
+        pendingAmount = Number(
+          settlementRecord.pendingAmount !== undefined
+            ? settlementRecord.pendingAmount
+            : status === SettlementStatus.SETTLED
+            ? 0
+            : netPayable,
+        );
         utrNumber = settlementRecord.utrNumber;
         payoutId = settlementRecord.payoutId;
         settledAt = settlementRecord.settledAt;
@@ -198,6 +296,8 @@ export class SettlementsService {
 
       totalGmv += grossFoodSales;
       totalCommission += commissionAmount;
+      totalGst += restaurantGst;
+      totalPlatformFees += restaurantPlatformFees;
       totalRestaurantPayable += netPayable;
       totalAlreadyPaid += paidAmount;
       totalPendingPayable += pendingAmount;
@@ -205,15 +305,26 @@ export class SettlementsService {
       if (status === SettlementStatus.PROCESSING) totalProcessingCount++;
       if (status === SettlementStatus.PAYOUT_FAILED) totalFailedCount++;
 
+      // Owner name resolution
+      const ownerUser = r.ownerId ? ownerMap.get(r.ownerId) : null;
+      const ownerName = ownerUser?.profile
+        ? `${ownerUser.profile.firstName} ${ownerUser.profile.lastName || ''}`.trim()
+        : 'Merchant Owner';
+
       // Mask bank account
       const rawAcc = r.bankAccount?.accountNumber;
-      const maskedAcc = rawAcc && rawAcc.length > 4 ? `•••• •••• ${rawAcc.slice(-4)}` : (rawAcc || 'Not Provided');
+      const maskedAcc =
+        rawAcc && rawAcc.length > 4
+          ? `•••• •••• ${rawAcc.slice(-4)}`
+          : rawAcc || 'Not Configured';
 
       return {
         restaurantId: r.id,
         restaurantName: r.name,
-        phone: r.phone,
-        email: r.email,
+        ownerName: ownerName || 'Merchant Owner',
+        phone: r.phone || ownerUser?.phone || '',
+        email: r.email || ownerUser?.email || '',
+        settlementId: settlementRecord?.id || null,
         bankDetails: {
           bankName: r.bankAccount?.bankName || 'Verified Merchant Bank Account',
           accountHolder: r.bankAccount?.accountHolder || r.name,
@@ -225,6 +336,8 @@ export class SettlementsService {
         grossSales: Math.round(grossFoodSales * 100) / 100,
         commissionRate: r.commissionRate !== null ? Number(r.commissionRate) : 0,
         commissionAmount: Math.round(commissionAmount * 100) / 100,
+        gstAmount: Math.round(restaurantGst * 100) / 100,
+        platformFees: Math.round(restaurantPlatformFees * 100) / 100,
         authorizedDeductions: 0,
         netPayable: Math.round(netPayable * 100) / 100,
         paidAmount: Math.round(paidAmount * 100) / 100,
@@ -248,6 +361,8 @@ export class SettlementsService {
         totalRestaurants: restaurants.length,
         weeklyGmv: Math.round(totalGmv * 100) / 100,
         totalCommission: Math.round(totalCommission * 100) / 100,
+        totalGst: Math.round(totalGst * 100) / 100,
+        totalPlatformFees: Math.round(totalPlatformFees * 100) / 100,
         totalRestaurantPayable: Math.round(totalRestaurantPayable * 100) / 100,
         totalAlreadyPaid: Math.round(totalAlreadyPaid * 100) / 100,
         totalPendingPayable: Math.round(totalPendingPayable * 100) / 100,
@@ -261,7 +376,12 @@ export class SettlementsService {
   /**
    * Get detailed order breakdown and bank info for a specific restaurant & period
    */
-  async getRestaurantSettlementDetail(restaurantId: string, periodType: 'current' | 'previous' | 'custom' = 'current', customStart?: string, customEnd?: string) {
+  async getRestaurantSettlementDetail(
+    restaurantId: string,
+    periodType: string = 'current',
+    customStart?: string,
+    customEnd?: string,
+  ) {
     const period = getWeeklyPeriod(periodType, customStart, customEnd);
     const { periodStart, periodEnd } = period;
 
@@ -274,6 +394,24 @@ export class SettlementsService {
 
     if (!restaurant) {
       throw new NotFoundException(`Restaurant ${restaurantId} not found`);
+    }
+
+    let ownerUser: any = null;
+    if (restaurant.ownerId) {
+      ownerUser = await this.prisma.user.findUnique({
+        where: { id: restaurant.ownerId },
+        select: {
+          id: true,
+          phone: true,
+          email: true,
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
     }
 
     const orders = await this.prisma.order.findMany({
@@ -298,32 +436,8 @@ export class SettlementsService {
 
     let grossFoodSales = 0;
     let totalCommission = 0;
-
-    const orderRows = orders.map((o) => {
-      const snap: any = o.pricingSnapshot || {};
-      const foodSubtotal = Number(snap.restaurantGross !== undefined ? snap.restaurantGross : (o.subtotal || o.totalAmount));
-      const commRate = snap.commissionRate !== undefined && snap.commissionRate !== null
-        ? Number(snap.commissionRate)
-        : (restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : 0);
-      const comm = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : (foodSubtotal * commRate / 100));
-      const net = Math.max(0, foodSubtotal - comm);
-
-      grossFoodSales += foodSubtotal;
-      totalCommission += comm;
-
-      return {
-        orderId: o.id,
-        orderNumber: o.orderNumber,
-        createdAt: o.createdAt,
-        customerName: o.customer?.user?.profile ? `${o.customer.user.profile.firstName} ${o.customer.user.profile.lastName || ''}`.trim() : 'Customer',
-        foodSubtotal: Math.round(foodSubtotal * 100) / 100,
-        commissionRate: commRate,
-        commissionAmount: Math.round(comm * 100) / 100,
-        restaurantNet: Math.round(net * 100) / 100,
-      };
-    });
-
-    const netPayable = Math.max(0, grossFoodSales - totalCommission);
+    let totalGst = 0;
+    let totalPlatformFees = 0;
 
     const settlementRecord = await this.prisma.settlement.findFirst({
       where: {
@@ -333,15 +447,92 @@ export class SettlementsService {
       },
     });
 
-    const status = settlementRecord ? settlementRecord.status : (netPayable === 0 ? SettlementStatus.SETTLED : SettlementStatus.PENDING);
+    const currentSettlementStatus = settlementRecord
+      ? settlementRecord.status
+      : SettlementStatus.PENDING;
+
+    const orderRows = orders.map((o) => {
+      const snap: any = o.pricingSnapshot || {};
+      const foodSubtotal = Number(
+        snap.restaurantGross !== undefined ? snap.restaurantGross : o.subtotal || o.totalAmount,
+      );
+      const commRate =
+        snap.commissionRate !== undefined && snap.commissionRate !== null
+          ? Number(snap.commissionRate)
+          : restaurant.commissionRate !== null
+          ? Number(restaurant.commissionRate)
+          : 0;
+      const comm = Number(
+        snap.commissionAmount !== undefined
+          ? snap.commissionAmount
+          : (foodSubtotal * commRate) / 100,
+      );
+      const gst = Number(
+        snap.restaurantFoodGst !== undefined
+          ? snap.restaurantFoodGst
+          : snap.totalCustomerTaxes !== undefined
+          ? snap.totalCustomerTaxes
+          : foodSubtotal * 0.05,
+      );
+      const platFee = Number(snap.platformFee !== undefined ? snap.platformFee : 3.0);
+      const net = Math.max(0, foodSubtotal - comm);
+
+      grossFoodSales += foodSubtotal;
+      totalCommission += comm;
+      totalGst += gst;
+      totalPlatformFees += platFee;
+
+      const customerDisplayName = o.customer?.user?.profile
+        ? `${o.customer.user.profile.firstName} ${o.customer.user.profile.lastName || ''}`.trim()
+        : 'Customer';
+
+      return {
+        orderId: o.id,
+        orderNumber: o.orderNumber,
+        createdAt: o.createdAt,
+        customerName: customerDisplayName,
+        foodSubtotal: Math.round(foodSubtotal * 100) / 100,
+        grossAmount: Math.round(foodSubtotal * 100) / 100,
+        commissionRate: commRate,
+        commissionAmount: Math.round(comm * 100) / 100,
+        gstAmount: Math.round(gst * 100) / 100,
+        platformFee: Math.round(platFee * 100) / 100,
+        restaurantNet: Math.round(net * 100) / 100,
+        paymentStatus: o.paymentStatus || 'COMPLETED',
+        orderStatus: o.status || 'DELIVERED',
+        settlementStatus: currentSettlementStatus,
+      };
+    });
+
+    const netPayable = Math.max(0, grossFoodSales - totalCommission);
+
+    const status = settlementRecord
+      ? settlementRecord.status
+      : netPayable === 0
+      ? SettlementStatus.SETTLED
+      : SettlementStatus.PENDING;
     const paidAmount = Number(settlementRecord?.paidAmount || 0);
-    const pendingAmount = Number(settlementRecord?.pendingAmount !== undefined ? settlementRecord.pendingAmount : (status === SettlementStatus.SETTLED ? 0 : netPayable));
+    const pendingAmount = Number(
+      settlementRecord?.pendingAmount !== undefined
+        ? settlementRecord.pendingAmount
+        : status === SettlementStatus.SETTLED
+        ? 0
+        : netPayable,
+    );
+
+    const ownerName = ownerUser?.profile
+      ? `${ownerUser.profile.firstName} ${ownerUser.profile.lastName || ''}`.trim()
+      : 'Merchant Owner';
 
     const rawAcc = restaurant.bankAccount?.accountNumber;
-    const maskedAcc = rawAcc && rawAcc.length > 4 ? `•••• •••• ${rawAcc.slice(-4)}` : (rawAcc || 'Not Configured');
+    const maskedAcc =
+      rawAcc && rawAcc.length > 4
+        ? `•••• •••• ${rawAcc.slice(-4)}`
+        : rawAcc || 'Not Configured';
 
     return {
       period: {
+        type: periodType,
         start: periodStart,
         end: periodEnd,
         label: period.periodLabel,
@@ -349,8 +540,9 @@ export class SettlementsService {
       restaurant: {
         id: restaurant.id,
         name: restaurant.name,
-        phone: restaurant.phone,
-        email: restaurant.email,
+        ownerName: ownerName || 'Merchant Owner',
+        phone: restaurant.phone || ownerUser?.phone || '',
+        email: restaurant.email || ownerUser?.email || '',
         commissionRate: restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : 0,
       },
       bankAccount: {
@@ -363,7 +555,10 @@ export class SettlementsService {
       financialSummary: {
         orderCount: orders.length,
         grossSales: Math.round(grossFoodSales * 100) / 100,
+        commissionRate: restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : 0,
         commissionAmount: Math.round(totalCommission * 100) / 100,
+        gstAmount: Math.round(totalGst * 100) / 100,
+        platformFees: Math.round(totalPlatformFees * 100) / 100,
         authorizedDeductions: 0,
         netPayable: Math.round(netPayable * 100) / 100,
         paidAmount: Math.round(paidAmount * 100) / 100,

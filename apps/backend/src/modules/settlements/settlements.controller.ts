@@ -22,11 +22,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class SettlementsController {
   constructor(private readonly settlementsService: SettlementsService) {}
 
-  @Get('weekly')
+  @Get(['weekly', 'overview'])
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
   @ApiOperation({ summary: 'Get authoritative restaurant-by-restaurant weekly settlements summary' })
   async getWeeklySettlements(
-    @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
+    @Query('periodType') periodType?: string,
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
@@ -38,7 +38,7 @@ export class SettlementsController {
   @ApiOperation({ summary: 'Get detailed order-level breakdown and bank account for a restaurant' })
   async getRestaurantDetail(
     @Param('restaurantId') restaurantId: string,
-    @Query('periodType') periodType?: 'current' | 'previous' | 'custom',
+    @Query('periodType') periodType?: string,
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
     @CurrentUser() user?: any,
