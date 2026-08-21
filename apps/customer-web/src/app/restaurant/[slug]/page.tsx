@@ -7,7 +7,7 @@ import { FoodCard } from '../../../components/food/FoodCard';
 import {
   Star, Clock, MapPin, Search, X, ArrowLeft,
   UtensilsCrossed, ShoppingBag, ArrowRight, Plus, Minus,
-  Home, Receipt, User, ShieldCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { useCartStore } from '../../../stores/use-cart-store';
 import Link from 'next/link';
@@ -143,24 +143,18 @@ export default function RestaurantDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-28 sm:pb-20">
-      {/* STICKY TOP HEADER */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3 shadow-sm">
-        <div className="mx-auto max-w-4xl flex items-center justify-between gap-3">
-          <Link href="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+      {/* RESTAURANT SUB-BAR */}
+      <div className="bg-white border-b border-gray-100 px-4 py-2.5 shadow-sm">
+        <div className="mx-auto max-w-4xl flex items-center gap-3">
+          <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition" aria-label="Back to home">
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex-1 min-w-0 text-center sm:text-left">
+          <div className="flex-1 min-w-0">
             <h1 className="text-sm sm:text-base font-black text-gray-900 truncate">{restaurant.name}</h1>
             <p className="text-[11px] text-gray-500 truncate">{restaurant.cuisines?.join(' • ') || 'Multi-Cuisine Kitchen'}</p>
           </div>
-          <Link href="/cart" className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition">
-            <ShoppingBag className="h-4 w-4" />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white shadow-sm">{cartItemCount}</span>
-            )}
-          </Link>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-4xl px-3 sm:px-4 py-3 space-y-3">
         {/* COMPACT BANNER */}
@@ -327,24 +321,6 @@ export default function RestaurantDetailPage() {
           </Link>
         </div>
       )}
-
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex h-14 items-center justify-around border-t border-gray-100 bg-white/95 backdrop-blur-md sm:hidden shadow-sm">
-        <Link href="/" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-rose-600 transition">
-          <Home className="h-5 w-5" /><span className="text-[10px] font-bold">Home</span>
-        </Link>
-        <Link href="/orders" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-rose-600 transition">
-          <Receipt className="h-5 w-5" /><span className="text-[10px] font-bold">Orders</span>
-        </Link>
-        <Link href="/cart" className="relative flex flex-col items-center gap-0.5 text-rose-600">
-          <ShoppingBag className="h-5 w-5" />
-          {cartItemCount > 0 && <span className="absolute -top-1 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white">{cartItemCount}</span>}
-          <span className="text-[10px] font-bold">Cart</span>
-        </Link>
-        <Link href="/profile" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-rose-600 transition">
-          <User className="h-5 w-5" /><span className="text-[10px] font-bold">Profile</span>
-        </Link>
-      </nav>
 
       {/* CUSTOMIZATION BOTTOM SHEET */}
       {selectedFood && (

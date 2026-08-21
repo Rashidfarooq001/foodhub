@@ -17,6 +17,7 @@ import {
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { RecommendedCard } from '../components/home/RecommendedCard';
 import { LocationSelectorModal } from '../components/home/LocationSelectorModal';
+import { FilterModal, FilterState, initialFilterState } from '../components/home/FilterModal';
 import { RestaurantData, normalizeRestaurantData } from '../data/mock-data';
 import { useAuthStore } from '../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -36,7 +37,8 @@ export default function CustomerHomePage() {
   const [isVegOnly, setIsVegOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeChip, setActiveChip] = useState<'all' | 'fast' | 'rating' | 'veg' | 'near'>('all');
+  const [filters, setFilters] = useState<FilterState>(initialFilterState);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   // Real Data State
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
@@ -216,32 +218,38 @@ export default function CustomerHomePage() {
     }
   };
 
-  // Dynamic Filtering
+  // Dynamic Multi-Filtering & Sorting
   const filteredRestaurants = useMemo(() => {
     let list = [...restaurants];
 
-    // Search query filter
+    // 1. Search Query Filter (matches restaurant name, cuisines, and food items)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
         (r) =>
           r.name.toLowerCase().includes(q) ||
-          (r.cuisines || []).some((c) => c.toLowerCase().includes(q)),
+          (r.cuisines || []).some((c) => c.toLowerCase().includes(q)) ||
+          (r.foodItems || []).some((f) => f.name.toLowerCase().includes(q)),
       );
     }
 
-    // Category filter
-    if (selectedCategory.trim()) {
+    // 2. Category Carousel Filter
+    if (selectedCategory.trim() && selectedCategory.toLowerCase() !== 'all') {
       const cat = selectedCategory.toLowerCase();
       list = list.filter(
         (r) =>
           (r.cuisines || []).some((c) => c.toLowerCase().includes(cat)) ||
-          r.name.toLowerCase().includes(cat),
+          r.name.toLowerCase().includes(cat) ||
+          (r.foodItems || []).some(
+            (f) =>
+              (f.category || '').toLowerCase().includes(cat) ||
+              f.name.toLowerCase().includes(cat),
+          ),
       );
     }
 
-    // Veg Only toggle
-    if (isVegOnly || activeChip === 'veg') {
+    // 3. Header Veg-Only Toggle
+    if (isVegOnly) {
       list = list.filter((r) =>
         r.foodItems && r.foodItems.length > 0
           ? r.foodItems.some((f) => f.isVeg)
@@ -249,17 +257,75 @@ export default function CustomerHomePage() {
       );
     }
 
-    // Filter Chips
-    if (activeChip === 'fast') {
+    // 4. Multi-Filter: Under 30 mins
+    if (filters.under30Mins) {
       list = list.filter((r) => (r.deliveryTimeMins || 99) <= 30);
-    } else if (activeChip === 'rating') {
+    }
+
+    // 5. Multi-Filter: Rating 4.0+
+    if (filters.rating4Plus) {
       list = list.filter((r) => (r.avgRating || 0) >= 4.0);
-    } else if (activeChip === 'near') {
-      list.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
+    }
+
+    // 6. Multi-Filter: Pure Veg
+    if (filters.pureVeg) {
+      list = list.filter((r) =>
+        r.foodItems && r.foodItems.length > 0
+          ? r.foodItems.every((f) => f.isVeg)
+          : (r.cuisines || []).some((c) => c.toLowerCase().includes('veg')),
+      );
+    }
+
+    // 7. Multi-Filter: Near Me (within 10 km)
+    if (filters.nearMe) {
+      list = list.filter((r) => (r.distanceKm !== undefined ? r.distanceKm <= 10 : true));
+    }
+
+    // 8. Multi-Filter: Active Offers & Discounts
+    if (filters.hasOffers) {
+      list = list.filter((r) =>
+        Boolean(
+          r.discountBadge ||
+            (r.foodItems && r.foodItems.some((f) => f.originalPrice && f.originalPrice > f.price)),
+        ),
+      );
+    }
+
+    // 9. Sorting
+    if (filters.sortBy === 'rating') {
+      list.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
+    } else if (filters.sortBy === 'deliveryTime') {
+      list.sort((a, b) => (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999));
+    } else if (filters.sortBy === 'distance' || filters.nearMe) {
+      list.sort((a, b) => (a.distanceKm || 999) - (b.distanceKm || 999));
     }
 
     return list;
-  }, [restaurants, searchQuery, selectedCategory, isVegOnly, activeChip]);
+  }, [restaurants, searchQuery, selectedCategory, isVegOnly, filters]);
+
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.under30Mins,
+      filters.rating4Plus,
+      filters.pureVeg,
+      filters.nearMe,
+      filters.hasOffers,
+      filters.sortBy !== 'relevance',
+    ].filter(Boolean).length;
+  }, [filters]);
+
+  const hasAnyFilterActive =
+    activeFiltersCount > 0 ||
+    isVegOnly ||
+    Boolean(selectedCategory && selectedCategory.toLowerCase() !== 'all') ||
+    Boolean(searchQuery.trim());
+
+  const handleClearAllFilters = () => {
+    setFilters(initialFilterState);
+    setIsVegOnly(false);
+    setSelectedCategory('');
+    setSearchQuery('');
+  };
 
   const recommendedList = filteredRestaurants.slice(0, 6);
   const popularList = filteredRestaurants.slice(6, 12).length > 0
@@ -430,66 +496,102 @@ export default function CustomerHomePage() {
           onSelectCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me) ─── */}
+        {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Main Filters Button (Opens Modal) */}
           <button
-            onClick={() => setActiveChip(activeChip === 'all' ? 'rating' : 'all')}
+            type="button"
+            onClick={() => setIsFilterModalOpen(true)}
             className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              activeChip !== 'all'
-                ? 'border-rose-600 bg-rose-50 text-rose-700'
+              activeFiltersCount > 0
+                ? 'border-rose-600 bg-rose-50 text-rose-700 font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <SlidersHorizontal className="h-3.5 w-3.5 text-rose-600" />
             <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white ml-0.5">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
 
+          {/* Under 30 mins Chip */}
           <button
-            onClick={() => setActiveChip(activeChip === 'fast' ? 'all' : 'fast')}
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, under30Mins: !prev.under30Mins }))}
             className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              activeChip === 'fast'
-                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
+              filters.under30Mins
+                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             Under 30 mins
           </button>
 
+          {/* Ratings 4.0+ Chip */}
           <button
-            onClick={() => setActiveChip(activeChip === 'rating' ? 'all' : 'rating')}
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, rating4Plus: !prev.rating4Plus }))}
             className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              activeChip === 'rating'
-                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
+              filters.rating4Plus
+                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             Ratings 4.0+
           </button>
 
+          {/* Pure Veg Chip */}
           <button
-            onClick={() => {
-              setIsVegOnly(!isVegOnly);
-              setActiveChip(isVegOnly ? 'all' : 'veg');
-            }}
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, pureVeg: !prev.pureVeg }))}
             className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              isVegOnly || activeChip === 'veg'
-                ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+              filters.pureVeg
+                ? 'border-emerald-600 bg-emerald-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             Pure Veg
           </button>
 
+          {/* Near Me Chip */}
           <button
-            onClick={() => setActiveChip(activeChip === 'near' ? 'all' : 'near')}
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, nearMe: !prev.nearMe }))}
             className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              activeChip === 'near'
-                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
+              filters.nearMe
+                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             Near Me
           </button>
+
+          {/* Active Offers Chip */}
+          <button
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, hasOffers: !prev.hasOffers }))}
+            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+              filters.hasOffers
+                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Offers
+          </button>
+
+          {/* Clear Filters Reset Chip */}
+          {hasAnyFilterActive && (
+            <button
+              type="button"
+              onClick={handleClearAllFilters}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition-all whitespace-nowrap"
+            >
+              Clear Filters ✕
+            </button>
+          )}
         </div>
 
         {/* ─── ROW 6: RECOMMENDED FOR YOU (DYNAMIC) ────────── */}
@@ -532,18 +634,15 @@ export default function CustomerHomePage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 text-center">
+            <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 text-center space-y-2">
               <p className="text-xs sm:text-sm font-bold text-gray-700">No restaurants match your selected filters.</p>
+              <p className="text-[11px] text-gray-400">Try broadening your criteria or reset all filters.</p>
               <button
-                onClick={() => {
-                  setSelectedCategory('');
-                  setActiveChip('all');
-                  setIsVegOnly(false);
-                  setSearchQuery('');
-                }}
-                className="mt-2 text-xs font-bold text-rose-600 hover:underline"
+                type="button"
+                onClick={handleClearAllFilters}
+                className="inline-block mt-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm"
               >
-                Reset all filters
+                Clear Filters
               </button>
             </div>
           )}
@@ -595,6 +694,16 @@ export default function CustomerHomePage() {
           setLocationAddress(loc.address);
           setUserCoords({ lat: loc.lat, lng: loc.lng });
         }}
+      />
+
+      {/* Filter & Sort Bottom Sheet / Modal */}
+      <FilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        filters={filters}
+        onApplyFilters={(newFilters) => setFilters(newFilters)}
+        onResetFilters={() => setFilters(initialFilterState)}
+        matchingCount={filteredRestaurants.length}
       />
     </div>
   );
