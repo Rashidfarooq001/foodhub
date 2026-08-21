@@ -57,6 +57,13 @@ export class MenusController {
   }
 
   @Public()
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all dynamic food categories across the platform' })
+  async getAllCategories() {
+    return this.menusService.getAllCategories();
+  }
+
+  @Public()
   @Get('categories/restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get all categories for a restaurant' })
   async getRestaurantCategories(

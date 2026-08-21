@@ -11,10 +11,8 @@ import {
   Mic,
   SlidersHorizontal,
   Clock,
-  Sparkles,
   ArrowRight,
-  ShieldCheck,
-  Check,
+  RefreshCw,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { RecommendedCard } from '../components/home/RecommendedCard';
@@ -27,10 +25,13 @@ const API_BASE = getApiBaseUrl();
 
 export default function CustomerHomePage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, accessToken } = useAuthStore();
 
-  // Location & Filters
-  const [deliveryLocation, setDeliveryLocation] = useState('Kehnusa, Bandipora, J&K 193502');
+  // Dynamic Location State
+  const [locationLabel, setLocationLabel] = useState<string>('Detecting location...');
+  const [locationAddress, setLocationAddress] = useState<string>('Locating nearest kitchens...');
+
+  // Filters & State
   const [isVegOnly, setIsVegOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,62 +39,156 @@ export default function CustomerHomePage() {
 
   // Real Data State
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Geolocation lookup
+  // 1. Dynamic Location: Fetch Authenticated Saved Default Address OR Reverse Geocode Browser Coords
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        () => {
-          // Defaults to Bandipora
-        },
-        { timeout: 5000 },
-      );
-    }
-  }, []);
+    let isMounted = true;
 
-  // Fetch real restaurants from backend
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/restaurants`);
-        if (res.ok) {
-          const data = await res.json();
-          const list = Array.isArray(data) ? data : data.restaurants ?? [];
-          setRestaurants(list.map((r: any) => normalizeRestaurantData(r, userCoords)));
+    const loadLocation = async () => {
+      // If customer is authenticated, check their saved default delivery address
+      if (isAuthenticated && accessToken) {
+        try {
+          const res = await fetch(`${API_BASE}/addresses`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (res.ok) {
+            const addresses = await res.json();
+            const list = Array.isArray(addresses) ? addresses : addresses.addresses ?? [];
+            const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
+
+            if (defaultAddr && isMounted) {
+              setLocationLabel(defaultAddr.addressLabel || 'Home');
+              setLocationAddress([defaultAddr.addressLine1, defaultAddr.city, defaultAddr.postalCode].filter(Boolean).join(', '));
+              if (defaultAddr.latitude && defaultAddr.longitude) {
+                setUserCoords({ lat: Number(defaultAddr.latitude), lng: Number(defaultAddr.longitude) });
+                return;
+              }
+            }
+          }
+        } catch {
+          // fallback to geolocation
         }
-      } catch (err) {
-        console.error('Failed to load restaurants', err);
-      } finally {
-        setIsLoading(false);
+      }
+
+      // Otherwise, request browser geolocation and reverse geocode via backend
+      if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            if (!isMounted) return;
+            setUserCoords({ lat, lng });
+
+            try {
+              const geoRes = await fetch(`${API_BASE}/geolocation/reverse?lat=${lat}&lng=${lng}`);
+              if (geoRes.ok) {
+                const geoData = await geoRes.json();
+                if (geoData.address && isMounted) {
+                  setLocationLabel('Current Location');
+                  setLocationAddress(geoData.address);
+                  return;
+                }
+              }
+            } catch {
+              // fallback
+            }
+
+            if (isMounted) {
+              setLocationLabel('Current Location');
+              setLocationAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            }
+          },
+          () => {
+            if (isMounted) {
+              setLocationLabel('Select Location');
+              setLocationAddress('Tap to set your delivery address');
+            }
+          },
+          { timeout: 6000 },
+        );
+      } else {
+        if (isMounted) {
+          setLocationLabel('Select Location');
+          setLocationAddress('Tap to set your delivery address');
+        }
       }
     };
 
+    loadLocation();
+    return () => { isMounted = false; };
+  }, [isAuthenticated, accessToken]);
+
+  // 2. Fetch Restaurants from Backend API
+  const fetchRestaurants = async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      const res = await fetch(`${API_BASE}/restaurants`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data.restaurants ?? [];
+        setRestaurants(list.map((r: any) => normalizeRestaurantData(r, userCoords)));
+      } else {
+        setIsError(true);
+      }
+    } catch (err) {
+      console.error('Failed to load restaurants from backend', err);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRestaurants();
     const interval = setInterval(fetchRestaurants, 30000);
     return () => clearInterval(interval);
   }, [userCoords]);
 
-  // Fetch active order for authenticated user
+  // 3. Fetch Customer Favorites from Backend
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !accessToken) {
+      setFavorites([]);
+      return;
+    }
+
+    const fetchFavorites = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/users/favorites/restaurants`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFavorites(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        // guest or offline
+      }
+    };
+
+    fetchFavorites();
+  }, [isAuthenticated, accessToken]);
+
+  // 4. Fetch Active Order for Live Tracking
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
     const fetchActiveOrder = async () => {
       try {
-        const { accessToken } = useAuthStore.getState();
-        const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-        const res = await fetch(`${API_BASE}/orders/active`, { headers });
+        const res = await fetch(`${API_BASE}/orders/active`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
         setActiveOrder(res.ok ? await res.json() : null);
       } catch {
         // no active order
       }
     };
     fetchActiveOrder();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, accessToken]);
 
   // Voice Search / Mic Trigger
   const handleMicSearch = () => {
@@ -117,7 +212,7 @@ export default function CustomerHomePage() {
     }
   };
 
-  // Filtered & Sorted Restaurants
+  // Dynamic Filtering
   const filteredRestaurants = useMemo(() => {
     let list = [...restaurants];
 
@@ -144,54 +239,58 @@ export default function CustomerHomePage() {
     // Veg Only toggle
     if (isVegOnly || activeChip === 'veg') {
       list = list.filter((r) =>
-        r.foodItems ? r.foodItems.some((f) => f.isVeg) : true,
+        r.foodItems && r.foodItems.length > 0
+          ? r.foodItems.some((f) => f.isVeg)
+          : true,
       );
     }
 
     // Filter Chips
     if (activeChip === 'fast') {
-      list = list.filter((r) => (r.deliveryTimeMins || 30) <= 30);
+      list = list.filter((r) => (r.deliveryTimeMins || 99) <= 30);
     } else if (activeChip === 'rating') {
       list = list.filter((r) => (r.avgRating || 0) >= 4.0);
     } else if (activeChip === 'offers') {
       list = list.filter((r) => Boolean(r.discountBadge));
+    } else if (activeChip === 'near') {
+      list.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
     }
 
     return list;
   }, [restaurants, searchQuery, selectedCategory, isVegOnly, activeChip]);
 
-  // Recommended vs Popular split
   const recommendedList = filteredRestaurants.slice(0, 6);
-  const popularList = filteredRestaurants.slice(6, 12).length > 0 ? filteredRestaurants.slice(6, 12) : filteredRestaurants.slice(0, 4);
+  const popularList = filteredRestaurants.slice(6, 12).length > 0
+    ? filteredRestaurants.slice(6, 12)
+    : filteredRestaurants.slice(0, 4);
 
   const initials = user
     ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
-    : 'Z';
+    : 'U';
 
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-12">
-      {/* Container with mobile-first and centered responsive desktop layout */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-6">
 
-        {/* ─── 1. TOP LOCATION & PROFILE BAR ───────────────── */}
+        {/* ─── 1. DYNAMIC TOP LOCATION & PROFILE BAR ───────── */}
         <div className="flex items-center justify-between gap-3 pt-1">
-          {/* Location details */}
-          <div className="flex items-start gap-2 min-w-0">
-            <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0">
+          {/* Dynamic Location details */}
+          <Link href={isAuthenticated ? '/addresses' : '/login'} className="flex items-start gap-2 min-w-0 group">
+            <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
               <MapPin className="h-4 w-4 fill-rose-600 text-rose-600" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1 cursor-pointer">
-                <span className="text-base font-black text-gray-900 tracking-tight">Home</span>
+              <div className="flex items-center gap-1">
+                <span className="text-base font-black text-gray-900 tracking-tight">{locationLabel}</span>
                 <ChevronDown className="h-4 w-4 text-gray-600 stroke-[2.5]" />
               </div>
-              <p className="text-xs text-gray-500 truncate font-medium max-w-[200px] sm:max-w-md">
-                {deliveryLocation}
+              <p className="text-xs text-gray-500 truncate font-medium max-w-[190px] sm:max-w-md">
+                {locationAddress}
               </p>
             </div>
-          </div>
+          </Link>
 
-          {/* Right Header Actions: Veg Toggle, Bell, Profile Avatar */}
+          {/* Right Header Actions */}
           <div className="flex items-center gap-2.5 shrink-0">
             {/* VEG Toggle */}
             <div className="flex flex-col items-center">
@@ -219,10 +318,9 @@ export default function CustomerHomePage() {
               className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-600" />
             </Link>
 
-            {/* User Profile Avatar */}
+            {/* Dynamic User Profile Avatar */}
             <Link href={isAuthenticated ? '/profile' : '/login'} className="shrink-0">
               {user?.avatarUrl ? (
                 <img
@@ -231,26 +329,29 @@ export default function CustomerHomePage() {
                   className="h-9 w-9 rounded-full object-cover ring-2 ring-rose-100"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-white font-black text-xs shadow-sm">
-                  {initials}
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
+                  {isAuthenticated ? initials : 'Sign In'}
                 </div>
               )}
             </Link>
           </div>
         </div>
 
-        {/* ─── ACTIVE ORDER TRACKING TOAST (IF PRESENT) ─────── */}
+        {/* ─── ACTIVE ORDER TRACKING TOAST ─────────────────── */}
         {isAuthenticated && activeOrder && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-600 p-3.5 text-white shadow-lg shadow-rose-600/20 animate-fade-in">
             <div className="flex items-center gap-2.5 min-w-0">
               <Clock className="h-5 w-5 animate-pulse shrink-0" />
               <div className="min-w-0 text-xs">
                 <p className="font-black truncate">Live Order #{activeOrder.orderNumber}</p>
-                <p className="text-rose-100 truncate">Out for delivery · ~{activeOrder.etaMins || 20} mins</p>
+                <p className="text-rose-100 truncate">
+                  {activeOrder.driverName ? `With ${activeOrder.driverName}` : 'Preparing your meal'}
+                  {activeOrder.etaMins ? ` · ~${activeOrder.etaMins} mins` : ''}
+                </p>
               </div>
             </div>
             <Link
-              href={`/orders/${activeOrder.orderId}/track`}
+              href={`/orders/${activeOrder.orderId || activeOrder.id}/track`}
               className="rounded-xl bg-white px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-50 transition shrink-0 flex items-center gap-1"
             >
               Track <ArrowRight className="h-3 w-3" />
@@ -258,7 +359,7 @@ export default function CustomerHomePage() {
           </div>
         )}
 
-        {/* ─── 2. LARGE ROUNDED SEARCH BAR ─────────────────── */}
+        {/* ─── 2. SEARCH BAR WITH REAL ROUTING ─────────────── */}
         <div className="relative w-full">
           <div className="relative flex items-center rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-gray-50/70 hover:bg-white hover:border-rose-300 transition-all duration-200 shadow-sm">
             <div className="pl-4 pr-2 text-rose-600">
@@ -270,7 +371,7 @@ export default function CustomerHomePage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && searchQuery.trim()) {
-                  router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                  router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
                 }
               }}
               placeholder="Search restaurants, dishes and cuisines"
@@ -287,13 +388,13 @@ export default function CustomerHomePage() {
           </div>
         </div>
 
-        {/* ─── 3. HORIZONTAL FOOD CATEGORY CAROUSEL ─────────── */}
+        {/* ─── 3. DYNAMIC CATEGORY CAROUSEL ────────────────── */}
         <CategoryCarousel
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* ─── 4. HORIZONTAL FILTER CHIPS ──────────────────── */}
+        {/* ─── 4. FUNCTIONAL FILTER CHIPS ──────────────────── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveChip(activeChip === 'all' ? 'rating' : 'all')}
@@ -366,18 +467,20 @@ export default function CustomerHomePage() {
           </button>
         </div>
 
-        {/* ─── HERO PROMO OFFERS CAROUSEL ──────────────────── */}
+        {/* ─── DYNAMIC HERO PROMOTIONS ─────────────────────── */}
         <HeroBanner />
 
-        {/* ─── 5. RECOMMENDED FOR YOU SECTION ──────────────── */}
+        {/* ─── 5. RECOMMENDED FOR YOU (DYNAMIC) ────────────── */}
         <section className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-500">
               Recommended For You
             </h2>
-            <span className="text-[11px] font-bold text-gray-400">
-              {recommendedList.length} top picks
-            </span>
+            {!isLoading && (
+              <span className="text-[11px] font-bold text-gray-400">
+                {recommendedList.length} verified kitchens
+              </span>
+            )}
           </div>
 
           {isLoading ? (
@@ -386,18 +489,29 @@ export default function CustomerHomePage() {
                 <div key={i} className="aspect-[4/3] rounded-3xl bg-gray-100 animate-pulse" />
               ))}
             </div>
+          ) : isError ? (
+            <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-8 text-center space-y-3">
+              <p className="text-sm font-bold text-rose-800">Unable to load restaurants at this time.</p>
+              <button
+                onClick={fetchRestaurants}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Retry
+              </button>
+            </div>
           ) : recommendedList.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {recommendedList.map((restaurant, idx) => (
+              {recommendedList.map((restaurant) => (
                 <RecommendedCard
-                  key={restaurant.id || idx}
+                  key={restaurant.id}
                   restaurant={restaurant}
+                  isInitiallyFavorite={favorites.includes(restaurant.id)}
                 />
               ))}
             </div>
           ) : (
             <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-8 text-center">
-              <p className="text-sm font-bold text-gray-700">No restaurants match your selected filters.</p>
+              <p className="text-sm font-bold text-gray-700">No restaurants available in your area matching criteria.</p>
               <button
                 onClick={() => {
                   setSelectedCategory('');
@@ -407,13 +521,13 @@ export default function CustomerHomePage() {
                 }}
                 className="mt-2 text-xs font-bold text-rose-600 hover:underline"
               >
-                Reset all filters
+                Reset filters
               </button>
             </div>
           )}
         </section>
 
-        {/* ─── 6. POPULAR NEAR YOU SECTION ─────────────────── */}
+        {/* ─── 6. POPULAR NEAR YOU (DYNAMIC) ───────────────── */}
         <section className="space-y-3 pt-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-500">
@@ -433,16 +547,17 @@ export default function CustomerHomePage() {
                 <div key={i} className="aspect-[4/3] rounded-3xl bg-gray-100 animate-pulse" />
               ))}
             </div>
-          ) : (
+          ) : popularList.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {popularList.map((restaurant, idx) => (
+              {popularList.map((restaurant) => (
                 <RecommendedCard
-                  key={restaurant.id || idx}
+                  key={restaurant.id}
                   restaurant={restaurant}
+                  isInitiallyFavorite={favorites.includes(restaurant.id)}
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </section>
 
       </div>

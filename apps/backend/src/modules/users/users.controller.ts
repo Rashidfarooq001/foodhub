@@ -94,4 +94,25 @@ export class UsersController {
     const userId = req.user?.id || req.user?.sub;
     return this.usersService.deleteCustomerAddress(userId, addressId);
   }
+
+  @Get('users/favorites/restaurants')
+  @ApiOperation({ summary: 'List customer favorite restaurant IDs' })
+  async getFavorites(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.getFavoriteRestaurants(userId);
+  }
+
+  @Post('users/favorites/restaurants/:restaurantId')
+  @ApiOperation({ summary: 'Add restaurant to favorites' })
+  async addFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.addFavoriteRestaurant(userId, restaurantId);
+  }
+
+  @Delete('users/favorites/restaurants/:restaurantId')
+  @ApiOperation({ summary: 'Remove restaurant from favorites' })
+  async removeFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.removeFavoriteRestaurant(userId, restaurantId);
+  }
 }

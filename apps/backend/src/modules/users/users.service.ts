@@ -418,4 +418,34 @@ export class UsersService {
 
     return { message: 'Address deleted successfully' };
   }
+
+  // --- SAVED RESTAURANTS (FAVORITES) ---
+  async getFavoriteRestaurants(userId: string) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+    const saved = await this.prisma.savedRestaurant.findMany({
+      where: { customerId },
+      select: { restaurantId: true },
+    });
+    return saved.map((s) => s.restaurantId);
+  }
+
+  async addFavoriteRestaurant(userId: string, restaurantId: string) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+    await this.prisma.savedRestaurant.upsert({
+      where: {
+        customerId_restaurantId: { customerId, restaurantId },
+      },
+      create: { customerId, restaurantId },
+      update: {},
+    });
+    return { success: true, isFavorite: true };
+  }
+
+  async removeFavoriteRestaurant(userId: string, restaurantId: string) {
+    const customerId = await this.getOrCreateCustomerId(userId);
+    await this.prisma.savedRestaurant.deleteMany({
+      where: { customerId, restaurantId },
+    });
+    return { success: true, isFavorite: false };
+  }
 }

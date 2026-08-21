@@ -86,6 +86,45 @@ export class MenusService {
     return serializePrisma(res);
   }
 
+  async getAllCategories() {
+    const categories = await this.prisma.category.findMany({
+      where: { isActive: true },
+      include: {
+        _count: { select: { foodItems: { where: { deletedAt: null } } } },
+        foodItems: {
+          where: { deletedAt: null },
+          select: { imageUrl: true },
+          take: 1,
+        },
+      },
+      orderBy: { displayOrder: 'asc' },
+    });
+
+    const categoryMap = new Map<string, { id: string; name: string; image: string; itemCount: number }>();
+
+    for (const cat of categories) {
+      const normalizedName = cat.name.trim();
+      const existing = categoryMap.get(normalizedName);
+      const firstImage = cat.foodItems[0]?.imageUrl || '';
+
+      if (!existing) {
+        categoryMap.set(normalizedName, {
+          id: cat.id,
+          name: normalizedName,
+          image: firstImage || '',
+          itemCount: cat._count.foodItems,
+        });
+      } else {
+        existing.itemCount += cat._count.foodItems;
+        if (!existing.image && firstImage) {
+          existing.image = firstImage;
+        }
+      }
+    }
+
+    return serializePrisma(Array.from(categoryMap.values()));
+  }
+
   async updateCategory(id: string, name?: string, displayOrder?: number, isActive?: boolean, actor?: any) {
     const cat = await this.prisma.category.findUnique({ where: { id } });
     if (!cat) throw new NotFoundException(`Category ${id} not found`);
