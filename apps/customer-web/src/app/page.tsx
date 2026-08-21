@@ -51,7 +51,7 @@ export default function CustomerHomePage() {
   // 0. Instant Cache Hydration on Mount
   useEffect(() => {
     try {
-      const cached = sessionStorage.getItem('zayka_restaurants_cache');
+      const cached = localStorage.getItem('zayka_restaurants_cache') || sessionStorage.getItem('zayka_restaurants_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -152,6 +152,7 @@ export default function CustomerHomePage() {
         const normalized = list.map((r: any) => normalizeRestaurantData(r, coords));
         setRestaurants(normalized);
         try {
+          localStorage.setItem('zayka_restaurants_cache', JSON.stringify(normalized));
           sessionStorage.setItem('zayka_restaurants_cache', JSON.stringify(normalized));
         } catch {
           // ignore quota

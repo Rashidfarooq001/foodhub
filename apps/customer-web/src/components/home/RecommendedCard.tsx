@@ -93,6 +93,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
             }}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
           />
 
           {/* Open/Closed Badge */}

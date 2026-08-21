@@ -21,8 +21,10 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
         <img
           src={getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)}
           alt={restaurant.name}
+          loading="lazy"
+          decoding="async"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=70';
           }}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
