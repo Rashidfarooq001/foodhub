@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Star, Heart } from 'lucide-react';
+import { Star, Heart, Clock, MapPin } from 'lucide-react';
 import { RestaurantData } from '../../data/mock-data';
 import { getImageUrl, getApiBaseUrl } from '@foodhub/config';
 import { useAuthStore } from '../../stores/use-auth-store';
@@ -24,7 +24,6 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
     e.stopPropagation();
 
     if (!isAuthenticated || !accessToken) {
-      // Local fallback for guest
       setIsFavorite(!isFavorite);
       return;
     }
@@ -60,10 +59,15 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       ? `${restaurant.deliveryTimeMins} mins`
       : null;
 
+  const distanceText =
+    restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && restaurant.distanceKm > 0
+      ? `${restaurant.distanceKm.toFixed(1)} km`
+      : null;
+
   const priceText =
     restaurant.priceForTwo && restaurant.priceForTwo > 0
       ? `₹${restaurant.priceForTwo} for two`
-      : '₹₹';
+      : null;
 
   const cuisineText =
     restaurant.cuisines && restaurant.cuisines.length > 0
@@ -74,11 +78,13 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
     ? getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)
     : '/zaykafood-logo.png';
 
+  const isOpen = restaurant.isOpen !== false;
+
   return (
-    <div className="group relative flex flex-col rounded-3xl bg-white transition-all duration-200 hover:-translate-y-0.5">
+    <div className="group relative flex flex-col rounded-3xl bg-white transition-all duration-200 hover:-translate-y-0.5 border border-gray-100/80 shadow-sm hover:shadow-md">
       <Link href={`/restaurant/${restaurant.slug || restaurant.id}`} className="flex flex-col flex-1">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gray-100">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl bg-gray-100">
           <img
             src={imageSrc}
             alt={restaurant.name}
@@ -89,14 +95,14 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
             loading="lazy"
           />
 
-          {/* Real Backend Discount Badge (Only shown if defined in DB) */}
-          {restaurant.discountBadge && (
-            <div className="absolute top-2.5 left-2.5 rounded-xl bg-black/80 backdrop-blur-md px-2.5 py-1 text-[10px] sm:text-[11px] font-black uppercase tracking-tight text-white shadow-sm">
-              {restaurant.discountBadge}
+          {/* Open/Closed Badge */}
+          {!isOpen && (
+            <div className="absolute top-2.5 left-2.5 rounded-xl bg-black/80 backdrop-blur-md px-2.5 py-1 text-[10px] font-black uppercase tracking-tight text-white shadow-sm">
+              Closed
             </div>
           )}
 
-          {/* Real Favorite Heart Button */}
+          {/* Favorite Heart Button */}
           <button
             type="button"
             onClick={handleToggleFavorite}
@@ -111,7 +117,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
             />
           </button>
 
-          {/* Rating Pill Bottom Left (Only if reviews exist) */}
+          {/* Rating Pill Bottom Left */}
           {rating ? (
             <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-[11px] font-black text-white shadow-sm">
               <span>{rating}</span>
@@ -125,15 +131,28 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
         </div>
 
         {/* Info Block */}
-        <div className="pt-2.5 pb-1 px-1 space-y-0.5">
+        <div className="p-3 space-y-1">
           <h3 className="text-sm sm:text-base font-black text-gray-900 truncate group-hover:text-rose-600 transition">
             {restaurant.name}
           </h3>
 
-          <p className="text-[11px] sm:text-xs font-semibold text-gray-500">
-            {deliveryTime && <span>{deliveryTime} • </span>}
-            <span className="font-bold text-gray-700">{priceText}</span>
-          </p>
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-gray-500 flex-wrap">
+            {deliveryTime && (
+              <span className="flex items-center gap-0.5">
+                <Clock className="h-3 w-3 text-gray-400" />
+                {deliveryTime}
+              </span>
+            )}
+            {deliveryTime && (distanceText || priceText) && <span>•</span>}
+            {distanceText && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="h-3 w-3 text-gray-400" />
+                {distanceText}
+              </span>
+            )}
+            {distanceText && priceText && <span>•</span>}
+            {priceText && <span className="font-bold text-gray-700">{priceText}</span>}
+          </div>
 
           {cuisineText && (
             <p className="text-[11px] text-gray-400 truncate font-medium">

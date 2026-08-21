@@ -29,7 +29,51 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.categories ?? [];
-          setCategories(list);
+          if (list.length > 0) {
+            setCategories(list);
+            return;
+          }
+        }
+
+        // Seamless fallback: Aggregate categories dynamically from database restaurants
+        const restRes = await fetch(`${API_BASE}/restaurants`);
+        if (restRes.ok) {
+          const restData = await restRes.json();
+          const restaurants = Array.isArray(restData) ? restData : restData.restaurants ?? [];
+          const categoryMap = new Map<string, { id: string; name: string; image: string; itemCount: number }>();
+
+          for (const rest of restaurants) {
+            // Check categories
+            for (const cat of rest.categories || []) {
+              const name = cat.name?.trim();
+              if (name && !categoryMap.has(name.toLowerCase())) {
+                const firstImg = cat.foodItems?.[0]?.imageUrl || rest.bannerUrl || rest.logoUrl || '';
+                categoryMap.set(name.toLowerCase(), {
+                  id: cat.id || name,
+                  name: name.charAt(0).toUpperCase() + name.slice(1),
+                  image: firstImg,
+                  itemCount: cat.foodItems?.length || 1,
+                });
+              }
+            }
+
+            // Check cuisines
+            for (const cuisine of rest.cuisines || []) {
+              const name = cuisine.trim();
+              if (name && !categoryMap.has(name.toLowerCase())) {
+                categoryMap.set(name.toLowerCase(), {
+                  id: name,
+                  name: name.charAt(0).toUpperCase() + name.slice(1),
+                  image: rest.bannerUrl || rest.logoUrl || '',
+                  itemCount: 1,
+                });
+              }
+            }
+          }
+
+          if (categoryMap.size > 0) {
+            setCategories(Array.from(categoryMap.values()));
+          }
         }
       } catch (err) {
         console.error('Failed to load categories from API', err);

@@ -32,7 +32,6 @@ export default function robots(): MetadataRoute.Robots {
           '/notifications',
           '/referral',
           '/wishlist',
-          '/coupons',
           '/api/',
           '/_next/',
         ],

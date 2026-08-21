@@ -79,12 +79,8 @@ export default function CheckoutPage() {
   const {
     items,
     restaurantName,
-    appliedCoupon,
-    applyCoupon,
-    removeCoupon,
     getSubtotal,
     getTaxAmount,
-    getDiscountAmount,
     getGrandTotal,
     clearCart,
   } = useCartStore();
@@ -108,10 +104,6 @@ export default function CheckoutPage() {
 
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-
-  const [couponCodeInput, setCouponCodeInput] = useState('');
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const selectedAddress = getSelectedAddress();
 
@@ -176,7 +168,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const sub = getSubtotal();
-    const disc = getDiscountAmount();
+    const disc = 0;
     const dist = realDistanceKm ?? 0;
 
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
@@ -192,7 +184,7 @@ export default function CheckoutPage() {
       longitude: hasCoords ? selectedAddress!.longitude! : undefined,
       locationSource,
       tipAmount: tipAmount,
-      discountAmount: disc,
+      discountAmount: 0,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
     }).then((quote) => {
@@ -201,9 +193,9 @@ export default function CheckoutPage() {
   }, [items, selectedAddress, realDistanceKm, tipAmount]);
 
   const tax = orderQuote ? orderQuote.totalCustomerTaxes : 0;
-  const discount = getDiscountAmount();
+  const discount = 0;
   const baseGrandTotal =
-    subtotal + dynamicDeliveryFee + platformFee + tax - discount;
+    subtotal + dynamicDeliveryFee + platformFee + tax;
   const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -338,65 +330,7 @@ export default function CheckoutPage() {
     setPlaceCandidates([]);
   };
 
-  const handleApplyCoupon = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanCode = couponCodeInput.trim().toUpperCase();
-    if (!cleanCode) {
-      setCouponError('Please enter a coupon code');
-      return;
-    }
 
-    setIsApplyingCoupon(true);
-    setCouponError(null);
-
-    try {
-      const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-      const res = await fetch(`${API_BASE}/coupons/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          code: cleanCode,
-          subtotal,
-          restaurantId: restId || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.valid && data.discountAmount > 0) {
-          applyCoupon(cleanCode, data.discountAmount);
-          setCouponError(null);
-          setCouponCodeInput('');
-          setIsApplyingCoupon(false);
-          return;
-        } else {
-          setCouponError(data.message || 'Invalid or expired coupon code');
-          setIsApplyingCoupon(false);
-          return;
-        }
-      }
-    } catch {
-      /* Fallback to local validation */
-    }
-
-    if (cleanCode === 'ZAYKA50') {
-      const disc = Math.round(subtotal * 0.5);
-      applyCoupon('ZAYKA50', Math.min(disc, 150));
-      setCouponError(null);
-      setCouponCodeInput('');
-    } else if (cleanCode === 'WELCOME100') {
-      applyCoupon('WELCOME100', Math.min(100, subtotal));
-      setCouponError(null);
-      setCouponCodeInput('');
-    } else {
-      setCouponError('Invalid coupon code. Try ZAYKA50 or WELCOME100');
-    }
-
-    setIsApplyingCoupon(false);
-  };
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -492,7 +426,6 @@ export default function CheckoutPage() {
         paymentMethod: validPaymentMethod,
         specialInstruction: instructions.trim() || undefined,
         tipAmount: tipAmount > 0 ? tipAmount : undefined,
-        couponCode: appliedCoupon?.code || undefined,
       };
 
       const forbidden = [
@@ -1183,50 +1116,6 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {/* Coupon Section */}
-                <div className="border-t border-gray-100 pt-3">
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between rounded-xl bg-emerald-50 p-2.5 border border-emerald-200 text-xs font-bold text-emerald-800">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>Code: {appliedCoupon.code} (-₹{appliedCoupon.discountAmount})</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={removeCoupon}
-                        className="text-[10px] font-bold text-rose-600 hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Coupon (e.g. ZAYKA50)"
-                        value={couponCodeInput}
-                        onChange={(e) => {
-                          setCouponCodeInput(e.target.value);
-                          setCouponError(null);
-                        }}
-                        className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-900 uppercase focus:border-orange-500 focus:bg-white focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        disabled={isApplyingCoupon || !couponCodeInput.trim()}
-                        className="rounded-xl bg-orange-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition"
-                      >
-                        {isApplyingCoupon ? '...' : 'Apply'}
-                      </button>
-                    </div>
-                  )}
-
-                  {couponError && (
-                    <p className="text-[10px] font-bold text-rose-600 mt-1">⚠️ {couponError}</p>
-                  )}
-                </div>
-
                 {/* Fee Breakdown */}
                 <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between text-gray-600">
@@ -1245,12 +1134,6 @@ export default function CheckoutPage() {
                     <span>GST &amp; Taxes</span>
                     <span>₹0</span>
                   </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-bold">
-                      <span>Promo Discount</span>
-                      <span>-₹{discount}</span>
-                    </div>
-                  )}
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-orange-600 font-bold">
                       <span>Rider Tip (100% to rider)</span>

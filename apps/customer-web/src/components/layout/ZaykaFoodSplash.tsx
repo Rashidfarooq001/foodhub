@@ -18,7 +18,7 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
       style={{
         background: 'linear-gradient(135deg, #14532d 0%, #166534 40%, #15803d 70%, #ea580c 100%)',
         opacity: phase === 'exit' ? 0 : 1,

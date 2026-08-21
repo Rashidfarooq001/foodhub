@@ -163,11 +163,6 @@ export default function RestaurantDetailPage() {
                 <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/30">
                   OPEN NOW
                 </span>
-                {restaurant.discountBadge && (
-                  <span className="flex items-center gap-1 rounded-full bg-orange-600 px-3 py-1 text-xs font-bold text-white">
-                    <Tag className="h-3 w-3" /> {restaurant.discountBadge}
-                  </span>
-                )}
               </div>
               <h1 className="text-3xl font-black sm:text-4xl">{restaurant.name}</h1>
               <p className="text-xs text-gray-300">{restaurant.cuisines?.join(' • ')}</p>

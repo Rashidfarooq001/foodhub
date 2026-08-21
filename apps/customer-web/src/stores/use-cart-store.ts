@@ -26,23 +26,18 @@ export interface CartItem {
   restaurantName: string;
 }
 
-interface AppliedCoupon {
-  code: string;
-  discountAmount: number;
-}
-
 interface CartState {
   items: CartItem[];
   restaurantId: string | null;
   restaurantName: string | null;
-  appliedCoupon: AppliedCoupon | null;
+  appliedCoupon: null;
   orderQuote: CustomerOrderQuoteData | null;
 
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>, quantityToAdd?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
-  applyCoupon: (code: string, discount: number) => void;
+  applyCoupon: (code?: string, discount?: number) => void;
   removeCoupon: () => void;
   setOrderQuote: (quote: CustomerOrderQuoteData | null) => void;
   fetchCartQuote: (address?: CustomerAddressItem | null) => Promise<CustomerOrderQuoteData | null>;
@@ -134,7 +129,7 @@ export const useCartStore = create<CartState>()(
           orderQuote: null,
         }),
 
-      applyCoupon: (code, discountAmount) => set({ appliedCoupon: { code, discountAmount }, orderQuote: null }),
+      applyCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
 
       removeCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
 
@@ -148,7 +143,6 @@ export const useCartStore = create<CartState>()(
         }
 
         const restaurantId = get().restaurantId || get().items[0]?.restaurantId || undefined;
-        const discountAmount = get().getDiscountAmount();
 
         const hasCoords = address?.latitude !== null && address?.latitude !== undefined &&
           address?.longitude !== null && address?.longitude !== undefined;
@@ -161,7 +155,7 @@ export const useCartStore = create<CartState>()(
           latitude: hasCoords ? address!.latitude! : undefined,
           longitude: hasCoords ? address!.longitude! : undefined,
           locationSource,
-          discountAmount,
+          discountAmount: 0,
         });
 
         if (quote) {
@@ -189,7 +183,7 @@ export const useCartStore = create<CartState>()(
         return 0; // GST = ₹0
       },
 
-      getDiscountAmount: () => (get().appliedCoupon ? get().appliedCoupon!.discountAmount : 0),
+      getDiscountAmount: () => 0,
 
       getGrandTotal: () => {
         const subtotal = get().getSubtotal();
@@ -201,8 +195,7 @@ export const useCartStore = create<CartState>()(
         const total =
           subtotal +
           get().getDeliveryFee() +
-          3 - // Fixed Platform Fee ₹3
-          get().getDiscountAmount();
+          3; // Fixed Platform Fee ₹3
         return Math.max(0, total);
       },
 

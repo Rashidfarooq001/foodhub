@@ -129,6 +129,27 @@ export class GeolocationController {
     };
   }
 
+  @Post(['resolve', 'location/resolve'])
+  @ApiOperation({ summary: 'Resolve customer GPS coordinates into structured Zayka Food location' })
+  async postResolveLocation(
+    @Body() body: { latitude?: number; longitude?: number; lat?: number; lng?: number },
+  ) {
+    const lat = body.latitude ?? body.lat ?? 0;
+    const lng = body.longitude ?? body.lng ?? 0;
+    return this.geo.resolveLocation(Number(lat), Number(lng));
+  }
+
+  @Get(['resolve', 'location/resolve'])
+  @ApiOperation({ summary: 'GET Resolve customer GPS coordinates into structured Zayka Food location' })
+  @ApiQuery({ name: 'lat', required: true })
+  @ApiQuery({ name: 'lng', required: true })
+  async getResolveLocation(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+  ) {
+    return this.geo.resolveLocation(parseFloat(lat || '0'), parseFloat(lng || '0'));
+  }
+
   @Get(['reverse', 'reverse-geocode'])
   @ApiOperation({ summary: 'Reverse geocode coordinates to address' })
   @ApiQuery({ name: 'lat' })
@@ -137,8 +158,8 @@ export class GeolocationController {
     @Query('lat') lat: string,
     @Query('lng') lng: string,
   ) {
-    const address = await this.geo.reverseGeocode(parseFloat(lat), parseFloat(lng));
-    return typeof address === 'string' ? { address } : address;
+    const result = await this.geo.resolveLocation(parseFloat(lat || '0'), parseFloat(lng || '0'));
+    return result;
   }
 
   @Get('distance')

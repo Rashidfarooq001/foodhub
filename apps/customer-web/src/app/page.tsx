@@ -13,11 +13,10 @@ import {
   Clock,
   ArrowRight,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { RecommendedCard } from '../components/home/RecommendedCard';
-import { HeroBanner } from '../components/home/HeroBanner';
+import { LocationSelectorModal } from '../components/home/LocationSelectorModal';
 import { RestaurantData, normalizeRestaurantData } from '../data/mock-data';
 import { useAuthStore } from '../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -29,14 +28,15 @@ export default function CustomerHomePage() {
   const { user, isAuthenticated, accessToken } = useAuthStore();
 
   // Dynamic Location State
-  const [locationLabel, setLocationLabel] = useState<string>('Home');
+  const [locationLabel, setLocationLabel] = useState<string>('Location');
   const [locationAddress, setLocationAddress] = useState<string>('Detecting location...');
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   // Filters & State
   const [isVegOnly, setIsVegOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeChip, setActiveChip] = useState<'all' | 'fast' | 'rating' | 'veg' | 'offers' | 'near'>('all');
+  const [activeChip, setActiveChip] = useState<'all' | 'fast' | 'rating' | 'veg' | 'near'>('all');
 
   // Real Data State
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
@@ -124,12 +124,15 @@ export default function CustomerHomePage() {
     return () => { isMounted = false; };
   }, [isAuthenticated, accessToken]);
 
-  // 2. Fetch Restaurants from Backend API
+  // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
   const fetchRestaurants = async () => {
     setIsLoading(true);
     setIsError(false);
     try {
-      const res = await fetch(`${API_BASE}/restaurants`);
+      const url = userCoords
+        ? `${API_BASE}/restaurants?lat=${userCoords.lat}&lng=${userCoords.lng}`
+        : `${API_BASE}/restaurants`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.restaurants ?? [];
@@ -251,8 +254,6 @@ export default function CustomerHomePage() {
       list = list.filter((r) => (r.deliveryTimeMins || 99) <= 30);
     } else if (activeChip === 'rating') {
       list = list.filter((r) => (r.avgRating || 0) >= 4.0);
-    } else if (activeChip === 'offers') {
-      list = list.filter((r) => Boolean(r.discountBadge));
     } else if (activeChip === 'near') {
       list.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
     }
@@ -270,18 +271,17 @@ export default function CustomerHomePage() {
     : 'U';
 
   const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
-
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
 
-        {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER) ──────────── */}
-        <div className="flex items-center justify-between border-b border-gray-100/80 pb-2">
+        {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
+        <div className="flex items-center justify-between border-b border-gray-100/80 pb-2 md:hidden">
           {/* Logo on Left */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <img
               src="/zaykafood-logo.png"
-              alt="ZaykaFood"
+              alt="Zayka Food"
               className="h-8 sm:h-9 w-auto object-contain"
             />
           </Link>
@@ -297,12 +297,13 @@ export default function CustomerHomePage() {
           </div>
         </div>
 
-        {/* ─── ROW 2: LOCATION (LEFT) + VEG BUTTON + NOTIFICATION + PROFILE (RIGHT) ─── */}
+        {/* ─── ROW 2: LOCATION (LEFT) + VEG TOGGLE + NOTIFICATION + PROFILE (RIGHT) ─── */}
         <div className="flex items-center justify-between gap-2 pt-0.5">
           {/* Current Location on Left */}
-          <Link
-            href={isAuthenticated ? '/addresses' : '/login'}
-            className="flex items-start gap-1.5 min-w-0 max-w-[55%] sm:max-w-md group"
+          <button
+            type="button"
+            onClick={() => setIsLocationModalOpen(true)}
+            className="flex items-start gap-1.5 min-w-0 max-w-[55%] sm:max-w-md group text-left"
           >
             <div className="mt-0.5 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
               <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-rose-600 text-rose-600" />
@@ -316,11 +317,11 @@ export default function CustomerHomePage() {
                 {locationAddress}
               </p>
             </div>
-          </Link>
+          </button>
 
-          {/* Right Action Cluster: Veg-Nonveg Button + Notification + Profile Photo */}
+          {/* Right Action Cluster: Veg Toggle + Notification + Profile Photo */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Veg - Nonveg Button */}
+            {/* Veg Toggle Button */}
             <button
               type="button"
               onClick={() => setIsVegOnly(!isVegOnly)}
@@ -341,33 +342,34 @@ export default function CustomerHomePage() {
               </span>
             </button>
 
-            {/* Notification Icon */}
-            <Link
-              href="/notifications"
-              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-            </Link>
+            {/* Notification & Profile (Mobile Only, Desktop handled by Navbar) */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Link
+                href="/notifications"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+              </Link>
 
-            {/* Profile Photo */}
-            <Link
-              href={isAuthenticated ? '/profile' : '/login'}
-              className="shrink-0"
-              aria-label="User Profile"
-            >
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.firstName || 'Profile'}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-rose-100"
-                />
-              ) : (
-                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
-                  {isAuthenticated ? initials : 'Sign In'}
-                </div>
-              )}
-            </Link>
+              <Link
+                href={isAuthenticated ? '/profile' : '/login'}
+                className="shrink-0"
+                aria-label="User Profile"
+              >
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.firstName || 'Profile'}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-100"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
+                    {isAuthenticated ? initials : 'Sign In'}
+                  </div>
+                )}
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -393,8 +395,8 @@ export default function CustomerHomePage() {
           </div>
         )}
 
-        {/* ─── ROW 3: LARGE ROUNDED SEARCH BAR ─────────────── */}
-        <div className="relative w-full">
+        {/* ─── ROW 3: LARGE ROUNDED SEARCH BAR (Mobile Only) ─────────────── */}
+        <div className="relative w-full md:hidden">
           <div className="relative flex items-center rounded-2xl sm:rounded-3xl border border-gray-200/90 bg-gray-50/80 hover:bg-white hover:border-rose-400 transition-all duration-200 shadow-sm">
             <div className="pl-4 pr-2 text-rose-600">
               <Search className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
@@ -408,7 +410,7 @@ export default function CustomerHomePage() {
                   router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
                 }
               }}
-              placeholder="Search restaurants, dishes and cuisines"
+              placeholder="Search restaurants, dishes and cuisines..."
               className="w-full bg-transparent py-2.5 sm:py-3.5 text-xs sm:text-base font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none"
             />
             <button
@@ -428,7 +430,7 @@ export default function CustomerHomePage() {
           onSelectCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* ─── ROW 5: FILTER CHIPS (Filter, Under 30, Rating, etc.) ─── */}
+        {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me) ─── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveChip(activeChip === 'all' ? 'rating' : 'all')}
@@ -444,7 +446,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'fast' ? 'all' : 'fast')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'fast'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -455,7 +457,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'rating' ? 'all' : 'rating')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'rating'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -469,7 +471,7 @@ export default function CustomerHomePage() {
               setIsVegOnly(!isVegOnly);
               setActiveChip(isVegOnly ? 'all' : 'veg');
             }}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               isVegOnly || activeChip === 'veg'
                 ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -479,19 +481,8 @@ export default function CustomerHomePage() {
           </button>
 
           <button
-            onClick={() => setActiveChip(activeChip === 'offers' ? 'all' : 'offers')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-              activeChip === 'offers'
-                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Offers
-          </button>
-
-          <button
             onClick={() => setActiveChip(activeChip === 'near' ? 'all' : 'near')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'near'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -501,18 +492,15 @@ export default function CustomerHomePage() {
           </button>
         </div>
 
-        {/* ─── PROMOTIONAL OFFERS BANNER (DYNAMIC FROM DB) ─── */}
-        <HeroBanner />
-
-        {/* ─── ROW 6: RECOMMENDED FOR YOU ──────────────────── */}
+        {/* ─── ROW 6: RECOMMENDED FOR YOU (DYNAMIC) ────────── */}
         <section className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
-              Recommended For You
+              RECOMMENDED FOR YOU
             </h2>
             {!isLoading && (
               <span className="text-[11px] font-bold text-gray-400">
-                {recommendedList.length} verified kitchens
+                {recommendedList.length} kitchens
               </span>
             )}
           </div>
@@ -561,11 +549,11 @@ export default function CustomerHomePage() {
           )}
         </section>
 
-        {/* ─── ROW 7: POPULAR (DYNAMIC) ────────────────────── */}
+        {/* ─── ROW 7: POPULAR NEAR YOU (DYNAMIC) ───────────── */}
         <section className="space-y-3 pt-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
-              Popular
+              POPULAR NEAR YOU
             </h2>
             <Link
               href="/restaurants"
@@ -595,6 +583,19 @@ export default function CustomerHomePage() {
         </section>
 
       </div>
+
+      {/* Location Selection Modal (GPS / Search / Saved) */}
+      <LocationSelectorModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        currentLocality={locationLabel}
+        currentAddress={locationAddress}
+        onSelectLocation={(loc) => {
+          setLocationLabel(loc.label || loc.locality || 'Selected Location');
+          setLocationAddress(loc.address);
+          setUserCoords({ lat: loc.lat, lng: loc.lng });
+        }}
+      />
     </div>
   );
 }

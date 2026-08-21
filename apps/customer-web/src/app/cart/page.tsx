@@ -30,85 +30,16 @@ export default function CartPage() {
     updateQuantity,
     removeItem,
     clearCart,
-    applyCoupon,
-    removeCoupon,
     getSubtotal,
     getDeliveryFee,
     getTaxAmount,
-    getDiscountAmount,
     getGrandTotal,
   } = useCartStore();
-
-  const { accessToken } = useAuthStore();
-  const [couponCodeInput, setCouponCodeInput] = useState('');
-  const [couponError, setCouponError] = useState('');
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const subtotal = getSubtotal();
   const deliveryFee = getDeliveryFee();
   const tax = getTaxAmount();
-  const discount = getDiscountAmount();
   const grandTotal = getGrandTotal();
-
-  const handleApplyCoupon = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanCode = couponCodeInput.trim().toUpperCase();
-    if (!cleanCode) {
-      setCouponError('Please enter a coupon code');
-      return;
-    }
-
-    setIsApplyingCoupon(true);
-    setCouponError('');
-
-    try {
-      const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-      const res = await fetch(`${API_BASE}/coupons/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          code: cleanCode,
-          subtotal,
-          restaurantId: restId || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.valid && data.discountAmount > 0) {
-          applyCoupon(cleanCode, data.discountAmount);
-          setCouponError('');
-          setCouponCodeInput('');
-          setIsApplyingCoupon(false);
-          return;
-        } else {
-          setCouponError(data.message || 'Invalid or expired coupon code');
-          setIsApplyingCoupon(false);
-          return;
-        }
-      }
-    } catch {
-      /* Fallback to local validation */
-    }
-
-    if (cleanCode === 'ZAYKA50') {
-      const disc = Math.round(subtotal * 0.5);
-      applyCoupon('ZAYKA50', Math.min(disc, 150));
-      setCouponError('');
-      setCouponCodeInput('');
-    } else if (cleanCode === 'WELCOME100') {
-      applyCoupon('WELCOME100', Math.min(100, subtotal));
-      setCouponError('');
-      setCouponCodeInput('');
-    } else {
-      setCouponError('Invalid coupon code. Try ZAYKA50 or WELCOME100');
-    }
-
-    setIsApplyingCoupon(false);
-  };
 
   if (items.length === 0) {
     return (
@@ -231,54 +162,7 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* Coupon */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                <Tag className="h-4 w-4 text-orange-600 shrink-0" />
-                <span>Promo Code</span>
-              </div>
-            </div>
 
-            {appliedCoupon ? (
-              <div className="flex items-center justify-between rounded-xl bg-emerald-50 p-2.5 border border-emerald-200 text-xs font-bold text-emerald-800">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>{appliedCoupon.code} (-₹{appliedCoupon.discountAmount})</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={removeCoupon}
-                  className="text-[10px] font-bold text-rose-600 hover:underline"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter code (ZAYKA50)"
-                  value={couponCodeInput}
-                  onChange={(e) => {
-                    setCouponCodeInput(e.target.value);
-                    setCouponError('');
-                  }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-900 uppercase focus:border-orange-500 focus:bg-white focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyCoupon}
-                  disabled={isApplyingCoupon || !couponCodeInput.trim()}
-                  className="rounded-xl bg-orange-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition shrink-0"
-                >
-                  {isApplyingCoupon ? '...' : 'Apply'}
-                </button>
-              </div>
-            )}
-
-            {couponError && <p className="text-[10px] font-bold text-rose-600 mt-1">⚠️ {couponError}</p>}
-          </div>
 
           {/* Bill Summary */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-2 text-xs">
@@ -299,12 +183,6 @@ export default function CartPage() {
               <span>GST &amp; Taxes</span>
               <span>₹0</span>
             </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-emerald-600 font-bold">
-                <span>Discount</span>
-                <span>-₹{discount}</span>
-              </div>
-            )}
 
             <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center text-sm font-black text-gray-900">
               <span>To Pay</span>

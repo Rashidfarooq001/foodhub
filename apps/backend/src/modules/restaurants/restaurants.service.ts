@@ -294,7 +294,7 @@ export class RestaurantsService {
     })));
   }
 
-  async findAllRestaurants(adminView = false) {
+  async findAllRestaurants(adminView = false, userLat?: number, userLng?: number) {
     const whereCondition: any = adminView
       ? { deletedAt: null }
       : { status: RestaurantStatus.APPROVED, isOpen: true, deletedAt: null };
@@ -318,15 +318,35 @@ export class RestaurantsService {
       take: 100,
     });
 
-    return serializePrisma(restaurants.map((restaurant) => ({
-      ...restaurant,
-      avgRating: restaurant.avgRating
-        ? Number(restaurant.avgRating)
-        : 0,
-      commissionRate: restaurant.commissionRate
-        ? Number(restaurant.commissionRate)
-        : 0,
-    })));
+    return serializePrisma(restaurants.map((restaurant) => {
+      let distanceKm: number | null = null;
+      if (userLat !== undefined && userLng !== undefined && restaurant.latitude && restaurant.longitude) {
+        const rLat = Number(restaurant.latitude);
+        const rLng = Number(restaurant.longitude);
+        const R = 6371; // Earth's radius in km
+        const dLat = ((rLat - userLat) * Math.PI) / 180;
+        const dLng = ((rLng - userLng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((userLat * Math.PI) / 180) *
+            Math.cos((rLat * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distanceKm = Math.round(R * c * 10) / 10;
+      }
+
+      return {
+        ...restaurant,
+        distanceKm,
+        avgRating: restaurant.avgRating
+          ? Number(restaurant.avgRating)
+          : 0,
+        commissionRate: restaurant.commissionRate
+          ? Number(restaurant.commissionRate)
+          : 0,
+      };
+    }));
   }
 
   async findRestaurantById(idOrSlug: string) {

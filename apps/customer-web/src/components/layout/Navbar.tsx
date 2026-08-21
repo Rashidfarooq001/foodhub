@@ -17,7 +17,7 @@ import {
   Clock,
   CreditCard,
   ChevronDown,
-  Tag,
+  Utensils,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/use-cart-store';
@@ -82,8 +82,8 @@ export const Navbar: React.FC = () => {
 
             {/* Desktop Navigation Links */}
             <div className="hidden lg:flex items-center gap-4 mr-2">
-              <Link href="/coupons" className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-rose-600 transition">
-                <Tag className="h-3.5 w-3.5 text-rose-600" /> Offers
+              <Link href="/restaurants" className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-rose-600 transition">
+                <Utensils className="h-3.5 w-3.5 text-rose-600" /> Restaurants
               </Link>
               <Link href="/orders" className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-rose-600 transition">
                 <Clock className="h-3.5 w-3.5 text-rose-600" /> Orders

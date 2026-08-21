@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, CheckCircle2, MessageSquare } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { useAuthStore } from '../../../../stores/use-auth-store';
 
 function StarRating({
   label,
@@ -63,7 +64,7 @@ export default function OrderReviewPage() {
     setSubmitting(true);
     try {
       const apiBase = getApiBaseUrl();
-      const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null;
+      const token = useAuthStore.getState().accessToken || (typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null);
 
       if (!token) {
         alert('Please log in to submit a review.');

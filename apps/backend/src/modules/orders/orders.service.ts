@@ -179,13 +179,8 @@ export class OrdersService {
     // 4. Validate minimum order
     await this.validation.validateMinimumOrder(dto.restaurantId, subtotal);
 
-    // 5. Apply coupon
-    let discountAmount = 0;
-    if (dto.couponCode) {
-      discountAmount = await this.validation.validateAndApplyCoupon(
-        dto.couponCode, targetCustomerId, subtotal,
-      );
-    }
+    // 5. Zero discount (No coupon system)
+    const discountAmount = 0;
 
     // Construct authoritative immutable deliveryAddress snapshot & calculate real Haversine distance
     const rawAddress: any = dto.deliveryAddress || {};

@@ -514,38 +514,92 @@ export class GeolocationService {
     }));
   }
 
-  /** Reverse geocoding — coordinates → address string via Mappls / OSM API */
-  async reverseGeocode(lat: number, lng: number): Promise<string> {
-    const key = this.MapplsKey;
-    const url = key
-      ? `https://apis.mappls.com/advancedmaps/v1/${key}/rev_geocode?lat=${lat}&lng=${lng}`
-      : `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+  /** Resolve coordinates to structured Zayka Food location */
+  async resolveLocation(lat: number, lng: number): Promise<{
+    latitude: number;
+    longitude: number;
+    locality: string;
+    district: string;
+    subDistrict?: string;
+    state: string;
+    country: string;
+    formattedAddress: string;
+  }> {
+    // 1. Check local Kashmir geographic dataset for high-precision local matching (< 4 km)
+    const KASHMIR_LOCALITY_DATASET = [
+      { name: 'Kehnusa', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4646738, lng: 74.577908 },
+      { name: 'Aloosa', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4875676, lng: 74.1025259 },
+      { name: 'Bandipora', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4232433, lng: 74.635965 },
+      { name: 'Sopore', district: 'Baramulla', state: 'Jammu and Kashmir', lat: 34.2869124, lng: 74.4625673 },
+      { name: 'Baramulla', district: 'Baramulla', state: 'Jammu and Kashmir', lat: 34.2091, lng: 74.3436 },
+      { name: 'Sumbal', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.2372, lng: 74.6341 },
+      { name: 'Hajin', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.2981, lng: 74.6192 },
+      { name: 'Srinagar', district: 'Srinagar', state: 'Jammu and Kashmir', lat: 34.0747444, lng: 74.8204443 },
+    ];
 
+    for (const loc of KASHMIR_LOCALITY_DATASET) {
+      const dist = haversineKm(lat, lng, loc.lat, loc.lng);
+      if (dist <= 3.5) {
+        return {
+          latitude: lat,
+          longitude: lng,
+          locality: loc.name,
+          district: loc.district,
+          state: loc.state,
+          country: 'India',
+          formattedAddress: `${loc.name}, ${loc.district}, ${loc.state}, India`,
+        };
+      }
+    }
+
+    // 2. Query OSM / Mappls Reverse Geocoding
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
+      const key = this.MapplsKey;
+      const url = key
+        ? `https://apis.mappls.com/advancedmaps/v1/${key}/rev_geocode?lat=${lat}&lng=${lng}`
+        : `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+
+      const res = await fetch(url, { headers: { 'User-Agent': 'ZaykaFood/1.0' } });
       if (res.ok) {
         const data = await res.json();
-        if (data.results && data.results[0] && data.results[0].formatted_address) {
-          return data.results[0].formatted_address;
-        }
-        if (data.display_name && !data.display_name.includes('unavailable')) {
-          return data.display_name;
-        }
-        if (data.address) {
-          const parts = [
-            data.address.village || data.address.suburb || data.address.neighbourhood || data.address.road,
-            data.address.county || data.address.city || data.address.town || 'Bandipora',
-            data.address.state || 'Jammu and Kashmir',
-            'India',
-          ].filter(Boolean);
-          if (parts.length > 0) return parts.join(', ');
-        }
+        const addr = data.address || {};
+        const locality = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || (data.display_name?.split(',')[0]) || 'Current Location';
+        const district = addr.county || addr.state_district || addr.district || addr.city || 'Bandipora';
+        const state = addr.state || 'Jammu and Kashmir';
+        const country = addr.country || 'India';
+        const formattedAddress = data.display_name || `${locality}, ${district}, ${state}, ${country}`;
+
+        return {
+          latitude: lat,
+          longitude: lng,
+          locality,
+          district,
+          subDistrict: addr.suburb || addr.neighbourhood,
+          state,
+          country,
+          formattedAddress,
+        };
       }
-      return 'Location detected, Jammu & Kashmir, India';
     } catch (err) {
-      this.logger.error('Reverse geocode failed', err);
-      return 'Location detected, Jammu & Kashmir, India';
+      this.logger.warn(`Location resolution error: ${err}`);
     }
+
+    // Fallback safe coordinates format
+    return {
+      latitude: lat,
+      longitude: lng,
+      locality: `Location (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
+      district: 'Jammu and Kashmir',
+      state: 'Jammu and Kashmir',
+      country: 'India',
+      formattedAddress: `${lat.toFixed(4)}, ${lng.toFixed(4)}, Jammu & Kashmir, India`,
+    };
+  }
+
+  /** Reverse geocoding — coordinates → address string via Mappls / OSM API */
+  async reverseGeocode(lat: number, lng: number): Promise<string> {
+    const resolved = await this.resolveLocation(lat, lng);
+    return resolved.formattedAddress;
   }
 
   /** Calculate distance and ETA between two coordinates */

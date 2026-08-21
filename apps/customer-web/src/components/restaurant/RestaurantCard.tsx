@@ -29,12 +29,7 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Discount Badge */}
-        {restaurant.discountBadge && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-orange-600 px-3 py-1 text-xs font-black text-white shadow-lg">
-            <Tag className="h-3.5 w-3.5 shrink-0" /> {restaurant.discountBadge}
-          </div>
-        )}
+
 
         {/* Rating Badge */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 px-2.5 py-1 text-xs font-bold text-gray-900 shadow-md backdrop-blur-md">

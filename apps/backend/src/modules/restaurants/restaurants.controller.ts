@@ -39,8 +39,14 @@ export class RestaurantsController {
 
   @Get()
   @ApiOperation({ summary: 'List registered restaurants (Approved only for public)' })
-  async findAll(@Query('admin') admin?: string) {
-    return this.restaurantsService.findAllRestaurants(admin === 'true');
+  async findAll(
+    @Query('admin') admin?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    const userLat = lat ? parseFloat(lat) : undefined;
+    const userLng = lng ? parseFloat(lng) : undefined;
+    return this.restaurantsService.findAllRestaurants(admin === 'true', userLat, userLng);
   }
 
   @Get(':id')
