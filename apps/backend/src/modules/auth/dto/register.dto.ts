@@ -31,4 +31,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiProperty({ example: true, description: 'Explicit acceptance of Terms & Conditions and Privacy Policy' })
+  @IsOptional()
+  termsAccepted?: boolean;
 }

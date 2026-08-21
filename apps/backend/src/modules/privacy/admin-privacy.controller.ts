@@ -112,11 +112,79 @@ export class AdminPrivacyController {
     return { success: true, updated };
   }
 
-  // 4. Audit Logs & Retention
+  // 4. Legal Consent Records & Audit Logs
+  @Get('consents')
+  async listConsents(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('consentType') consentType?: string,
+    @Query('policyVersion') policyVersion?: string,
+    @Query('status') status?: string,
+    @Query('source') source?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const result = await this.privacyService.adminListConsents({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+      search,
+      consentType,
+      policyVersion,
+      status,
+      source,
+      from,
+      to,
+    });
+    return { success: true, ...result };
+  }
+
+  @Get('consents/:id')
+  async getConsentDetails(@Param('id') id: string) {
+    const consent = await this.privacyService.adminGetConsentDetails(id);
+    return { success: true, consent };
+  }
+
+  @Get('policies')
+  async listPolicies() {
+    const policies = await this.privacyService.adminListPolicies();
+    return { success: true, policies };
+  }
+
+  @Get('policies/:id')
+  async getPolicyDetails(@Param('id') id: string) {
+    const policy = await this.privacyService.adminGetPolicy(id);
+    return { success: true, policy };
+  }
+
   @Get('audit-logs')
-  async listAuditLogs(@Query('limit') limit?: string) {
-    const logs = await this.privacyService.adminListAuditLogs(limit ? parseInt(limit, 10) : 100);
-    return { success: true, auditLogs: logs };
+  async listAuditLogs(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('action') action?: string,
+    @Query('actorId') actorId?: string,
+    @Query('entity') entity?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const result = await this.privacyService.adminListAuditLogsPaginated({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+      search,
+      action,
+      actorId,
+      entity,
+      from,
+      to,
+    });
+    return { success: true, ...result };
+  }
+
+  @Get('audit-logs/:id')
+  async getAuditLogDetails(@Param('id') id: string) {
+    const auditLog = await this.privacyService.adminGetAuditLogDetails(id);
+    return { success: true, auditLog };
   }
 
   @Post('retention/cleanup')

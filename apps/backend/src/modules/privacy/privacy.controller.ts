@@ -55,6 +55,13 @@ export class PrivacyController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('consents')
+  async getMyConsents(@Req() req: any) {
+    const consents = await this.privacyService.getUserConsents(req.user.id);
+    return { success: true, consents };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('consent')
   async recordConsent(
     @Req() req: any,

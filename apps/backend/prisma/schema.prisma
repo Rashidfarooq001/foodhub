@@ -1620,6 +1620,8 @@ model TaxRuleAuditLog {
 // ==========================================
 
 enum PrivacyConsentType {
+  TERMS_AND_CONDITIONS
+  PRIVACY_POLICY
   TERMS_AND_PRIVACY_NOTICE
   MARKETING_COMMUNICATIONS
   LOCATION_DATA_PROCESSING
@@ -1683,24 +1685,49 @@ model PrivacyConsent {
   id          String             @id @default(uuid()) @db.Uuid
   userId      String             @map("user_id") @db.Uuid
   consentType PrivacyConsentType @map("consent_type")
+  policyName  String?            @map("policy_name")
   purpose     String
-  version     String             @default("2026.1")
+  version     String             @default("1.0")
   granted     Boolean            @default(true)
   grantedAt   DateTime           @default(now()) @map("granted_at")
+  acceptedAt  DateTime?          @default(now()) @map("accepted_at")
   withdrawnAt DateTime?          @map("withdrawn_at")
-  source      String             @default("WEB_APP")
+  source      String             @default("CUSTOMER_REGISTRATION")
   ipAddress   String?            @map("ip_address")
   userAgent   String?            @map("user_agent")
+  requestId   String?            @map("request_id")
   metadata    Json?
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, consentType])
+  @@unique([userId, consentType, version])
   @@index([userId])
   @@index([consentType])
+  @@index([version])
+  @@index([acceptedAt])
+  @@index([source])
+  @@index([createdAt])
   @@map("privacy_consents")
+}
+
+model LegalPolicyVersion {
+  id          String             @id @default(uuid()) @db.Uuid
+  policyType  PrivacyConsentType @map("policy_type")
+  policyName  String             @map("policy_name")
+  version     String             @default("1.0")
+  status      String             @default("ACTIVE")
+  content     String?            @db.Text
+  summary     String?
+  publishedAt DateTime           @default(now()) @map("published_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@unique([policyType, version])
+  @@index([policyType])
+  @@index([status])
+  @@map("legal_policy_versions")
 }
 
 model PrivacyRequest {
@@ -1788,6 +1815,7 @@ model PrivacyAuditLog {
   action     String
   entity     String
   entityId   String?  @map("entity_id")
+  requestId  String?  @map("request_id")
   metadata   Json?
   ipAddress  String?  @map("ip_address")
   userAgent  String?  @map("user_agent")

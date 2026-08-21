@@ -267,20 +267,24 @@ export class PrivacyService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User account not found');
 
+    const version = dto.version || '1.0';
+
     const consent = await this.prisma.privacyConsent.upsert({
       where: {
-        userId_consentType: {
+        userId_consentType_version: {
           userId,
           consentType: dto.consentType,
+          version,
         },
       },
       create: {
         userId,
         consentType: dto.consentType,
         purpose: dto.purpose,
-        version: dto.version || '2026.1',
+        version,
         granted: dto.granted,
         grantedAt: new Date(),
+        acceptedAt: dto.granted ? new Date() : null,
         withdrawnAt: dto.granted ? null : new Date(),
         source: dto.source || 'WEB_APP',
         ipAddress: ip,
@@ -290,7 +294,7 @@ export class PrivacyService {
       update: {
         granted: dto.granted,
         purpose: dto.purpose,
-        version: dto.version || '2026.1',
+        acceptedAt: dto.granted ? new Date() : undefined,
         withdrawnAt: dto.granted ? null : new Date(),
         ipAddress: ip,
         userAgent: ua,
@@ -313,13 +317,13 @@ export class PrivacyService {
   }
 
   async withdrawConsent(userId: string, dto: WithdrawConsentDto, ip?: string, ua?: string) {
-    const existing = await this.prisma.privacyConsent.findUnique({
+    const existing = await this.prisma.privacyConsent.findFirst({
       where: {
-        userId_consentType: {
-          userId,
-          consentType: dto.consentType,
-        },
+        userId,
+        consentType: dto.consentType,
+        granted: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!existing) {
@@ -327,9 +331,13 @@ export class PrivacyService {
     }
 
     // Essential service notices cannot be withdrawn without deleting the account
-    if (dto.consentType === PrivacyConsentType.TERMS_AND_PRIVACY_NOTICE) {
+    if (
+      dto.consentType === PrivacyConsentType.TERMS_AND_PRIVACY_NOTICE ||
+      dto.consentType === PrivacyConsentType.TERMS_AND_CONDITIONS ||
+      dto.consentType === PrivacyConsentType.PRIVACY_POLICY
+    ) {
       throw new BadRequestException(
-        'Core Terms and Privacy Notice consent is necessary for account operation. To withdraw core consent, please submit an Account Deletion Request.',
+        'Essential legal terms and privacy acknowledgments cannot be withdrawn independently. To withdraw all legal consent, submit an Account Deletion (Erasure) request.',
       );
     }
 
@@ -892,6 +900,248 @@ export class PrivacyService {
     return this.prisma.privacyAuditLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
+    });
+  }
+
+  async adminListAuditLogsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    action?: string;
+    actorId?: string;
+    entity?: string;
+    from?: string;
+    to?: string;
+  }) {
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.min(100, Math.max(1, params.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    const andClauses: any[] = [];
+
+    if (params.action) {
+      andClauses.push({ action: params.action });
+    }
+    if (params.actorId) {
+      andClauses.push({ actorId: params.actorId });
+    }
+    if (params.entity) {
+      andClauses.push({ entity: params.entity });
+    }
+    if (params.from || params.to) {
+      const dateFilter: any = {};
+      if (params.from) dateFilter.gte = new Date(params.from);
+      if (params.to) dateFilter.lte = new Date(params.to);
+      andClauses.push({ createdAt: dateFilter });
+    }
+    if (params.search) {
+      const term = params.search.trim();
+      andClauses.push({
+        OR: [
+          { action: { contains: term, mode: 'insensitive' } },
+          { entity: { contains: term, mode: 'insensitive' } },
+          { entityId: { contains: term } },
+          { actorId: { contains: term } },
+          { requestId: { contains: term } },
+          { ipAddress: { contains: term } },
+        ],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.privacyAuditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.privacyAuditLog.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async adminGetAuditLogDetails(id: string) {
+    const log = await this.prisma.privacyAuditLog.findUnique({ where: { id } });
+    if (!log) throw new NotFoundException('Audit log event not found');
+    return log;
+  }
+
+  // -----------------------------------------------------------------------
+  // 11. LEGAL CONSENT RECORDS & AUDITING (ADMIN)
+  // -----------------------------------------------------------------------
+  async adminListConsents(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    consentType?: string;
+    policyVersion?: string;
+    status?: string;
+    source?: string;
+    from?: string;
+    to?: string;
+  }) {
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.min(100, Math.max(1, params.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    const andClauses: any[] = [];
+
+    if (params.consentType) {
+      andClauses.push({ consentType: params.consentType as PrivacyConsentType });
+    }
+    if (params.policyVersion) {
+      andClauses.push({ version: params.policyVersion });
+    }
+    if (params.status === 'ACCEPTED') {
+      andClauses.push({ granted: true });
+    } else if (params.status === 'WITHDRAWN') {
+      andClauses.push({ granted: false });
+    }
+    if (params.source) {
+      andClauses.push({ source: params.source });
+    }
+    if (params.from || params.to) {
+      const dateFilter: any = {};
+      if (params.from) dateFilter.gte = new Date(params.from);
+      if (params.to) dateFilter.lte = new Date(params.to);
+      andClauses.push({ acceptedAt: dateFilter });
+    }
+    if (params.search) {
+      const term = params.search.trim();
+      andClauses.push({
+        OR: [
+          { id: { contains: term } },
+          { userId: { contains: term } },
+          { requestId: { contains: term } },
+          { policyName: { contains: term, mode: 'insensitive' } },
+          { user: { phone: { contains: term } } },
+          { user: { email: { contains: term, mode: 'insensitive' } } },
+          {
+            user: {
+              profile: {
+                OR: [
+                  { firstName: { contains: term, mode: 'insensitive' } },
+                  { lastName: { contains: term, mode: 'insensitive' } },
+                ],
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.privacyConsent.findMany({
+        where,
+        include: {
+          user: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.privacyConsent.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async adminGetConsentDetails(id: string) {
+    const consent = await this.prisma.privacyConsent.findUnique({
+      where: { id },
+      include: {
+        user: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+    });
+
+    if (!consent) {
+      throw new NotFoundException('Legal consent record not found');
+    }
+
+    return consent;
+  }
+
+  // -----------------------------------------------------------------------
+  // 12. CENTRAL POLICY VERSION REGISTRY
+  // -----------------------------------------------------------------------
+  async adminListPolicies() {
+    const dbPolicies = await this.prisma.legalPolicyVersion.findMany({
+      orderBy: { publishedAt: 'desc' },
+    });
+
+    const defaultPolicies = [
+      {
+        id: 'policy-terms-v1',
+        policyType: PrivacyConsentType.TERMS_AND_CONDITIONS,
+        policyName: 'Zayka Food Terms & Conditions',
+        version: '1.0',
+        status: 'ACTIVE',
+        summary: 'General terms of service, customer ordering rules, restaurant delivery conditions, and liability policies for Zayka Food.',
+        publishedAt: new Date('2026-08-21T00:00:00.000Z'),
+      },
+      {
+        id: 'policy-privacy-v1',
+        policyType: PrivacyConsentType.PRIVACY_POLICY,
+        policyName: 'Zayka Food Privacy Policy',
+        version: '1.0',
+        status: 'ACTIVE',
+        summary: 'Digital Personal Data Protection Act (DPDP Act 2023) compliant notice on personal data processing, purpose limitation, data retention, and user privacy rights.',
+        publishedAt: new Date('2026-08-21T00:00:00.000Z'),
+      },
+    ];
+
+    if (dbPolicies.length === 0) {
+      return defaultPolicies;
+    }
+
+    return dbPolicies;
+  }
+
+  async adminGetPolicy(id: string) {
+    const policy = await this.prisma.legalPolicyVersion.findUnique({ where: { id } });
+    if (policy) return policy;
+
+    const defaults = await this.adminListPolicies();
+    const found = defaults.find((p) => p.id === id);
+    if (!found) throw new NotFoundException('Policy version not found');
+    return found;
+  }
+
+  async getUserConsents(userId: string) {
+    return this.prisma.privacyConsent.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

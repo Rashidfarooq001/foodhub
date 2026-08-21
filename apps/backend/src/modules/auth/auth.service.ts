@@ -223,6 +223,12 @@ export class AuthService {
 
 
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
+    if (dto.termsAccepted !== true) {
+      throw new BadRequestException(
+        'You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.',
+      );
+    }
+
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -252,26 +258,100 @@ export class AuthService {
     const firstName = nameParts[0] || 'Customer';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // Create ONLY CUSTOMER user + Customer domain profile
-    const user = await (this.usersService as any).prisma.user.create({
-      data: {
-        phone: formattedPhone,
-        email: cleanEmail,
-        passwordHash,
-        role: UserRole.CUSTOMER,
-        isVerified: true,
-        isActive: true,
-        profile: {
-          create: {
-            firstName,
-            lastName,
+    const serverAcceptedAt = new Date();
+    const termsPolicyVersion = '1.0';
+    const privacyPolicyVersion = '1.0';
+
+    // Atomic Database Transaction: User + 2 Legal Consent Records + Audit Log
+    const user = await (this.usersService as any).prisma.$transaction(async (tx: any) => {
+      // 1. Create User + Profile + Customer domain
+      const createdUser = await tx.user.create({
+        data: {
+          phone: formattedPhone,
+          email: cleanEmail,
+          passwordHash,
+          role: UserRole.CUSTOMER,
+          isVerified: true,
+          isActive: true,
+          profile: {
+            create: {
+              firstName,
+              lastName,
+            },
+          },
+          customer: {
+            create: {},
           },
         },
-        customer: {
-          create: {},
+        include: { profile: true, customer: true },
+      });
+
+      // 2. Record 1: Terms & Conditions Legal Consent
+      await tx.privacyConsent.create({
+        data: {
+          userId: createdUser.id,
+          consentType: 'TERMS_AND_CONDITIONS',
+          policyName: 'Zayka Food Terms & Conditions',
+          purpose: 'Platform service usage terms agreement',
+          version: termsPolicyVersion,
+          granted: true,
+          grantedAt: serverAcceptedAt,
+          acceptedAt: serverAcceptedAt,
+          source: 'CUSTOMER_REGISTRATION',
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          metadata: {
+            policyName: 'Zayka Food Terms & Conditions',
+            policyVersion: termsPolicyVersion,
+            registrationFlow: 'CUSTOMER_REGISTRATION',
+          },
         },
-      },
-      include: { profile: true, customer: true },
+      });
+
+      // 3. Record 2: Privacy Policy Legal Consent
+      await tx.privacyConsent.create({
+        data: {
+          userId: createdUser.id,
+          consentType: 'PRIVACY_POLICY',
+          policyName: 'Zayka Food Privacy Policy',
+          purpose: 'Personal data processing and protection acknowledgement',
+          version: privacyPolicyVersion,
+          granted: true,
+          grantedAt: serverAcceptedAt,
+          acceptedAt: serverAcceptedAt,
+          source: 'CUSTOMER_REGISTRATION',
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          metadata: {
+            policyName: 'Zayka Food Privacy Policy',
+            policyVersion: privacyPolicyVersion,
+            registrationFlow: 'CUSTOMER_REGISTRATION',
+          },
+        },
+      });
+
+      // 4. Create Immutable Audit Log
+      await tx.privacyAuditLog.create({
+        data: {
+          actorId: createdUser.id,
+          actorRole: 'CUSTOMER',
+          action: 'CUSTOMER_LEGAL_CONSENT_ACCEPTED',
+          entity: 'LegalConsent',
+          entityId: createdUser.id,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          metadata: {
+            termsVersion: termsPolicyVersion,
+            privacyVersion: privacyPolicyVersion,
+            termsPolicy: 'Zayka Food Terms & Conditions',
+            privacyPolicy: 'Zayka Food Privacy Policy',
+            source: 'CUSTOMER_REGISTRATION',
+            acceptedAt: serverAcceptedAt.toISOString(),
+          },
+        },
+      });
+
+      return createdUser;
     });
 
     this.logger.log(`[Customer Register] Registered new Customer ID=${user.id}, phone=${user.phone}`);
@@ -699,6 +779,11 @@ export class AuthService {
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
         this.logger.log(`[Backend MSG91] Creating CUSTOMER account for verified phone ${phoneToVerify} AFTER OTP...`);
+        if (dto?.termsAccepted !== true) {
+          throw new BadRequestException(
+            'You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.',
+          );
+        }
         if (!dto?.password || dto.password.length < 6) {
           throw new BadRequestException('A valid password (minimum 6 characters) is required to complete customer registration.');
         }
@@ -708,21 +793,97 @@ export class AuthService {
         const firstName = nameParts[0] || 'Customer';
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        user = await (this.usersService as any).prisma.user.create({
-          data: {
-            phone: phoneToVerify,
-            passwordHash,
-            role: UserRole.CUSTOMER,
-            isVerified: true,
-            isActive: true,
-            profile: {
-              create: {
-                firstName,
-                lastName,
+        const serverAcceptedAt = new Date();
+        const termsPolicyVersion = '1.0';
+        const privacyPolicyVersion = '1.0';
+
+        user = await (this.usersService as any).prisma.$transaction(async (tx: any) => {
+          const createdUser = await tx.user.create({
+            data: {
+              phone: phoneToVerify,
+              passwordHash,
+              role: UserRole.CUSTOMER,
+              isVerified: true,
+              isActive: true,
+              profile: {
+                create: {
+                  firstName,
+                  lastName,
+                },
+              },
+              customer: {
+                create: {},
               },
             },
-          },
-          include: { profile: true },
+            include: { profile: true, customer: true },
+          });
+
+          // Terms & Conditions Legal Consent
+          await tx.privacyConsent.create({
+            data: {
+              userId: createdUser.id,
+              consentType: 'TERMS_AND_CONDITIONS',
+              policyName: 'Zayka Food Terms & Conditions',
+              purpose: 'Platform service usage terms agreement',
+              version: termsPolicyVersion,
+              granted: true,
+              grantedAt: serverAcceptedAt,
+              acceptedAt: serverAcceptedAt,
+              source: 'CUSTOMER_REGISTRATION',
+              ipAddress: ipAddress || null,
+              userAgent: userAgent || null,
+              metadata: {
+                policyName: 'Zayka Food Terms & Conditions',
+                policyVersion: termsPolicyVersion,
+                registrationFlow: 'CUSTOMER_REGISTRATION',
+              },
+            },
+          });
+
+          // Privacy Policy Legal Consent
+          await tx.privacyConsent.create({
+            data: {
+              userId: createdUser.id,
+              consentType: 'PRIVACY_POLICY',
+              policyName: 'Zayka Food Privacy Policy',
+              purpose: 'Personal data processing and protection acknowledgement',
+              version: privacyPolicyVersion,
+              granted: true,
+              grantedAt: serverAcceptedAt,
+              acceptedAt: serverAcceptedAt,
+              source: 'CUSTOMER_REGISTRATION',
+              ipAddress: ipAddress || null,
+              userAgent: userAgent || null,
+              metadata: {
+                policyName: 'Zayka Food Privacy Policy',
+                policyVersion: privacyPolicyVersion,
+                registrationFlow: 'CUSTOMER_REGISTRATION',
+              },
+            },
+          });
+
+          // Audit Log
+          await tx.privacyAuditLog.create({
+            data: {
+              actorId: createdUser.id,
+              actorRole: 'CUSTOMER',
+              action: 'CUSTOMER_LEGAL_CONSENT_ACCEPTED',
+              entity: 'LegalConsent',
+              entityId: createdUser.id,
+              ipAddress: ipAddress || null,
+              userAgent: userAgent || null,
+              metadata: {
+                termsVersion: termsPolicyVersion,
+                privacyVersion: privacyPolicyVersion,
+                termsPolicy: 'Zayka Food Terms & Conditions',
+                privacyPolicy: 'Zayka Food Privacy Policy',
+                source: 'CUSTOMER_REGISTRATION',
+                acceptedAt: serverAcceptedAt.toISOString(),
+              },
+            },
+          });
+
+          return createdUser;
         });
       } else {
         this.logger.warn(`[Backend MSG91] Rejected: No user found for phone ${phoneToVerify} targeting ${normalizedTarget}`);

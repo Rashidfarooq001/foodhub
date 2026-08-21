@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [signupStep, setSignupStep] = useState<'FORM' | 'VERIFY_OTP' | 'ACCOUNT_CREATING'>('FORM');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
 
   const [error, setError] = useState('');
@@ -72,6 +73,10 @@ export default function SignupPage() {
     }
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    if (!termsAccepted) {
+      setError('You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.');
       return;
     }
 
@@ -153,6 +158,7 @@ export default function SignupPage() {
           name,
           address,
           password,
+          termsAccepted: true,
         }),
       });
 
@@ -220,6 +226,7 @@ export default function SignupPage() {
           name,
           address,
           password,
+          termsAccepted: true,
         }),
       });
 
@@ -388,24 +395,44 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Legal Terms & Privacy Acknowledgment */}
-            <div className="rounded-xl bg-gray-50 p-2.5 text-center border border-gray-100">
-              <p className="text-[11px] text-gray-600 leading-normal">
-                By creating an account, you agree to the{' '}
-                <Link href="/terms-and-conditions" target="_blank" className="font-bold text-orange-600 hover:underline">
-                  Terms &amp; Conditions
-                </Link>{' '}
-                and acknowledge the{' '}
-                <Link href="/privacy-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
-                  Privacy Policy
-                </Link>.
-              </p>
+            {/* Legal Terms & Privacy Acknowledgment Checkbox */}
+            <div className="rounded-2xl bg-orange-50/50 p-3.5 border border-orange-100">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-gray-700 select-none">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer shrink-0"
+                />
+                <span className="leading-snug text-[11px] sm:text-xs">
+                  I agree to the{' '}
+                  <Link
+                    href="/terms-and-conditions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-bold text-orange-600 hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </Link>{' '}
+                  and acknowledge the{' '}
+                  <Link
+                    href="/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-bold text-orange-600 hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>.
+                </span>
+              </label>
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
+              disabled={!termsAccepted || isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
             >
               <span>{isLoading ? 'Checking Phone...' : 'Create Account'}</span>
               <ArrowRight className="h-4 w-4" />

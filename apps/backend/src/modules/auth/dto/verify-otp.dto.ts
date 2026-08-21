@@ -36,4 +36,8 @@ export class VerifyOtpDto {
   @IsOptional()
   @IsString()
   password?: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Explicit acceptance of Terms & Conditions and Privacy Policy' })
+  @IsOptional()
+  termsAccepted?: boolean;
 }
