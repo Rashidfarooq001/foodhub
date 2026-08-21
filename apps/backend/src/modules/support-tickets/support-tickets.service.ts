@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 
@@ -12,8 +12,15 @@ export class SupportTicketsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async listTickets(status?: string, priority?: string) {
+  async listTickets(actor: { userId?: string; role?: string }, status?: string, priority?: string) {
+    const isAdmin = actor.role === 'SUPER_ADMIN' || actor.role === 'ADMIN' || actor.role === 'SUPPORT';
     const where: any = {};
+
+    if (!isAdmin) {
+      if (!actor.userId) throw new ForbiddenException('User authentication required');
+      where.userId = actor.userId;
+    }
+
     if (status && status !== 'ALL') {
       where.status = status as TicketStatus;
     }
@@ -60,7 +67,7 @@ export class SupportTicketsService {
     }));
   }
 
-  async getTicketDetails(id: string) {
+  async getTicketDetails(id: string, actor?: { userId?: string; role?: string }) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id },
       include: {
@@ -79,6 +86,14 @@ export class SupportTicketsService {
     });
 
     if (!ticket) throw new NotFoundException('Support ticket not found');
+
+    if (actor) {
+      const isAdmin = actor.role === 'SUPER_ADMIN' || actor.role === 'ADMIN' || actor.role === 'SUPPORT';
+      if (!isAdmin && ticket.userId !== actor.userId) {
+        throw new ForbiddenException('You do not have permission to view this support ticket');
+      }
+    }
+
     return ticket;
   }
 
@@ -98,68 +113,41 @@ export class SupportTicketsService {
       throw new Error('Subject and message are required.');
     }
 
-    let resolvedUserId = userId;
+    let resolvedUserId: string | null = userId || null;
 
-    if (!resolvedUserId) {
-      // 1. Try finding user by phone if provided
-      if (data.phone) {
-        const existing = await this.prisma.user.findFirst({
-          where: { phone: data.phone },
-        });
-        if (existing) resolvedUserId = existing.id;
-      }
-      // 2. Try finding user by email if provided
-      if (!resolvedUserId && data.email) {
-        const existing = await this.prisma.user.findFirst({
-          where: { email: data.email },
-        });
-        if (existing) resolvedUserId = existing.id;
-      }
-      // 3. If still no user, find or create dedicated system guest support user
-      if (!resolvedUserId) {
-        let guestUser = await this.prisma.user.findFirst({
-          where: { email: 'support-guest@zaykafood.online' },
-        });
-        if (!guestUser) {
-          guestUser = await this.prisma.user.create({
-            data: {
-              phone: `+919000000000`,
-              email: 'support-guest@zaykafood.online',
-              passwordHash: 'GUEST_SUPPORT_UNAUTHENTICATED',
-              role: 'CUSTOMER',
-              isActive: true,
-              profile: {
-                create: {
-                  firstName: data.name ? data.name.split(' ')[0] : 'Guest',
-                  lastName: data.name ? data.name.split(' ').slice(1).join(' ') || 'Customer' : 'Customer',
-                },
-              },
-            },
-          });
-        }
-        resolvedUserId = guestUser.id;
+    if (!resolvedUserId && data.phone) {
+      const user = await this.prisma.user.findUnique({
+        where: { phone: data.phone },
+      });
+      if (user) {
+        resolvedUserId = user.id;
       }
     }
 
-    const metaPrefix = [
-      data.name ? `Name: ${data.name}` : null,
-      data.phone ? `Phone: ${data.phone}` : null,
-      data.email ? `Email: ${data.email}` : null,
-      data.orderNumber ? `Order #: ${data.orderNumber}` : null,
-    ].filter(Boolean).join(' | ');
+    if (!resolvedUserId) {
+      const guest = await this.prisma.user.findFirst({
+        where: { role: 'CUSTOMER' },
+      });
+      resolvedUserId = guest?.id || null;
+    }
 
-    const fullMessage = metaPrefix ? `[Contact Details: ${metaPrefix}]\n\n${data.message}` : data.message;
+    if (!resolvedUserId) {
+      throw new Error('Unable to associate ticket with a user profile.');
+    }
+
+    const ticketNo = generateTicketNumber();
 
     const ticket = await this.prisma.supportTicket.create({
       data: {
-        ticketNo: generateTicketNumber(),
         userId: resolvedUserId,
-        subject: data.orderNumber ? `[${data.orderNumber}] ${data.subject}` : data.subject,
+        ticketNo,
+        subject: data.subject,
+        status: TicketStatus.OPEN,
         priority: data.priority || TicketPriority.MEDIUM,
         messages: {
           create: {
             senderId: resolvedUserId,
-            message: fullMessage,
+            message: data.message,
           },
         },
       },
@@ -173,7 +161,6 @@ export class SupportTicketsService {
       },
     });
 
-    this.logger.log(`Created support ticket ${ticket.ticketNo} for user ${resolvedUserId}`);
     return ticket;
   }
 
@@ -189,7 +176,21 @@ export class SupportTicketsService {
     return ticket;
   }
 
-  async replyToTicket(ticketId: string, senderId: string, message: string, attachmentUrls: string[] = []) {
+  async replyToTicket(
+    ticketId: string,
+    senderId: string,
+    message: string,
+    attachmentUrls: string[] = [],
+    role?: string,
+  ) {
+    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('Support ticket not found');
+
+    const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'SUPPORT';
+    if (!isAdmin && ticket.userId !== senderId) {
+      throw new ForbiddenException('You do not have permission to reply to this support ticket');
+    }
+
     const supportMessage = await this.prisma.supportMessage.create({
       data: {
         ticketId,

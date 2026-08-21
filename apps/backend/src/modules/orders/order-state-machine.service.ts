@@ -24,8 +24,7 @@ export function hashOtp(otp: string): string {
 }
 
 export function generate4DigitOtp(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return String(num);
+  return crypto.randomInt(1000, 10000).toString();
 }
 
 export function signQrToken(payload: { orderId: string; deliveryJobId: string; restaurantId: string; driverId: string; expiresAt: number }): string {
@@ -994,7 +993,7 @@ export class OrderStateMachineService {
     targetStatus: OrderStatus,
     actor: AuthenticatedActor,
   ) {
-    const isCustomer = actor.userId === order.customerId;
+    const isCustomer = order.customer?.userId === actor.userId || order.customerId === actor.userId;
     const isRestaurantOwner = actor.userId === order.restaurant?.ownerId;
     const isRestaurantStaff = actor.restaurantId === order.restaurantId;
     const isAssignedDriver = actor.driverId && order.deliveryJob?.driverId === actor.driverId;

@@ -19,16 +19,17 @@ import { OrderStatus, Prisma } from '@prisma/client';
 
 import { OrderQuoteService } from '../tax/order-quote.service';
 import { hashOtp } from './order-state-machine.service';
+import * as crypto from 'crypto';
 
 /** Generates a unique order number like FH-948210 */
 function generateOrderNumber(): string {
-  const num = Math.floor(100000 + Math.random() * 900000);
+  const num = crypto.randomInt(100000, 1000000);
   return `FH-${num}`;
 }
 
-/** Generates a 4-digit numeric delivery OTP */
+/** Generates a cryptographically secure 4-digit numeric delivery OTP */
 function generateDeliveryOtp(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return crypto.randomInt(1000, 10000).toString();
 }
 
 @Injectable()
@@ -650,8 +651,14 @@ if (!allowed.includes(dto.status as OrderStatus)) {
   async updateSelfDeliveryStatus(orderId: string, status: string, otp?: string) {
     const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
 
-    if (status === 'DELIVERED' && otp && order.deliveryOtp !== otp) {
-      throw new BadRequestException('Invalid Delivery OTP');
+    if (status === 'DELIVERED') {
+      if (!otp) {
+        throw new BadRequestException('Delivery confirmation OTP is required.');
+      }
+      const isOtpValid = order.deliveryOtp === otp || (order.deliveryOtpHash && hashOtp(otp) === order.deliveryOtpHash);
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid Delivery OTP');
+      }
     }
 
     const nextStatus = status as OrderStatus;

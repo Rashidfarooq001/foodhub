@@ -23,13 +23,21 @@ export class SupportTicketsController {
     @Query('status') status?: string,
     @Query('priority') priority?: string,
   ) {
-    return this.supportService.listTickets(status, priority);
+    const actor = {
+      userId: req.user?.id,
+      role: req.user?.role,
+    };
+    return this.supportService.listTickets(actor, status, priority);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get ticket details and conversation thread' })
-  async getTicketDetails(@Param('id') id: string) {
-    return this.supportService.getTicketDetails(id);
+  async getTicketDetails(@Param('id') id: string, @Request() req: any) {
+    const actor = {
+      userId: req.user?.id,
+      role: req.user?.role,
+    };
+    return this.supportService.getTicketDetails(id, actor);
   }
 
   @Public()
@@ -47,7 +55,7 @@ export class SupportTicketsController {
       orderNumber?: string;
     },
   ) {
-    const userId = req.user?.id || req.user?.sub || null;
+    const userId = req.user?.id || null;
     return this.supportService.createTicket(userId, body);
   }
 
@@ -69,7 +77,8 @@ export class SupportTicketsController {
     @Request() req: any,
     @Body() body: { message: string; attachments?: string[] },
   ) {
-    const senderId = req.user.id || req.user.sub;
-    return this.supportService.replyToTicket(id, senderId, body.message, body.attachments);
+    const senderId = req.user?.id;
+    const role = req.user?.role;
+    return this.supportService.replyToTicket(id, senderId, body.message, body.attachments, role);
   }
 }

@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
@@ -36,11 +37,16 @@ export class PaymentsService {
 
   /**
    * Create Razorpay Order
+   * Authoritative: Server strictly computes payment amount from database Order record.
+   * Client-supplied amount is intentionally ignored.
    */
-  async createPaymentOrder(dto: CreatePaymentDto) {
+  async createPaymentOrder(dto: CreatePaymentDto, userId?: string) {
     const order = await this.prisma.order.findUnique({
       where: {
         id: dto.orderId,
+      },
+      include: {
+        customer: true,
       },
     });
 
@@ -48,14 +54,19 @@ export class PaymentsService {
       throw new NotFoundException('Order not found');
     }
 
-    let paymentAmount = Number(dto.amount);
-
-    if (!paymentAmount || paymentAmount <= 0) {
-      paymentAmount = Number(order.totalAmount);
+    // Verify order ownership if userId is provided
+    if (userId) {
+      const isOwner = order.customer?.userId === userId || order.customerId === userId;
+      if (!isOwner) {
+        throw new ForbiddenException('You do not have access to pay for this order');
+      }
     }
 
+    // Authoritative server-side payment amount from database Order record
+    const paymentAmount = Number(order.totalAmount);
+
     if (!paymentAmount || paymentAmount <= 0) {
-      throw new BadRequestException('Invalid payment amount');
+      throw new BadRequestException('Invalid order total amount for payment');
     }
 
     const amountPaise = Math.round(paymentAmount * 100);
@@ -127,7 +138,7 @@ const payment = await this.prisma.payment.create({
   }  /**
    * Verify Razorpay payment signature
    */
-  async verifyPayment(dto: VerifyPaymentDto) {
+  async verifyPayment(dto: VerifyPaymentDto, userId?: string) {
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!secret) {
@@ -160,12 +171,27 @@ const payment = await this.prisma.payment.create({
       where: {
         razorpayOrderId: dto.razorpayOrderId,
       },
+      include: {
+        order: {
+          include: {
+            customer: true,
+          },
+        },
+      },
     });
 
     if (!payment) {
       throw new NotFoundException(
         'Payment record not found',
       );
+    }
+
+    // Verify order ownership if userId is provided
+    if (userId && payment.order) {
+      const isOwner = payment.order.customer?.userId === userId || payment.order.customerId === userId;
+      if (!isOwner) {
+        throw new ForbiddenException('You do not have permission to verify payment for this order');
+      }
     }
 
     if (payment.status === PaymentStatus.COMPLETED) {
@@ -529,35 +555,80 @@ const payment = await this.prisma.payment.create({
   private async handlePaymentCaptured(
     payload: Record<string, unknown>,
   ) {
-    const payment = (payload['payment'] as any)?.entity;
+    const paymentEntity = (payload['payment'] as any)?.entity;
 
-    if (!payment?.order_id) return;
+    if (!paymentEntity?.order_id) return;
 
-    await this.prisma.payment.updateMany({
+    const existingPayment = await this.prisma.payment.findUnique({
       where: {
-        razorpayOrderId: payment.order_id,
+        razorpayOrderId: paymentEntity.order_id,
       },
-      data: {
-        status: PaymentStatus.COMPLETED,
+      include: {
+        order: true,
       },
     });
+
+    if (!existingPayment) return;
+
+    // Idempotency: If already marked COMPLETED on both payment and order, avoid redundant updates
+    if (
+      existingPayment.status === PaymentStatus.COMPLETED &&
+      existingPayment.order?.paymentStatus === PaymentStatus.COMPLETED
+    ) {
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          status: PaymentStatus.COMPLETED,
+          razorpayPaymentId: paymentEntity.id || existingPayment.razorpayPaymentId,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: existingPayment.orderId },
+        data: {
+          paymentStatus: PaymentStatus.COMPLETED,
+        },
+      }),
+    ]);
   }
 
   private async handlePaymentFailed(
     payload: Record<string, unknown>,
   ) {
-    const payment = (payload['payment'] as any)?.entity;
+    const paymentEntity = (payload['payment'] as any)?.entity;
 
-    if (!payment?.order_id) return;
+    if (!paymentEntity?.order_id) return;
 
-    await this.prisma.payment.updateMany({
+    const existingPayment = await this.prisma.payment.findUnique({
       where: {
-        razorpayOrderId: payment.order_id,
-      },
-      data: {
-        status: PaymentStatus.FAILED,
+        razorpayOrderId: paymentEntity.order_id,
       },
     });
+
+    if (!existingPayment) return;
+
+    // If payment was already completed, do not downgrade to FAILED
+    if (existingPayment.status === PaymentStatus.COMPLETED) {
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          status: PaymentStatus.FAILED,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: existingPayment.orderId },
+        data: {
+          paymentStatus: PaymentStatus.FAILED,
+        },
+      }),
+    ]);
   }
 
   private async handleRefundProcessed(

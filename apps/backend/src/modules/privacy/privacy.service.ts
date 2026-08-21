@@ -385,8 +385,21 @@ export class PrivacyService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    const addressCount = await this.prisma.customerAddress.count({ where: { customerId: userId } });
-    const orderCount = await this.prisma.order.count({ where: { customerId: userId } });
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+    const customerId = customer?.id || userId;
+
+    const addressCount = await this.prisma.customerAddress.count({
+      where: {
+        OR: [{ customerId }, { customerId: userId }],
+      },
+    });
+    const orderCount = await this.prisma.order.count({
+      where: {
+        OR: [{ customerId }, { customer: { userId } }],
+      },
+    });
 
     return {
       userId: user.id,
@@ -420,8 +433,15 @@ export class PrivacyService {
 
     if (!user) throw new NotFoundException('User not found');
 
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+    const customerId = customer?.id || userId;
+
     const addresses = await this.prisma.customerAddress.findMany({
-      where: { customerId: userId },
+      where: {
+        OR: [{ customerId }, { customerId: userId }],
+      },
       select: {
         id: true,
         addressLabel: true,
@@ -436,7 +456,9 @@ export class PrivacyService {
     });
 
     const orders = await this.prisma.order.findMany({
-      where: { customerId: userId },
+      where: {
+        OR: [{ customerId }, { customer: { userId } }],
+      },
       select: {
         id: true,
         orderNumber: true,
@@ -467,7 +489,9 @@ export class PrivacyService {
     let reviews: any[] = [];
     try {
       reviews = await this.prisma.restaurantReview.findMany({
-        where: { customerId: userId },
+        where: {
+          OR: [{ customerId }, { customerId: userId }],
+        },
         select: {
           id: true,
           orderId: true,

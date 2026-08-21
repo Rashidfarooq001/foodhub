@@ -30,14 +30,46 @@ export class OrdersRepository {
     return order;
   }
 
-  async findByCustomer(customerId: string, page = 1, limit = 20) {
+  async findByCustomer(userIdOrCustomerId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
+
+    // Resolve Customer from User.id or Customer.id
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        OR: [
+          { userId: userIdOrCustomerId },
+          { id: userIdOrCustomerId },
+        ],
+      },
+    });
+
+    const targetCustomerId = customer ? customer.id : userIdOrCustomerId;
+
     return this.prisma.order.findMany({
-      where:   { customerId, deletedAt: null },
-      include: { orderItems: { include: { foodItem: true } }, orderTimelines: true },
+      where: {
+        OR: [
+          { customerId: targetCustomerId },
+          { customer: { userId: userIdOrCustomerId } },
+        ],
+        deletedAt: null,
+      },
+      include: {
+        orderItems: { include: { foodItem: true } },
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            addressLine: true,
+            phone: true,
+          },
+        },
+        orderTimelines: { orderBy: { createdAt: 'asc' } },
+        deliveryJob: true,
+        tracking: true,
+      },
       orderBy: { createdAt: 'desc' },
       skip,
-      take:    limit,
+      take: limit,
     });
   }
 
@@ -55,7 +87,7 @@ export class OrdersRepository {
       statusFilter = status;
     }
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where:   { restaurantId, ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
       include: {
         orderItems: { include: { foodItem: true } },
@@ -74,6 +106,12 @@ export class OrdersRepository {
       orderBy: { createdAt: 'desc' },
       skip,
       take:    limit,
+    });
+
+    // Redact deliveryOtp for restaurant privacy
+    return orders.map((o) => {
+      const { deliveryOtp, ...safeOrder } = o as any;
+      return safeOrder;
     });
   }
 

@@ -409,8 +409,8 @@ export class OrdersController {
     @Body() cancelDto: CancelOrderDto,
     @Request() req: any,
   ) {
-    const customerId = req.user.id || req.user.sub;
-    return this.ordersService.cancelOrder(id, customerId, cancelDto.reason);
+    const userId = req.user?.id;
+    return this.ordersService.cancelOrder(id, cancelDto, userId);
   }
 
   @Get(':id/pickup-otp')

@@ -241,6 +241,22 @@ export class ReviewsService {
     const review = await this.prisma.restaurantReview.findUnique({ where: { id: reviewId } });
     if (!review) throw new NotFoundException('Review not found');
 
+    if (dto.role === 'OWNER') {
+      const user = await this.prisma.user.findUnique({ where: { id: replierId } });
+      const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+      if (!isAdmin) {
+        const restaurant = await this.prisma.restaurant.findFirst({
+          where: { id: review.restaurantId, ownerId: replierId },
+        });
+        const isStaff = await this.prisma.restaurantStaff.findFirst({
+          where: { restaurantId: review.restaurantId, userId: replierId },
+        });
+        if (!restaurant && !isStaff) {
+          throw new ForbiddenException('You do not have permission to reply on behalf of this restaurant');
+        }
+      }
+    }
+
     return this.prisma.reviewReply.create({
       data: {
         reviewId,

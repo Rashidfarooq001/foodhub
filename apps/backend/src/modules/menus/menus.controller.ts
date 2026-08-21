@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Menu & Catalog (Phase 9)')
-@Controller('menus')
+@Controller(['menus', 'categories'])
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 
@@ -36,7 +36,7 @@ export class MenusController {
   // CATEGORY ENDPOINTS
   // ==================================================
 
-  @Post('categories')
+  @Post(['categories', ''])
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create new menu category' })
@@ -57,14 +57,14 @@ export class MenusController {
   }
 
   @Public()
-  @Get('categories')
+  @Get(['categories', ''])
   @ApiOperation({ summary: 'Get all dynamic food categories across the platform' })
   async getAllCategories() {
     return this.menusService.getAllCategories();
   }
 
   @Public()
-  @Get('categories/restaurant/:restaurantId')
+  @Get(['categories/restaurant/:restaurantId', 'restaurant/:restaurantId'])
   @ApiOperation({ summary: 'Get all categories for a restaurant' })
   async getRestaurantCategories(
     @Param('restaurantId') restaurantId: string,
@@ -72,7 +72,7 @@ export class MenusController {
     return this.menusService.findCategoriesByRestaurant(restaurantId);
   }
 
-  @Patch('categories/:id')
+  @Patch(['categories/:id', ':id'])
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update category' })
@@ -93,7 +93,7 @@ export class MenusController {
     );
   }
 
-  @Delete('categories/:id')
+  @Delete(['categories/:id', ':id'])
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete category' })
@@ -102,7 +102,7 @@ export class MenusController {
     return this.menusService.deleteCategory(id, actor);
   }
 
-  @Post('categories/reorder')
+  @Post(['categories/reorder', 'reorder'])
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Reorder categories' })

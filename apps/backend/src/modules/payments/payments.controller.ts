@@ -20,16 +20,18 @@ export class PaymentsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create Razorpay order before checkout' })
-  async createOrder(@Body() dto: CreatePaymentDto) {
-    return this.paymentsService.createPaymentOrder(dto);
+  async createOrder(@Body() dto: CreatePaymentDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.paymentsService.createPaymentOrder(dto, userId);
   }
 
   @Post('verify')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Verify Razorpay payment signature after checkout' })
-  async verify(@Body() dto: VerifyPaymentDto) {
-    return this.paymentsService.verifyPayment(dto);
+  async verify(@Body() dto: VerifyPaymentDto, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.paymentsService.verifyPayment(dto, userId);
   }
 
   @Post('webhook')

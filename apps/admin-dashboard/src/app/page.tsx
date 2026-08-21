@@ -54,8 +54,6 @@ export default function AdminDashboardPage() {
 
     socket.on('order.created', handleAdminUpdate);
     socket.on('status.updated', handleAdminUpdate);
-    socket.on('order.status-changed', handleAdminUpdate);
-    socket.on('admin.operations', handleAdminUpdate);
 
     return () => {
       socket.disconnect();

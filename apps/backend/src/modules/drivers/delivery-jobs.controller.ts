@@ -377,6 +377,98 @@ export class DeliveryJobsController {
     });
   }
 
+  private formatJobPayload(job: any) {
+    const pickupAddr: any = job.pickupAddressJson || {};
+    const dropAddr: any = job.dropAddressJson || job.order?.deliveryAddress || {};
+
+    const dropAddressText =
+      typeof dropAddr === 'string'
+        ? dropAddr
+        : dropAddr.street ||
+          dropAddr.formattedAddress ||
+          [dropAddr.addressLine1, dropAddr.city].filter(Boolean).join(', ') ||
+          'Customer Location';
+
+    const customerName =
+      job.order?.customer?.user?.profile
+        ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
+        : dropAddr.contactName || 'Customer';
+
+    const customerPhone = job.order?.customer?.user?.phone || dropAddr.phone || null;
+
+    const restLat = job.order?.restaurant?.latitude !== null && job.order?.restaurant?.latitude !== undefined ? Number(job.order.restaurant.latitude) : null;
+    const restLng = job.order?.restaurant?.longitude !== null && job.order?.restaurant?.longitude !== undefined ? Number(job.order.restaurant.longitude) : null;
+    const custLat = dropAddr.latitude !== null && dropAddr.latitude !== undefined ? Number(dropAddr.latitude) : null;
+    const custLng = dropAddr.longitude !== null && dropAddr.longitude !== undefined ? Number(dropAddr.longitude) : null;
+
+    return {
+      id: job.id,
+      orderId: job.orderId,
+      orderNumber: job.order?.orderNumber || 'FH-ORDER',
+      status: job.order?.status,
+      jobStatus: job.status,
+      paymentMethod: job.order?.paymentMethod,
+      codAmountToCollect: job.order?.paymentMethod === 'COD' ? Number(job.order.totalAmount) : 0,
+      estimatedEarnings: Number(job.riderPayout || 40),
+      riderPayout: Number(job.riderPayout || 40),
+      restaurantName: job.order?.restaurant?.name || 'Restaurant Kitchen',
+      restaurantAddress: job.order?.restaurant?.addressLine,
+      restaurantPhone: job.order?.restaurant?.phone,
+      restaurantLat: restLat,
+      restaurantLng: restLng,
+      customerName,
+      customerAddress: dropAddressText,
+      customerPhone,
+      customerLat: custLat,
+      customerLng: custLng,
+      distanceKm: job.distanceKm,
+      items: (job.order?.orderItems || []).map((item: any) => ({
+        name: item.foodItem?.name || 'Item',
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+      })),
+    };
+  }
+
+  @Get('active-jobs')
+  @ApiOperation({ summary: 'Get all active concurrent delivery jobs for authenticated driver' })
+  async getActiveJobs(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    const jobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        driverId: driver.id,
+        status: {
+          in: [
+            DeliveryJobStatus.ASSIGNED,
+            DeliveryJobStatus.ARRIVED,
+            DeliveryJobStatus.PICKED_UP,
+          ],
+        },
+        order: {
+          status: {
+            notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
+          },
+        },
+      },
+      include: {
+        order: {
+          include: {
+            restaurant: true,
+            orderItems: { include: { foodItem: true } },
+            customer: { include: { user: { include: { profile: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return jobs.map((job) => this.formatJobPayload(job));
+  }
+
   @Get('current')
   @ApiOperation({ summary: 'Get current active delivery job for authenticated driver' })
   async getCurrentJob(@Request() req: any) {
@@ -415,57 +507,7 @@ export class DeliveryJobsController {
     });
 
     if (!job) return null;
-
-    const pickupAddr: any = job.pickupAddressJson || {};
-    const dropAddr: any = job.dropAddressJson || job.order.deliveryAddress || {};
-
-    const dropAddressText =
-      typeof dropAddr === 'string'
-        ? dropAddr
-        : dropAddr.street ||
-          dropAddr.formattedAddress ||
-          [dropAddr.addressLine1, dropAddr.city].filter(Boolean).join(', ') ||
-          'Customer Location';
-
-    const customerName =
-      job.order.customer?.user?.profile
-        ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
-        : dropAddr.contactName || 'Customer';
-
-    const customerPhone = job.order.customer?.user?.phone || dropAddr.phone || null;
-
-    const restLat = job.order.restaurant.latitude !== null && job.order.restaurant.latitude !== undefined ? Number(job.order.restaurant.latitude) : null;
-    const restLng = job.order.restaurant.longitude !== null && job.order.restaurant.longitude !== undefined ? Number(job.order.restaurant.longitude) : null;
-    const custLat = dropAddr.latitude !== null && dropAddr.latitude !== undefined ? Number(dropAddr.latitude) : null;
-    const custLng = dropAddr.longitude !== null && dropAddr.longitude !== undefined ? Number(dropAddr.longitude) : null;
-
-    return {
-      id: job.id,
-      orderId: job.orderId,
-      orderNumber: job.order.orderNumber,
-      status: job.order.status,
-      jobStatus: job.status,
-      paymentMethod: job.order.paymentMethod,
-      codAmountToCollect: job.order.paymentMethod === 'COD' ? Number(job.order.totalAmount) : 0,
-      estimatedEarnings: Number(job.riderPayout || 40),
-      riderPayout: Number(job.riderPayout || 40),
-      restaurantName: job.order.restaurant.name,
-      restaurantAddress: job.order.restaurant.addressLine,
-      restaurantPhone: job.order.restaurant.phone,
-      restaurantLat: restLat,
-      restaurantLng: restLng,
-      customerName,
-      customerAddress: dropAddressText,
-      customerPhone,
-      customerLat: custLat,
-      customerLng: custLng,
-      distanceKm: job.distanceKm,
-      items: (job.order.orderItems || []).map((item) => ({
-        name: item.foodItem?.name || 'Item',
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-      })),
-    };
+    return this.formatJobPayload(job);
   }
 
   @Get('stats')
@@ -911,6 +953,13 @@ export class DeliveryJobsController {
       where: { OR: [{ id }, { orderId: id }] },
     });
     if (!job) throw new NotFoundException('Delivery job not found.');
+
+    const driver = await this.getDriverFromReq(req);
+    const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+
+    if (!isAdmin && (!driver || job.driverId !== driver.id)) {
+      throw new ForbiddenException('You do not have permission to unassign this delivery job.');
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.deliveryJob.update({

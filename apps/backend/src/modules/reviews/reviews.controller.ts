@@ -72,30 +72,33 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Vote a review as helpful or not helpful' })
   async vote(
     @Param('id') id: string,
-    @Request()  req: { user: { sub: string } },
+    @Request() req: any,
     @Body('isHelpful') isHelpful: boolean,
   ) {
-    return this.reviewsService.voteReview(id, req.user.sub, isHelpful);
+    const userId = req.user?.id;
+    return this.reviewsService.voteReview(id, userId, isHelpful);
   }
 
   @Post(':id/report')
   @ApiOperation({ summary: 'Report a review for moderation' })
   async report(
     @Param('id') id: string,
-    @Request()  req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: ReportReviewDto,
   ) {
-    return this.reviewsService.reportReview(id, req.user.sub, dto);
+    const userId = req.user?.id;
+    return this.reviewsService.reportReview(id, userId, dto);
   }
 
   @Post(':id/reply')
   @ApiOperation({ summary: 'Reply to a review (restaurant owner or admin)' })
   async reply(
     @Param('id') id: string,
-    @Request()  req: { user: { sub: string } },
+    @Request() req: any,
     @Body() dto: ReplyReviewDto,
   ) {
-    return this.reviewsService.replyToReview(id, req.user.sub, dto);
+    const userId = req.user?.id;
+    return this.reviewsService.replyToReview(id, userId, dto);
   }
 
   @Patch(':id/moderate')

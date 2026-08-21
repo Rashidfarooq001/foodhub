@@ -81,12 +81,13 @@ export default function DeliveryDashboardPage() {
     });
 
     socket.on('connect', () => {
-      socket.emit('joinDrivers');
+      socket.emit('joinDriver', { token: accessToken });
+      socket.emit('joinAvailableDrivers');
     });
 
     socket.on('job.available', () => fetchDashboardData());
-    socket.on('delivery.assigned', () => fetchDashboardData());
-    socket.on('order.status_changed', () => fetchDashboardData());
+    socket.on('driver.assigned', () => fetchDashboardData());
+    socket.on('status.updated', () => fetchDashboardData());
 
     return () => {
       socket.disconnect();

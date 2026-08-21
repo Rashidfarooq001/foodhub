@@ -13,11 +13,14 @@ export const MobileBottomNav: React.FC = () => {
   const cartCount = getItemCount();
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Hide on partner registration routes or checkout
+  // Hide on partner registration routes, checkout, and auth pages
   if (
     pathname?.startsWith('/restaurant/register') ||
     pathname?.startsWith('/driver/register') ||
-    pathname?.startsWith('/checkout')
+    pathname?.startsWith('/checkout') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/signup') ||
+    pathname?.startsWith('/forgot-password')
   ) {
     return null;
   }
