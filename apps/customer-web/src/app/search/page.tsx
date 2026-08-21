@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, X, Sparkles } from 'lucide-react';
 import { RestaurantData, FoodItemData, normalizeRestaurantData } from '../../data/mock-data';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
@@ -10,8 +11,9 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
-export default function SearchPage() {
-  const [query, setQuery] = useState('');
+function SearchPageInner() {
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams?.get('q') || '');
   const [activeTab, setActiveTab] = useState<'all' | 'dishes' | 'restaurants'>('all');
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +65,7 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for restaurants, dishes, or cuisines..."
-          className="w-full rounded-3xl border-2 border-gray-200 bg-white py-4 pl-14 pr-12 text-base font-bold text-gray-900 shadow-md focus:border-orange-500 focus:outline-none"
+          className="w-full rounded-3xl border-2 border-gray-200 bg-white py-4 pl-14 pr-12 text-base font-bold text-gray-900 shadow-md focus:border-rose-500 focus:outline-none"
         />
         {query && (
           <button
@@ -79,14 +81,14 @@ export default function SearchPage() {
       {!query && (
         <div className="mx-auto max-w-2xl space-y-3">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-            <Sparkles className="h-3.5 w-3.5 text-orange-500" /> Popular Searches
+            <Sparkles className="h-3.5 w-3.5 text-rose-500" /> Popular Searches
           </p>
           <div className="flex flex-wrap gap-2">
             {popularTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => setQuery(tag)}
-                className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm hover:border-orange-500 hover:text-orange-600 transition"
+                className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm hover:border-rose-500 hover:text-rose-600 transition"
               >
                 {tag}
               </button>
@@ -106,7 +108,7 @@ export default function SearchPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`rounded-xl px-4 py-2 text-xs font-bold capitalize transition ${
                   activeTab === tab
-                    ? 'bg-orange-600 text-white shadow-md'
+                    ? 'bg-rose-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -136,7 +138,7 @@ export default function SearchPage() {
               {(activeTab === 'all' || activeTab === 'dishes') && filteredFood.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Dishes</h3>
-                  <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
                     {filteredFood.map((f: FoodItemData) => (
                       <FoodCard key={f.id} food={f} />
                     ))}
@@ -148,5 +150,13 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-16 text-center text-gray-400 text-sm">Loading search...</div>}>
+      <SearchPageInner />
+    </Suspense>
   );
 }
