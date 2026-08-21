@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
@@ -151,7 +151,7 @@ export default function RestaurantDetailPage() {
           </Link>
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <h1 className="text-sm sm:text-base font-black text-gray-900 truncate">{restaurant.name}</h1>
-            <p className="text-[11px] text-gray-500 truncate">{restaurant.cuisines?.join(' â€¢ ') || 'Multi-Cuisine Kitchen'}</p>
+            <p className="text-[11px] text-gray-500 truncate">{restaurant.cuisines?.join(' • ') || 'Multi-Cuisine Kitchen'}</p>
           </div>
           <Link href="/cart" className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition">
             <ShoppingBag className="h-4 w-4" />
@@ -177,7 +177,7 @@ export default function RestaurantDetailPage() {
               <div>
                 <span className="inline-block rounded-md bg-emerald-600/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">OPEN NOW</span>
                 <h2 className="text-base sm:text-xl font-black leading-tight mt-1 truncate">{restaurant.name}</h2>
-                <p className="text-[11px] text-gray-300 mt-0.5">{restaurant.cuisines?.join(' â€¢ ')}</p>
+                <p className="text-[11px] text-gray-300 mt-0.5">{restaurant.cuisines?.join(' • ')}</p>
               </div>
               {restaurant.avgRating && restaurant.avgRating > 0 ? (
                 <div className="flex items-center gap-1 rounded-lg bg-white/20 backdrop-blur-md px-2 py-1 text-xs font-black text-amber-300">
@@ -197,7 +197,7 @@ export default function RestaurantDetailPage() {
                 <Clock className="h-3 w-3 text-gray-500" />
                 <span>{restaurant.deliveryTimeMins ? restaurant.deliveryTimeMins + ' mins' : '30 mins'}</span>
               </div>
-              <span className="text-gray-300">â€¢</span>
+              <span className="text-gray-300">•</span>
               <span>{restaurant.deliveryRadius || 15} km radius</span>
             </div>
           </div>
