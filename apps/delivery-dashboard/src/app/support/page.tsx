@@ -32,13 +32,18 @@ export default function DeliverySupportPage() {
           If you have encountered a road incident, customer dispute, or vehicle breakdown during an active delivery trip:
         </p>
 
-        <a
-          href="tel:+9118004196600"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-rose-600 hover:bg-rose-700 py-3.5 px-6 text-xs font-black text-white shadow-md shadow-rose-600/30 transition min-h-[44px]"
-        >
-          <Phone className="h-4 w-4" />
-          <span>Call Emergency Desk: +91 1800-419-6600</span>
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-rose-200 text-xs">
+          <div>
+            <span className="font-bold text-gray-900 block">Fleet Operations Desk</span>
+            <span className="text-gray-500 font-mono">businesscity05@gmail.com</span>
+          </div>
+          <a
+            href="mailto:businesscity05@gmail.com?subject=Rider%20SOS%20Emergency%20Escalation"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-rose-600 hover:bg-rose-700 py-2.5 px-5 text-xs font-black text-white shadow-md shadow-rose-600/30 transition whitespace-nowrap"
+          >
+            <span>Email Dispatch SOS</span>
+          </a>
+        </div>
       </div>
 
       {/* FAQs */}

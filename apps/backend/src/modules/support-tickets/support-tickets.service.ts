@@ -82,25 +82,98 @@ export class SupportTicketsService {
     return ticket;
   }
 
-  async createTicket(userId: string, data: { subject: string; message: string; priority?: TicketPriority }) {
+  async createTicket(
+    userId?: string | null,
+    data?: {
+      subject: string;
+      message: string;
+      priority?: TicketPriority;
+      name?: string;
+      phone?: string;
+      email?: string;
+      orderNumber?: string;
+    },
+  ) {
+    if (!data || !data.subject || !data.message) {
+      throw new Error('Subject and message are required.');
+    }
+
+    let resolvedUserId = userId;
+
+    if (!resolvedUserId) {
+      // 1. Try finding user by phone if provided
+      if (data.phone) {
+        const existing = await this.prisma.user.findFirst({
+          where: { phone: data.phone },
+        });
+        if (existing) resolvedUserId = existing.id;
+      }
+      // 2. Try finding user by email if provided
+      if (!resolvedUserId && data.email) {
+        const existing = await this.prisma.user.findFirst({
+          where: { email: data.email },
+        });
+        if (existing) resolvedUserId = existing.id;
+      }
+      // 3. If still no user, find or create dedicated system guest support user
+      if (!resolvedUserId) {
+        let guestUser = await this.prisma.user.findFirst({
+          where: { email: 'support-guest@zaykafood.online' },
+        });
+        if (!guestUser) {
+          guestUser = await this.prisma.user.create({
+            data: {
+              phone: `+919000000000`,
+              email: 'support-guest@zaykafood.online',
+              passwordHash: 'GUEST_SUPPORT_UNAUTHENTICATED',
+              role: 'CUSTOMER',
+              isActive: true,
+              profile: {
+                create: {
+                  firstName: data.name ? data.name.split(' ')[0] : 'Guest',
+                  lastName: data.name ? data.name.split(' ').slice(1).join(' ') || 'Customer' : 'Customer',
+                },
+              },
+            },
+          });
+        }
+        resolvedUserId = guestUser.id;
+      }
+    }
+
+    const metaPrefix = [
+      data.name ? `Name: ${data.name}` : null,
+      data.phone ? `Phone: ${data.phone}` : null,
+      data.email ? `Email: ${data.email}` : null,
+      data.orderNumber ? `Order #: ${data.orderNumber}` : null,
+    ].filter(Boolean).join(' | ');
+
+    const fullMessage = metaPrefix ? `[Contact Details: ${metaPrefix}]\n\n${data.message}` : data.message;
+
     const ticket = await this.prisma.supportTicket.create({
       data: {
         ticketNo: generateTicketNumber(),
-        userId,
-        subject: data.subject,
+        userId: resolvedUserId,
+        subject: data.orderNumber ? `[${data.orderNumber}] ${data.subject}` : data.subject,
         priority: data.priority || TicketPriority.MEDIUM,
         messages: {
           create: {
-            senderId: userId,
-            message: data.message,
+            senderId: resolvedUserId,
+            message: fullMessage,
           },
         },
       },
       include: {
         messages: true,
+        user: {
+          include: {
+            profile: true,
+          },
+        },
       },
     });
 
+    this.logger.log(`Created support ticket ${ticket.ticketNo} for user ${resolvedUserId}`);
     return ticket;
   }
 

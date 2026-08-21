@@ -18,37 +18,31 @@ export default function HotelSupportPage() {
 
       {/* Support Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-        <a
-          href="tel:+9118004197700"
-          className="rounded-2xl sm:rounded-3xl border border-orange-200 bg-orange-50/50 p-4 sm:p-5 shadow-sm space-y-3 hover:bg-orange-100/60 transition block"
-        >
+        <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-bold shrink-0">
-              <Phone className="h-5 w-5" />
-            </div>
-            <div>
-              <span className="text-[10px] text-orange-800 font-bold uppercase block">Toll-Free Priority Desk</span>
-              <h3 className="text-sm sm:text-base font-black text-orange-950">+91 1800-419-7700</h3>
-            </div>
-          </div>
-          <p className="text-xs text-orange-800 font-medium">Available 24/7 for live order dispatch and kitchen emergency assistance.</p>
-        </a>
-
-        <a
-          href="mailto:partner-support@zaykafood.com"
-          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3 hover:bg-gray-50 transition block"
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+            <div className="h-10 w-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold shrink-0">
               <Mail className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 font-bold uppercase block">Email Partner Operations</span>
-              <h3 className="text-xs sm:text-sm font-black text-gray-900">partner-support@zaykafood.com</h3>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">Official Partner Helpdesk</span>
+              <h3 className="text-xs sm:text-sm font-black text-gray-900">businesscity05@gmail.com</h3>
             </div>
           </div>
           <p className="text-xs text-gray-500 font-medium">Settlement dispute inquiries, menu catalog changes and store profile updates.</p>
-        </a>
+        </div>
+
+        <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">Merchant Operations Hub</span>
+              <h3 className="text-xs sm:text-sm font-black text-gray-900">Kehnusa, Bandipora, J&amp;K</h3>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 font-medium">Active support hours: Mon – Sun: 8:00 AM – 11:00 PM IST.</p>
+        </div>
       </div>
 
       {/* FAQs */}

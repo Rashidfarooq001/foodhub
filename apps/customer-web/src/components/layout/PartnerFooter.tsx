@@ -43,9 +43,8 @@ export const PartnerFooter: React.FC = () => {
           <div>
             <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-white">Partner Desk Support</h4>
             <div className="space-y-2 text-xs text-gray-300">
-              <p className="flex items-center gap-2"><PhoneCall className="h-4 w-4 text-orange-500" /> +91-1800-ZAYKA-FOOD (Toll Free)</p>
-              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-orange-500" /> partner-support@zaykafood.com</p>
-              <p className="text-[10px] text-gray-500 pt-2">Mon - Sun: 8:00 AM - 11:00 PM IST</p>
+              <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-orange-500" /> businesscity05@gmail.com</p>
+              <p className="text-[10px] text-gray-500 pt-1">Mon - Sun: 8:00 AM - 11:00 PM IST</p>
             </div>
           </div>
         </div>

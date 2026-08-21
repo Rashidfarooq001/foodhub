@@ -6,6 +6,7 @@ import { SupportTicketsService } from './support-tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { TicketStatus, TicketPriority } from '@prisma/client';
 
 @ApiTags('Support Tickets')
@@ -31,13 +32,22 @@ export class SupportTicketsController {
     return this.supportService.getTicketDetails(id);
   }
 
+  @Public()
   @Post()
   @ApiOperation({ summary: 'Create a new support ticket' })
   async createTicket(
     @Request() req: any,
-    @Body() body: { subject: string; message: string; priority?: TicketPriority },
+    @Body() body: {
+      subject: string;
+      message: string;
+      priority?: TicketPriority;
+      name?: string;
+      phone?: string;
+      email?: string;
+      orderNumber?: string;
+    },
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user?.id || req.user?.sub || null;
     return this.supportService.createTicket(userId, body);
   }
 
