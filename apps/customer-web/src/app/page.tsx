@@ -13,6 +13,7 @@ import {
   Clock,
   ArrowRight,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { RecommendedCard } from '../components/home/RecommendedCard';
@@ -28,8 +29,8 @@ export default function CustomerHomePage() {
   const { user, isAuthenticated, accessToken } = useAuthStore();
 
   // Dynamic Location State
-  const [locationLabel, setLocationLabel] = useState<string>('Detecting location...');
-  const [locationAddress, setLocationAddress] = useState<string>('Locating nearest kitchens...');
+  const [locationLabel, setLocationLabel] = useState<string>('Home');
+  const [locationAddress, setLocationAddress] = useState<string>('Detecting location...');
 
   // Filters & State
   const [isVegOnly, setIsVegOnly] = useState(false);
@@ -106,7 +107,7 @@ export default function CustomerHomePage() {
           () => {
             if (isMounted) {
               setLocationLabel('Select Location');
-              setLocationAddress('Tap to set your delivery address');
+              setLocationAddress('Tap to set delivery address');
             }
           },
           { timeout: 6000 },
@@ -114,7 +115,7 @@ export default function CustomerHomePage() {
       } else {
         if (isMounted) {
           setLocationLabel('Select Location');
-          setLocationAddress('Tap to set your delivery address');
+          setLocationAddress('Tap to set delivery address');
         }
       }
     };
@@ -268,68 +269,101 @@ export default function CustomerHomePage() {
     ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
     : 'U';
 
+  const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
+
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
 
-        {/* ─── 1. DYNAMIC TOP LOCATION & PROFILE BAR ───────── */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          {/* Dynamic Location details */}
-          <Link href={isAuthenticated ? '/addresses' : '/login'} className="flex items-start gap-2 min-w-0 group">
-            <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
-              <MapPin className="h-4 w-4 fill-rose-600 text-rose-600" />
+        {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER) ──────────── */}
+        <div className="flex items-center justify-between border-b border-gray-100/80 pb-2">
+          {/* Logo on Left */}
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <img
+              src="/zaykafood-logo.png"
+              alt="ZaykaFood"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
+          </Link>
+
+          {/* Name / Brand / Greeting in Center-Right */}
+          <div className="text-right sm:text-center">
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-gray-900">
+              {customerGreeting}
+            </h1>
+            <p className="text-[10px] sm:text-xs font-bold text-rose-600 uppercase tracking-wider">
+              Order • Deliver • Enjoy
+            </p>
+          </div>
+        </div>
+
+        {/* ─── ROW 2: LOCATION (LEFT) + VEG BUTTON + NOTIFICATION + PROFILE (RIGHT) ─── */}
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          {/* Current Location on Left */}
+          <Link
+            href={isAuthenticated ? '/addresses' : '/login'}
+            className="flex items-start gap-1.5 min-w-0 max-w-[55%] sm:max-w-md group"
+          >
+            <div className="mt-0.5 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
+              <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-rose-600 text-rose-600" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <span className="text-base font-black text-gray-900 tracking-tight">{locationLabel}</span>
-                <ChevronDown className="h-4 w-4 text-gray-600 stroke-[2.5]" />
+                <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight">{locationLabel}</span>
+                <ChevronDown className="h-3.5 w-3.5 text-gray-500 stroke-[2.5]" />
               </div>
-              <p className="text-xs text-gray-500 truncate font-medium max-w-[190px] sm:max-w-md">
+              <p className="text-[10px] sm:text-xs text-gray-500 truncate font-medium">
                 {locationAddress}
               </p>
             </div>
           </Link>
 
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* VEG Toggle */}
-            <div className="flex flex-col items-center">
-              <span className="text-[9px] font-black uppercase tracking-wider text-gray-600 mb-0.5">VEG</span>
-              <button
-                type="button"
-                onClick={() => setIsVegOnly(!isVegOnly)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  isVegOnly ? 'bg-emerald-600' : 'bg-gray-200'
-                }`}
-                role="switch"
-                aria-checked={isVegOnly}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                    isVegOnly ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
+          {/* Right Action Cluster: Veg-Nonveg Button + Notification + Profile Photo */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Veg - Nonveg Button */}
+            <button
+              type="button"
+              onClick={() => setIsVegOnly(!isVegOnly)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-all text-xs font-black shadow-sm ${
+                isVegOnly
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+              title="Toggle Pure Veg mode"
+            >
+              <div className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border ${
+                isVegOnly ? 'border-emerald-600 bg-emerald-600' : 'border-gray-400 bg-white'
+              }`}>
+                <div className={`h-1.5 w-1.5 rounded-full ${isVegOnly ? 'bg-white' : 'bg-gray-400'}`} />
+              </div>
+              <span className="text-[10px] sm:text-[11px] uppercase tracking-tight">
+                {isVegOnly ? 'Pure Veg' : 'Veg Only'}
+              </span>
+            </button>
 
-            {/* Notification Bell */}
+            {/* Notification Icon */}
             <Link
               href="/notifications"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100"
+              aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
             </Link>
 
-            {/* Dynamic User Profile Avatar */}
-            <Link href={isAuthenticated ? '/profile' : '/login'} className="shrink-0">
+            {/* Profile Photo */}
+            <Link
+              href={isAuthenticated ? '/profile' : '/login'}
+              className="shrink-0"
+              aria-label="User Profile"
+            >
               {user?.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
                   alt={user.firstName || 'Profile'}
-                  className="h-9 w-9 rounded-full object-cover ring-2 ring-rose-100"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-rose-100"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
+                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
                   {isAuthenticated ? initials : 'Sign In'}
                 </div>
               )}
@@ -337,14 +371,14 @@ export default function CustomerHomePage() {
           </div>
         </div>
 
-        {/* ─── ACTIVE ORDER TRACKING TOAST ─────────────────── */}
+        {/* ─── LIVE ACTIVE ORDER TOAST (IF ACTIVE) ─────────── */}
         {isAuthenticated && activeOrder && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-600 p-3.5 text-white shadow-lg shadow-rose-600/20 animate-fade-in">
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-rose-600 p-3 text-white shadow-lg shadow-rose-600/20 animate-fade-in">
             <div className="flex items-center gap-2.5 min-w-0">
-              <Clock className="h-5 w-5 animate-pulse shrink-0" />
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse shrink-0" />
               <div className="min-w-0 text-xs">
                 <p className="font-black truncate">Live Order #{activeOrder.orderNumber}</p>
-                <p className="text-rose-100 truncate">
+                <p className="text-rose-100 truncate text-[11px]">
                   {activeOrder.driverName ? `With ${activeOrder.driverName}` : 'Preparing your meal'}
                   {activeOrder.etaMins ? ` · ~${activeOrder.etaMins} mins` : ''}
                 </p>
@@ -352,18 +386,18 @@ export default function CustomerHomePage() {
             </div>
             <Link
               href={`/orders/${activeOrder.orderId || activeOrder.id}/track`}
-              className="rounded-xl bg-white px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-50 transition shrink-0 flex items-center gap-1"
+              className="rounded-xl bg-white px-3 py-1 text-xs font-black text-rose-600 hover:bg-rose-50 transition shrink-0 flex items-center gap-1"
             >
               Track <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         )}
 
-        {/* ─── 2. SEARCH BAR WITH REAL ROUTING ─────────────── */}
+        {/* ─── ROW 3: LARGE ROUNDED SEARCH BAR ─────────────── */}
         <div className="relative w-full">
-          <div className="relative flex items-center rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-gray-50/70 hover:bg-white hover:border-rose-300 transition-all duration-200 shadow-sm">
+          <div className="relative flex items-center rounded-2xl sm:rounded-3xl border border-gray-200/90 bg-gray-50/80 hover:bg-white hover:border-rose-400 transition-all duration-200 shadow-sm">
             <div className="pl-4 pr-2 text-rose-600">
-              <Search className="h-5 w-5 stroke-[2.5]" />
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
             </div>
             <input
               type="text"
@@ -375,26 +409,26 @@ export default function CustomerHomePage() {
                 }
               }}
               placeholder="Search restaurants, dishes and cuisines"
-              className="w-full bg-transparent py-3 sm:py-3.5 text-sm sm:text-base font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              className="w-full bg-transparent py-2.5 sm:py-3.5 text-xs sm:text-base font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none"
             />
             <button
               type="button"
               onClick={handleMicSearch}
-              className="p-3 pr-4 text-rose-600 hover:text-rose-700 transition"
+              className="p-2.5 pr-4 text-rose-600 hover:text-rose-700 transition"
               aria-label="Voice Search"
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         </div>
 
-        {/* ─── 3. DYNAMIC CATEGORY CAROUSEL ────────────────── */}
+        {/* ─── ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) ─── */}
         <CategoryCarousel
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* ─── 4. FUNCTIONAL FILTER CHIPS ──────────────────── */}
+        {/* ─── ROW 5: FILTER CHIPS (Filter, Under 30, Rating, etc.) ─── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveChip(activeChip === 'all' ? 'rating' : 'all')}
@@ -410,7 +444,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'fast' ? 'all' : 'fast')}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'fast'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -421,7 +455,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'rating' ? 'all' : 'rating')}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'rating'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -435,7 +469,7 @@ export default function CustomerHomePage() {
               setIsVegOnly(!isVegOnly);
               setActiveChip(isVegOnly ? 'all' : 'veg');
             }}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               isVegOnly || activeChip === 'veg'
                 ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -446,7 +480,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'offers' ? 'all' : 'offers')}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'offers'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -457,7 +491,7 @@ export default function CustomerHomePage() {
 
           <button
             onClick={() => setActiveChip(activeChip === 'near' ? 'all' : 'near')}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
               activeChip === 'near'
                 ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -467,13 +501,13 @@ export default function CustomerHomePage() {
           </button>
         </div>
 
-        {/* ─── DYNAMIC HERO PROMOTIONS ─────────────────────── */}
+        {/* ─── PROMOTIONAL OFFERS BANNER (DYNAMIC FROM DB) ─── */}
         <HeroBanner />
 
-        {/* ─── 5. RECOMMENDED FOR YOU (DYNAMIC) ────────────── */}
+        {/* ─── ROW 6: RECOMMENDED FOR YOU ──────────────────── */}
         <section className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-500">
+            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
               Recommended For You
             </h2>
             {!isLoading && (
@@ -490,11 +524,11 @@ export default function CustomerHomePage() {
               ))}
             </div>
           ) : isError ? (
-            <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-8 text-center space-y-3">
-              <p className="text-sm font-bold text-rose-800">Unable to load restaurants at this time.</p>
+            <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-6 text-center space-y-2">
+              <p className="text-xs sm:text-sm font-bold text-rose-800">Unable to load kitchens at this time.</p>
               <button
                 onClick={fetchRestaurants}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Retry
               </button>
@@ -510,8 +544,8 @@ export default function CustomerHomePage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-8 text-center">
-              <p className="text-sm font-bold text-gray-700">No restaurants available in your area matching criteria.</p>
+            <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 text-center">
+              <p className="text-xs sm:text-sm font-bold text-gray-700">No restaurants match your selected filters.</p>
               <button
                 onClick={() => {
                   setSelectedCategory('');
@@ -521,17 +555,17 @@ export default function CustomerHomePage() {
                 }}
                 className="mt-2 text-xs font-bold text-rose-600 hover:underline"
               >
-                Reset filters
+                Reset all filters
               </button>
             </div>
           )}
         </section>
 
-        {/* ─── 6. POPULAR NEAR YOU (DYNAMIC) ───────────────── */}
-        <section className="space-y-3 pt-4">
+        {/* ─── ROW 7: POPULAR (DYNAMIC) ────────────────────── */}
+        <section className="space-y-3 pt-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-500">
-              Popular Near You
+            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
+              Popular
             </h2>
             <Link
               href="/restaurants"
