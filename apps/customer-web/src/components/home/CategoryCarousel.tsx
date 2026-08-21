@@ -18,84 +18,42 @@ interface Props {
   onSelectCategory: (cat: string) => void;
 }
 
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { id: 'biryani', name: 'Biryani', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=200&q=80' },
+  { id: 'pizza', name: 'Pizza', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80' },
+  { id: 'burger', name: 'Burger', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80' },
+  { id: 'wazwan', name: 'Wazwan', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80' },
+  { id: 'kashmiri', name: 'Kashmiri', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=200&q=80' },
+  { id: 'chinese', name: 'Chinese', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=200&q=80' },
+  { id: 'chicken', name: 'Chicken', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=200&q=80' },
+  { id: 'bakery', name: 'Bakery', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=200&q=80' },
+  { id: 'desserts', name: 'Desserts', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=200&q=80' },
+  { id: 'beverages', name: 'Beverages', image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=200&q=80' },
+];
+
 export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCategory }) => {
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchCategories = async () => {
       try {
         const res = await fetch(`${API_BASE}/categories`);
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.categories ?? [];
-          if (list.length > 0) {
+          if (list.length > 0 && isMounted) {
             setCategories(list);
             return;
           }
         }
-
-        // Aggregate categories dynamically from database restaurants if available
-        const restRes = await fetch(`${API_BASE}/restaurants`);
-        const categoryMap = new Map<string, CategoryItem>();
-
-        if (restRes.ok) {
-          const restData = await restRes.json();
-          const restaurants = Array.isArray(restData) ? restData : restData.restaurants ?? [];
-
-          for (const rest of restaurants) {
-            for (const cat of rest.categories || []) {
-              const name = cat.name?.trim();
-              if (name && !categoryMap.has(name.toLowerCase())) {
-                const firstImg = cat.foodItems?.[0]?.imageUrl || rest.bannerUrl || rest.logoUrl || '';
-                categoryMap.set(name.toLowerCase(), {
-                  id: cat.id || name,
-                  name: name.charAt(0).toUpperCase() + name.slice(1),
-                  image: firstImg,
-                  itemCount: cat.foodItems?.length || 1,
-                });
-              }
-            }
-
-            for (const cuisine of rest.cuisines || []) {
-              const name = cuisine.trim();
-              if (name && !categoryMap.has(name.toLowerCase())) {
-                categoryMap.set(name.toLowerCase(), {
-                  id: name,
-                  name: name.charAt(0).toUpperCase() + name.slice(1),
-                  image: rest.bannerUrl || rest.logoUrl || '',
-                  itemCount: 1,
-                });
-              }
-            }
-          }
-        }
-
-        const DEFAULT_CATEGORIES: CategoryItem[] = [
-          { id: 'biryani', name: 'Biryani', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=200&q=80' },
-          { id: 'pizza', name: 'Pizza', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80' },
-          { id: 'burger', name: 'Burger', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80' },
-          { id: 'wazwan', name: 'Wazwan', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80' },
-          { id: 'kashmiri', name: 'Kashmiri', image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=200&q=80' },
-          { id: 'chinese', name: 'Chinese', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=200&q=80' },
-          { id: 'chicken', name: 'Chicken', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=200&q=80' },
-          { id: 'bakery', name: 'Bakery', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=200&q=80' },
-          { id: 'desserts', name: 'Desserts', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=200&q=80' },
-          { id: 'beverages', name: 'Beverages', image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=200&q=80' },
-        ];
-
-        // Merge defaults with dynamic categories
-        const mergedMap = new Map<string, CategoryItem>();
-        DEFAULT_CATEGORIES.forEach((c) => mergedMap.set(c.name.toLowerCase(), c));
-        Array.from(categoryMap.values()).forEach((c) => mergedMap.set(c.name.toLowerCase(), c));
-        setCategories(Array.from(mergedMap.values()));
       } catch (err) {
-        console.error('Failed to load categories from API', err);
-      } finally {
-        setIsLoading(false);
+        // silent fallback to default categories
       }
     };
     fetchCategories();
+    return () => { isMounted = false; };
   }, []);
 
   if (isLoading) {

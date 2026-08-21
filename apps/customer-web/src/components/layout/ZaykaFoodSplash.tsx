@@ -10,9 +10,9 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('hold'), 600);
-    const t2 = setTimeout(() => setPhase('exit'), 2200);
-    const t3 = setTimeout(() => onComplete(), 2700);
+    const t1 = setTimeout(() => setPhase('hold'), 120);
+    const t2 = setTimeout(() => setPhase('exit'), 450);
+    const t3 = setTimeout(() => onComplete(), 700);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 

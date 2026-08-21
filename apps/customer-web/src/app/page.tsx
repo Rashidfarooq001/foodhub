@@ -30,7 +30,7 @@ export default function CustomerHomePage() {
 
   // Dynamic Location State
   const [locationLabel, setLocationLabel] = useState<string>('Location');
-  const [locationAddress, setLocationAddress] = useState<string>('Detecting location...');
+  const [locationAddress, setLocationAddress] = useState<string>('Kehnusa, Bandipora');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   // Filters & State
@@ -40,13 +40,29 @@ export default function CustomerHomePage() {
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  // Real Data State
+  // Real Data State with Instant Cache
   const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // 0. Instant Cache Hydration on Mount
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('zayka_restaurants_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setRestaurants(parsed);
+          setIsLoading(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // 1. Dynamic Location: Fetch Authenticated Saved Default Address OR Reverse Geocode Browser Coords
   useEffect(() => {
@@ -107,18 +123,10 @@ export default function CustomerHomePage() {
             }
           },
           () => {
-            if (isMounted) {
-              setLocationLabel('Select Location');
-              setLocationAddress('Tap to set delivery address');
-            }
+            // Keep default location smoothly
           },
-          { timeout: 6000 },
+          { timeout: 3000 },
         );
-      } else {
-        if (isMounted) {
-          setLocationLabel('Select Location');
-          setLocationAddress('Tap to set delivery address');
-        }
       }
     };
 
@@ -127,32 +135,43 @@ export default function CustomerHomePage() {
   }, [isAuthenticated, accessToken]);
 
   // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
-  const fetchRestaurants = async () => {
-    setIsLoading(true);
+  const fetchRestaurants = async (coords = userCoords) => {
+    // Only show full loading spinner if we don't already have cached items
+    if (restaurants.length === 0) {
+      setIsLoading(true);
+    }
     setIsError(false);
     try {
-      const url = userCoords
-        ? `${API_BASE}/restaurants?lat=${userCoords.lat}&lng=${userCoords.lng}`
+      const url = coords
+        ? `${API_BASE}/restaurants?lat=${coords.lat}&lng=${coords.lng}`
         : `${API_BASE}/restaurants`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.restaurants ?? [];
-        setRestaurants(list.map((r: any) => normalizeRestaurantData(r, userCoords)));
-      } else {
+        const normalized = list.map((r: any) => normalizeRestaurantData(r, coords));
+        setRestaurants(normalized);
+        try {
+          sessionStorage.setItem('zayka_restaurants_cache', JSON.stringify(normalized));
+        } catch {
+          // ignore quota
+        }
+      } else if (restaurants.length === 0) {
         setIsError(true);
       }
     } catch (err) {
       console.error('Failed to load restaurants from backend', err);
-      setIsError(true);
+      if (restaurants.length === 0) {
+        setIsError(true);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRestaurants();
-    const interval = setInterval(fetchRestaurants, 30000);
+    fetchRestaurants(userCoords);
+    const interval = setInterval(() => fetchRestaurants(userCoords), 30000);
     return () => clearInterval(interval);
   }, [userCoords]);
 
@@ -617,7 +636,7 @@ export default function CustomerHomePage() {
             <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-6 text-center space-y-2">
               <p className="text-xs sm:text-sm font-bold text-rose-800">Unable to load kitchens at this time.</p>
               <button
-                onClick={fetchRestaurants}
+                onClick={() => fetchRestaurants(userCoords)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Retry
