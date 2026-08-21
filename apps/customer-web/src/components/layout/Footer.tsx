@@ -12,8 +12,10 @@ export const Footer: React.FC = () => {
     return <PartnerFooter />;
   }
 
+  const isHome = pathname === '/';
+
   return (
-    <footer className="border-t border-gray-100 bg-gray-900 text-gray-400">
+    <footer className={`border-t border-gray-100 bg-gray-900 text-gray-400 ${isHome ? 'hidden md:block' : ''}`}>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Logo + Tagline */}
         <div className="mb-6 text-center">

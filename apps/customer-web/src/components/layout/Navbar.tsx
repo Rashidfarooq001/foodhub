@@ -54,9 +54,11 @@ export const Navbar: React.FC = () => {
     ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
     : 'U';
 
+  const isHome = pathname === '/';
+
   return (
     <>
-      <header className="sticky top-0 z-30 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md">
+      <header className={`sticky top-0 z-30 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md ${isHome ? 'hidden md:block' : ''}`}>
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 md:h-16">
 
           {/* Logo */}
