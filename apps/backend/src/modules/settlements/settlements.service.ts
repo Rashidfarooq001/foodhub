@@ -259,6 +259,14 @@ export class SettlementsService {
             : Math.round(((foodSubtotal * commRate) / 100) * 100) / 100,
         );
 
+        const commGst = Number(
+          snap.commissionGstAmount !== undefined && snap.commissionGstAmount !== null
+            ? snap.commissionGstAmount
+            : snap.restaurantCommissionGst !== undefined && snap.restaurantCommissionGst !== null
+            ? snap.restaurantCommissionGst
+            : Math.round((comm * 0.18) * 100) / 100
+        );
+
         const gst = Number(
           snap.restaurantFoodGst !== undefined && snap.restaurantFoodGst !== null
             ? snap.restaurantFoodGst
@@ -272,11 +280,11 @@ export class SettlementsService {
 
         grossFoodSales += foodSubtotal;
         commissionAmount += comm;
-        restaurantGst += gst;
+        restaurantGst += commGst; // Using this to track the GST collected by foodhub from restaurant
         restaurantPlatformFees += platFee;
       }
 
-      const netPayable = Math.max(0, grossFoodSales - commissionAmount);
+      const netPayable = Math.max(0, grossFoodSales - commissionAmount - restaurantGst);
       const settlementRecord = existingSettlements.find((s) => s.restaurantId === r.id);
 
       let status: SettlementStatus = SettlementStatus.PENDING;
@@ -485,6 +493,14 @@ export class SettlementsService {
           : Math.round(((foodSubtotal * commRate) / 100) * 100) / 100,
       );
 
+      const commGst = Number(
+        snap.commissionGstAmount !== undefined && snap.commissionGstAmount !== null
+          ? snap.commissionGstAmount
+          : snap.restaurantCommissionGst !== undefined && snap.restaurantCommissionGst !== null
+          ? snap.restaurantCommissionGst
+          : Math.round((comm * 0.18) * 100) / 100
+      );
+
       const gst = Number(
         snap.restaurantFoodGst !== undefined && snap.restaurantFoodGst !== null
           ? snap.restaurantFoodGst
@@ -495,11 +511,11 @@ export class SettlementsService {
       const platFee = Number(
         snap.platformFee !== undefined && snap.platformFee !== null ? snap.platformFee : 3.0,
       );
-      const net = Math.max(0, Math.round((foodSubtotal - comm) * 100) / 100);
+      const net = Math.max(0, Math.round((foodSubtotal - comm - commGst) * 100) / 100);
 
       grossFoodSales += foodSubtotal;
       totalCommission += comm;
-      totalGst += gst;
+      totalGst += commGst;
       totalPlatformFees += platFee;
 
       const customerDisplayName = o.customer?.user?.profile
@@ -515,7 +531,7 @@ export class SettlementsService {
         grossAmount: Math.round(foodSubtotal * 100) / 100,
         commissionRate: commRate,
         commissionAmount: Math.round(comm * 100) / 100,
-        gstAmount: Math.round(gst * 100) / 100,
+        gstAmount: Math.round(commGst * 100) / 100,
         platformFee: Math.round(platFee * 100) / 100,
         restaurantNet: net,
         paymentStatus: o.paymentStatus || 'COMPLETED',
@@ -524,7 +540,7 @@ export class SettlementsService {
       };
     });
 
-    const netPayable = Math.max(0, grossFoodSales - totalCommission);
+    const netPayable = Math.max(0, grossFoodSales - totalCommission - totalGst);
 
     const status = settlementRecord
       ? settlementRecord.status

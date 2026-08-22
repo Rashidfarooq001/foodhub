@@ -211,11 +211,13 @@ export class OrderQuoteService {
 
     const effectivePercent = resolvedCommissionRate;
     const restaurantCommission = Math.round(foodSubtotal * (effectivePercent / 100) * 100) / 100;
-    const restaurantCommissionGst = 0.0;
+    // 18% GST on Commission (SAC 998314 - Merchant Platform Commission)
+    const restaurantCommissionGst = Math.round(restaurantCommission * 0.18 * 100) / 100;
 
-    // Under Sec 9(5) ECO, Restaurant receives (Food Subtotal - Commission)
+    // Under Sec 9(5) ECO, Restaurant receives:
+    // Food Subtotal - Commission - GST on Commission
     const restaurantSettlement = Math.round(
-      (foodSubtotal - restaurantCommission) * 100,
+      (foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100,
     ) / 100;
 
     // 7. Rider Payout (₹25 base + ₹6/km)
@@ -265,7 +267,7 @@ export class OrderQuoteService {
       commissionStatus,
       restaurantCommissionPercent: effectivePercent,
       restaurantCommission,
-      restaurantCommissionGst: 0,
+      restaurantCommissionGst,
       restaurantSettlement,
 
       riderBasePay,
