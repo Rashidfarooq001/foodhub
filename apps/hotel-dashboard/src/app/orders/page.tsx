@@ -390,7 +390,14 @@ export default function HotelOrdersPage() {
 
   const getFilteredOrders = () => {
     return orders.filter((o) => {
-      if (filter === 'NEW_ORDERS' && o.status !== 'PENDING') return false;
+      if (filter === 'NEW_ORDERS') {
+        if (o.status !== 'PENDING') return false;
+        // SECURITY: Hide online-payment orders that have not yet been payment-verified.
+        // COD orders are always immediately actionable.
+        // This is the client-side safety net — the server already enforces this via the REST query
+        // and only emits ORDER_CREATED after payment confirmation.
+        if (o.paymentMethod !== 'COD' && o.paymentStatus !== 'COMPLETED') return false;
+      }
       if (filter === 'ACCEPTED' && o.status !== 'ACCEPTED') return false;
       if (filter === 'PREPARING' && o.status !== 'PREPARING') return false;
       if (filter === 'READY_FOR_PICKUP' && o.status !== 'READY_FOR_PICKUP') return false;

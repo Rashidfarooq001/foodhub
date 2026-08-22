@@ -88,7 +88,20 @@ export class OrdersRepository {
     }
 
     const orders = await this.prisma.order.findMany({
-      where:   { restaurantId, ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
+      where: {
+        restaurantId,
+        ...(statusFilter ? { status: statusFilter } : {}),
+        deletedAt: null,
+        // SECURITY: Never return online-payment orders where payment has not been confirmed.
+        // COD orders (paymentMethod='COD') are always immediately visible.
+        // Online payment orders are only visible once paymentStatus=COMPLETED.
+        NOT: {
+          AND: [
+            { paymentMethod: { not: 'COD' } },
+            { paymentStatus: 'PENDING' },
+          ],
+        },
+      },
       include: {
         orderItems: { include: { foodItem: true } },
         restaurant: { select: { id: true, name: true, addressLine: true, phone: true, latitude: true, longitude: true } },

@@ -123,7 +123,7 @@ async function runEndToEndFinancialReconciliation() {
   const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
   const commissionService = new CommissionService(prisma as any);
   const settlementsService = new SettlementsService(prisma as any, commissionService);
-  const paymentsService = new PaymentsService(prisma as any);
+  const paymentsService = new PaymentsService(prisma as any, null as any);
 
   // Setup Standard PostgreSQL Pricing Configuration
   prisma.pricingConfigs.push({

@@ -376,20 +376,27 @@ export class OrdersService {
       return newOrder;
     });
 
-    // 9. Emit real-time event to restaurant
-    this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
-      orderId:     order.id,
-      orderNumber: order.orderNumber,
-      totalAmount: order.totalAmount,
-      deliveryAddress: deliveryAddressSnapshot,
-      deliveryAddressText: formattedAddressText,
-      deliveryPlaceName: placeNameText,
-      deliveryFormattedAddress: formattedAddressText,
-      deliveryLatitude: latitudeNum,
-      deliveryLongitude: longitudeNum,
-      distanceKm: quote.distanceKm,
-      locationSource: locationSourceText,
-    });
+    // 9. Emit real-time event to restaurant — ONLY for COD orders.
+    // Online payment orders (UPI, CARD, NETBANKING, WALLET, etc.) must NOT appear in
+    // the restaurant queue until server-side payment verification succeeds.
+    // The PaymentsService emits ORDER_CREATED after verifyPayment() or the Razorpay webhook fires.
+    if (dto.paymentMethod === 'COD') {
+      this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
+        orderId:     order.id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        deliveryAddress: deliveryAddressSnapshot,
+        deliveryAddressText: formattedAddressText,
+        deliveryPlaceName: placeNameText,
+        deliveryFormattedAddress: formattedAddressText,
+        deliveryLatitude: latitudeNum,
+        deliveryLongitude: longitudeNum,
+        distanceKm: quote.distanceKm,
+        locationSource: locationSourceText,
+        paymentMethod: dto.paymentMethod,
+        paymentVerified: true,
+      });
+    }
 
     return order;
   }

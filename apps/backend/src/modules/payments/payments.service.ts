@@ -10,6 +10,8 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { PaymentStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Razorpay = require('razorpay');
@@ -19,7 +21,10 @@ export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
   private readonly razorpay: any;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gateway: OrdersGateway,
+  ) {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -226,6 +231,35 @@ const payment = await this.prisma.payment.create({
     this.logger.log(
       `Payment verified: ${dto.razorpayPaymentId}`,
     );
+
+    // NOW notify the restaurant — payment is confirmed, order is actionable.
+    // This is the authoritative trigger for merchant visibility for online payments.
+    try {
+      const verifiedOrder = await this.prisma.order.findUnique({
+        where: { id: payment.orderId },
+        include: { restaurant: true },
+      });
+      if (verifiedOrder) {
+        this.gateway.emitToRestaurant(
+          verifiedOrder.restaurantId,
+          ORDER_EVENTS.ORDER_CREATED,
+          {
+            orderId:      verifiedOrder.id,
+            orderNumber:  verifiedOrder.orderNumber,
+            totalAmount:  verifiedOrder.totalAmount,
+            paymentMethod: verifiedOrder.paymentMethod,
+            paymentVerified: true,
+            paymentStatus: 'COMPLETED',
+          },
+        );
+        this.logger.log(
+          `ORDER_CREATED emitted to restaurant ${verifiedOrder.restaurantId} after payment verification`,
+        );
+      }
+    } catch (emitErr) {
+      // Non-fatal: log but don't fail the payment response
+      this.logger.error('Failed to emit ORDER_CREATED after payment verify', emitErr);
+    }
 
     return {
       message: 'Payment verified successfully',
@@ -593,6 +627,34 @@ const payment = await this.prisma.payment.create({
         },
       }),
     ]);
+
+    // Emit ORDER_CREATED to restaurant — webhook is the authoritative fallback.
+    // If verifyPayment already ran, the restaurant already received this event (idempotent on the client).
+    try {
+      const capturedOrder = await this.prisma.order.findUnique({
+        where: { id: existingPayment.orderId },
+      });
+      if (capturedOrder) {
+        this.gateway.emitToRestaurant(
+          capturedOrder.restaurantId,
+          ORDER_EVENTS.ORDER_CREATED,
+          {
+            orderId:     capturedOrder.id,
+            orderNumber: capturedOrder.orderNumber,
+            totalAmount: capturedOrder.totalAmount,
+            paymentMethod: capturedOrder.paymentMethod,
+            paymentVerified: true,
+            paymentStatus: 'COMPLETED',
+            source: 'webhook',
+          },
+        );
+        this.logger.log(
+          `ORDER_CREATED emitted via webhook for restaurant ${capturedOrder.restaurantId}`,
+        );
+      }
+    } catch (emitErr) {
+      this.logger.error('Failed to emit ORDER_CREATED after webhook capture', emitErr);
+    }
   }
 
   private async handlePaymentFailed(
