@@ -108,8 +108,8 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
                     }}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                    <Utensils className="h-6 w-6 sm:h-7 sm:w-7" />
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600">
+                    <span className="font-black text-sm sm:text-base tracking-tight">ALL</span>
                   </div>
                 )}
               </div>

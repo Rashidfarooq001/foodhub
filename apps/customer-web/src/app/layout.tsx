@@ -161,7 +161,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
       </head>
-      <body className={`${inter.className} flex min-h-full w-full max-w-full overflow-x-hidden flex-col font-sans antialiased text-gray-900 bg-white`}>
+      <body className={`${inter.className} flex min-h-full w-full max-w-full flex-col font-sans antialiased text-gray-900 bg-white`}>
         <AppProviders>
           <Navbar />
           <main className="flex-1 w-full max-w-full min-w-0">{children}</main>

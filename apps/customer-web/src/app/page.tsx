@@ -362,18 +362,18 @@ export default function CustomerHomePage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
 
         {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
-        <div className="flex items-center justify-between border-b border-gray-100/80 pb-2 md:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">
           {/* Logo on Left */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <img
               src="/zaykafood-logo.png"
               alt="Zayka Food"
-              className="h-8 sm:h-9 w-auto object-contain"
+              className="h-10 sm:h-11 w-auto object-contain"
             />
           </Link>
 
           {/* Name / Brand / Greeting in Center-Right */}
-          <div className="text-right sm:text-center">
+          <div className="text-right shrink-0">
             <h1 className="text-base sm:text-lg font-black tracking-tight text-gray-900">
               {customerGreeting}
             </h1>
@@ -384,34 +384,34 @@ export default function CustomerHomePage() {
         </div>
 
         {/* ─── ROW 2: LOCATION (LEFT) + VEG TOGGLE + NOTIFICATION + PROFILE (RIGHT) ─── */}
-        <div className="flex items-center justify-between gap-2 pt-0.5">
+        <div className="flex items-center justify-between gap-3 pt-2 pb-1">
           {/* Current Location on Left */}
           <button
             type="button"
             onClick={() => setIsLocationModalOpen(true)}
-            className="flex items-start gap-1.5 min-w-0 max-w-[55%] sm:max-w-md group text-left"
+            className="flex items-start gap-2 min-w-0 flex-1 group text-left"
           >
-            <div className="mt-0.5 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
-              <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-rose-600 text-rose-600" />
+            <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 shrink-0 group-hover:bg-rose-100 transition">
+              <MapPin className="h-4 w-4 fill-rose-600 text-rose-600" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 pr-2">
               <div className="flex items-center gap-1">
-                <span className="text-xs sm:text-sm font-black text-gray-900 tracking-tight">{locationLabel}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-gray-500 stroke-[2.5]" />
+                <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight truncate">{locationLabel}</span>
+                <ChevronDown className="h-4 w-4 text-gray-500 stroke-[2.5] shrink-0" />
               </div>
-              <p className="text-[10px] sm:text-xs text-gray-500 truncate font-medium">
+              <p className="text-[11px] sm:text-xs text-gray-500 truncate font-medium mt-0.5">
                 {locationAddress}
               </p>
             </div>
           </button>
 
           {/* Right Action Cluster: Veg Toggle + Notification + Profile Photo */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
             {/* Veg Toggle Button */}
             <button
               type="button"
               onClick={() => setIsVegOnly(!isVegOnly)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-all text-xs font-black shadow-sm ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all text-xs font-black shadow-sm ${
                 isVegOnly
                   ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500'
                   : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
@@ -423,16 +423,16 @@ export default function CustomerHomePage() {
               }`}>
                 <div className={`h-1.5 w-1.5 rounded-full ${isVegOnly ? 'bg-white' : 'bg-gray-400'}`} />
               </div>
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-tight">
+              <span className="text-[10px] sm:text-[11px] uppercase tracking-tight hidden xs:inline-block">
                 {isVegOnly ? 'Pure Veg' : 'Veg Only'}
               </span>
             </button>
 
             {/* Notification & Profile (Mobile Only, Desktop handled by Navbar) */}
-            <div className="flex items-center gap-2 md:hidden">
+            <div className="flex items-center gap-2.5 md:hidden">
               <Link
                 href="/notifications"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100 shrink-0"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" />
@@ -447,10 +447,10 @@ export default function CustomerHomePage() {
                   <img
                     src={user.avatarUrl}
                     alt={user.firstName || 'Profile'}
-                    className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-100"
+                    className="h-9 w-9 rounded-full object-cover ring-2 ring-rose-100"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
                     {isAuthenticated ? initials : 'Sign In'}
                   </div>
                 )}
@@ -482,10 +482,10 @@ export default function CustomerHomePage() {
         )}
 
         {/* ─── ROW 3: LARGE ROUNDED SEARCH BAR (Mobile Only) ─────────────── */}
-        <div className="relative w-full md:hidden">
-          <div className="relative flex items-center rounded-2xl sm:rounded-3xl border border-gray-200/90 bg-gray-50/80 hover:bg-white hover:border-rose-400 transition-all duration-200 shadow-sm">
+        <div className="relative w-full md:hidden pt-1">
+          <div className="relative flex items-center rounded-full border border-gray-200 bg-gray-50/50 hover:bg-white hover:border-rose-400 transition-all duration-200 shadow-sm">
             <div className="pl-4 pr-2 text-rose-600">
-              <Search className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
+              <Search className="h-5 w-5 stroke-[2.5]" />
             </div>
             <input
               type="text"
@@ -497,15 +497,15 @@ export default function CustomerHomePage() {
                 }
               }}
               placeholder="Search restaurants, dishes and cuisines..."
-              className="w-full bg-transparent py-2.5 sm:py-3.5 text-xs sm:text-base font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              className="w-full bg-transparent py-3 text-sm font-medium text-gray-900 placeholder:text-gray-500 focus:outline-none"
             />
             <button
               type="button"
               onClick={handleMicSearch}
-              className="p-2.5 pr-4 text-rose-600 hover:text-rose-700 transition"
+              className="p-3 pr-4 text-rose-600 hover:text-rose-700 transition"
               aria-label="Voice Search"
             >
-              <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Mic className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -517,7 +517,7 @@ export default function CustomerHomePage() {
         />
 
         {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           {/* Main Filters Button (Opens Modal) */}
           <button
             type="button"
