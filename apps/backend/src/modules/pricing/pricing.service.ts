@@ -18,7 +18,7 @@ export interface PricingConfigDto {
 }
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
-  restaurantCommissionPercent: null, // UNCONFIGURED by default
+  restaurantCommissionPercent: 13.0, // 13% platform standard commission
   customerDeliveryPerKm: 0.0,
   minimumCustomerDeliveryFee: 15.0,
   platformFee: 3.0,

@@ -215,6 +215,181 @@ describe('SettlementsService Weekly System', () => {
     });
   });
 
+  describe('13% Platform Commission on Individual Orders', () => {
+    it('calculates 13% commission on a single order of ₹1,300 (= ₹169 commission, Net = ₹1,131)', async () => {
+      prisma.restaurant.findMany.mockResolvedValue([mockRestaurantA]);
+
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: 'ord-single',
+          orderNumber: 'FH-1300',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 1318,
+          subtotal: 1300,
+          pricingSnapshot: {
+            restaurantGross: 1300,
+            commissionRate: 13,
+            commissionAmount: 169,
+            restaurantNet: 1131,
+          },
+          createdAt: new Date(),
+        },
+      ]);
+
+      prisma.settlement.findMany.mockResolvedValue([]);
+
+      const result = await service.getWeeklyRestaurantSettlements('current');
+      const rest = result.restaurants.find((r) => r.restaurantId === 'rest-a-uuid')!;
+
+      expect(rest.orderCount).toBe(1);
+      expect(rest.grossSales).toBe(1300);
+      expect(rest.commissionRate).toBe(13);
+      expect(rest.commissionAmount).toBe(169);
+      expect(rest.netPayable).toBe(1131);
+      expect(rest.pendingAmount).toBe(1131);
+    });
+
+    it('aggregates multiple orders: ₹1,000 (₹130) + ₹500 (₹65) + ₹1,300 (₹169) = ₹2,800 Gross, ₹364 Commission, ₹2,436 Net', async () => {
+      prisma.restaurant.findMany.mockResolvedValue([mockRestaurantA]);
+
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: 'ord-1',
+          orderNumber: 'FH-1001',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 1018,
+          subtotal: 1000,
+          pricingSnapshot: { restaurantGross: 1000, commissionRate: 13, commissionAmount: 130, restaurantNet: 870 },
+          createdAt: new Date(),
+        },
+        {
+          id: 'ord-2',
+          orderNumber: 'FH-1002',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 518,
+          subtotal: 500,
+          pricingSnapshot: { restaurantGross: 500, commissionRate: 13, commissionAmount: 65, restaurantNet: 435 },
+          createdAt: new Date(),
+        },
+        {
+          id: 'ord-3',
+          orderNumber: 'FH-1003',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 1318,
+          subtotal: 1300,
+          pricingSnapshot: { restaurantGross: 1300, commissionRate: 13, commissionAmount: 169, restaurantNet: 1131 },
+          createdAt: new Date(),
+        },
+      ]);
+
+      prisma.settlement.findMany.mockResolvedValue([]);
+
+      const result = await service.getWeeklyRestaurantSettlements('current');
+      const rest = result.restaurants.find((r) => r.restaurantId === 'rest-a-uuid')!;
+
+      expect(rest.orderCount).toBe(3);
+      expect(rest.grossSales).toBe(2800);
+      expect(rest.commissionAmount).toBe(364);
+      expect(rest.netPayable).toBe(2436);
+      expect(rest.pendingAmount).toBe(2436);
+
+      // Verify exact ledger sum equation
+      expect(result.summary.weeklyGmv).toBe(2800);
+      expect(result.summary.totalCommission).toBe(364);
+      expect(result.summary.totalRestaurantPayable).toBe(2436);
+    });
+
+    it('verifies ledger reconciliation: SUM(order gross) === settlement gross & SUM(order commission) === settlement commission', async () => {
+      prisma.restaurant.findUnique.mockResolvedValue(mockRestaurantA);
+
+      const mockOrders = [
+        {
+          id: 'ord-1',
+          orderNumber: 'FH-1001',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 1018,
+          subtotal: 1000,
+          pricingSnapshot: { restaurantGross: 1000, commissionRate: 13, commissionAmount: 130, restaurantNet: 870 },
+          createdAt: new Date(),
+        },
+        {
+          id: 'ord-2',
+          orderNumber: 'FH-1002',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 518,
+          subtotal: 500,
+          pricingSnapshot: { restaurantGross: 500, commissionRate: 13, commissionAmount: 65, restaurantNet: 435 },
+          createdAt: new Date(),
+        },
+        {
+          id: 'ord-3',
+          orderNumber: 'FH-1003',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 1318,
+          subtotal: 1300,
+          pricingSnapshot: { restaurantGross: 1300, commissionRate: 13, commissionAmount: 169, restaurantNet: 1131 },
+          createdAt: new Date(),
+        },
+      ];
+
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.settlement.findFirst.mockResolvedValue(null);
+
+      const detail = await service.getRestaurantSettlementDetail('rest-a-uuid', 'current');
+
+      const sumOrderGross = detail.orders.reduce((sum, o) => sum + o.grossAmount, 0);
+      const sumOrderComm = detail.orders.reduce((sum, o) => sum + o.commissionAmount, 0);
+      const sumOrderNet = detail.orders.reduce((sum, o) => sum + o.restaurantNet, 0);
+
+      expect(sumOrderGross).toBe(detail.financialSummary.grossSales);
+      expect(sumOrderComm).toBe(detail.financialSummary.commissionAmount);
+      expect(sumOrderNet).toBe(detail.financialSummary.netPayable);
+    });
+
+    it('excludes cancelled, rejected, or non-completed orders from settlement calculation', async () => {
+      prisma.restaurant.findMany.mockResolvedValue([mockRestaurantA]);
+
+      // Database query for orders only filters status: DELIVERED, paymentStatus: COMPLETED
+      prisma.order.findMany.mockImplementation(async (query: any) => {
+        expect(query.where.status).toBe(OrderStatus.DELIVERED);
+        expect(query.where.paymentStatus).toBe(PaymentStatus.COMPLETED);
+        return [];
+      });
+
+      const result = await service.getWeeklyRestaurantSettlements('current');
+      expect(result.summary.totalOrders).toBe(0);
+      expect(result.summary.totalCommission).toBe(0);
+    });
+
+    it('calculates commission on discounted orders using the authoritative gross food subtotal', async () => {
+      prisma.restaurant.findUnique.mockResolvedValue(mockRestaurantA);
+
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: 'ord-disc',
+          orderNumber: 'FH-DISC',
+          restaurantId: 'rest-a-uuid',
+          totalAmount: 900, // Customer paid ₹900 after ₹100 discount
+          subtotal: 1000,    // Restaurant gross menu value ₹1,000
+          pricingSnapshot: {
+            restaurantGross: 1000,
+            commissionRate: 13,
+            commissionAmount: 130,
+            restaurantNet: 870,
+          },
+          createdAt: new Date(),
+        },
+      ]);
+
+      prisma.settlement.findFirst.mockResolvedValue(null);
+
+      const detail = await service.getRestaurantSettlementDetail('rest-a-uuid', 'current');
+      expect(detail.financialSummary.grossSales).toBe(1000);
+      expect(detail.financialSummary.commissionAmount).toBe(130);
+      expect(detail.financialSummary.netPayable).toBe(870);
+    });
+  });
+
   describe('Double-Entry Reconciliation', () => {
     it('verifies exact balance when customer payments match all components', async () => {
       prisma.order.findMany.mockResolvedValue([

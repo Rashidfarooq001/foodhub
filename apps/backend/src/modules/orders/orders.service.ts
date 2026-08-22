@@ -258,6 +258,7 @@ export class OrdersService {
     const quote = await this.quoteService.calculateQuote({
       foodSubtotal: subtotal,
       distanceKm: calculatedDistanceKm,
+      restaurantId: dto.restaurantId,
       discountAmount,
       packagingFee: 0,
       tipAmount: (dto as any).tipAmount || 0,

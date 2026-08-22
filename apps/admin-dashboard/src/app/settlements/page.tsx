@@ -1270,38 +1270,44 @@ export default function AdminFinancePage() {
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">
                 Order-Level Ledger ({restaurantDetailData?.orders?.length || 0} orders)
               </h4>
-              <div className="overflow-x-auto max-h-60 rounded-2xl border border-gray-200">
+              <div className="overflow-x-auto max-h-72 rounded-2xl border border-gray-200">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-500 border-b border-gray-100">
                     <tr>
-                      <th className="px-3 py-2">Order #</th>
-                      <th className="px-3 py-2">Date</th>
-                      <th className="px-3 py-2">Customer</th>
-                      <th className="px-3 py-2 text-right">Food Amount</th>
-                      <th className="px-3 py-2 text-right">Commission</th>
-                      <th className="px-3 py-2 text-right">Net Earning</th>
-                      <th className="px-3 py-2 text-center">Status</th>
+                      <th className="px-3 py-2.5">Order #</th>
+                      <th className="px-3 py-2.5">Date</th>
+                      <th className="px-3 py-2.5">Customer</th>
+                      <th className="px-3 py-2.5 text-right">Gross</th>
+                      <th className="px-2 py-2.5 text-center">Rate</th>
+                      <th className="px-3 py-2.5 text-right">Commission</th>
+                      <th className="px-3 py-2.5 text-right">GST / Tax</th>
+                      <th className="px-3 py-2.5 text-right">Fees</th>
+                      <th className="px-3 py-2.5 text-right">Net</th>
+                      <th className="px-3 py-2.5 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 font-medium">
                     {!restaurantDetailData?.orders || restaurantDetailData.orders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-gray-400">
+                        <td colSpan={10} className="px-3 py-6 text-center text-gray-400">
                           No order transactions recorded for this period.
                         </td>
                       </tr>
                     ) : (
                       restaurantDetailData.orders.map((o: any) => (
-                        <tr key={o.orderId} className="hover:bg-gray-50/50">
-                          <td className="px-3 py-2 font-bold text-gray-900">{o.orderNumber}</td>
-                          <td className="px-3 py-2 text-gray-500">
+                        <tr key={o.orderId} className="hover:bg-purple-50/20 transition">
+                          <td className="px-3 py-2.5 font-bold text-gray-900">{o.orderNumber}</td>
+                          <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
                             {new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                           </td>
-                          <td className="px-3 py-2 text-gray-700">{o.customerName}</td>
-                          <td className="px-3 py-2 text-right font-bold">₹{o.foodSubtotal}</td>
-                          <td className="px-3 py-2 text-right text-purple-700 font-bold">₹{o.commissionAmount}</td>
-                          <td className="px-3 py-2 text-right font-black text-emerald-700">₹{o.restaurantNet}</td>
-                          <td className="px-3 py-2 text-center">
+                          <td className="px-3 py-2.5 text-gray-700 max-w-[120px] truncate">{o.customerName}</td>
+                          <td className="px-3 py-2.5 text-right font-bold text-gray-900">₹{o.grossAmount || o.foodSubtotal}</td>
+                          <td className="px-2 py-2.5 text-center font-bold text-purple-700">{o.commissionRate || 13}%</td>
+                          <td className="px-3 py-2.5 text-right text-purple-700 font-bold">-₹{o.commissionAmount}</td>
+                          <td className="px-3 py-2.5 text-right text-gray-500">₹{o.gstAmount || 0}</td>
+                          <td className="px-3 py-2.5 text-right text-gray-500">₹{o.platformFee || 0}</td>
+                          <td className="px-3 py-2.5 text-right font-black text-emerald-700">₹{o.restaurantNet}</td>
+                          <td className="px-3 py-2.5 text-center">
                             <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
                               {o.settlementStatus || 'PENDING'}
                             </span>

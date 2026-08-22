@@ -25,15 +25,19 @@ export class CommissionService {
     const grossAmount = Number(snap.restaurantGross || order.subtotal || order.totalAmount);
     const commissionRate = snap.commissionRate !== undefined && snap.commissionRate !== null
       ? Number(snap.commissionRate)
-      : (order.restaurant.commissionRate !== null ? Number(order.restaurant.commissionRate) : 0);
-    const platformFee = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : (grossAmount * commissionRate / 100));
-    const restaurantNet = Number(snap.restaurantNet !== undefined ? snap.restaurantNet : Math.max(grossAmount - platformFee, 0));
+      : (order.restaurant.commissionRate !== null && order.restaurant.commissionRate !== undefined ? Number(order.restaurant.commissionRate) : 13.0);
+    const platformFee = Number(snap.commissionAmount !== undefined && snap.commissionAmount !== null
+      ? snap.commissionAmount
+      : Math.round(((grossAmount * commissionRate) / 100) * 100) / 100);
+    const restaurantNet = Number(snap.restaurantNet !== undefined && snap.restaurantNet !== null
+      ? snap.restaurantNet
+      : Math.max(0, Math.round((grossAmount - platformFee) * 100) / 100));
 
     return {
-      grossAmount,
+      grossAmount: Math.round(grossAmount * 100) / 100,
       commissionRate,
-      platformFee,
-      restaurantNet,
+      platformFee: Math.round(platformFee * 100) / 100,
+      restaurantNet: Math.round(restaurantNet * 100) / 100,
       driverEarning: Number(snap.riderPayout || DRIVER_FLAT_EARNING),
     };
   }
@@ -41,7 +45,7 @@ export class CommissionService {
   /** Bulk report: summarise commission across a restaurant's delivered orders from snapshots */
   async getRestaurantCommissionReport(restaurantId: string) {
     const orders = await this.prisma.order.findMany({
-      where:   { restaurantId, status: 'DELIVERED' },
+      where:   { restaurantId, status: 'DELIVERED', paymentStatus: 'COMPLETED' },
       include: { restaurant: true },
     });
 
@@ -54,9 +58,13 @@ export class CommissionService {
       const gross = Number(snap.restaurantGross || o.subtotal || o.totalAmount);
       const rate = snap.commissionRate !== undefined && snap.commissionRate !== null
         ? Number(snap.commissionRate)
-        : (o.restaurant.commissionRate !== null ? Number(o.restaurant.commissionRate) : 0);
-      const platform = Number(snap.commissionAmount !== undefined ? snap.commissionAmount : (gross * rate / 100));
-      const net = Number(snap.restaurantNet !== undefined ? snap.restaurantNet : Math.max(gross - platform, 0));
+        : (o.restaurant.commissionRate !== null && o.restaurant.commissionRate !== undefined ? Number(o.restaurant.commissionRate) : 13.0);
+      const platform = Number(snap.commissionAmount !== undefined && snap.commissionAmount !== null
+        ? snap.commissionAmount
+        : Math.round(((gross * rate) / 100) * 100) / 100);
+      const net = Number(snap.restaurantNet !== undefined && snap.restaurantNet !== null
+        ? snap.restaurantNet
+        : Math.max(0, Math.round((gross - platform) * 100) / 100));
       
       totalGross       += gross;
       totalPlatform    += platform;
@@ -66,9 +74,9 @@ export class CommissionService {
     return {
       restaurantId,
       orderCount:    orders.length,
-      totalGross,
-      totalPlatform,
-      totalNet,
+      totalGross:    Math.round(totalGross * 100) / 100,
+      totalPlatform: Math.round(totalPlatform * 100) / 100,
+      totalNet:      Math.round(totalNet * 100) / 100,
     };
   }
 }

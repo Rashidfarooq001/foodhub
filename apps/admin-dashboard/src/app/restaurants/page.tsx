@@ -316,7 +316,7 @@ export default function AdminRestaurantsPage() {
 
                     <div>
                       <span className="text-[9px] text-purple-700 font-bold uppercase block">Commission Rate</span>
-                      <span className="font-black text-purple-900">{r.commissionRate ?? 15}%</span>
+                      <span className="font-black text-purple-900">{r.commissionRate ?? 13}%</span>
                     </div>
                   </div>
 
@@ -359,7 +359,7 @@ export default function AdminRestaurantsPage() {
 
                     <button
                       onClick={() => {
-                        setModalCommission(r.commissionRate ?? 15);
+                        setModalCommission(r.commissionRate ?? 13);
                         setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
                       }}
                       className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 min-h-[40px]"
@@ -392,7 +392,7 @@ export default function AdminRestaurantsPage() {
                       <td className="py-3 text-gray-700">
                         {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Partner'}
                       </td>
-                      <td className="py-3 font-bold text-purple-700">{r.commissionRate ?? 15}%</td>
+                      <td className="py-3 font-bold text-purple-700">{r.commissionRate ?? 13}%</td>
                       <td className="py-3">{getStatusBadge(r.status)}</td>
                       <td className="py-3 text-right space-x-1.5">
                         {r.status === 'PENDING_APPROVAL' && (
@@ -429,7 +429,7 @@ export default function AdminRestaurantsPage() {
                         )}
                         <button
                           onClick={() => {
-                            setModalCommission(r.commissionRate ?? 15);
+                            setModalCommission(r.commissionRate ?? 13);
                             setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
                           }}
                           className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-50"

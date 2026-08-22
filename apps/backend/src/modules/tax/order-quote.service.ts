@@ -190,14 +190,13 @@ export class OrderQuoteService {
     );
 
     // ==========================================
-    // 6. AUTHORITATIVE COMMISSION RESOLUTION
-    // 1. Check Restaurant.commissionRate
+    // 6. AUTHORITATIVE COMMISSION RESOLUTION (13% on every individual order)
+    // 1. Check Restaurant.commissionRate from DB
     // 2. Fallback to active PricingConfig.restaurantCommissionPercent
-    // 3. If neither: NULL / UNCONFIGURED, ₹0.00 commission
-    // Note: Explicit 0.00 is CONFIGURED with 0% rate.
+    // 3. Fallback to standard ZaykaFood platform rate: 13.0%
     // ==========================================
-    let resolvedCommissionRate: number | null = null;
-    let commissionStatus: 'CONFIGURED' | 'UNCONFIGURED' = 'UNCONFIGURED';
+    let resolvedCommissionRate: number = 13.0;
+    let commissionStatus: 'CONFIGURED' | 'UNCONFIGURED' = 'CONFIGURED';
 
     if (restaurantRecord && restaurantRecord.commissionRate !== null && restaurantRecord.commissionRate !== undefined) {
       resolvedCommissionRate = Number(restaurantRecord.commissionRate);
@@ -206,11 +205,11 @@ export class OrderQuoteService {
       resolvedCommissionRate = Number(config.restaurantCommissionPercent);
       commissionStatus = 'CONFIGURED';
     } else {
-      resolvedCommissionRate = null;
-      commissionStatus = 'UNCONFIGURED';
+      resolvedCommissionRate = 13.0;
+      commissionStatus = 'CONFIGURED';
     }
 
-    const effectivePercent = resolvedCommissionRate !== null ? resolvedCommissionRate : 0.0;
+    const effectivePercent = resolvedCommissionRate;
     const restaurantCommission = Math.round(foodSubtotal * (effectivePercent / 100) * 100) / 100;
     const restaurantCommissionGst = 0.0;
 

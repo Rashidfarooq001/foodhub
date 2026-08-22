@@ -26,7 +26,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
   pendingRestaurants: [],
   pendingDrivers: [],
   isMaintenanceMode: false,
-  platformCommissionRate: 18.0,
+  platformCommissionRate: 13.0,
 
   setPendingRestaurants: (data) => set({ pendingRestaurants: data }),
 

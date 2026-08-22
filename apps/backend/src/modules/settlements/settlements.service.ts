@@ -235,27 +235,40 @@ export class SettlementsService {
       for (const o of restOrders) {
         const snap: any = o.pricingSnapshot || {};
         const foodSubtotal = Number(
-          snap.restaurantGross !== undefined ? snap.restaurantGross : o.subtotal || o.totalAmount,
+          snap.restaurantGross !== undefined && snap.restaurantGross !== null
+            ? snap.restaurantGross
+            : o.subtotal || o.totalAmount,
         );
+        // Order-level commission rate (13% platform rule on each order):
+        // 1. Snapshot commissionRate if already calculated on order
+        // 2. Restaurant contracted commissionRate from DB
+        // 3. Platform default 13.0%
         const commRate =
           snap.commissionRate !== undefined && snap.commissionRate !== null
             ? Number(snap.commissionRate)
-            : r.commissionRate !== null
+            : r.commissionRate !== null && r.commissionRate !== undefined
             ? Number(r.commissionRate)
-            : 0;
+            : 13.0;
+
+        // Order-level commission amount:
+        // 1. Stored snapshot commissionAmount
+        // 2. Order commission = foodSubtotal * commRate / 100
         const comm = Number(
-          snap.commissionAmount !== undefined
+          snap.commissionAmount !== undefined && snap.commissionAmount !== null
             ? snap.commissionAmount
-            : (foodSubtotal * commRate) / 100,
+            : Math.round(((foodSubtotal * commRate) / 100) * 100) / 100,
         );
+
         const gst = Number(
-          snap.restaurantFoodGst !== undefined
+          snap.restaurantFoodGst !== undefined && snap.restaurantFoodGst !== null
             ? snap.restaurantFoodGst
-            : snap.totalCustomerTaxes !== undefined
+            : snap.totalCustomerTaxes !== undefined && snap.totalCustomerTaxes !== null
             ? snap.totalCustomerTaxes
-            : foodSubtotal * 0.05,
+            : 0,
         );
-        const platFee = Number(snap.platformFee !== undefined ? snap.platformFee : 3.0);
+        const platFee = Number(
+          snap.platformFee !== undefined && snap.platformFee !== null ? snap.platformFee : 3.0,
+        );
 
         grossFoodSales += foodSubtotal;
         commissionAmount += comm;
@@ -334,7 +347,7 @@ export class SettlementsService {
         },
         orderCount: restOrders.length,
         grossSales: Math.round(grossFoodSales * 100) / 100,
-        commissionRate: r.commissionRate !== null ? Number(r.commissionRate) : 0,
+        commissionRate: r.commissionRate !== null && r.commissionRate !== undefined ? Number(r.commissionRate) : 13.0,
         commissionAmount: Math.round(commissionAmount * 100) / 100,
         gstAmount: Math.round(restaurantGst * 100) / 100,
         platformFees: Math.round(restaurantPlatformFees * 100) / 100,
@@ -455,28 +468,34 @@ export class SettlementsService {
     const orderRows = orders.map((o) => {
       const snap: any = o.pricingSnapshot || {};
       const foodSubtotal = Number(
-        snap.restaurantGross !== undefined ? snap.restaurantGross : o.subtotal || o.totalAmount,
+        snap.restaurantGross !== undefined && snap.restaurantGross !== null
+          ? snap.restaurantGross
+          : o.subtotal || o.totalAmount,
       );
       const commRate =
         snap.commissionRate !== undefined && snap.commissionRate !== null
           ? Number(snap.commissionRate)
-          : restaurant.commissionRate !== null
+          : restaurant.commissionRate !== null && restaurant.commissionRate !== undefined
           ? Number(restaurant.commissionRate)
-          : 0;
+          : 13.0;
+
       const comm = Number(
-        snap.commissionAmount !== undefined
+        snap.commissionAmount !== undefined && snap.commissionAmount !== null
           ? snap.commissionAmount
-          : (foodSubtotal * commRate) / 100,
+          : Math.round(((foodSubtotal * commRate) / 100) * 100) / 100,
       );
+
       const gst = Number(
-        snap.restaurantFoodGst !== undefined
+        snap.restaurantFoodGst !== undefined && snap.restaurantFoodGst !== null
           ? snap.restaurantFoodGst
-          : snap.totalCustomerTaxes !== undefined
+          : snap.totalCustomerTaxes !== undefined && snap.totalCustomerTaxes !== null
           ? snap.totalCustomerTaxes
-          : foodSubtotal * 0.05,
+          : 0,
       );
-      const platFee = Number(snap.platformFee !== undefined ? snap.platformFee : 3.0);
-      const net = Math.max(0, foodSubtotal - comm);
+      const platFee = Number(
+        snap.platformFee !== undefined && snap.platformFee !== null ? snap.platformFee : 3.0,
+      );
+      const net = Math.max(0, Math.round((foodSubtotal - comm) * 100) / 100);
 
       grossFoodSales += foodSubtotal;
       totalCommission += comm;
@@ -498,7 +517,7 @@ export class SettlementsService {
         commissionAmount: Math.round(comm * 100) / 100,
         gstAmount: Math.round(gst * 100) / 100,
         platformFee: Math.round(platFee * 100) / 100,
-        restaurantNet: Math.round(net * 100) / 100,
+        restaurantNet: net,
         paymentStatus: o.paymentStatus || 'COMPLETED',
         orderStatus: o.status || 'DELIVERED',
         settlementStatus: currentSettlementStatus,
@@ -531,6 +550,11 @@ export class SettlementsService {
         ? `•••• •••• ${rawAcc.slice(-4)}`
         : rawAcc || 'Not Configured';
 
+    const effectiveRestCommRate =
+      restaurant.commissionRate !== null && restaurant.commissionRate !== undefined
+        ? Number(restaurant.commissionRate)
+        : 13.0;
+
     return {
       period: {
         type: periodType,
@@ -544,7 +568,7 @@ export class SettlementsService {
         ownerName: ownerName || 'Merchant Owner',
         phone: restaurant.phone || ownerUser?.phone || '',
         email: restaurant.email || ownerUser?.email || '',
-        commissionRate: restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : 0,
+        commissionRate: effectiveRestCommRate,
       },
       bankAccount: {
         bankName: restaurant.bankAccount?.bankName || 'Verified Merchant Bank Account',
@@ -556,7 +580,7 @@ export class SettlementsService {
       financialSummary: {
         orderCount: orders.length,
         grossSales: Math.round(grossFoodSales * 100) / 100,
-        commissionRate: restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : 0,
+        commissionRate: effectiveRestCommRate,
         commissionAmount: Math.round(totalCommission * 100) / 100,
         gstAmount: Math.round(totalGst * 100) / 100,
         platformFees: Math.round(totalPlatformFees * 100) / 100,
