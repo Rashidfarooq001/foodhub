@@ -842,14 +842,6 @@ export default function AdminFinancePage() {
                               >
                                 View Details
                               </button>
-                              {r.pendingAmount > 0 && (
-                                <button
-                                  onClick={() => openPayRestaurantModal(r)}
-                                  className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 text-xs font-bold transition shadow-sm"
-                                >
-                                  Pay Settlement
-                                </button>
-                              )}
                             </div>
                           </td>
                         </tr>
@@ -984,14 +976,6 @@ export default function AdminFinancePage() {
                               >
                                 View Details
                               </button>
-                              {r.pendingAmount > 0 && (
-                                <button
-                                  onClick={() => openPayRiderModal(r)}
-                                  className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 text-xs font-bold transition shadow-sm"
-                                >
-                                  Pay Rider
-                                </button>
-                              )}
                             </div>
                           </td>
                         </tr>
@@ -1260,7 +1244,7 @@ export default function AdminFinancePage() {
                   onClick={() => openPayRestaurantModal(selectedRestaurant)}
                   className="rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 text-xs transition shadow-md whitespace-nowrap"
                 >
-                  Record Manual Payment
+                  Pay Settlement
                 </button>
               )}
             </div>
@@ -1384,7 +1368,7 @@ export default function AdminFinancePage() {
                   onClick={() => openPayRiderModal(selectedRider)}
                   className="rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 text-xs transition shadow-md"
                 >
-                  Record Rider Payment
+                  Pay Settlement
                 </button>
               </div>
             )}
