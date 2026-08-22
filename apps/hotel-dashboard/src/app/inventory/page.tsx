@@ -20,7 +20,7 @@ export default function HotelInventoryPage() {
       </div>
 
       {/* Stock Table */}
-      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+      <div className="overflow-hidden overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm">
         <table className="w-full text-left text-xs">
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
             <tr>

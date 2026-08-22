@@ -17,7 +17,7 @@ export default function HotelCustomersPage() {
         <p className="text-xs text-gray-500">Repeat customers, lifetime spending & favorite dishes</p>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+      <div className="overflow-hidden overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm">
         <table className="w-full text-left text-xs">
           <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
             <tr>
