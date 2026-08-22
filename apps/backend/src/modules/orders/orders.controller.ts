@@ -172,6 +172,14 @@ export class OrdersController {
     return this.ordersService.getOrderTrackingSecured(id, userId, role);
   }
 
+  @Get(':id/invoice')
+  @ApiOperation({ summary: 'Get or generate financial invoice based on pricing snapshot' })
+  async getInvoice(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    const role = req.user?.role;
+    return this.ordersService.getOrderInvoice(id, userId, role);
+  }
+
   @Get(':id/eligible-riders')
   @ApiOperation({ summary: 'Get eligible FoodHub delivery partners for explicit restaurant rider selection' })
   async getEligibleRiders(@Param('id') id: string, @Request() req: any) {

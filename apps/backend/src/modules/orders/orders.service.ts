@@ -1176,4 +1176,114 @@ const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
       message: 'Support request submitted. FoodHub Resolution Team will contact you within 15 minutes.',
     });
   }
+
+  async getOrderInvoice(orderId: string, userId: string, role?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        restaurant: true,
+        customer: { include: { user: { include: { profile: true } } } },
+        orderItems: true,
+      },
+    });
+
+    if (!order) {
+      throw new BadRequestException(`Order ${orderId} not found`);
+    }
+
+    const isCustomer = order.customer?.userId === userId;
+    const isRestaurantOwner = order.restaurant?.ownerId === userId;
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+
+    if (!isCustomer && !isRestaurantOwner && !isAdmin) {
+      throw new BadRequestException('Access denied. You do not have permission to view this invoice.');
+    }
+
+    let invoice = await this.prisma.invoice.findUnique({
+      where: { orderId: order.id },
+    });
+
+    if (!invoice) {
+      const invoiceNumber = `INV-${order.orderNumber}`;
+      invoice = await this.prisma.invoice.create({
+        data: {
+          invoiceNumber,
+          orderId: order.id,
+          pdfUrl: `/api/orders/${order.id}/invoice/pdf`,
+        },
+      });
+    }
+
+    const snap: any = order.pricingSnapshot || {};
+
+    const foodSubtotal = snap.restaurantGross !== undefined ? Number(snap.restaurantGross) : Number(order.subtotal || 0);
+    const platformFee = snap.platformFee !== undefined ? Number(snap.platformFee) : 3.0;
+    const totalCustomerTaxes = snap.totalCustomerTaxes !== undefined ? Number(snap.totalCustomerTaxes) : 0;
+    const discountAmount = snap.discountAmount !== undefined ? Number(snap.discountAmount) : 0;
+    const customerTotal = Number(order.totalAmount);
+
+    const commissionRate = snap.commissionRate !== undefined ? Number(snap.commissionRate) : 13.0;
+    const commissionAmount = snap.commissionAmount !== undefined ? Number(snap.commissionAmount) : Math.round((foodSubtotal * commissionRate) / 100 * 100) / 100;
+    
+    const commissionGstAmount = snap.commissionGstAmount !== undefined 
+      ? Number(snap.commissionGstAmount) 
+      : snap.restaurantCommissionGst !== undefined 
+      ? Number(snap.restaurantCommissionGst)
+      : Math.round(commissionAmount * 0.18 * 100) / 100;
+
+    const restaurantNet = snap.restaurantNet !== undefined ? Number(snap.restaurantNet) : Math.round((foodSubtotal - commissionAmount - commissionGstAmount) * 100) / 100;
+    const deliveryFee = snap.customerDeliveryFee !== undefined ? Number(snap.customerDeliveryFee) : 0;
+    const packagingFee = snap.packagingFee !== undefined ? Number(snap.packagingFee) : 0;
+
+    return serializePrisma({
+      invoiceDetails: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        createdAt: invoice.createdAt,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        pdfUrl: invoice.pdfUrl,
+      },
+      customerInvoice: {
+        title: 'Customer Invoice / Receipt',
+        foodSubtotal,
+        packagingFee,
+        deliveryFee,
+        taxes: totalCustomerTaxes,
+        platformFee,
+        discounts: discountAmount,
+        totalPaid: customerTotal,
+        note: 'Platform Fee is a customer-side charge.',
+      },
+      restaurantStatement: {
+        title: 'Restaurant Settlement Statement',
+        grossSales: foodSubtotal,
+        commissionRate,
+        commissionDeduction: commissionAmount,
+        commissionGstDeduction: commissionGstAmount,
+        platformFeeDeduction: 0,
+        netPayable: restaurantNet,
+        note: 'Customer platform fee is excluded from restaurant deductions.',
+      },
+      items: order.orderItems.map((item: any) => ({
+        name: (item.itemSnapshot as any)?.foodName || 'Item',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      })),
+      parties: {
+        restaurant: {
+          name: order.restaurant.name,
+          address: (order.restaurant as any).addressLine || 'Registered Address',
+        },
+        customer: {
+          name: order.customer?.user?.profile 
+            ? `${order.customer.user.profile.firstName} ${order.customer.user.profile.lastName || ''}`.trim() 
+            : 'Customer',
+        }
+      }
+    });
+  }
 }

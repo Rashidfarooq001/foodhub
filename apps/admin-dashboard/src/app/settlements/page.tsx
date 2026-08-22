@@ -1268,12 +1268,13 @@ export default function AdminFinancePage() {
                       <th className="px-3 py-2.5 text-right">Restaurant Fees</th>
                       <th className="px-3 py-2.5 text-right">Net</th>
                       <th className="px-3 py-2.5 text-center">Status</th>
+                      <th className="px-3 py-2.5 text-right">Invoice</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {!restaurantDetailData?.orders || restaurantDetailData.orders.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-3 py-6 text-center text-gray-400">
+                        <td colSpan={11} className="px-3 py-6 text-center text-gray-400">
                           No order transactions recorded for this period.
                         </td>
                       </tr>
@@ -1295,6 +1296,15 @@ export default function AdminFinancePage() {
                             <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
                               {o.settlementStatus || 'PENDING'}
                             </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right">
+                            <a
+                              href={`/orders/${o.orderId}/invoice`}
+                              target="_blank"
+                              className="text-xs font-bold text-purple-600 hover:text-purple-800 underline"
+                            >
+                              Invoice
+                            </a>
                           </td>
                         </tr>
                       ))

@@ -243,12 +243,13 @@ export default function OrderDetailsPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowReceipt(true)}
+            <a
+              href={`/orders/${order.id}/invoice`}
+              target="_blank"
               className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-sm"
             >
-              <FileText className="h-4 w-4 text-orange-600" /> View Receipt
-            </button>
+              <FileText className="h-4 w-4 text-orange-600" /> Download Invoice
+            </a>
             <button
               onClick={() => setShowSupportModal(true)}
               className="flex items-center gap-1.5 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-bold text-orange-600 hover:bg-orange-100 shadow-sm"
