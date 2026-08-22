@@ -241,8 +241,10 @@ export default function CheckoutPage() {
           );
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            if (typeof geoData === 'string' && !geoData.includes('unavailable')) {
-              reverseArea = geoData;
+            if (geoData.locality && geoData.district) {
+              reverseArea = `${geoData.locality}, ${geoData.district}, ${geoData.state}`;
+            } else if (geoData.formattedAddress) {
+              reverseArea = geoData.formattedAddress;
             } else if (geoData.address || geoData.displayName) {
               reverseArea = geoData.address || geoData.displayName;
             }
@@ -252,9 +254,9 @@ export default function CheckoutPage() {
         }
 
         const addressParts = reverseArea.split(',').map((s) => s.trim());
-        const detectedPlace = addressParts[0] || 'Kehnusa';
-        const detectedCity = addressParts.length > 2 ? addressParts[addressParts.length - 2] : 'Bandipora';
-        const detectedState = addressParts.length > 1 ? addressParts[addressParts.length - 1] : 'Jammu & Kashmir';
+        const detectedPlace = addressParts[0] || 'Detected Location';
+        const detectedCity = addressParts.length > 2 ? addressParts[addressParts.length - 2] : '';
+        const detectedState = addressParts.length > 1 ? addressParts[addressParts.length - 1] : '';
 
         const gpsAddr: CustomerAddressItem = {
           id: 'current-location',

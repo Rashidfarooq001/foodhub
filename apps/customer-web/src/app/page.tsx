@@ -30,8 +30,9 @@ export default function CustomerHomePage() {
 
   // Dynamic Location State
   const [locationLabel, setLocationLabel] = useState<string>('Location');
-  const [locationAddress, setLocationAddress] = useState<string>('Kehnusa, Bandipora');
+  const [locationAddress, setLocationAddress] = useState<string>('Please enable location access');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'idle'|'requesting'|'detected'|'resolving'|'resolved'|'permission-denied'|'unavailable'|'timeout'|'failed'>('idle');
 
   // Filters & State
   const [isVegOnly, setIsVegOnly] = useState(false);
@@ -69,6 +70,8 @@ export default function CustomerHomePage() {
     let isMounted = true;
 
     const loadLocation = async () => {
+      setLocationStatus('requesting');
+      
       // If customer is authenticated, check their saved default delivery address
       if (isAuthenticated && accessToken) {
         try {
@@ -81,10 +84,11 @@ export default function CustomerHomePage() {
             const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
 
             if (defaultAddr && isMounted) {
-              setLocationLabel(defaultAddr.addressLabel || 'Home');
+              setLocationLabel(defaultAddr.addressLabel || 'Saved Address');
               setLocationAddress([defaultAddr.addressLine1, defaultAddr.city, defaultAddr.postalCode].filter(Boolean).join(', '));
               if (defaultAddr.latitude && defaultAddr.longitude) {
                 setUserCoords({ lat: Number(defaultAddr.latitude), lng: Number(defaultAddr.longitude) });
+                setLocationStatus('resolved');
                 return;
               }
             }
@@ -96,20 +100,39 @@ export default function CustomerHomePage() {
 
       // Otherwise, request browser geolocation and reverse geocode via backend
       if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+        if (isMounted) {
+          setLocationLabel('Detecting location...');
+          setLocationAddress('Awaiting GPS signal');
+        }
+        
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             if (!isMounted) return;
             setUserCoords({ lat, lng });
+            setLocationStatus('resolving');
+            setLocationAddress('Resolving location...');
 
             try {
-              const geoRes = await fetch(`${API_BASE}/geolocation/reverse?lat=${lat}&lng=${lng}`);
+              const geoRes = await fetch(`${API_BASE}/geolocation/resolve?lat=${lat}&lng=${lng}`);
               if (geoRes.ok) {
                 const geoData = await geoRes.json();
-                if (geoData.address && isMounted) {
+                if (geoData && isMounted) {
                   setLocationLabel('Current Location');
-                  setLocationAddress(geoData.address);
+                  
+                  // Use robust logic: locality -> district -> state -> fallback
+                  if (geoData.locality && geoData.district) {
+                    setLocationAddress(`${geoData.locality}, ${geoData.district}`);
+                  } else if (geoData.district && geoData.state) {
+                    setLocationAddress(`${geoData.district}, ${geoData.state}`);
+                  } else if (geoData.formattedAddress) {
+                    setLocationAddress(geoData.formattedAddress);
+                  } else {
+                    setLocationAddress('Location determined');
+                  }
+                  
+                  setLocationStatus('resolved');
                   return;
                 }
               }
@@ -119,14 +142,32 @@ export default function CustomerHomePage() {
 
             if (isMounted) {
               setLocationLabel('Current Location');
-              setLocationAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+              setLocationAddress('Unable to resolve exact address');
+              setLocationStatus('failed');
             }
           },
-          () => {
-            // Keep default location smoothly
+          (err) => {
+            if (!isMounted) return;
+            setLocationLabel('Location Unavailable');
+            if (err.code === err.PERMISSION_DENIED) {
+              setLocationAddress('Allow location access to find restaurants');
+              setLocationStatus('permission-denied');
+            } else if (err.code === err.TIMEOUT) {
+              setLocationAddress('GPS timeout. Please search manually');
+              setLocationStatus('timeout');
+            } else {
+              setLocationAddress('Unable to detect your location');
+              setLocationStatus('failed');
+            }
           },
-          { timeout: 3000 },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         );
+      } else {
+        if (isMounted) {
+          setLocationLabel('Location Error');
+          setLocationAddress('GPS not supported on this device');
+          setLocationStatus('unavailable');
+        }
       }
     };
 

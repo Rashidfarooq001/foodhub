@@ -273,8 +273,8 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
                         onSelectLocation({
                           label: addr.label || 'Saved Address',
                           address: [addr.addressLine1, addr.city, addr.postalCode].filter(Boolean).join(', '),
-                          lat: addr.latitude || 34.3868,
-                          lng: addr.longitude || 74.5221,
+                          lat: addr.latitude || 0,
+                          lng: addr.longitude || 0,
                         });
                         onClose();
                       }}

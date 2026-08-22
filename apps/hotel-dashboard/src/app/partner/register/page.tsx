@@ -410,8 +410,8 @@ export default function RestaurantPartnerRegisterPage() {
         city: form.city || 'Bandipora',
         state: form.state || 'Jammu & Kashmir',
         postalCode: form.pin || '193502',
-        latitude: form.latitude ?? 34.3868,
-        longitude: form.longitude ?? 74.5221,
+        latitude: form.latitude ?? 0,
+        longitude: form.longitude ?? 0,
         fssaiNumber: form.fssaiLicense.trim() || undefined,
         gstin: form.panNumber.trim() || undefined,
       };
