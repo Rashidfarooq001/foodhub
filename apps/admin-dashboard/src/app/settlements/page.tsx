@@ -1265,7 +1265,7 @@ export default function AdminFinancePage() {
                       <th className="px-2 py-2.5 text-center">Rate</th>
                       <th className="px-3 py-2.5 text-right">Commission</th>
                       <th className="px-3 py-2.5 text-right">GST / Tax</th>
-                      <th className="px-3 py-2.5 text-right">Fees</th>
+                      <th className="px-3 py-2.5 text-right">Restaurant Fees</th>
                       <th className="px-3 py-2.5 text-right">Net</th>
                       <th className="px-3 py-2.5 text-center">Status</th>
                     </tr>
@@ -1289,7 +1289,7 @@ export default function AdminFinancePage() {
                           <td className="px-2 py-2.5 text-center font-bold text-purple-700">{o.commissionRate || 13}%</td>
                           <td className="px-3 py-2.5 text-right text-purple-700 font-bold">-₹{o.commissionAmount}</td>
                           <td className="px-3 py-2.5 text-right text-gray-500">₹{o.gstAmount || 0}</td>
-                          <td className="px-3 py-2.5 text-right text-gray-500">₹{o.platformFee || 0}</td>
+                          <td className="px-3 py-2.5 text-right text-gray-500">₹0</td>
                           <td className="px-3 py-2.5 text-right font-black text-emerald-700">₹{o.restaurantNet}</td>
                           <td className="px-3 py-2.5 text-center">
                             <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
