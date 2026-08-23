@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, UnauthorizedException, ForbiddenException, Optional, Inject } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { GeolocationService } from '../geolocation/geolocation.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { RestaurantStatus, UserRole, DeliveryMode, AuditAction } from '@prisma/client';
 import { normalizeIndianPhone } from '@foodhub/utils';
@@ -17,6 +18,7 @@ const isUUID = (value: string): boolean =>
 export class RestaurantsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly geolocationService: GeolocationService,
     @Optional() private readonly gateway?: OrdersGateway,
   ) {}
 
@@ -318,20 +320,31 @@ export class RestaurantsService {
       take: 100,
     });
 
-    return serializePrisma(restaurants.map((restaurant) => {
-      let distanceKm: number | null = null;
-      if (userLat !== undefined && userLng !== undefined && restaurant.latitude && restaurant.longitude) {
-        }
+    let distances = new Map<string, number>();
 
+    if (userLat !== undefined && userLng !== undefined) {
+      const origins = [[userLat, userLng]] as [number, number][];
+      const destinations = restaurants.map(r => [r.latitude || 0, r.longitude || 0] as [number, number]);
+      try {
+        const responseData = await this.geolocationService.computeRouteMatrix(origins, destinations);
+        restaurants.forEach((rest, index) => {
+          const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === index);
+          if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
+             distances.set(rest.id, Math.round((routeData.distanceMeters / 1000) * 100) / 100);
+          }
+        });
+      } catch (err: any) {
+        // Fallback or ignore if Google Routes fails
+      }
+    }
+
+    return serializePrisma(restaurants.map((restaurant) => {
+      let distanceKm: number | null = distances.get(restaurant.id) ?? null;
       return {
         ...restaurant,
         distanceKm,
-        avgRating: restaurant.avgRating
-          ? Number(restaurant.avgRating)
-          : 0,
-        commissionRate: restaurant.commissionRate
-          ? Number(restaurant.commissionRate)
-          : 0,
+        avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
+        commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
       };
     }));
   }

@@ -243,7 +243,7 @@ async function runEndToEndVerification() {
   const stateMachine = new OrderStateMachineService(prisma as any, gateway);
   const ordersRepo = new OrdersRepository(prisma as any);
   const ordersValidation = new OrdersValidationService(prisma as any, null as any);
-  const ordersService = new OrdersService(prisma as any, ordersRepo, ordersValidation, gateway, quoteService);
+  const ordersService = new OrdersService(prisma as any, ordersRepo, ordersValidation, gateway, quoteService, {} as any);
 
   // Setup Pricing Config
   prisma.pricingConfigs.push({

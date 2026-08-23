@@ -134,8 +134,7 @@ export class GeolocationService {
   }
 
   /** Reverse Geocode using Google Geocoding API */
-  async resolveLocation(lat: number, lng: number)
-    if (!this.isValidCoordinates(lat, lng)) throw new Error('Invalid GPS coordinates');: Promise<{
+  async resolveLocation(lat: number, lng: number): Promise<{
     latitude: number;
     longitude: number;
     locality: string;
@@ -145,6 +144,7 @@ export class GeolocationService {
     country: string;
     formattedAddress: string;
   }> {
+    if (!this.isValidCoordinates(lat, lng)) throw new Error('Invalid GPS coordinates');
     const fallback = {
       latitude: lat,
       longitude: lng,
@@ -397,7 +397,7 @@ export class GeolocationService {
     return []; // Handled by Frontend Google Places Autocomplete
   }
 
-  private async computeRouteMatrix(origins: [number, number][], destinations: [number, number][]) {
+  public async computeRouteMatrix(origins: [number, number][], destinations: [number, number][]) {
     const url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
     const body = {
       origins: origins.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: Number(lat), longitude: Number(lng) } } } })),

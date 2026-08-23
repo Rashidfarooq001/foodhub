@@ -1,3 +1,4 @@
+import { GeolocationService } from '../geolocation/geolocation.service';
 import {
   Injectable,
   NotFoundException,
@@ -42,6 +43,7 @@ export class OrdersService {
     private readonly validation:  OrdersValidationService,
     private readonly gateway:     OrdersGateway,
     private readonly quoteService: OrderQuoteService,
+    private readonly geolocationService: GeolocationService,
   ) {}
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
@@ -227,23 +229,6 @@ export class OrdersService {
     });
     const restLat = restaurant ? Number(restaurant.latitude) : 0;
     const restLng = restaurant ? Number(restaurant.longitude) : 74.5221;
-
-    // Calculate real Haversine distance in km server-side
-    
-    if (latitudeNum && longitudeNum && restLat && restLng) {
-      const R = 6371;
-      const dLat = ((latitudeNum - restLat) * Math.PI) / 180;
-      const dLon = ((longitudeNum - restLng) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((restLat * Math.PI) / 180) *
-          Math.cos((latitudeNum * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const dist = Math.round(R * c * 10) / 10;
-      
-    }
 
     this.logger.log({
       msg: 'Order creation input',
