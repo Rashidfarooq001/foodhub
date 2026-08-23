@@ -202,7 +202,7 @@ export class OrdersService {
     } else if (rawAddress.placeName) {
       formattedAddressText = rawAddress.placeName;
     } else {
-      formattedAddressText = 'Kehnusa, Bandipora, Jammu & Kashmir';
+      formattedAddressText = 'Location address not provided';
     }
 
     const placeNameText = typeof rawAddress === 'object' && rawAddress.placeName
@@ -211,11 +211,11 @@ export class OrdersService {
 
     const latitudeNum = typeof rawAddress === 'object' && typeof rawAddress.latitude === 'number'
       ? rawAddress.latitude
-      : ((dto as any).latitude || (dto as any).lat || 34.386784);
+      : ((dto as any).latitude || (dto as any).lat);
 
     const longitudeNum = typeof rawAddress === 'object' && typeof rawAddress.longitude === 'number'
       ? rawAddress.longitude
-      : ((dto as any).longitude || (dto as any).lng || 74.522066);
+      : ((dto as any).longitude || (dto as any).lng);
 
     const locationSourceText = typeof rawAddress === 'object' && rawAddress.locationSource
       ? rawAddress.locationSource
@@ -225,7 +225,7 @@ export class OrdersService {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId },
     });
-    const restLat = restaurant ? Number(restaurant.latitude) : 34.3868;
+    const restLat = restaurant ? Number(restaurant.latitude) : 0;
     const restLng = restaurant ? Number(restaurant.longitude) : 74.5221;
 
     // Calculate real Haversine distance in km server-side
@@ -312,7 +312,7 @@ export class OrdersService {
       addressLine1: typeof rawAddress === 'object' ? (rawAddress.addressLine1 || placeNameText) : formattedAddressText,
       addressLine2: typeof rawAddress === 'object' ? (rawAddress.addressLine2 || '') : '',
       landmark: typeof rawAddress === 'object' ? (rawAddress.landmark || '') : '',
-      city: typeof rawAddress === 'object' ? (rawAddress.city || 'Bandipora') : 'Bandipora',
+      city: typeof rawAddress === 'object' ? (rawAddress.city || '') : '',
       state: typeof rawAddress === 'object' ? (rawAddress.state || 'Jammu & Kashmir') : 'Jammu & Kashmir',
       postalCode: typeof rawAddress === 'object' ? (rawAddress.postalCode || '193502') : '193502',
       latitude: latitudeNum,
@@ -749,7 +749,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       if (!activeOrder) return null;
 
       const deliveryAddress: any = activeOrder.deliveryAddress || {};
-      const restaurantLat = activeOrder.restaurant ? Number(activeOrder.restaurant.latitude || 34.3868) : 34.3868;
+      const restaurantLat = activeOrder.restaurant ? Number(activeOrder.restaurant.latitude || 0) : 0;
       const restaurantLng = activeOrder.restaurant ? Number(activeOrder.restaurant.longitude || 74.5221) : 74.5221;
       const customerLat = typeof deliveryAddress?.latitude === 'number' ? deliveryAddress.latitude : restaurantLat;
       const customerLng = typeof deliveryAddress?.longitude === 'number' ? deliveryAddress.longitude : restaurantLng;
@@ -783,7 +783,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         orderId: activeOrder.id,
         orderNumber: activeOrder.orderNumber,
         restaurantName: activeOrder.restaurant?.name || 'FoodHub Restaurant',
-        restaurantAddress: activeOrder.restaurant?.addressLine || 'Main Market, Bandipora',
+        restaurantAddress: activeOrder.restaurant?.addressLine || '',
         restaurantLat,
         restaurantLng,
         customerAddress: customerAddressText,

@@ -35,6 +35,11 @@ export interface NearbyRestaurant {
 
 @Injectable()
 export class GeolocationService {
+
+  private isValidCoordinates(lat: number, lng: number): boolean {
+    return (lat >= -90 && lat <= 90) && (lng >= -180 && lng <= 180) && (lat !== 0 || lng !== 0);
+  }
+
   private readonly logger = new Logger(GeolocationService.name);
   private mapsClient: Client;
 
@@ -129,7 +134,8 @@ export class GeolocationService {
   }
 
   /** Reverse Geocode using Google Geocoding API */
-  async resolveLocation(lat: number, lng: number): Promise<{
+  async resolveLocation(lat: number, lng: number)
+    if (!this.isValidCoordinates(lat, lng)) throw new Error('Invalid GPS coordinates');: Promise<{
     latitude: number;
     longitude: number;
     locality: string;

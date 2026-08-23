@@ -195,7 +195,7 @@ export class OrdersController {
       },
     });
 
-    const restLat = Number(order.restaurant.latitude || 34.3868);
+    const restLat = Number(order.restaurant.latitude || 0);
     const restLng = Number(order.restaurant.longitude || 74.5221);
 
     return drivers.map((d) => {

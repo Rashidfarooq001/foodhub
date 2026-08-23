@@ -27,7 +27,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
 
   // Default to Srinagar/Bandipora if no initial coordinates are provided
   const [markerPos, setMarkerPos] = useState({
-    lat: initialLat || 34.0747,
+    lat: initialLat || 0,
     lng: initialLng || 74.8204,
   });
 
@@ -100,3 +100,4 @@ export const GoogleMapPicker: React.FC<Props> = ({
     </div>
   );
 };
+

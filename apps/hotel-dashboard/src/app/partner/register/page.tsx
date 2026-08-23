@@ -859,7 +859,7 @@ export default function RestaurantPartnerRegisterPage() {
                   
                   <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200">
                     <GoogleMapPicker
-                      initialLat={form.latitude ?? 34.3868}
+                      initialLat={form.latitude ?? 0}
                       initialLng={form.longitude ?? 74.5221}
                       onLocationChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))}
                     />
@@ -922,3 +922,4 @@ export default function RestaurantPartnerRegisterPage() {
     </div>
   );
 }
+

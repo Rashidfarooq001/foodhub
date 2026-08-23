@@ -140,10 +140,10 @@ export class OrderStateMachineService {
     const pickupOtpExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      const restLat = Number(order.restaurant.latitude || 34.3868);
+      const restLat = Number(order.restaurant.latitude || 0);
       const restLng = Number(order.restaurant.longitude || 74.5221);
       const delAddr: any = order.deliveryAddress || {};
-      const custLat = Number(delAddr.latitude || 34.3877);
+      const custLat = Number(delAddr.latitude || 0);
       const custLng = Number(delAddr.longitude || 74.5228);
 
       const distanceKm = (delAddr?.distanceKm || 0);
@@ -160,7 +160,7 @@ export class OrderStateMachineService {
       const dropAddress = {
         street: delAddr.street || delAddr.addressLine1 || 'Delivery Address',
         addressLine2: delAddr.addressLine2 || '',
-        city: delAddr.city || 'Bandipora',
+        city: delAddr.city || '',
         state: delAddr.state || 'Jammu & Kashmir',
         postalCode: delAddr.postalCode || '193502',
         latitude: custLat,
@@ -744,10 +744,10 @@ export class OrderStateMachineService {
       const now = new Date();
 
       if (targetStatus === OrderStatus.READY_FOR_PICKUP) {
-        const restLat = Number(order.restaurant.latitude || 34.3868);
+        const restLat = Number(order.restaurant.latitude || 0);
         const restLng = Number(order.restaurant.longitude || 74.5221);
         const delAddr = order.deliveryAddress as any;
-        const custLat = Number(delAddr?.latitude || 34.3877);
+        const custLat = Number(delAddr?.latitude || 0);
         const custLng = Number(delAddr?.longitude || 74.5228);
 
         const distanceKm = delAddr?.distanceKm || (delAddr?.distanceKm || 0);
@@ -767,7 +767,7 @@ export class OrderStateMachineService {
         const dropAddress = {
           street: delAddr?.street || delAddr?.addressLine1 || 'Delivery Address',
           addressLine2: delAddr?.addressLine2 || '',
-          city: delAddr?.city || 'Bandipora',
+          city: delAddr?.city || '',
           state: delAddr?.state || 'Jammu & Kashmir',
           postalCode: delAddr?.postalCode || '193502',
           latitude: custLat,
