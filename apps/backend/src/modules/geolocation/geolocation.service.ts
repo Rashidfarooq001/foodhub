@@ -152,17 +152,12 @@ export class GeolocationService {
     if (!this.GoogleKey) return fallback;
 
     try {
-      const response = await this.mapsClient.reverseGeocode({
-        params: {
-          latlng: [lat, lng],
-          key: this.GoogleKey,
-        },
-        timeout: 5000,
-      });
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${Number(lat)},${Number(lng)}&key=${this.GoogleKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-      if (response.data.results && response.data.results.length > 0) {
-        // Find a rooftop or the most specific address
-        const bestMatch = response.data.results[0];
+      if (data.results && data.results.length > 0) {
+        const bestMatch = data.results[0];
         let locality = '';
         let district = '';
         let state = '';
@@ -399,8 +394,8 @@ export class GeolocationService {
   private async computeRouteMatrix(origins: [number, number][], destinations: [number, number][]) {
     const url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
     const body = {
-      origins: origins.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: lat, longitude: lng } } } })),
-      destinations: destinations.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: lat, longitude: lng } } } })),
+      origins: origins.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: Number(lat), longitude: Number(lng) } } } })),
+      destinations: destinations.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: Number(lat), longitude: Number(lng) } } } })),
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_AWARE"
     };
