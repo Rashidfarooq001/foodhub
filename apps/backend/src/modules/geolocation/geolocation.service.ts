@@ -409,4 +409,29 @@ export class GeolocationService {
   async getAutosuggest(query: string): Promise<any[]> {
     return []; // Handled by Frontend Google Places Autocomplete
   }
+
+  private async computeRouteMatrix(origins: [number, number][], destinations: [number, number][]) {
+    const url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
+    const body = {
+      origins: origins.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: lat, longitude: lng } } } })),
+      destinations: destinations.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: lat, longitude: lng } } } })),
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_AWARE"
+    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": this.GoogleKey || "",
+        "X-Goog-FieldMask": "originIndex,destinationIndex,duration,distanceMeters,status,condition"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Google Routes API failed: ${response.status} ${text}`);
+    }
+    return await response.json();
+  }
 }
+
