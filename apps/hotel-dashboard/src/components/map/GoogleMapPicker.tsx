@@ -19,8 +19,9 @@ export const GoogleMapPicker: React.FC<Props> = ({
   onLocationChange,
   className = "w-full h-[300px] rounded-xl overflow-hidden",
 }) => {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: apiKey,
     libraries,
   });
 
@@ -60,10 +61,11 @@ export const GoogleMapPicker: React.FC<Props> = ({
     [onLocationChange]
   );
 
-  if (loadError) {
+  if (!apiKey || loadError) {
     return (
-      <div className={`${className} flex items-center justify-center bg-gray-100 text-sm text-gray-500`}>
-        Error loading Google Maps.
+      <div className={`${className} flex flex-col items-center justify-center bg-gray-100 text-sm text-gray-500 p-6 text-center`}>
+        <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
+        <span>Google Maps configuration is missing or invalid. Please configure the Map API key.</span>
       </div>
     );
   }

@@ -1409,10 +1409,10 @@ export class SettlementsService {
       );
       const commRate = 13.0;
       const comm = Math.round((foodSubtotal * 0.13) * 100) / 100;
-      const restNet = Math.max(0, foodSubtotal - comm);
+      const gst = Math.round((comm * 0.18) * 100) / 100;
+      const restNet = Math.max(0, foodSubtotal - comm - gst);
       const platFee = Number(snap.platformFee ?? 3.0);
       const delivFee = Number((snap.customerDeliveryFee ?? o.deliveryFee) || 15);
-      const gst = Math.round((comm * 0.18) * 100) / 100;
       const riderPay = Number(snap.riderPayout || o.deliveryJob?.riderPayout || 0);
 
       totalCustomerCollections += customerPaid;

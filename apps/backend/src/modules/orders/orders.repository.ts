@@ -92,15 +92,10 @@ export class OrdersRepository {
         restaurantId,
         ...(statusFilter ? { status: statusFilter } : {}),
         deletedAt: null,
-        // SECURITY: Never return online-payment orders where payment has not been confirmed.
-        // COD orders (paymentMethod='COD') are always immediately visible.
-        // Online payment orders are only visible once paymentStatus=COMPLETED.
-        NOT: {
-          AND: [
-            { paymentMethod: { not: 'COD' } },
-            { paymentStatus: 'PENDING' },
-          ],
-        },
+        OR: [
+          { paymentMethod: 'COD' },
+          { paymentStatus: 'COMPLETED' }
+        ],
       },
       include: {
         orderItems: { include: { foodItem: true } },

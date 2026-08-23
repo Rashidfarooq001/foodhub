@@ -26,7 +26,7 @@ export default function AdminFinancePage() {
     try {
       setLoading(true);
       // Fetch aggregate stats from backend
-      const resStats = await adminFetch('/settlements/aggregate');
+      const resStats: any = await adminFetch('/settlements/aggregate');
       if (resStats && !resStats.error) {
         setStats({
           totalGrossSales: resStats.totalGrossSales || 0,
@@ -39,7 +39,7 @@ export default function AdminFinancePage() {
       }
 
       // Fetch restaurant settlements
-      const resData = await adminFetch('/settlements');
+      const resData: any = await adminFetch('/settlements');
       if (resData && resData.restaurants) {
         setRestaurants(resData.restaurants);
       }

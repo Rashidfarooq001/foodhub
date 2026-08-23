@@ -1021,7 +1021,7 @@ export class OrderStateMachineService {
         ] as OrderStatus[]
       ).includes(targetStatus)
     ) {
-      if (!isRestaurantStaff && !isAdmin) {
+      if (!isRestaurantActor && !isAdmin) {
         throw new ForbiddenException('Only authorized restaurant staff or admins can update order prep status.');
       }
     }

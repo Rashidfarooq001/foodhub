@@ -954,6 +954,7 @@ model Settlement {
   periodEnd        DateTime         @map("period_end")
   orderCount       Int              @default(0) @map("order_count")
   grossAmount      Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
+  commissionRate   Decimal          @default(13.00) @map("commission_rate") @db.Decimal(5, 2)
   commissionAmount Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
   deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
   netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)

@@ -76,7 +76,8 @@ export class UnitEconomicsService {
     // Restaurant Commission & Settlement (15% default)
     const restaurantCommissionPercent = config.restaurantCommissionPercent;
     const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
-    const restaurantSettlement = Math.round((foodSubtotal - restaurantCommission) * 100) / 100;
+    const restaurantCommissionGst = Math.round(restaurantCommission * 0.18 * 100) / 100;
+    const restaurantSettlement = Math.round((foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100) / 100;
 
     // Rider Earnings Payout Engine
     const riderBasePay = config.riderBasePay;

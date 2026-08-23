@@ -23,8 +23,9 @@ export const DeliveryMap: React.FC<Props> = ({
   customerLat,
   customerLng,
 }) => {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: apiKey,
     libraries,
   });
 
@@ -39,7 +40,15 @@ export const DeliveryMap: React.FC<Props> = ({
     lng: (driverLng + customerLng) / 2,
   }), [driverLat, driverLng, customerLat, customerLng]);
 
-  if (loadError) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
+  if (!apiKey || loadError) {
+    return (
+      <div className="flex flex-col h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner text-sm text-gray-500 p-6 text-center">
+        <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
+        <span>Google Maps configuration is missing or invalid. Please configure the Map API key.</span>
+      </div>
+    );
+  }
+  
   if (!isLoaded) return (
     <div className="flex h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner">
       <Loader2 className="h-6 w-6 animate-spin text-orange-600" />

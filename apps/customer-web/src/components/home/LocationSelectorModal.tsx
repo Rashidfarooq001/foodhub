@@ -38,10 +38,11 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   const [searchResults, setSearchResults] = useState<Array<{ name: string; district: string; lat: number; lng: number; formattedAddress?: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  if (!isOpen) return null;
-
   // 1. Native Device GPS Detection & Backend Resolution
   const { status: hookStatus, error: hookError, requestLocation } = useGeolocation();
+
+  if (!isOpen) return null;
+
   const handleUseCurrentLocation = async () => {
     setGpsStatus('detecting');
     setErrorMessage('');
