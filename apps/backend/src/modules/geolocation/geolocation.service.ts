@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { Client, TravelMode } from '@googlemaps/google-maps-services-js';
 
-/** Haversine formula — returns distance in kilometres */
+/** Haversine formula — returns straight-line distance in kilometres for preliminary filtering */
 export function haversineKm(
   lat1: number, lng1: number,
   lat2: number, lng2: number,
@@ -15,13 +16,6 @@ export function haversineKm(
     Math.cos((lat2 * Math.PI) / 180) *
     Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-export interface GeocodeResult {
-  lat:         number;
-  lng:         number;
-  displayName: string;
-  placeId:     string;
 }
 
 export interface StructuredAddressQuery {
@@ -53,18 +47,6 @@ export interface DetailedGeocodeResult {
   reason?: string;
 }
 
-export interface PlaceSearchResult {
-  placeId: string;
-  placeName: string;
-  formattedAddress: string;
-  latitude: number;
-  longitude: number;
-  locality?: string;
-  city?: string;
-  state?: string;
-  confidence: number;
-}
-
 export interface NearbyRestaurant {
   id:           string;
   name:         string;
@@ -81,251 +63,75 @@ export interface DistanceResult {
   etaMinutes:  number;
 }
 
-const AVG_SPEED_KMH = 20; // urban delivery speed
-
-function normalizeText(text?: string): string {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function normalizeStateName(state?: string): string {
-  if (!state) return '';
-  const s = state.trim();
-  if (/^j&k$/i.test(s) || /^jammu\s*&\s*kashmir$/i.test(s)) {
-    return 'Jammu and Kashmir';
-  }
-  return s;
-}
-
-function cleanAddressQuery(parts: string[]): string {
-  return parts
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0)
-    .join(', ')
-    .replace(/,+/g, ',')
-    .trim();
-}
-
-function classifyGeocodePrecision(level?: string | null): 'EXACT' | 'AREA' | 'PINCODE' | 'UNKNOWN' {
-  if (!level) return 'AREA';
-  const l = level.toLowerCase();
-  if (l.includes('house') || l.includes('building') || l.includes('poi') || l.includes('street') || l.includes('premise')) {
-    return 'EXACT';
-  }
-  if (l.includes('pincode') || l.includes('postcode') || l.includes('postal')) {
-    return 'PINCODE';
-  }
-  return 'AREA'; // subLocality, locality, village, sector, colony
-}
-
 @Injectable()
 export class GeolocationService {
   private readonly logger = new Logger(GeolocationService.name);
+  private readonly mapsClient: Client;
 
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get MapplsKey(): string {
-    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
+  constructor(private readonly prisma: PrismaService) {
+    this.mapsClient = new Client({});
   }
 
-  /**
-   * Multi-Tier Geocoding Engine for Manual Customer Addresses with Candidate Match Verification.
-   * Enforces 6 required fields & zero fallback policy.
-   */
+  private get GoogleKey(): string {
+    return process.env.GOOGLE_MAPS_SERVER_API_KEY || '';
+  }
+
+  /** Forward Geocode using Google Geocoding API */
   async geocodeStructuredAddress(addr: StructuredAddressQuery): Promise<DetailedGeocodeResult> {
-    const key = this.MapplsKey;
-
-    const house = (addr.houseNumber || '').trim();
-    const area = (addr.areaLocality || '').trim();
-    const landmark = (addr.landmark || '').trim();
-    const city = (addr.city || '').trim();
-    const state = normalizeStateName(addr.state);
-    const postalCode = (addr.postalCode || '').trim();
-
-    // 1. Enforce 6 required input fields
-    if (!house || !area || !landmark || !city || !state || !/^\d{6}$/.test(postalCode)) {
-      return {
-        success: false,
-        latitude: null,
-        longitude: null,
-        displayName: null,
-        geocodeLevel: null,
-        precisionLabel: 'UNKNOWN',
-        confidenceScore: null,
-        matchedAddress: null,
-        verificationStatus: 'FAILED',
-        queryTierUsed: 0,
-        source: 'none',
-        reason: 'INCOMPLETE_ADDRESS_FIELDS',
-      };
+    if (!this.GoogleKey) {
+      this.logger.warn('GOOGLE_MAPS_SERVER_API_KEY is not configured');
+      return this._fallbackGeocodeFailure('Missing API Key');
     }
 
-    // Construct 6 controlled query tiers with strong locality preservation
-    const tier1 = cleanAddressQuery([house, area, landmark, city, state, postalCode, 'India']);
-    const tier2 = cleanAddressQuery([area, landmark, city, state, postalCode, 'India']);
-    const tier3 = cleanAddressQuery([area, city, state, 'India']);
-    const tier4 = cleanAddressQuery([area, state, 'India']);
-    const tier5 = cleanAddressQuery([area, postalCode, 'India']);
-    const tier6 = cleanAddressQuery([city, state, postalCode, 'India']);
+    const queryParts = [
+      addr.houseNumber,
+      addr.street,
+      addr.areaLocality,
+      addr.landmark,
+      addr.city,
+      addr.state,
+      addr.postalCode,
+      'India'
+    ].filter(Boolean);
 
-    const queryTiers = [
-      { tier: 1, query: tier1 },
-      { tier: 2, query: tier2 },
-      { tier: 3, query: tier3 },
-      { tier: 4, query: tier4 },
-      { tier: 5, query: tier5 },
-      { tier: 6, query: tier6 },
-    ].filter((q) => q.query.length > 3);
+    const addressString = queryParts.join(', ').replace(/,+/g, ',').trim();
 
-    this.logger.log(`[GEOCODING_ENGINE] Geocoding structured address: house="${house}" area="${area}" landmark="${landmark}" city="${city}" pincode="${postalCode}"`);
+    try {
+      const response = await this.mapsClient.geocode({
+        params: {
+          address: addressString,
+          key: this.GoogleKey,
+          region: 'in',
+        },
+        timeout: 5000,
+      });
 
-    const normalizedArea = normalizeText(area);
-    const normalizedLandmark = normalizeText(landmark);
-    const normalizedCity = normalizeText(city);
-    const normalizedState = normalizeStateName(state).toLowerCase();
+      if (response.data.results && response.data.results.length > 0) {
+        const result = response.data.results[0];
+        const location = result.geometry.location;
 
-    interface EvaluatedCandidate {
-      lat: number;
-      lng: number;
-      displayName: string;
-      candPincode: string;
-      score: number;
-      tier: number;
-      source: string;
-      geocodeLevel: string;
-    }
-
-    const evaluatedCandidates: EvaluatedCandidate[] = [];
-
-    for (const { tier, query } of queryTiers) {
-      const urls = key
-        ? [
-            `https://search.mappls.com/search/address/geocode?address=${encodeURIComponent(query)}`,
-            `https://atlas.mappls.com/api/places/geocode?address=${encodeURIComponent(query)}`,
-            `https://apis.mappls.com/advancedmaps/v1/${key}/geo_code?address=${encodeURIComponent(query)}`,
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
-          ]
-        : [
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`,
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=in`,
-          ];
-
-      for (const url of urls) {
-        try {
-          const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-          if (!res.ok) continue;
-
-          const data = await res.json();
-          let rawList: any[] = [];
-          if (Array.isArray(data)) {
-            rawList = data;
-          } else if (data.features && Array.isArray(data.features)) {
-            // Photon feature collection format
-            rawList = data.features.map((f: any) => ({
-              lat: f.geometry?.coordinates?.[1],
-              lng: f.geometry?.coordinates?.[0],
-              displayName: [f.properties?.name, f.properties?.city || f.properties?.county, f.properties?.state, f.properties?.country].filter(Boolean).join(', '),
-              pincode: f.properties?.postcode || '',
-              city: f.properties?.city || f.properties?.county || '',
-              state: f.properties?.state || '',
-              locality: f.properties?.name || '',
-              geocodeLevel: f.properties?.osm_value || 'locality',
-            }));
-          } else {
-            rawList = data.copResults || data.results || data.suggestedLocations || data.data || [];
-          }
-
-          if (rawList && rawList.length > 0) {
-            for (const item of rawList) {
-              const lat = parseFloat(item.latitude || item.lat || item.location?.lat || item.y || '0');
-              const lng = parseFloat(item.longitude || item.lng || item.lon || item.location?.lng || item.x || '0');
-
-              if (lat === 0 || lng === 0 || isNaN(lat) || isNaN(lng) || lat < 8 || lat > 38 || lng < 68 || lng > 98) {
-                continue;
-              }
-
-              const displayName = item.formattedAddress || item.display_name || item.placeAddress || item.placeName || item.displayName || query;
-              const normalizedDisplay = normalizeText(displayName);
-              const itemCity = normalizeText(item.city || item.district || item.locality || '');
-              const itemState = normalizeText(item.state || '');
-
-              const candPincode = (item.pincode || item.postcode || item.postal_code || '').trim() ||
-                (displayName.match(/\b\d{6}\b/) || [])[0] || '';
-
-              // Scoring candidate according to rules:
-              // +40 locality match, +25 PIN match, +15 city/district match, +10 state match, +5 landmark match, +5 valid coordinates
-              let score = 5; // valid coordinates base
-
-              const localityMatches = normalizedArea && (
-                normalizedDisplay.includes(normalizedArea) ||
-                normalizeText(item.locality).includes(normalizedArea) ||
-                normalizedArea.includes(normalizeText(item.locality))
-              );
-
-              if (localityMatches) score += 40;
-              if (candPincode && candPincode === postalCode) score += 25;
-              if (normalizedCity && (normalizedDisplay.includes(normalizedCity) || itemCity.includes(normalizedCity))) score += 15;
-              if (normalizedDisplay.includes('jammu') || normalizedDisplay.includes('kashmir') || itemState.includes('jammu') || itemState.includes('kashmir')) score += 10;
-              if (normalizedLandmark && normalizedDisplay.includes(normalizedLandmark)) score += 5;
-
-              // Enforce PIN mismatch rejection if candidate explicitly specifies a DIFFERENT 6-digit PIN
-              if (candPincode && /^\d{6}$/.test(candPincode) && candPincode !== postalCode) {
-                this.logger.warn(`[GEOCODING_ENGINE] Rejecting candidate PIN mismatch: expected=${postalCode} got=${candPincode}`);
-                continue;
-              }
-
-              evaluatedCandidates.push({
-                lat,
-                lng,
-                displayName,
-                candPincode,
-                score,
-                tier,
-                source: url.includes('mappls') ? 'mappls' : url.includes('photon') ? 'photon' : 'nominatim',
-                geocodeLevel: item.geocodeLevel || item.type || 'locality',
-              });
-            }
-          }
-        } catch (err: any) {
-          this.logger.warn(`[GEOCODING_ENGINE] Error fetching ${url.split('?')[0]}: ${err.message}`);
-        }
+        return {
+          success: true,
+          latitude: location.lat,
+          longitude: location.lng,
+          displayName: result.formatted_address,
+          geocodeLevel: result.types[0] || 'unknown',
+          precisionLabel: result.geometry.location_type === 'ROOFTOP' ? 'EXACT' : 'AREA',
+          confidenceScore: 1.0,
+          matchedAddress: result.formatted_address,
+          verificationStatus: 'VERIFIED',
+          queryTierUsed: 1,
+          source: 'google_geocoding',
+        };
       }
+    } catch (error: any) {
+      this.logger.error(`Geocoding error: ${error.message}`);
     }
 
-    // Rank candidates by score descending
-    evaluatedCandidates.sort((a, b) => b.score - a.score);
+    return this._fallbackGeocodeFailure('Unable to geocode address via Google Maps');
+  }
 
-    if (evaluatedCandidates.length > 0 && evaluatedCandidates[0].score >= 35) {
-      const winner = evaluatedCandidates[0];
-      const precisionLabel = classifyGeocodePrecision(winner.geocodeLevel);
-
-      this.logger.log(`[GEOCODING_ENGINE] SUCCESS Candidate verified (Score: ${winner.score}, Tier: ${winner.tier}): lat=${winner.lat} lng=${winner.lng} displayName="${winner.displayName}"`);
-
-      return {
-        success: true,
-        latitude: winner.lat,
-        longitude: winner.lng,
-        displayName: winner.displayName,
-        geocodeLevel: winner.geocodeLevel,
-        precisionLabel,
-        confidenceScore: Math.min(1.0, winner.score / 100),
-        matchedAddress: winner.displayName,
-        matchedPostalCode: winner.candPincode || postalCode,
-        matchedCity: city,
-        matchedState: state,
-        matchedLocality: area,
-        verificationStatus: 'VERIFIED',
-        queryTierUsed: winner.tier,
-        source: winner.source,
-      };
-    }
-
-    this.logger.error(`[GEOCODING_ENGINE] FAILED to verify geocoding for address: house="${house}" area="${area}" city="${city}" pincode="${postalCode}"`);
+  private _fallbackGeocodeFailure(reason: string): DetailedGeocodeResult {
     return {
       success: false,
       latitude: null,
@@ -333,188 +139,16 @@ export class GeolocationService {
       displayName: null,
       geocodeLevel: null,
       precisionLabel: 'UNKNOWN',
-      confidenceScore: null,
+      confidenceScore: 0,
       matchedAddress: null,
       verificationStatus: 'FAILED',
-      queryTierUsed: 6,
-      source: 'none',
-      reason: "Couldn't determine the exact location of this address. Please check the address details and try again.",
+      queryTierUsed: 0,
+      source: 'google_geocoding',
+      reason,
     };
   }
 
-  /** Place-Name Location Search (e.g. Kehnusa, Aloosa, Sopore, Bandipora) */
-  async searchPlaceByName(placeName: string): Promise<PlaceSearchResult[]> {
-    const clean = placeName.trim();
-    if (!clean) return [];
-
-    const query1 = clean.toLowerCase().includes('jammu') || clean.toLowerCase().includes('kashmir')
-      ? clean
-      : `${clean}, Jammu and Kashmir, India`;
-    const query2 = `${clean}, India`;
-
-    const urls = [
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(query1)}&limit=5`,
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query1)}&format=json&limit=5&countrycodes=in`,
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(query2)}&limit=5`,
-    ];
-    const KASHMIR_LOCALITY_MAP: Record<string, { lat: number; lng: number; name: string; display: string; city: string; state: string }> = {
-      kehnusa: { lat: 34.4646738, lng: 74.577908, name: 'Kehnusa', display: 'Kehnusa, Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
-      aloosa: { lat: 34.4875676, lng: 74.1025259, name: 'Aloosa', display: 'Aloosa, Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
-      sopore: { lat: 34.2869124, lng: 74.4625673, name: 'Sopore', display: 'Sopore, Baramulla, Jammu & Kashmir, India', city: 'Baramulla', state: 'Jammu & Kashmir' },
-      bandipora: { lat: 34.4232433, lng: 74.635965, name: 'Bandipora', display: 'Bandipora, Jammu & Kashmir, India', city: 'Bandipora', state: 'Jammu & Kashmir' },
-      srinagar: { lat: 34.0747444, lng: 74.8204443, name: 'Srinagar', display: 'Srinagar, Jammu & Kashmir, India', city: 'Srinagar', state: 'Jammu & Kashmir' },
-    };
-
-    const results: PlaceSearchResult[] = [];
-
-    const kashMatch = KASHMIR_LOCALITY_MAP[clean.toLowerCase()];
-    if (kashMatch) {
-      results.push({
-        placeId: `place-${kashMatch.lat.toFixed(4)}-${kashMatch.lng.toFixed(4)}`,
-        placeName: kashMatch.name,
-        formattedAddress: kashMatch.display,
-        latitude: kashMatch.lat,
-        longitude: kashMatch.lng,
-        locality: kashMatch.name,
-        city: kashMatch.city,
-        state: kashMatch.state,
-        confidence: 1.0,
-      });
-    }
-
-    for (const url of urls) {
-      try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'FoodHub/1.0' } });
-        if (!res.ok) continue;
-
-        const data = await res.json();
-        let items: any[] = [];
-        if (data.features && Array.isArray(data.features)) {
-          items = data.features.map((f: any) => ({
-            lat: parseFloat(f.geometry?.coordinates?.[1]),
-            lng: parseFloat(f.geometry?.coordinates?.[0]),
-            name: f.properties?.name || clean,
-            display: [f.properties?.name, f.properties?.city || f.properties?.county || f.properties?.district, f.properties?.state, 'India'].filter(Boolean).join(', '),
-            locality: f.properties?.name || '',
-            city: f.properties?.city || f.properties?.county || '',
-            state: f.properties?.state || '',
-          }));
-        } else if (Array.isArray(data)) {
-          items = data.map((item: any) => ({
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-            name: item.display_name?.split(',')[0] || clean,
-            display: item.display_name,
-            locality: item.address?.village || item.address?.suburb || item.display_name?.split(',')[0] || '',
-            city: item.address?.city || item.address?.county || item.address?.district || '',
-            state: item.address?.state || 'Jammu and Kashmir',
-          }));
-        }
-
-        for (const item of items) {
-          if (isNaN(item.lat) || isNaN(item.lng) || item.lat === 0 || item.lng === 0) continue;
-          if (item.lat < 8 || item.lat > 38 || item.lng < 68 || item.lng > 98) continue;
-
-          const exists = results.some((r) => Math.abs(r.latitude - item.lat) < 0.005 && Math.abs(r.longitude - item.lng) < 0.005);
-          if (exists) continue;
-
-          let confidence = 0.8;
-          const normName = normalizeText(item.name);
-          const normClean = normalizeText(clean);
-          if (normName.includes(normClean) || normClean.includes(normName)) {
-            confidence += 0.15;
-          }
-
-          results.push({
-            placeId: `place-${item.lat.toFixed(4)}-${item.lng.toFixed(4)}`,
-            placeName: item.name || clean,
-            formattedAddress: item.display,
-            latitude: item.lat,
-            longitude: item.lng,
-            locality: item.locality,
-            city: item.city,
-            state: item.state,
-            confidence,
-          });
-        }
-      } catch (e: any) {
-        this.logger.warn(`[PLACE_SEARCH] Search error on ${url}: ${e.message}`);
-      }
-    }
-
-    return results.sort((a, b) => b.confidence - a.confidence);
-  }
-
-  /** Forward geocoding & autosuggest search */
-  async searchAddress(query: string): Promise<GeocodeResult[]> {
-    const cleanQuery = query.trim();
-    if (!cleanQuery) return [];
-
-    const places = await this.searchPlaceByName(cleanQuery);
-    return places.map((p) => ({
-      lat: p.latitude,
-      lng: p.longitude,
-      displayName: p.formattedAddress,
-      placeId: p.placeId,
-    }));
-  }
-
-  /** Mappls Location Autosuggest — returns normalized FoodHub structure */
-  async getAutosuggest(query: string): Promise<{ suggestions: Array<{
-    id: string;
-    placeName: string;
-    address: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-    latitude: number;
-    longitude: number;
-  }> }> {
-    const rawResults = await this.searchAddress(query);
-
-    const suggestions = rawResults.map((item) => {
-      const parts = item.displayName.split(',').map((s) => s.trim());
-      const placeName = parts[0] || query;
-      const address = item.displayName;
-
-      return {
-        id: item.placeId,
-        placeName,
-        address,
-        latitude: item.lat,
-        longitude: item.lng,
-      };
-    });
-
-    return { suggestions };
-  }
-
-  /** Find available drivers within a bounding box */
-  async getNearbyDrivers(lat: number, lng: number, radiusKm: number = 3) {
-    const delta = radiusKm / 111;
-
-    const drivers = await this.prisma.driver.findMany({
-      where: {
-        status:     'ONLINE',
-        isApproved: true,
-        currentLat: { gte: lat - delta, lte: lat + delta },
-        currentLng: { gte: lng - delta, lte: lng + delta },
-        deletedAt:  null,
-      },
-      include: { user: { include: { profile: true } } },
-      take: 10,
-    });
-
-    return drivers.map((d) => ({
-      id:          d.id,
-      name:        `${d.user.profile?.firstName ?? ''} ${d.user.profile?.lastName ?? ''}`.trim(),
-      distanceKm:  Math.round(haversineKm(lat, lng, d.currentLat!, d.currentLng!) * 100) / 100,
-      lat:         d.currentLat,
-      lng:         d.currentLng,
-    }));
-  }
-
-  /** Resolve coordinates to structured Zayka Food location */
+  /** Reverse Geocode using Google Geocoding API */
   async resolveLocation(lat: number, lng: number): Promise<{
     latitude: number;
     longitude: number;
@@ -525,94 +159,118 @@ export class GeolocationService {
     country: string;
     formattedAddress: string;
   }> {
-    // 1. Check local Kashmir geographic dataset for high-precision local matching (< 4 km)
-    const KASHMIR_LOCALITY_DATASET = [
-      { name: 'Kehnusa', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4646738, lng: 74.577908 },
-      { name: 'Aloosa', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4875676, lng: 74.1025259 },
-      { name: 'Bandipora', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.4232433, lng: 74.635965 },
-      { name: 'Sopore', district: 'Baramulla', state: 'Jammu and Kashmir', lat: 34.2869124, lng: 74.4625673 },
-      { name: 'Baramulla', district: 'Baramulla', state: 'Jammu and Kashmir', lat: 34.2091, lng: 74.3436 },
-      { name: 'Sumbal', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.2372, lng: 74.6341 },
-      { name: 'Hajin', district: 'Bandipora', state: 'Jammu and Kashmir', lat: 34.2981, lng: 74.6192 },
-      { name: 'Srinagar', district: 'Srinagar', state: 'Jammu and Kashmir', lat: 34.0747444, lng: 74.8204443 },
-    ];
+    const fallback = {
+      latitude: lat,
+      longitude: lng,
+      locality: '',
+      district: '',
+      state: '',
+      country: 'India',
+      formattedAddress: 'Unknown Location',
+    };
 
-    for (const loc of KASHMIR_LOCALITY_DATASET) {
-      const dist = haversineKm(lat, lng, loc.lat, loc.lng);
-      if (dist <= 3.5) {
-        return {
-          latitude: lat,
-          longitude: lng,
-          locality: loc.name,
-          district: loc.district,
-          state: loc.state,
-          country: 'India',
-          formattedAddress: `${loc.name}, ${loc.district}, ${loc.state}, India`,
-        };
-      }
-    }
+    if (!this.GoogleKey) return fallback;
 
-    // 2. Query OSM / Mappls Reverse Geocoding
     try {
-      const key = this.MapplsKey;
-      const url = key
-        ? `https://apis.mappls.com/advancedmaps/v1/${key}/rev_geocode?lat=${lat}&lng=${lng}`
-        : `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+      const response = await this.mapsClient.reverseGeocode({
+        params: {
+          latlng: [lat, lng],
+          key: this.GoogleKey,
+        },
+        timeout: 5000,
+      });
 
-      const res = await fetch(url, { headers: { 'User-Agent': 'ZaykaFood/1.0' } });
-      if (res.ok) {
-        const data = await res.json();
-        const addr = data.address || {};
-        const locality = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || (data.display_name?.split(',')[0]) || 'Current Location';
-        const district = addr.county || addr.state_district || addr.district || addr.city || 'Bandipora';
-        const state = addr.state || 'Jammu and Kashmir';
-        const country = addr.country || 'India';
-        const formattedAddress = data.display_name || `${locality}, ${district}, ${state}, ${country}`;
+      if (response.data.results && response.data.results.length > 0) {
+        // Find a rooftop or the most specific address
+        const bestMatch = response.data.results[0];
+        let locality = '';
+        let district = '';
+        let state = '';
+        let country = 'India';
+
+        for (const component of bestMatch.address_components) {
+          if (component.types.includes('locality' as any)) {
+            locality = component.long_name;
+          } else if (component.types.includes('administrative_area_level_3' as any)) {
+            locality = locality || component.long_name;
+          }
+          if (component.types.includes('administrative_area_level_2' as any)) {
+            district = component.long_name;
+          }
+          if (component.types.includes('administrative_area_level_1' as any)) {
+            state = component.long_name;
+          }
+          if (component.types.includes('country' as any)) {
+            country = component.long_name;
+          }
+        }
 
         return {
           latitude: lat,
           longitude: lng,
           locality,
           district,
-          subDistrict: addr.suburb || addr.neighbourhood,
           state,
           country,
-          formattedAddress,
+          formattedAddress: bestMatch.formatted_address,
         };
       }
-    } catch (err) {
-      this.logger.warn(`Location resolution error: ${err}`);
+    } catch (error: any) {
+      this.logger.error(`Reverse geocoding error: ${error.message}`);
     }
 
-    // Fallback safe coordinates format
-    return {
-      latitude: lat,
-      longitude: lng,
-      locality: `Location (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
-      district: 'Jammu and Kashmir',
-      state: 'Jammu and Kashmir',
-      country: 'India',
-      formattedAddress: `${lat.toFixed(4)}, ${lng.toFixed(4)}, Jammu & Kashmir, India`,
-    };
+    return fallback;
   }
 
-  /** Reverse geocoding — coordinates → address string via Mappls / OSM API */
+  /** Reverse geocoding returns only formatted string */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const resolved = await this.resolveLocation(lat, lng);
     return resolved.formattedAddress;
   }
 
-  /** Calculate distance and ETA between two coordinates */
-  calculateDistanceAndEta(
+  /** 
+   * Calculate distance and ETA between two coordinates using Google Routes API / Distance Matrix API.
+   * If Google Routes fails, falls back to Haversine.
+   */
+  async calculateDistanceAndEta(
     fromLat: number, fromLng: number,
     toLat:   number, toLng:   number,
-  ): DistanceResult {
+  ): Promise<DistanceResult> {
+    if (this.GoogleKey) {
+      try {
+        const response = await this.mapsClient.distancematrix({
+          params: {
+            origins: [[fromLat, fromLng]],
+            destinations: [[toLat, toLng]],
+            key: this.GoogleKey,
+            mode: TravelMode.driving,
+          },
+          timeout: 3000,
+        });
+
+        const element = response.data.rows[0]?.elements[0];
+        if (element && element.status === 'OK') {
+          return {
+            distanceKm: Math.round((element.distance.value / 1000) * 100) / 100, // meters to km
+            etaMinutes: Math.ceil(element.duration.value / 60), // seconds to minutes
+          };
+        }
+      } catch (err: any) {
+        this.logger.error(`Google DistanceMatrix Error: ${err.message}`);
+      }
+    }
+
+    // Fallback to Haversine
     const distanceKm = haversineKm(fromLat, fromLng, toLat, toLng);
-    const etaMinutes = Math.ceil((distanceKm / AVG_SPEED_KMH) * 60);
+    const etaMinutes = Math.ceil((distanceKm / 20) * 60); // Assuming 20 km/h average
     return { distanceKm: Math.round(distanceKm * 100) / 100, etaMinutes };
   }
 
-  /** Find restaurants within a bounding box (approx radius), sorted by distance */
+  /** 
+   * Two-stage discovery:
+   * 1. Haversine filtering (fast, cheap) to find restaurants within radius.
+   * 2. (Optional) Route Matrix for actual road distances.
+   */
   async getNearbyRestaurants(
     lat:      number,
     lng:      number,
@@ -620,7 +278,8 @@ export class GeolocationService {
   ): Promise<NearbyRestaurant[]> {
     const delta = radiusKm / 111;
 
-    const restaurants = await this.prisma.restaurant.findMany({
+    // Stage 1: Preliminary geographic filtering
+    const candidates = await this.prisma.restaurant.findMany({
       where: {
         status:   'APPROVED',
         isOpen:   true,
@@ -628,29 +287,48 @@ export class GeolocationService {
         longitude: { gte: lng - delta, lte: lng + delta },
         deletedAt: null,
       },
-      take: 20,
+      take: 20, // Limit candidates
     });
 
-    return restaurants
-      .map((r) => {
-        const distanceKm = haversineKm(lat, lng, r.latitude, r.longitude);
-        const etaMinutes = Math.ceil((distanceKm / AVG_SPEED_KMH) * 60);
-        return {
-          id:         r.id,
-          name:       r.name,
-          slug:       r.slug,
-          avgRating:  Number(r.avgRating),
-          distanceKm: Math.round(distanceKm * 100) / 100,
-          etaMinutes,
-          lat:        r.latitude,
-          lng:        r.longitude,
-        };
-      })
-      .filter((r) => r.distanceKm <= radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm);
+    const nearby: NearbyRestaurant[] = [];
+
+    for (const rest of candidates) {
+      const hDist = haversineKm(lat, lng, rest.latitude, rest.longitude);
+      if (hDist <= radiusKm) {
+        nearby.push({
+          id: rest.id,
+          name: rest.name,
+          slug: rest.slug,
+          avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
+          distanceKm: Math.round(hDist * 100) / 100,
+          etaMinutes: Math.ceil((hDist / 20) * 60) + 10, // 10 min prep time avg
+          lat: rest.latitude,
+          lng: rest.longitude,
+        });
+      }
+    }
+
+    return nearby.sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
-  /** Validate that a delivery address is within a restaurant's delivery radius */
+  /** Find available drivers (Internal - uses simple Haversine) */
+  async getNearbyDrivers(
+    lat: number,
+    lng: number,
+  ): Promise<any[]> {
+    const drivers = await this.prisma.driver.findMany({
+      where: {
+        status: 'ONLINE',
+      },
+    });
+
+    return drivers.map(d => ({
+      ...d,
+      distanceKm: haversineKm(lat, lng, d.currentLat || 0, d.currentLng || 0),
+    })).filter(d => d.distanceKm <= 10).sort((a, b) => a.distanceKm - b.distanceKm);
+  }
+
+  /** Validate delivery radius using actual Google Maps Routes/Distance */
   async validateDeliveryRadius(
     restaurantId: string,
     deliveryLat:  number,
@@ -664,16 +342,37 @@ export class GeolocationService {
       throw new NotFoundException(`Restaurant with ID "${restaurantId}" not found`);
     }
 
-    const distanceKm = haversineKm(
+    // Two-stage filtering: Haversine first for quick rejection
+    const hDist = haversineKm(restaurant.latitude, restaurant.longitude, deliveryLat, deliveryLng);
+    if (hDist > restaurant.deliveryRadius * 1.5) { // Reject definitely outside
+      return {
+        valid: false,
+        distanceKm: Math.round(hDist * 100) / 100,
+        radiusKm: restaurant.deliveryRadius,
+      };
+    }
+
+    // Call Google Routes/Distance API for actual road distance
+    const roadRoute = await this.calculateDistanceAndEta(
       restaurant.latitude, restaurant.longitude,
       deliveryLat, deliveryLng,
     );
-    const valid = distanceKm <= restaurant.deliveryRadius;
+
+    const valid = roadRoute.distanceKm <= restaurant.deliveryRadius;
 
     return {
       valid,
-      distanceKm: Math.round(distanceKm * 100) / 100,
-      radiusKm:   restaurant.deliveryRadius,
+      distanceKm: roadRoute.distanceKm,
+      radiusKm: restaurant.deliveryRadius,
     };
+  }
+
+  // Deprecated/Stubbed methods for frontend migration
+  async searchPlaceByName(placeName: string): Promise<any[]> {
+    return []; // Handled by Frontend Google Places Autocomplete
+  }
+
+  async getAutosuggest(query: string): Promise<any[]> {
+    return []; // Handled by Frontend Google Places Autocomplete
   }
 }

@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useMemo } from 'react';
+import { GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
+import { Loader2 } from 'lucide-react';
+
+const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 interface Props {
   driverLat: number;
@@ -21,70 +23,76 @@ export const DeliveryMap: React.FC<Props> = ({
   customerLat,
   customerLng,
 }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletMap = useRef<L.Map | null>(null);
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+  });
 
-  useEffect(() => {
-    if (!mapRef.current) return;
+  const path = useMemo(() => [
+    { lat: driverLat, lng: driverLng },
+    { lat: restaurantLat, lng: restaurantLng },
+    { lat: customerLat, lng: customerLng },
+  ], [driverLat, driverLng, restaurantLat, restaurantLng, customerLat, customerLng]);
 
-    if (!leafletMap.current) {
-      leafletMap.current = L.map(mapRef.current).setView([driverLat, driverLng], 14);
+  const mapCenter = useMemo(() => ({
+    lat: (driverLat + customerLat) / 2,
+    lng: (driverLng + customerLng) / 2,
+  }), [driverLat, driverLng, customerLat, customerLng]);
 
-      const mapplsKey = process.env.NEXT_PUBLIC_MAPPLS_API_KEY;
-      const primaryTileUrl = mapplsKey
-        ? `https://apis.mappls.com/advancedmaps/v1/${mapplsKey}/tile/{z}/{x}/{y}.png`
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      const tileLayer = L.tileLayer(primaryTileUrl, {
-        attribution: '&copy; Mappls / MapmyIndia',
-        maxZoom: 19,
-        subdomains: 'abcd',
-      } as any);
-
-      tileLayer.on('tileerror', () => {
-        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-      });
-
-      tileLayer.addTo(leafletMap.current);
-    }
-
-    const map = leafletMap.current;
-
-    const restaurantIcon = L.divIcon({
-      className: 'custom-leaflet-pin',
-      html: `<div style="background-color: #ea580c; color: white; padding: 6px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: bold; font-size: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">🏪</div>`,
-      iconSize: [32, 32],
-    });
-
-    const driverIcon = L.divIcon({
-      className: 'custom-leaflet-pin',
-      html: `<div style="background-color: #059669; color: white; padding: 6px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: bold; font-size: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">🛵</div>`,
-      iconSize: [36, 36],
-    });
-
-    const customerIcon = L.divIcon({
-      className: 'custom-leaflet-pin',
-      html: `<div style="background-color: #2563eb; color: white; padding: 6px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: bold; font-size: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">📍</div>`,
-      iconSize: [32, 32],
-    });
-
-    L.marker([restaurantLat, restaurantLng], { icon: restaurantIcon }).addTo(map);
-    L.marker([driverLat, driverLng], { icon: driverIcon }).addTo(map);
-    L.marker([customerLat, customerLng], { icon: customerIcon }).addTo(map);
-
-    const latlngs: L.LatLngExpression[] = [
-      [driverLat, driverLng],
-      [restaurantLat, restaurantLng],
-      [customerLat, customerLng],
-    ];
-
-    const polyline = L.polyline(latlngs, { color: '#059669', weight: 5, dashArray: '6, 6' }).addTo(map);
-    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-  }, [driverLat, driverLng, restaurantLat, restaurantLng, customerLat, customerLng]);
+  if (loadError) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
+  if (!isLoaded) return (
+    <div className="flex h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner">
+      <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+    </div>
+  );
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-3xl border border-gray-100 shadow-inner min-h-[400px]">
-      <div ref={mapRef} className="h-full w-full" />
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height: '100%' }}
+        center={mapCenter}
+        zoom={13}
+        options={{
+          disableDefaultUI: true,
+          zoomControl: true,
+        }}
+        onLoad={(map) => {
+          const bounds = new window.google.maps.LatLngBounds();
+          path.forEach(({ lat, lng }) => {
+            if (lat && lng) bounds.extend(new window.google.maps.LatLng(lat, lng));
+          });
+          map.fitBounds(bounds);
+        }}
+      >
+        <Marker 
+          position={{ lat: restaurantLat, lng: restaurantLng }} 
+          label={{ text: "R", color: "white", fontWeight: "bold" }}
+        />
+        <Marker 
+          position={{ lat: customerLat, lng: customerLng }} 
+          label={{ text: "C", color: "white", fontWeight: "bold" }}
+        />
+        <Marker 
+          position={{ lat: driverLat, lng: driverLng }} 
+          icon={{
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: "#059669",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#ffffff",
+            scale: 8
+          }}
+        />
+
+        <Polyline
+          path={path}
+          options={{
+            strokeColor: '#059669',
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+          }}
+        />
+      </GoogleMap>
     </div>
   );
 };

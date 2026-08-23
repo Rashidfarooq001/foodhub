@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MapPin, Navigation, Search, X, Check, Building, Home, Briefcase, AlertCircle, Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { GooglePlacesAutocomplete } from '../map/GooglePlacesAutocomplete';
 import { useAddressStore } from '../../stores/use-address-store';
 
 const API_BASE = getApiBaseUrl();
@@ -207,52 +208,23 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
             </div>
           )}
 
-          {/* Locality / Area Search Bar */}
+          {/* Locality / Area Search Bar (Google Places API) */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-gray-700 block">Search Locality / Village</label>
-            <div className="relative flex items-center rounded-2xl border border-gray-200 bg-gray-50 focus-within:bg-white focus-within:border-rose-500 focus-within:ring-2 focus-within:ring-rose-100 transition">
-              <Search className="h-4 w-4 text-gray-400 ml-3.5 shrink-0" />
-              <input
-                type="text"
-                placeholder="Search Kehnusa, Aloosa, Sopore, Bandipora..."
-                value={searchQuery}
-                onChange={(e) => handleSearchPlaces(e.target.value)}
-                className="w-full bg-transparent px-3 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
-              />
-              {isSearching && <Loader2 className="h-4 w-4 text-rose-600 mr-3 animate-spin shrink-0" />}
-            </div>
-
-            {/* Search Results Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="rounded-2xl border border-gray-100 bg-white shadow-lg divide-y divide-gray-50 max-h-48 overflow-y-auto">
-                {searchResults.map((place, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      onSelectLocation({
-                        label: place.name,
-                        address: `${place.name}, ${place.district}, Jammu and Kashmir`,
-                        lat: place.lat,
-                        lng: place.lng,
-                        locality: place.name,
-                        district: place.district,
-                      });
-                      onClose();
-                    }}
-                    className="w-full flex items-center justify-between p-3 text-left hover:bg-rose-50/50 transition group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <MapPin className="h-4 w-4 text-rose-600 shrink-0 group-hover:scale-110 transition" />
-                      <div>
-                        <p className="text-xs font-bold text-gray-900">{place.name}</p>
-                        <p className="text-[10px] text-gray-500">{place.district}, Jammu and Kashmir</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+            <GooglePlacesAutocomplete
+              onSelectPlace={(place) => {
+                onSelectLocation({
+                  label: place.locality || 'Searched Location',
+                  address: place.address,
+                  lat: place.lat,
+                  lng: place.lng,
+                  locality: place.locality,
+                  district: place.district,
+                });
+                onClose();
+              }}
+              placeholder="Search Kehnusa, Aloosa, Sopore, Bandipora..."
+            />
           </div>
 
           {/* Saved Addresses Section (If user has saved addresses) */}

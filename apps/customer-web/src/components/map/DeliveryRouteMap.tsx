@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
+import { GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
+import { Loader2 } from 'lucide-react';
+
+const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 interface DeliveryRouteMapProps {
   restaurantLat: number;
@@ -21,115 +25,67 @@ export default function DeliveryRouteMap({
   driverLng,
   restaurantName = 'Restaurant',
 }: DeliveryRouteMapProps) {
-  const mapElRef = useRef<HTMLDivElement>(null);
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+  });
 
-  useEffect(() => {
-    let map: any;
+  const path = useMemo(() => [
+    { lat: restaurantLat, lng: restaurantLng },
+    { lat: customerLat, lng: customerLng },
+  ], [restaurantLat, restaurantLng, customerLat, customerLng]);
 
-    async function initMap() {
-      const L = (await import('leaflet')).default;
+  const mapCenter = useMemo(() => ({
+    lat: (restaurantLat + customerLat) / 2,
+    lng: (restaurantLng + customerLng) / 2,
+  }), [restaurantLat, restaurantLng, customerLat, customerLng]);
 
-      // Inject Leaflet CSS once
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id    = 'leaflet-css';
-        link.rel   = 'stylesheet';
-        link.href  = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-      if (!mapElRef.current) return;
-
-      // Center map between restaurant and customer
-      const centerLat = (restaurantLat + customerLat) / 2;
-      const centerLng = (restaurantLng + customerLng) / 2;
-
-      map = L.map(mapElRef.current).setView([centerLat, centerLng], 13);
-
-      const mapplsKey = process.env.NEXT_PUBLIC_MAPPLS_API_KEY;
-      const primaryTileUrl = mapplsKey
-        ? `https://apis.mappls.com/advancedmaps/v1/${mapplsKey}/tile/{z}/{x}/{y}.png`
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      const tileLayer = L.tileLayer(primaryTileUrl, {
-        attribution: '© Mappls / MapmyIndia',
-        maxZoom: 19,
-        subdomains: 'abcd',
-      } as any);
-
-      tileLayer.on('tileerror', () => {
-        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-      });
-
-      tileLayer.addTo(map);
-
-      // Restaurant marker
-      const restIcon = L.divIcon({
-        className: '',
-        html: `<div style="font-size:22px;text-shadow:0 1px 3px rgba(0,0,0,0.3)">🍽</div>`,
-        iconAnchor: [11, 11],
-      });
-      L.marker([restaurantLat, restaurantLng], { icon: restIcon })
-        .bindPopup(`<b>${restaurantName}</b>`)
-        .addTo(map);
-
-      // Customer marker
-      const customerIcon = L.divIcon({
-        className: '',
-        html: `<div style="font-size:22px">🏠</div>`,
-        iconAnchor: [11, 11],
-      });
-      L.marker([customerLat, customerLng], { icon: customerIcon })
-        .bindPopup('<b>Delivery Location</b>')
-        .addTo(map);
-
-      // Driver marker (if available)
-      if (driverLat !== undefined && driverLng !== undefined) {
-        const driverIcon = L.divIcon({
-          className: '',
-          html: `<div style="font-size:22px;animation:pulse 1s infinite">🛵</div>`,
-          iconAnchor: [11, 11],
-        });
-        L.marker([driverLat, driverLng], { icon: driverIcon })
-          .bindPopup('<b>Your Delivery Partner</b>')
-          .addTo(map);
-
-        // Route polyline from driver → restaurant → customer
-        L.polyline(
-          [
-            [driverLat,      driverLng],
-            [restaurantLat,  restaurantLng],
-            [customerLat,    customerLng],
-          ],
-          { color: '#7c3aed', weight: 3, opacity: 0.7, dashArray: '8, 6' },
-        ).addTo(map);
-      } else {
-        // Route polyline from restaurant → customer
-        L.polyline(
-          [[restaurantLat, restaurantLng], [customerLat, customerLng]],
-          { color: '#7c3aed', weight: 3, opacity: 0.7, dashArray: '8, 6' },
-        ).addTo(map);
-      }
-
-      // Fit map to show all markers
-      const bounds = L.latLngBounds([
-        [restaurantLat, restaurantLng],
-        [customerLat,   customerLng],
-        ...(driverLat !== undefined ? [[driverLat, driverLng]] : []),
-      ] as any);
-      map.fitBounds(bounds, { padding: [40, 40] });
-    }
-
-    initMap();
-    return () => { map?.remove(); };
-  }, [restaurantLat, restaurantLng, customerLat, customerLng, driverLat, driverLng]);
+  if (loadError) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
+  if (!isLoaded) return (
+    <div className="flex h-full min-h-[300px] items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 shadow-inner">
+      <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+    </div>
+  );
 
   return (
-    <div
-      ref={mapElRef}
-      className="h-72 w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
-    />
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-gray-100 shadow-inner min-h-[300px]">
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height: '100%' }}
+        center={mapCenter}
+        zoom={14}
+        options={{ disableDefaultUI: true, zoomControl: true }}
+        onLoad={(map) => {
+          const bounds = new window.google.maps.LatLngBounds();
+          bounds.extend({ lat: restaurantLat, lng: restaurantLng });
+          bounds.extend({ lat: customerLat, lng: customerLng });
+          if (driverLat && driverLng) {
+            bounds.extend({ lat: driverLat, lng: driverLng });
+          }
+          map.fitBounds(bounds);
+        }}
+      >
+        <Marker position={{ lat: restaurantLat, lng: restaurantLng }} label={{ text: "R", color: "white", fontWeight: "bold" }} />
+        <Marker position={{ lat: customerLat, lng: customerLng }} label={{ text: "Me", color: "white", fontWeight: "bold" }} />
+        
+        {driverLat && driverLng && (
+          <Marker 
+            position={{ lat: driverLat, lng: driverLng }} 
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              fillColor: "#059669",
+              fillOpacity: 1,
+              strokeWeight: 2,
+              strokeColor: "#ffffff",
+              scale: 8
+            }}
+          />
+        )}
+
+        <Polyline
+          path={path}
+          options={{ strokeColor: '#ea580c', strokeOpacity: 0.8, strokeWeight: 4 }}
+        />
+      </GoogleMap>
+    </div>
   );
 }

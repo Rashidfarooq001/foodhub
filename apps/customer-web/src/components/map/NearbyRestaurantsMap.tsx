@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { Loader2 } from 'lucide-react';
+
+const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 interface RestaurantPin {
   id:          string;
@@ -26,89 +30,69 @@ export default function NearbyRestaurantsMap({
   restaurants,
   onSelect,
 }: NearbyRestaurantsMapProps) {
-  const mapElRef = useRef<HTMLDivElement>(null);
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+  });
 
-  useEffect(() => {
-    let map: any;
+  const mapCenter = useMemo(() => ({
+    lat: userLat,
+    lng: userLng,
+  }), [userLat, userLng]);
 
-    async function initMap() {
-      const L = (await import('leaflet')).default;
-
-      // Inject Leaflet CSS once
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id    = 'leaflet-css';
-        link.rel   = 'stylesheet';
-        link.href  = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
-      if (!mapElRef.current) return;
-
-      map = L.map(mapElRef.current).setView([userLat, userLng], 13);
-
-      const mapplsKey = process.env.NEXT_PUBLIC_MAPPLS_API_KEY;
-      const primaryTileUrl = mapplsKey
-        ? `https://apis.mappls.com/advancedmaps/v1/${mapplsKey}/tile/{z}/{x}/{y}.png`
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      const tileLayer = L.tileLayer(primaryTileUrl, {
-        attribution: '© Mappls / MapmyIndia',
-        maxZoom: 19,
-        subdomains: 'abcd',
-      } as any);
-
-      tileLayer.on('tileerror', () => {
-        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-      });
-
-      tileLayer.addTo(map);
-
-      // User location marker (blue)
-      const userIcon = L.divIcon({
-        className: '',
-        html: `<div style="width:16px;height:16px;border-radius:50%;background:#4f46e5;border:3px solid #fff;box-shadow:0 0 0 3px #4f46e540"></div>`,
-        iconAnchor: [8, 8],
-      });
-      L.marker([userLat, userLng], { icon: userIcon })
-        .bindPopup('<b>You are here</b>')
-        .addTo(map);
-
-      // Restaurant markers
-      for (const r of restaurants) {
-        const restIcon = L.divIcon({
-          className: '',
-          html: `<div style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:4px 7px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2)">🍽 ${r.name.split(' ')[0]}</div>`,
-          iconAnchor: [0, 0],
-        });
-
-        const marker = L.marker([r.lat, r.lng], { icon: restIcon })
-          .bindPopup(
-            `<b>${r.name}</b><br>⭐ ${r.avgRating} · ${r.distanceKm} km · ~${r.etaMinutes} min`,
-          )
-          .addTo(map);
-
-        if (onSelect) {
-          marker.on('click', () => onSelect(r));
-        }
-      }
-    }
-
-    initMap();
-    return () => { map?.remove(); };
-  }, [userLat, userLng, restaurants]);
+  if (loadError) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
+  if (!isLoaded) return (
+    <div className="flex h-[350px] items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 shadow-inner">
+      <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+    </div>
+  );
 
   return (
-    <div
-      ref={mapElRef}
-      className="h-64 w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
-    />
+    <div className="relative h-[350px] w-full overflow-hidden rounded-2xl border border-gray-100 shadow-inner">
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height: '100%' }}
+        center={mapCenter}
+        zoom={13}
+        options={{ disableDefaultUI: true, zoomControl: true }}
+        onLoad={(map) => {
+          if (restaurants.length > 0) {
+            const bounds = new window.google.maps.LatLngBounds();
+            bounds.extend({ lat: userLat, lng: userLng });
+            restaurants.forEach((r) => bounds.extend({ lat: r.lat, lng: r.lng }));
+            map.fitBounds(bounds);
+          }
+        }}
+      >
+        <Marker 
+          position={{ lat: userLat, lng: userLng }} 
+          label={{ text: "Me", color: "white", fontWeight: "bold" }}
+          icon={{
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: "#2563eb",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#ffffff",
+            scale: 8
+          }}
+        />
+
+        {restaurants.map((rest) => (
+          <Marker
+            key={rest.id}
+            position={{ lat: rest.lat, lng: rest.lng }}
+            label={{ text: rest.avgRating > 0 ? rest.avgRating.toFixed(1) : "R", color: "white", fontWeight: "bold" }}
+            onClick={() => onSelect && onSelect(rest)}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              fillColor: "#ea580c",
+              fillOpacity: 1,
+              strokeWeight: 2,
+              strokeColor: "#ffffff",
+              scale: 10
+            }}
+          />
+        ))}
+      </GoogleMap>
+    </div>
   );
 }

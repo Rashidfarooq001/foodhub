@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { GoogleMapPicker } from '../../../components/map/GoogleMapPicker';
 import {
   UtensilsCrossed,
   Store,
@@ -852,31 +853,24 @@ export default function RestaurantPartnerRegisterPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">GPS Latitude Coordinate</label>
-                <input
-                  type="number"
-                  step="any"
-                  name="latitude"
-                  value={form.latitude ?? ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, latitude: parseFloat(e.target.value) || null }))}
-                  placeholder="e.g. 34.3868"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-mono font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">GPS Longitude Coordinate</label>
-                <input
-                  type="number"
-                  step="any"
-                  name="longitude"
-                  value={form.longitude ?? ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, longitude: parseFloat(e.target.value) || null }))}
-                  placeholder="e.g. 74.5221"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-mono font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Store Location</label>
+                  <p className="text-[10px] text-gray-500 mb-3">Drag the pin to exactly where your store is located.</p>
+                  
+                  <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200">
+                    <GoogleMapPicker
+                      initialLat={form.latitude ?? 34.3868}
+                      initialLng={form.longitude ?? 74.5221}
+                      onLocationChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))}
+                    />
+                  </div>
+                  
+                  {(form.latitude && form.longitude) && (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
+                      <CheckCircle2 className="h-4 w-4" /> Location Captured
+                    </div>
+                  )}
+                </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">Cuisines Offered</label>
