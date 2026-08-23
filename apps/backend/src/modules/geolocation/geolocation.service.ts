@@ -221,27 +221,22 @@ export class GeolocationService {
     }
 
     try {
-      const response = await this.mapsClient.distancematrix({
-        params: {
-          origins: [[fromLat, fromLng]],
-          destinations: [[toLat, toLng]],
-          key: this.GoogleKey,
-          mode: TravelMode.driving,
-        },
-        timeout: 5000,
-      });
-
-      const element = response.data.rows[0]?.elements[0];
-      if (element && element.status === 'OK') {
+      const responseData = await this.computeRouteMatrix([[fromLat, fromLng]], [[toLat, toLng]]);
+      const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === 0);
+      if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
+        let etaMins = 0;
+        if (routeData.duration) {
+          etaMins = Math.ceil(parseInt(routeData.duration) / 60);
+        }
         return {
-          distanceKm: Math.round((element.distance.value / 1000) * 100) / 100, // meters to km
-          etaMinutes: Math.ceil(element.duration.value / 60), // seconds to minutes
+          distanceKm: Math.round((routeData.distanceMeters / 1000) * 100) / 100,
+          etaMinutes: etaMins
         };
       } else {
-        throw new Error(`Google Distance Matrix API returned element status: ${element?.status}`);
+        throw new Error("Google Routes API returned no valid route (status: " + routeData?.condition + ")");
       }
     } catch (err: any) {
-      this.logger.error(`Google DistanceMatrix Error: ${err.message}`);
+      this.logger.error("Google Routes Error: " + err.message);
       throw new Error('Failed to calculate road distance via Google Maps');
     }
   }
@@ -277,29 +272,23 @@ export class GeolocationService {
     const destinations = candidates.map(c => [c.latitude, c.longitude] as [number, number]);
 
     try {
-      const response = await this.mapsClient.distancematrix({
-        params: {
-          origins,
-          destinations,
-          key: this.GoogleKey,
-          mode: TravelMode.driving,
-        },
-      });
-
-      const elements = response.data.rows[0]?.elements || [];
-
+      const responseData = await this.computeRouteMatrix(origins, destinations);
       candidates.forEach((rest, index) => {
-        const element = elements[index];
-        if (element && element.status === 'OK') {
-          const distanceKm = Math.round((element.distance.value / 1000) * 100) / 100;
+        const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === index);
+        if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
+          const distanceKm = Math.round((routeData.distanceMeters / 1000) * 100) / 100;
           if (distanceKm <= radiusKm) {
+            let etaMins = 0;
+            if (routeData.duration) {
+              etaMins = Math.ceil(parseInt(routeData.duration) / 60);
+            }
             nearby.push({
               id: rest.id,
               name: rest.name,
               slug: rest.slug,
               avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
               distanceKm,
-              etaMinutes: Math.ceil(element.duration.value / 60) + 10, // 10 min prep time avg
+              etaMinutes: etaMins + 10,
               lat: rest.latitude,
               lng: rest.longitude,
             });
@@ -307,7 +296,7 @@ export class GeolocationService {
         }
       });
     } catch (err: any) {
-      this.logger.error(`Batch Google DistanceMatrix Error: ${err.message}`);
+      this.logger.error("Batch Google Routes Error: " + err.message);
     }
 
     return nearby.sort((a, b) => a.distanceKm - b.distanceKm);
@@ -335,29 +324,26 @@ export class GeolocationService {
 
     const nearbyDrivers: any[] = [];
     try {
-      const response = await this.mapsClient.distancematrix({
-        params: {
-          origins,
-          destinations,
-          key: this.GoogleKey,
-          mode: TravelMode.driving,
-        },
-      });
-
+      const responseData = await this.computeRouteMatrix(origins, destinations);
       drivers.forEach((driver, index) => {
-        const element = response.data.rows[index]?.elements[0];
-        if (element && element.status === 'OK') {
-          const distanceKm = Math.round((element.distance.value / 1000) * 100) / 100;
+        const routeData = responseData.find((r: any) => r.originIndex === index && r.destinationIndex === 0);
+        if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
+          const distanceKm = Math.round((routeData.distanceMeters / 1000) * 100) / 100;
           if (distanceKm <= 10) {
+            let etaMins = 0;
+            if (routeData.duration) {
+              etaMins = Math.ceil(parseInt(routeData.duration) / 60);
+            }
             nearbyDrivers.push({
               ...driver,
               distanceKm,
+              etaMinutes: etaMins,
             });
           }
         }
       });
     } catch (err: any) {
-      this.logger.error(`Driver Batch Google DistanceMatrix Error: ${err.message}`);
+      this.logger.error("Driver Batch Google Routes Error: " + err.message);
     }
 
     return nearbyDrivers.sort((a, b) => a.distanceKm - b.distanceKm);
