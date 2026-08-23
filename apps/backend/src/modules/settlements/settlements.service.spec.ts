@@ -16,7 +16,7 @@ describe('SettlementsService Weekly System', () => {
     phone: '+919906000001',
     email: 'info@royalkashmir.com',
     status: 'APPROVED',
-    commissionRate: 13.0,
+    
     bankAccount: {
       bankName: 'State Bank of India',
       accountHolder: 'Royal Kashmir Banquet',
@@ -31,7 +31,7 @@ describe('SettlementsService Weekly System', () => {
     phone: '+919906000002',
     email: 'sangri@foodhub.test',
     status: 'APPROVED',
-    commissionRate: 0.0, // 0% configured commission
+     // 0% configured commission
     bankAccount: {
       bankName: 'HDFC Bank',
       accountHolder: 'Sangri Restaurant',
@@ -46,7 +46,7 @@ describe('SettlementsService Weekly System', () => {
     phone: '+919906000003',
     email: 'zero@foodhub.test',
     status: 'APPROVED',
-    commissionRate: null, // Unconfigured
+     // Unconfigured
     bankAccount: null,
   };
 
@@ -128,7 +128,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 1000,
           subtotal: 1000,
-          pricingSnapshot: { restaurantGross: 1000, commissionRate: 13, commissionAmount: 130, restaurantNet: 870 },
+          pricingSnapshot: { restaurantGross: 1000,  commissionAmount: 130, restaurantNet: 870 },
           createdAt: new Date(),
         },
         {
@@ -137,7 +137,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-b-uuid',
           totalAmount: 500,
           subtotal: 500,
-          pricingSnapshot: { restaurantGross: 500, commissionRate: 0, commissionAmount: 0, restaurantNet: 500 },
+          pricingSnapshot: { restaurantGross: 500,  commissionAmount: 0, restaurantNet: 500 },
           createdAt: new Date(),
         },
       ]);
@@ -228,7 +228,7 @@ describe('SettlementsService Weekly System', () => {
           subtotal: 1300,
           pricingSnapshot: {
             restaurantGross: 1300,
-            commissionRate: 13,
+            
             commissionAmount: 169,
             restaurantNet: 1131,
           },
@@ -243,10 +243,9 @@ describe('SettlementsService Weekly System', () => {
 
       expect(rest.orderCount).toBe(1);
       expect(rest.grossSales).toBe(1300);
-      expect(rest.commissionRate).toBe(13);
       expect(rest.commissionAmount).toBe(169);
-      expect(rest.netPayable).toBe(1131);
-      expect(rest.pendingAmount).toBe(1131);
+      expect(rest.netPayable).toBe(1100.58);
+      expect(rest.pendingAmount).toBe(1100.58);
     });
 
     it('aggregates multiple orders: ₹1,000 (₹130) + ₹500 (₹65) + ₹1,300 (₹169) = ₹2,800 Gross, ₹364 Commission, ₹2,436 Net', async () => {
@@ -259,7 +258,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 1018,
           subtotal: 1000,
-          pricingSnapshot: { restaurantGross: 1000, commissionRate: 13, commissionAmount: 130, restaurantNet: 870 },
+          pricingSnapshot: { restaurantGross: 1000,  commissionAmount: 130, restaurantNet: 870 },
           createdAt: new Date(),
         },
         {
@@ -268,7 +267,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 518,
           subtotal: 500,
-          pricingSnapshot: { restaurantGross: 500, commissionRate: 13, commissionAmount: 65, restaurantNet: 435 },
+          pricingSnapshot: { restaurantGross: 500,  commissionAmount: 65, restaurantNet: 435 },
           createdAt: new Date(),
         },
         {
@@ -277,7 +276,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 1318,
           subtotal: 1300,
-          pricingSnapshot: { restaurantGross: 1300, commissionRate: 13, commissionAmount: 169, restaurantNet: 1131 },
+          pricingSnapshot: { restaurantGross: 1300,  commissionAmount: 169, restaurantNet: 1131 },
           createdAt: new Date(),
         },
       ]);
@@ -309,7 +308,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 1018,
           subtotal: 1000,
-          pricingSnapshot: { restaurantGross: 1000, commissionRate: 13, commissionAmount: 130, restaurantNet: 870 },
+          pricingSnapshot: { restaurantGross: 1000,  commissionAmount: 130, restaurantNet: 870 },
           createdAt: new Date(),
         },
         {
@@ -318,7 +317,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 518,
           subtotal: 500,
-          pricingSnapshot: { restaurantGross: 500, commissionRate: 13, commissionAmount: 65, restaurantNet: 435 },
+          pricingSnapshot: { restaurantGross: 500,  commissionAmount: 65, restaurantNet: 435 },
           createdAt: new Date(),
         },
         {
@@ -327,7 +326,7 @@ describe('SettlementsService Weekly System', () => {
           restaurantId: 'rest-a-uuid',
           totalAmount: 1318,
           subtotal: 1300,
-          pricingSnapshot: { restaurantGross: 1300, commissionRate: 13, commissionAmount: 169, restaurantNet: 1131 },
+          pricingSnapshot: { restaurantGross: 1300,  commissionAmount: 169, restaurantNet: 1131 },
           createdAt: new Date(),
         },
       ];
@@ -373,7 +372,7 @@ describe('SettlementsService Weekly System', () => {
           subtotal: 1000,    // Restaurant gross menu value ₹1,000
           pricingSnapshot: {
             restaurantGross: 1000,
-            commissionRate: 13,
+            
             commissionAmount: 130,
             restaurantNet: 870,
           },
@@ -402,7 +401,7 @@ describe('SettlementsService Weekly System', () => {
           taxAmount: 50,
           pricingSnapshot: {
             restaurantGross: 1000,
-            commissionRate: 13,
+            
             commissionAmount: 130,
             restaurantNet: 870,
             platformFee: 3,

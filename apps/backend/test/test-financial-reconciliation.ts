@@ -377,7 +377,7 @@ async function runEndToEndFinancialReconciliation() {
 
   console.log('\n3. Restaurant Breakdown in Settlements:');
   for (const r of settlementOverview.restaurants) {
-    console.log(`  * ${r.restaurantName}: Gross ₹${r.grossSales}, Comm Rate ${r.commissionRate}%, Commission Deducted ₹${r.commissionAmount}, Net Payable ₹${r.netPayable}`);
+    console.log(`  * ${r.restaurantName}: Gross ₹${r.grossSales}, Comm Rate ${13.0}%, Commission Deducted ₹${r.commissionAmount}, Net Payable ₹${r.netPayable}`);
   }
 
   console.log('\n✓ CROSS-DASHBOARD CHECK: Admin Payments, Admin Settlements, Restaurant Payable, and Rider Earnings are 100% IDENTICAL across all services and read from the SAME underlying order snapshot.');

@@ -3,8 +3,8 @@ import { PrismaService } from '../database/prisma.service';
 
 export interface CommissionBreakdown {
   grossAmount:    number;
-  commissionRate: number;
-  platformFee:    number;
+  commission:     number;
+  gstOnCommission:number;
   restaurantNet:  number;
   driverEarning:  number;
 }
@@ -22,22 +22,21 @@ export class CommissionService {
     });
 
     const snap: any = order.pricingSnapshot || {};
+    // Gross Food Amount = subtotal
     const grossAmount = Number(snap.restaurantGross || order.subtotal || order.totalAmount);
-    const commissionRate = snap.commissionRate !== undefined && snap.commissionRate !== null
-      ? Number(snap.commissionRate)
-      : (order.restaurant.commissionRate !== null && order.restaurant.commissionRate !== undefined ? Number(order.restaurant.commissionRate) : 13.0);
-    const platformFee = Number(snap.commissionAmount !== undefined && snap.commissionAmount !== null
-      ? snap.commissionAmount
-      : Math.round(((grossAmount * commissionRate) / 100) * 100) / 100);
-    const restaurantNet = Number(snap.restaurantNet !== undefined && snap.restaurantNet !== null
-      ? snap.restaurantNet
-      : Math.max(0, Math.round((grossAmount - platformFee) * 100) / 100));
+    
+    // Strict business rules: 13% commission per order
+    const commission = Math.round(((grossAmount * 0.13)) * 100) / 100;
+    // 18% GST on Commission
+    const gstOnCommission = Math.round(((commission * 0.18)) * 100) / 100;
+    // Restaurant Net = Gross - Commission - GST
+    const restaurantNet = Math.max(0, Math.round((grossAmount - commission - gstOnCommission) * 100) / 100);
 
     return {
       grossAmount: Math.round(grossAmount * 100) / 100,
-      commissionRate,
-      platformFee: Math.round(platformFee * 100) / 100,
-      restaurantNet: Math.round(restaurantNet * 100) / 100,
+      commission,
+      gstOnCommission,
+      restaurantNet,
       driverEarning: Number(snap.riderPayout || DRIVER_FLAT_EARNING),
     };
   }
@@ -50,33 +49,31 @@ export class CommissionService {
     });
 
     let totalGross     = 0;
-    let totalPlatform  = 0;
+    let totalCommission= 0;
+    let totalGst       = 0;
     let totalNet       = 0;
 
     for (const o of orders) {
       const snap: any = o.pricingSnapshot || {};
-      const gross = Number(snap.restaurantGross || o.subtotal || o.totalAmount);
-      const rate = snap.commissionRate !== undefined && snap.commissionRate !== null
-        ? Number(snap.commissionRate)
-        : (o.restaurant.commissionRate !== null && o.restaurant.commissionRate !== undefined ? Number(o.restaurant.commissionRate) : 13.0);
-      const platform = Number(snap.commissionAmount !== undefined && snap.commissionAmount !== null
-        ? snap.commissionAmount
-        : Math.round(((gross * rate) / 100) * 100) / 100);
-      const net = Number(snap.restaurantNet !== undefined && snap.restaurantNet !== null
-        ? snap.restaurantNet
-        : Math.max(0, Math.round((gross - platform) * 100) / 100));
+      const grossAmount = Number(snap.restaurantGross || o.subtotal || o.totalAmount);
       
-      totalGross       += gross;
-      totalPlatform    += platform;
+      const commission = Math.round(((grossAmount * 0.13)) * 100) / 100;
+      const gstOnCommission = Math.round(((commission * 0.18)) * 100) / 100;
+      const net = Math.max(0, Math.round((grossAmount - commission - gstOnCommission) * 100) / 100);
+      
+      totalGross       += grossAmount;
+      totalCommission  += commission;
+      totalGst         += gstOnCommission;
       totalNet         += net;
     }
 
     return {
       restaurantId,
-      orderCount:    orders.length,
-      totalGross:    Math.round(totalGross * 100) / 100,
-      totalPlatform: Math.round(totalPlatform * 100) / 100,
-      totalNet:      Math.round(totalNet * 100) / 100,
+      orderCount:      orders.length,
+      totalGross:      Math.round(totalGross * 100) / 100,
+      totalCommission: Math.round(totalCommission * 100) / 100,
+      totalGst:        Math.round(totalGst * 100) / 100,
+      totalNet:        Math.round(totalNet * 100) / 100,
     };
   }
 }

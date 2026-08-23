@@ -31,14 +31,9 @@ const NAVIGATION = [
   { name: 'Customer Directory', href: '/customers', icon: Users },
   { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
   { name: 'Finance & Settlements', href: '/finance', icon: CreditCard },
-  { name: 'Coupons & Campaigns', href: '/coupons', icon: Tag },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
   { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
-  { name: 'Pricing & Unit Economics', href: '/pricing-config', icon: DollarSign },
-  { name: 'Privacy & Compliance', href: '/privacy', icon: ShieldCheck },
-  { name: 'System Settings', href: '/system-settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
-  { name: 'Account Settings', href: '/settings', icon: UserCog },
 ];
 
 interface AdminSidebarProps {

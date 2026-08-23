@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { MapPin, Navigation, Search, X, Check, Building, Home, Briefcase, AlertCircle, Loader2 } from 'lucide-react';
+import { useGeolocation } from "../../hooks/useGeolocation";
 import { getApiBaseUrl } from '@foodhub/config';
 import { GooglePlacesAutocomplete } from '../map/GooglePlacesAutocomplete';
 import { useAddressStore } from '../../stores/use-address-store';
@@ -40,93 +41,26 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   if (!isOpen) return null;
 
   // 1. Native Device GPS Detection & Backend Resolution
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setGpsStatus('error');
-      setErrorMessage('Geolocation is not supported by your browser');
-      return;
-    }
-
+  const { status: hookStatus, error: hookError, requestLocation } = useGeolocation();
+  const handleUseCurrentLocation = async () => {
     setGpsStatus('detecting');
     setErrorMessage('');
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          // Resolve coordinates using backend location resolver API
-          const res = await fetch(`${API_BASE}/location/resolve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ latitude, longitude }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            setGpsStatus('success');
-            onSelectLocation({
-              label: data.locality || 'Current Location',
-              address: data.formattedAddress || `${data.locality}, ${data.district}`,
-              lat: latitude,
-              lng: longitude,
-              locality: data.locality,
-              district: data.district,
-            });
-            setTimeout(onClose, 400);
-            return;
-          } else {
-            // Fallback to GET /geolocation/reverse
-            const geoRes = await fetch(`${API_BASE}/geolocation/reverse?lat=${latitude}&lng=${longitude}`);
-            if (geoRes.ok) {
-              const geoData = await geoRes.json();
-              const addr = geoData.formattedAddress || geoData.address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-              const loc = geoData.locality || addr.split(',')[0] || 'Current Location';
-              setGpsStatus('success');
-              onSelectLocation({
-                label: loc,
-                address: addr,
-                lat: latitude,
-                lng: longitude,
-                locality: loc,
-                district: geoData.district,
-              });
-              setTimeout(onClose, 400);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('Backend location resolution error:', err);
-        }
-
-        // Fallback with detected GPS coords
-        setGpsStatus('success');
-        onSelectLocation({
-          label: 'Current Location',
-          address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-          lat: latitude,
-          lng: longitude,
-        });
-        setTimeout(onClose, 400);
-      },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        if (error.code === error.PERMISSION_DENIED) {
-          setGpsStatus('denied');
-          setErrorMessage('Location permission was denied. Please select your locality or search below.');
-        } else if (error.code === error.TIMEOUT) {
-          setGpsStatus('error');
-          setErrorMessage('Location request timed out. Please try again or search below.');
-        } else {
-          setGpsStatus('error');
-          setErrorMessage('Unable to retrieve your location. Please search for your area below.');
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
+    const res = await requestLocation();
+    if (res) {
+      const { coords, address } = res;
+      setGpsStatus('success');
+      onSelectLocation({
+        label: address.locality || (address.formattedAddress ? address.formattedAddress.split(',')[0] : 'Current Location'),
+        address: address.formattedAddress || (coords.latitude.toFixed(4) + ', ' + coords.longitude.toFixed(4)),
+        lat: coords.latitude,
+        lng: coords.longitude,
+        locality: address.locality,
+        district: address.district,
+      });
+      setTimeout(onClose, 400);
+    } else {
+      setGpsStatus('error');
+    }
   };
 
   // 2. Search locality / place name via backend
@@ -201,10 +135,10 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           </button>
 
           {/* GPS Error / Denied Feedback */}
-          {errorMessage && (
+          {(errorMessage || hookError) && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
               <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
+              <span>{errorMessage || hookError}</span>
             </div>
           )}
 
