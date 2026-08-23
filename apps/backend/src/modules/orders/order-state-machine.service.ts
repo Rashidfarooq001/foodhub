@@ -53,20 +53,6 @@ export function verifyQrToken(token: string): { orderId: string; deliveryJobId: 
   }
 }
 
-function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return parseFloat((R * c).toFixed(1));
-}
-
 @Injectable()
 export class OrderStateMachineService {
   private readonly logger = new Logger(OrderStateMachineService.name);
@@ -76,9 +62,7 @@ export class OrderStateMachineService {
     private readonly gateway?: OrdersGateway,
   ) {}
 
-  private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    return calculateHaversineDistance(lat1, lon1, lat2, lon2);
-  }
+  
 
   private isValidUuid(str?: string | null): boolean {
     if (!str) return false;
@@ -162,7 +146,7 @@ export class OrderStateMachineService {
       const custLat = Number(delAddr.latitude || 34.3877);
       const custLng = Number(delAddr.longitude || 74.5228);
 
-      const distanceKm = calculateHaversineDistance(restLat, restLng, custLat, custLng);
+      const distanceKm = (delAddr?.distanceKm || 0);
 
       const pickupAddress = {
         restaurantName: order.restaurant.name,
@@ -766,7 +750,7 @@ export class OrderStateMachineService {
         const custLat = Number(delAddr?.latitude || 34.3877);
         const custLng = Number(delAddr?.longitude || 74.5228);
 
-        const distanceKm = delAddr?.distanceKm || calculateHaversineDistance(restLat, restLng, custLat, custLng);
+        const distanceKm = delAddr?.distanceKm || (delAddr?.distanceKm || 0);
 
         const rawPickupOtp = generate4DigitOtp();
         const pickupOtpHash = hashOtp(rawPickupOtp);

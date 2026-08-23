@@ -250,7 +250,7 @@ export class OrderQuoteService {
       tipAmount,
 
       distanceKm,
-      distanceType: 'HAVERSINE',
+      distanceType: 'ROAD_ROUTING',
       deliveryEligible,
       deliveryRadiusKm,
       locationSource,

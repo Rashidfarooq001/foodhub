@@ -36,38 +36,6 @@ const API_BASE = getApiBaseUrl();
 const isUUID = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 
-// Haversine Distance Helper (in Kilometers)
-function calculateHaversineDistance(
-  lat1?: number | null,
-  lon1?: number | null,
-  lat2?: number | null,
-  lon2?: number | null,
-): number | null {
-  if (
-    lat1 === undefined || lat1 === null ||
-    lon1 === undefined || lon1 === null ||
-    lat2 === undefined || lat2 === null ||
-    lon2 === undefined || lon2 === null ||
-    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2) ||
-    (lat1 === 0 && lon1 === 0) || (lat2 === 0 && lon2 === 0)
-  ) {
-    return null;
-  }
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const rawDist = R * c;
-  const rounded = Math.round(rawDist * 10) / 10;
-  return rounded < 0.1 ? 0.1 : rounded;
-}
-
 export default function CheckoutPage() {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -141,14 +109,10 @@ export default function CheckoutPage() {
   }, []);
 
   // Calculate real customer <-> restaurant distance
-  const realDistanceKm = calculateHaversineDistance(
-    selectedAddress?.latitude,
-    selectedAddress?.longitude,
-    restaurantData?.latitude,
-    restaurantData?.longitude,
-  );
+  
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
+  const realDistanceKm = orderQuote?.distanceKm ?? null;
 
   // Authoritative distance-based delivery fee: First 3 km = ₹15, After 3 km = ₹5 / extra km
   const fallbackDeliveryFee =
@@ -806,14 +770,7 @@ export default function CheckoutPage() {
                     {addresses.map((addr) => {
                       const isSelected = selectedAddressId === addr.id;
                       const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
-                      const addrDist = hasCoords
-                        ? calculateHaversineDistance(
-                            addr.latitude,
-                            addr.longitude,
-                            restaurantData?.latitude,
-                            restaurantData?.longitude,
-                          )
-                        : null;
+                      const addrDist = hasCoords ? (isSelected ? orderQuote?.distanceKm || null : null) : null;
                       const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
 
                       return (

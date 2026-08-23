@@ -59,7 +59,7 @@ async function runUnitCommissionTest() {
   const mockPrisma = new InMemoryPrismaService();
   const taxEngine = new TaxEngineService(mockPrisma as any);
   const pricingService = new PricingService(mockPrisma as any);
-  const distanceService = new DistanceService(mockPrisma as any);
+  const distanceService = new DistanceService(mockPrisma as any, null as any);
   const quoteService = new OrderQuoteService(mockPrisma as any, taxEngine, pricingService, distanceService);
 
   // 1. Setup Global PricingConfig with NULL commission (UNCONFIGURED fallback)

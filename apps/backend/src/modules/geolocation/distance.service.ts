@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { GeolocationService } from './geolocation.service';
 
 export interface Coordinates {
   latitude: number;
@@ -10,31 +11,18 @@ export interface DeliveryDistanceResult {
   valid: boolean;
   distanceKm: number;
   radiusKm: number;
-  distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+  distanceType: 'ROAD_ROUTING';
   reason?: string;
-}
-
-/** Haversine formula — returns straight-line distance in kilometres */
-export function calculateHaversineDistance(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 @Injectable()
 export class DistanceService {
   private readonly logger = new Logger(DistanceService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly geoService: GeolocationService
+  ) {}
 
   /**
    * Validates coordinate values to ensure they are valid non-zero geographic numbers.
@@ -49,6 +37,7 @@ export class DistanceService {
 
   /**
    * Authoritative Delivery Distance Calculation (Point A: Restaurant -> Point B: Verified Customer Address)
+   * Exclusively uses Google Routes / Distance Matrix (No Haversine).
    */
   async getDeliveryDistance(
     restaurantId: string,
@@ -60,7 +49,7 @@ export class DistanceService {
         valid: false,
         distanceKm: 0,
         radiusKm: 0,
-        distanceType: 'HAVERSINE',
+        distanceType: 'ROAD_ROUTING',
         reason: 'INVALID_CUSTOMER_COORDINATES',
       };
     }
@@ -74,28 +63,38 @@ export class DistanceService {
         valid: false,
         distanceKm: 0,
         radiusKm: 0,
-        distanceType: 'HAVERSINE',
+        distanceType: 'ROAD_ROUTING',
         reason: 'INVALID_RESTAURANT_COORDINATES',
       };
     }
 
-    const distanceKm = calculateHaversineDistance(
-      restaurant.latitude,
-      restaurant.longitude,
-      customerLat,
-      customerLng,
-    );
-
-    const roundedDistance = Math.round(distanceKm * 100) / 100;
     const radiusKm = Number(restaurant.deliveryRadius || 15.0);
-    const valid = roundedDistance <= radiusKm;
 
-    return {
-      valid,
-      distanceKm: roundedDistance,
-      radiusKm,
-      distanceType: 'HAVERSINE',
-      reason: valid ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
-    };
+    try {
+      const { distanceKm } = await this.geoService.calculateDistanceAndEta(
+        restaurant.latitude,
+        restaurant.longitude,
+        customerLat,
+        customerLng,
+      );
+
+      const valid = distanceKm <= radiusKm;
+
+      return {
+        valid,
+        distanceKm,
+        radiusKm,
+        distanceType: 'ROAD_ROUTING',
+        reason: valid ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        distanceKm: 999,
+        radiusKm,
+        distanceType: 'ROAD_ROUTING',
+        reason: 'ROUTE_CALCULATION_FAILED',
+      };
+    }
   }
 }

@@ -1,32 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
 import { Client, TravelMode } from '@googlemaps/google-maps-services-js';
-
-/** Haversine formula — returns straight-line distance in kilometres for preliminary filtering */
-export function haversineKm(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-): number {
-  const R    = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-export interface StructuredAddressQuery {
-  houseNumber?: string;
-  street?: string;
-  areaLocality?: string;
-  landmark?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-}
+import { PrismaService } from '../database/prisma.service';
 
 export interface DetailedGeocodeResult {
   success: boolean;
@@ -34,89 +8,71 @@ export interface DetailedGeocodeResult {
   longitude: number | null;
   displayName: string | null;
   geocodeLevel: string | null;
-  precisionLabel: 'EXACT' | 'AREA' | 'PINCODE' | 'UNKNOWN';
-  confidenceScore: number | null;
+  precisionLabel: string;
+  confidenceScore: number;
   matchedAddress: string | null;
-  matchedPostalCode?: string | null;
-  matchedCity?: string | null;
-  matchedState?: string | null;
-  matchedLocality?: string | null;
-  verificationStatus: 'UNVERIFIED' | 'VERIFYING' | 'VERIFIED' | 'FAILED';
+  verificationStatus: 'VERIFIED' | 'FAILED';
   queryTierUsed: number;
   source: string;
   reason?: string;
 }
 
-export interface NearbyRestaurant {
-  id:           string;
-  name:         string;
-  slug:         string;
-  avgRating:    number;
-  distanceKm:   number;
-  etaMinutes:   number;
-  lat:          number;
-  lng:          number;
+export interface DistanceResult {
+  distanceKm: number;
+  etaMinutes: number;
 }
 
-export interface DistanceResult {
-  distanceKm:  number;
-  etaMinutes:  number;
+export interface NearbyRestaurant {
+  id: string;
+  name: string;
+  slug: string;
+  avgRating: number;
+  distanceKm: number;
+  etaMinutes: number;
+  lat: number;
+  lng: number;
 }
 
 @Injectable()
 export class GeolocationService {
   private readonly logger = new Logger(GeolocationService.name);
-  private readonly mapsClient: Client;
+  private mapsClient: Client;
+
+  // Read backend API key which should be restricted to Geocoding + Routes APIs
+  private get GoogleKey(): string {
+    return process.env.GOOGLE_MAPS_SERVER_API_KEY || '';
+  }
 
   constructor(private readonly prisma: PrismaService) {
     this.mapsClient = new Client({});
   }
 
-  private get GoogleKey(): string {
-    return process.env.GOOGLE_MAPS_SERVER_API_KEY || '';
-  }
-
   /** Forward Geocode using Google Geocoding API */
-  async geocodeStructuredAddress(addr: StructuredAddressQuery): Promise<DetailedGeocodeResult> {
+  async geocodeAddress(addressStr: string): Promise<DetailedGeocodeResult> {
     if (!this.GoogleKey) {
-      this.logger.warn('GOOGLE_MAPS_SERVER_API_KEY is not configured');
-      return this._fallbackGeocodeFailure('Missing API Key');
+      return this._fallbackGeocodeFailure('Google Maps API key not configured');
     }
-
-    const queryParts = [
-      addr.houseNumber,
-      addr.street,
-      addr.areaLocality,
-      addr.landmark,
-      addr.city,
-      addr.state,
-      addr.postalCode,
-      'India'
-    ].filter(Boolean);
-
-    const addressString = queryParts.join(', ').replace(/,+/g, ',').trim();
 
     try {
       const response = await this.mapsClient.geocode({
         params: {
-          address: addressString,
+          address: addressStr,
           key: this.GoogleKey,
-          region: 'in',
+          region: 'in', // Bias towards India
         },
         timeout: 5000,
       });
 
       if (response.data.results && response.data.results.length > 0) {
         const result = response.data.results[0];
-        const location = result.geometry.location;
-
+        
         return {
           success: true,
-          latitude: location.lat,
-          longitude: location.lng,
+          latitude: result.geometry.location.lat,
+          longitude: result.geometry.location.lng,
           displayName: result.formatted_address,
           geocodeLevel: result.types[0] || 'unknown',
-          precisionLabel: result.geometry.location_type === 'ROOFTOP' ? 'EXACT' : 'AREA',
+          precisionLabel: result.geometry.location_type,
           confidenceScore: 1.0,
           matchedAddress: result.formatted_address,
           verificationStatus: 'VERIFIED',
@@ -129,6 +85,30 @@ export class GeolocationService {
     }
 
     return this._fallbackGeocodeFailure('Unable to geocode address via Google Maps');
+  }
+
+  async geocodeStructuredAddress(params: {
+    houseNumber?: string;
+    street?: string;
+    areaLocality?: string;
+    landmark?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  }): Promise<DetailedGeocodeResult> {
+    const parts = [
+      params.houseNumber,
+      params.street,
+      params.areaLocality,
+      params.landmark,
+      params.city,
+      params.state,
+      params.postalCode,
+      params.country || 'India',
+    ].filter(Boolean);
+    const addressStr = parts.join(', ');
+    return this.geocodeAddress(addressStr);
   }
 
   private _fallbackGeocodeFailure(reason: string): DetailedGeocodeResult {
@@ -229,56 +209,55 @@ export class GeolocationService {
   }
 
   /** 
-   * Calculate distance and ETA between two coordinates using Google Routes API / Distance Matrix API.
-   * If Google Routes fails, falls back to Haversine.
+   * Calculate exact road distance and ETA between two coordinates using Google Routes API / Distance Matrix API.
+   * STRICT ENFORCEMENT: No Haversine fallback. 
    */
   async calculateDistanceAndEta(
     fromLat: number, fromLng: number,
     toLat:   number, toLng:   number,
   ): Promise<DistanceResult> {
-    if (this.GoogleKey) {
-      try {
-        const response = await this.mapsClient.distancematrix({
-          params: {
-            origins: [[fromLat, fromLng]],
-            destinations: [[toLat, toLng]],
-            key: this.GoogleKey,
-            mode: TravelMode.driving,
-          },
-          timeout: 3000,
-        });
-
-        const element = response.data.rows[0]?.elements[0];
-        if (element && element.status === 'OK') {
-          return {
-            distanceKm: Math.round((element.distance.value / 1000) * 100) / 100, // meters to km
-            etaMinutes: Math.ceil(element.duration.value / 60), // seconds to minutes
-          };
-        }
-      } catch (err: any) {
-        this.logger.error(`Google DistanceMatrix Error: ${err.message}`);
-      }
+    if (!this.GoogleKey) {
+      throw new Error('Google Maps API key is not configured. Cannot calculate accurate road distance.');
     }
 
-    // Fallback to Haversine
-    const distanceKm = haversineKm(fromLat, fromLng, toLat, toLng);
-    const etaMinutes = Math.ceil((distanceKm / 20) * 60); // Assuming 20 km/h average
-    return { distanceKm: Math.round(distanceKm * 100) / 100, etaMinutes };
+    try {
+      const response = await this.mapsClient.distancematrix({
+        params: {
+          origins: [[fromLat, fromLng]],
+          destinations: [[toLat, toLng]],
+          key: this.GoogleKey,
+          mode: TravelMode.driving,
+        },
+        timeout: 5000,
+      });
+
+      const element = response.data.rows[0]?.elements[0];
+      if (element && element.status === 'OK') {
+        return {
+          distanceKm: Math.round((element.distance.value / 1000) * 100) / 100, // meters to km
+          etaMinutes: Math.ceil(element.duration.value / 60), // seconds to minutes
+        };
+      } else {
+        throw new Error(`Google Distance Matrix API returned element status: ${element?.status}`);
+      }
+    } catch (err: any) {
+      this.logger.error(`Google DistanceMatrix Error: ${err.message}`);
+      throw new Error('Failed to calculate road distance via Google Maps');
+    }
   }
 
   /** 
-   * Two-stage discovery:
-   * 1. Haversine filtering (fast, cheap) to find restaurants within radius.
-   * 2. (Optional) Route Matrix for actual road distances.
+   * Restaurant discovery:
+   * 1. DB-level geographic bounding box (NOT haversine).
+   * 2. Google Distance Matrix batch call for true road distances.
    */
   async getNearbyRestaurants(
     lat:      number,
     lng:      number,
     radiusKm: number = 5,
   ): Promise<NearbyRestaurant[]> {
-    const delta = radiusKm / 111;
-
-    // Stage 1: Preliminary geographic filtering
+    // 0.1 degree is roughly ~11km. This is just a bounding box to avoid loading the entire database.
+    const delta = 0.2; 
     const candidates = await this.prisma.restaurant.findMany({
       where: {
         status:   'APPROVED',
@@ -287,45 +266,101 @@ export class GeolocationService {
         longitude: { gte: lng - delta, lte: lng + delta },
         deletedAt: null,
       },
-      take: 20, // Limit candidates
+      take: 25, // Limit to 25 to respect Distance Matrix standard maximum destinations
     });
 
-    const nearby: NearbyRestaurant[] = [];
+    if (candidates.length === 0) return [];
+    if (!this.GoogleKey) return [];
 
-    for (const rest of candidates) {
-      const hDist = haversineKm(lat, lng, rest.latitude, rest.longitude);
-      if (hDist <= radiusKm) {
-        nearby.push({
-          id: rest.id,
-          name: rest.name,
-          slug: rest.slug,
-          avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
-          distanceKm: Math.round(hDist * 100) / 100,
-          etaMinutes: Math.ceil((hDist / 20) * 60) + 10, // 10 min prep time avg
-          lat: rest.latitude,
-          lng: rest.longitude,
-        });
-      }
+    const nearby: NearbyRestaurant[] = [];
+    const origins = [[lat, lng]] as [number, number][];
+    const destinations = candidates.map(c => [c.latitude, c.longitude] as [number, number]);
+
+    try {
+      const response = await this.mapsClient.distancematrix({
+        params: {
+          origins,
+          destinations,
+          key: this.GoogleKey,
+          mode: TravelMode.driving,
+        },
+      });
+
+      const elements = response.data.rows[0]?.elements || [];
+
+      candidates.forEach((rest, index) => {
+        const element = elements[index];
+        if (element && element.status === 'OK') {
+          const distanceKm = Math.round((element.distance.value / 1000) * 100) / 100;
+          if (distanceKm <= radiusKm) {
+            nearby.push({
+              id: rest.id,
+              name: rest.name,
+              slug: rest.slug,
+              avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
+              distanceKm,
+              etaMinutes: Math.ceil(element.duration.value / 60) + 10, // 10 min prep time avg
+              lat: rest.latitude,
+              lng: rest.longitude,
+            });
+          }
+        }
+      });
+    } catch (err: any) {
+      this.logger.error(`Batch Google DistanceMatrix Error: ${err.message}`);
     }
 
     return nearby.sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
-  /** Find available drivers (Internal - uses simple Haversine) */
+  /** Find available drivers using true road distance */
   async getNearbyDrivers(
     lat: number,
     lng: number,
   ): Promise<any[]> {
+    const delta = 0.2;
     const drivers = await this.prisma.driver.findMany({
       where: {
         status: 'ONLINE',
+        currentLat: { gte: lat - delta, lte: lat + delta },
+        currentLng: { gte: lng - delta, lte: lng + delta },
       },
+      take: 25,
     });
 
-    return drivers.map(d => ({
-      ...d,
-      distanceKm: haversineKm(lat, lng, d.currentLat || 0, d.currentLng || 0),
-    })).filter(d => d.distanceKm <= 10).sort((a, b) => a.distanceKm - b.distanceKm);
+    if (drivers.length === 0 || !this.GoogleKey) return [];
+
+    const origins = drivers.map(d => [d.currentLat!, d.currentLng!] as [number, number]);
+    const destinations = [[lat, lng]] as [number, number][];
+
+    const nearbyDrivers: any[] = [];
+    try {
+      const response = await this.mapsClient.distancematrix({
+        params: {
+          origins,
+          destinations,
+          key: this.GoogleKey,
+          mode: TravelMode.driving,
+        },
+      });
+
+      drivers.forEach((driver, index) => {
+        const element = response.data.rows[index]?.elements[0];
+        if (element && element.status === 'OK') {
+          const distanceKm = Math.round((element.distance.value / 1000) * 100) / 100;
+          if (distanceKm <= 10) {
+            nearbyDrivers.push({
+              ...driver,
+              distanceKm,
+            });
+          }
+        }
+      });
+    } catch (err: any) {
+      this.logger.error(`Driver Batch Google DistanceMatrix Error: ${err.message}`);
+    }
+
+    return nearbyDrivers.sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
   /** Validate delivery radius using actual Google Maps Routes/Distance */
@@ -342,29 +377,28 @@ export class GeolocationService {
       throw new NotFoundException(`Restaurant with ID "${restaurantId}" not found`);
     }
 
-    // Two-stage filtering: Haversine first for quick rejection
-    const hDist = haversineKm(restaurant.latitude, restaurant.longitude, deliveryLat, deliveryLng);
-    if (hDist > restaurant.deliveryRadius * 1.5) { // Reject definitely outside
+    // STRICT: Call Google Routes/Distance API for actual road distance (NO HAVERSINE)
+    try {
+      const roadRoute = await this.calculateDistanceAndEta(
+        restaurant.latitude, restaurant.longitude,
+        deliveryLat, deliveryLng,
+      );
+
+      const valid = roadRoute.distanceKm <= restaurant.deliveryRadius;
+
+      return {
+        valid,
+        distanceKm: roadRoute.distanceKm,
+        radiusKm: restaurant.deliveryRadius,
+      };
+    } catch (error) {
+      // If we cannot verify road distance, delivery is unavailable
       return {
         valid: false,
-        distanceKm: Math.round(hDist * 100) / 100,
+        distanceKm: 999,
         radiusKm: restaurant.deliveryRadius,
       };
     }
-
-    // Call Google Routes/Distance API for actual road distance
-    const roadRoute = await this.calculateDistanceAndEta(
-      restaurant.latitude, restaurant.longitude,
-      deliveryLat, deliveryLng,
-    );
-
-    const valid = roadRoute.distanceKm <= restaurant.deliveryRadius;
-
-    return {
-      valid,
-      distanceKm: roadRoute.distanceKm,
-      radiusKm: restaurant.deliveryRadius,
-    };
   }
 
   // Deprecated/Stubbed methods for frontend migration

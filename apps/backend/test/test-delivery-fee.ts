@@ -56,7 +56,7 @@ async function runDistanceDeliveryFeeTests() {
   const prisma = new MockDistancePrisma();
   const taxEngine = new TaxEngineService(prisma as any);
   const pricingService = new PricingService(prisma as any);
-  const distanceService = new DistanceService(prisma as any);
+  const distanceService = new DistanceService(prisma as any, null as any);
   const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
 
   // Setup Standard PostgreSQL Pricing Configuration

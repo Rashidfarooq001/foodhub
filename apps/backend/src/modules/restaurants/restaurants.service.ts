@@ -321,20 +321,7 @@ export class RestaurantsService {
     return serializePrisma(restaurants.map((restaurant) => {
       let distanceKm: number | null = null;
       if (userLat !== undefined && userLng !== undefined && restaurant.latitude && restaurant.longitude) {
-        const rLat = Number(restaurant.latitude);
-        const rLng = Number(restaurant.longitude);
-        const R = 6371; // Earth's radius in km
-        const dLat = ((rLat - userLat) * Math.PI) / 180;
-        const dLng = ((rLng - userLng) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((userLat * Math.PI) / 180) *
-            Math.cos((rLat * Math.PI) / 180) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        distanceKm = Math.round(R * c * 10) / 10;
-      }
+        }
 
       return {
         ...restaurant,

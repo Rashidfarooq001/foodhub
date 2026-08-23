@@ -82,7 +82,7 @@ export class OrdersService {
     await this.validation.validateRestaurantOpen(dto.restaurantId);
 
     // 1.1 Validate delivery radius (server-side security check)
-    await this.validation.validateDeliveryRadius(dto.restaurantId, dto.deliveryAddress);
+    const calculatedDistanceKm = await this.validation.validateDeliveryRadius(dto.restaurantId, dto.deliveryAddress);
 
     // 2. Validate items & inventory
     await this.validation.validateItemsAvailable(dto.items, dto.restaurantId);
@@ -229,7 +229,7 @@ export class OrdersService {
     const restLng = restaurant ? Number(restaurant.longitude) : 74.5221;
 
     // Calculate real Haversine distance in km server-side
-    let calculatedDistanceKm = 0.1;
+    
     if (latitudeNum && longitudeNum && restLat && restLng) {
       const R = 6371;
       const dLat = ((latitudeNum - restLat) * Math.PI) / 180;
@@ -242,7 +242,7 @@ export class OrdersService {
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const dist = Math.round(R * c * 10) / 10;
-      calculatedDistanceKm = dist < 0.1 ? 0.1 : dist;
+      
     }
 
     this.logger.log({

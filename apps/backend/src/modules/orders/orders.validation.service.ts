@@ -4,11 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { DistanceService } from '../geolocation/distance.service';
 import { OrderStatus, PaymentMethod } from '@prisma/client';
 
 @Injectable()
 export class OrdersValidationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly distanceService: DistanceService,
+  ) {}
 
   async validateRestaurantOpen(restaurantId: string): Promise<void> {
     if (!restaurantId || typeof restaurantId !== 'string' || !restaurantId.trim()) {
@@ -55,20 +59,10 @@ export class OrdersValidationService {
       return 0;
     }
 
-    // Haversine distance in km
-    const R = 6371;
-    const dLat = ((custLat - restLat) * Math.PI) / 180;
-    const dLon = ((custLng - restLng) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((restLat * Math.PI) / 180) *
-        Math.cos((custLat * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distanceKm = Math.round(R * c * 100) / 100;
+    const distResult = await this.distanceService.getDeliveryDistance(restaurantId, custLat, custLng);
+    const distanceKm = distResult.distanceKm;
 
-    if (distanceKm > radiusKm) {
+    if (!distResult.valid) {
       throw new BadRequestException(
         `Your selected delivery location (${distanceKm} km away) is outside this restaurant's delivery area of ${radiusKm} km.`,
       );

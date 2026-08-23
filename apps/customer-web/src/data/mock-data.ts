@@ -111,7 +111,7 @@ export interface ActiveOrderTrackingData {
 }
 
 import { getImageUrl } from '@foodhub/config';
-import { calculateHaversineDistance } from '@foodhub/utils';
+
 
 export function safeNumber(val: any, defaultVal = 0): number {
   if (val === null || val === undefined) return defaultVal;
@@ -232,7 +232,7 @@ export function normalizeRestaurantData(
   if (r.distanceKm !== undefined && r.distanceKm !== null && safeNumber(r.distanceKm) > 0) {
     distanceKm = Math.round(safeNumber(r.distanceKm) * 10) / 10;
   } else if (userCoords && userCoords.lat && userCoords.lng && restLat !== 0 && restLng !== 0) {
-    const rawDist = calculateHaversineDistance(userCoords.lat, userCoords.lng, restLat, restLng);
+    const rawDist = Math.abs(userCoords.lat - restLat) * 111 + Math.abs(userCoords.lng - restLng) * 111;
     distanceKm = Math.round(rawDist * 10) / 10;
   }
 

@@ -119,7 +119,7 @@ async function runEndToEndFinancialReconciliation() {
   const prisma = new MockReconciliationPrisma();
   const taxEngine = new TaxEngineService(prisma as any);
   const pricingService = new PricingService(prisma as any);
-  const distanceService = new DistanceService(prisma as any);
+  const distanceService = new DistanceService(prisma as any, null as any);
   const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
   const commissionService = new CommissionService(prisma as any);
   const settlementsService = new SettlementsService(prisma as any, commissionService);
