@@ -29,6 +29,7 @@ import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
 import { fetchPricingConfig, forwardGeocodeAddress, forwardGeocodeStructuredAddress, searchPlacesByName, PlaceSearchResultItem, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
 import { AddressPickerMap } from '../../components/map/AddressPickerMap';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { GooglePlacesAutocomplete } from '../../components/map/GooglePlacesAutocomplete';
 
 const API_BASE = getApiBaseUrl();
@@ -168,7 +169,7 @@ export default function CheckoutPage() {
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
-  const [isLocatingUser, setIsLocatingUser] = useState(false);
+  
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const [placeSearchInput, setPlaceSearchInput] = useState('');
@@ -177,82 +178,41 @@ export default function CheckoutPage() {
   const [placeSearchError, setPlaceSearchError] = useState<string | null>(null);
 
   // MODE 1 — Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser device.');
-      return;
-    }
+  const { status: gpsStatus, error: gpsError, requestLocation } = useGeolocation();
+  const isLocatingUser = gpsStatus === 'requesting';
 
-    setIsLocatingUser(true);
+  const handleUseCurrentLocation = async () => {
     setLocationError(null);
+    const res = await requestLocation();
+    
+    if (res) {
+      const { coords, address } = res;
+      
+      const reverseArea = address.formattedAddress || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+      const addressParts = reverseArea.split(',').map(s => s.trim());
+      const detectedPlace = address.locality || addressParts[0] || 'Detected Location';
+      const detectedCity = address.district || (addressParts.length > 2 ? addressParts[addressParts.length - 2] : '');
+      const detectedState = address.state || (addressParts.length > 1 ? addressParts[addressParts.length - 1] : '');
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const accuracy = pos.coords.accuracy;
+      const gpsAddr = {
+        id: 'current-location',
+        label: 'Current Location',
+        placeName: detectedPlace,
+        addressLine1: reverseArea,
+        city: detectedCity,
+        state: detectedState,
+        postalCode: address.country || '',
+        latitude: coords.latitude,
+        longitude: coords.longitude, isDefault: false,
+      };
 
-        if (accuracy > 500) {
-          setLocationError('Location accuracy is low. Please move to an open area and try again.');
-          setIsLocatingUser(false);
-          return;
-        }
-
-        let reverseArea = 'Location detected, Jammu & Kashmir';
-
-        try {
-          const geoRes = await fetch(
-            `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
-          );
-          if (geoRes.ok) {
-            const geoData = await geoRes.json();
-            if (geoData.locality && geoData.district) {
-              reverseArea = `${geoData.locality}, ${geoData.district}, ${geoData.state}`;
-            } else if (geoData.formattedAddress) {
-              reverseArea = geoData.formattedAddress;
-            } else if (geoData.address || geoData.displayName) {
-              reverseArea = geoData.address || geoData.displayName;
-            }
-          }
-        } catch {
-          /* reverse geocode fallback */
-        }
-
-        const addressParts = reverseArea.split(',').map((s) => s.trim());
-        const detectedPlace = addressParts[0] || 'Detected Location';
-        const detectedCity = addressParts.length > 2 ? addressParts[addressParts.length - 2] : '';
-        const detectedState = addressParts.length > 1 ? addressParts[addressParts.length - 1] : '';
-
-        const gpsAddr: CustomerAddressItem = {
-          id: 'current-location',
-          label: 'Current Location',
-          placeName: detectedPlace,
-          addressLine1: reverseArea,
-          city: detectedCity,
-          state: detectedState,
-          postalCode: '',
-          latitude: lat,
-          longitude: lng,
-          locationSource: 'CURRENT_GPS',
-          verificationStatus: 'VERIFIED',
-          accuracyMeters: accuracy,
-          isDefault: true,
-        };
-
-        addAddress(gpsAddr);
-        setSelectedAddress(gpsAddr.id);
-        setIsLocatingUser(false);
-      },
-      (err) => {
-        setIsLocatingUser(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocationError('Location permission denied. Please allow location access or search by place name.');
-        } else {
-          setLocationError('Unable to acquire current location. Please try again or search by place name.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
+      
+      addAddress(gpsAddr);
+      setSelectedAddress('current-location');
+      setShowCustomAddressModal(false);
+    } else {
+      setLocationError(gpsError || 'Unable to retrieve location.');
+    }
   };
 
   // MODE 2 — Place-Name Location Search Handler

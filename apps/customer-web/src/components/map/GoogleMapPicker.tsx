@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 import { Loader2 } from 'lucide-react';
 
@@ -31,6 +31,16 @@ export const GoogleMapPicker: React.FC<Props> = ({
   });
 
   const mapRef = useRef<google.maps.Map | null>(null);
+
+
+  useEffect(() => {
+    if (initialLat !== undefined && initialLng !== undefined) {
+      setMarkerPos({ lat: initialLat, lng: initialLng });
+      if (mapRef.current) {
+        mapRef.current.panTo({ lat: initialLat, lng: initialLng });
+      }
+    }
+  }, [initialLat, initialLng]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

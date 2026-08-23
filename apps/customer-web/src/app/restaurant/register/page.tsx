@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { UtensilsCrossed, Store, MapPin, CreditCard, CheckCircle2, ArrowRight, FileText, Image as ImageIcon, Navigation } from 'lucide-react';
 import { MediaUploader } from '../../../components/common/MediaUploader';
+import { useGeolocation } from '../../../hooks/useGeolocation';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -68,54 +69,33 @@ export default function RestaurantRegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [isLocatingOwner, setIsLocatingOwner] = useState(false);
+  
   const [locationStatusMsg, setLocationStatusMsg] = useState<string | null>(null);
 
-  const handleGetOwnerLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationStatusMsg('Geolocation is not supported by your browser device. Please enter address manually.');
-      return;
-    }
+  const { status: gpsStatus, error: gpsError, requestLocation } = useGeolocation();
+  const isLocatingOwner = gpsStatus === 'requesting';
 
-    setIsLocatingOwner(true);
+  const handleGetOwnerLocation = async () => {
     setLocationStatusMsg('Acquiring real-time GPS coordinates...');
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-
-        setForm((prev) => ({
-          ...prev,
-          latitude: lat,
-          longitude: lng,
-        }));
-
-        try {
-          const geoRes = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
-          if (geoRes.ok) {
-            const geoData = await geoRes.json();
-            const addrText = typeof geoData === 'string' ? geoData : (geoData.address || geoData.displayName || '');
-            if (addrText) {
-              setForm((prev) => ({
-                ...prev,
-                address: addrText,
-              }));
-            }
-          }
-        } catch {
-          /* geocode fallback */
-        }
-
-        setIsLocatingOwner(false);
-        setLocationStatusMsg(`GPS Location captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      },
-      (err) => {
-        setIsLocatingOwner(false);
-        setLocationStatusMsg('Location permission denied or unavailable. Please enable location or enter address manually.');
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    const res = await requestLocation();
+    
+    if (res) {
+      const { coords, address } = res;
+      setForm((prev) => ({
+        ...prev,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      }));
+      
+      const addrText = address.formattedAddress || address.address || address.displayName || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+      if (addrText && !form.address) {
+        setForm((prev) => ({ ...prev, address: addrText }));
+      }
+      
+      setLocationStatusMsg(`GPS captured successfully: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`);
+    } else {
+      setLocationStatusMsg(gpsError || 'Failed to detect location.');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
