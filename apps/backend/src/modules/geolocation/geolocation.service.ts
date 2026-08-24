@@ -38,11 +38,76 @@ export class GeolocationService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private cachedOAuthToken: string | null = null;
+  private oauthTokenExpiry: number = 0;
+
+  private async getValidToken(): Promise<string> {
+    const clientId = (process.env.MAPPLS_CLIENT_ID || '').trim();
+    const clientSecret = (process.env.MAPPLS_CLIENT_SECRET || '').trim();
+
+    // 1. If OAuth client credentials exist, generate/use cached Bearer access token
+    if (clientId && clientSecret) {
+      if (this.cachedOAuthToken && this.oauthTokenExpiry > Date.now() + 60000) {
+        return this.cachedOAuthToken;
+      }
+      try {
+        const oauthUrls = [
+          'https://outpost.mappls.com/api/security/oauth/token',
+          'https://outpost.mapmyindia.com/api/security/oauth/token',
+        ];
+        const params = new URLSearchParams();
+        params.append('grant_type', 'client_credentials');
+        params.append('client_id', clientId);
+        params.append('client_secret', clientSecret);
+
+        for (const oauthUrl of oauthUrls) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+          try {
+            const res = await fetch(oauthUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString(),
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.access_token) {
+                this.cachedOAuthToken = data.access_token;
+                this.oauthTokenExpiry = Date.now() + ((data.expires_in || 86400) * 1000);
+                this.logger.log(`Successfully obtained Mappls OAuth2 access token (expires in ${data.expires_in || 86400}s)`);
+                return data.access_token;
+              }
+            }
+          } catch (e: any) {
+            clearTimeout(timeout);
+          }
+        }
+      } catch (err: any) {
+        this.logger.error(`Failed to fetch Mappls OAuth token: ${err.message}`);
+      }
+    }
+
+    // 2. Otherwise return Static Key from environment
+    return (
+      process.env.MAPPLS_ACCESS_TOKEN ||
+      process.env.MAPPLS_API_KEY ||
+      process.env.MAPPLS_REST_KEY ||
+      process.env.MAPPLS_STATIC_KEY ||
+      process.env.MAPPLS_TOKEN ||
+      process.env.MAPPLS_KEY ||
+      process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
+      'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+    ).trim();
+  }
+
   private get MapplsToken(): string {
     return (
       process.env.MAPPLS_ACCESS_TOKEN ||
       process.env.MAPPLS_API_KEY ||
       process.env.MAPPLS_REST_KEY ||
+      process.env.MAPPLS_STATIC_KEY ||
       process.env.MAPPLS_TOKEN ||
       process.env.MAPPLS_KEY ||
       process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
@@ -87,16 +152,20 @@ export class GeolocationService {
       formattedAddress: 'Location detected',
     };
 
-    if (!this.MapplsToken) {
+    const token = await this.getValidToken();
+    if (!token) {
       this.logger.error('MAPPLS_ACCESS_TOKEN is not configured');
       return { ...fallback, formattedAddress: 'Location service not configured' };
     }
 
     try {
-      const url = `https://search.mappls.com/search/address/rev-geocode?lat=${lat}&lng=${lng}&access_token=${this.MapplsToken}`;
+      const url = `https://search.mappls.com/search/address/rev-geocode?lat=${lat}&lng=${lng}&access_token=${token}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
       clearTimeout(timeout);
 
       if (!response.ok) {
@@ -163,10 +232,11 @@ export class GeolocationService {
   // 2. FORWARD GEOCODING
   async geocodeAddress(addressStr: string): Promise<DetailedGeocodeResult> {
     if (!addressStr?.trim()) return this._fallbackGeocodeFailure('Address query is empty');
-    if (!this.MapplsToken) return this._fallbackGeocodeFailure('MAPPLS_ACCESS_TOKEN not configured');
+    const token = await this.getValidToken();
+    if (!token) return this._fallbackGeocodeFailure('MAPPLS_ACCESS_TOKEN not configured');
 
     try {
-      const url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(addressStr.trim())}&region=IND&access_token=${this.MapplsToken}`;
+      const url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(addressStr.trim())}&region=IND&access_token=${token}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
       const response = await fetch(url, { signal: controller.signal });
@@ -231,10 +301,12 @@ export class GeolocationService {
   }
 
   async searchPlaces(query: string, nearLat?: number, nearLng?: number): Promise<any[]> {
-    if (!query?.trim() || !this.MapplsToken) return [];
+    if (!query?.trim()) return [];
+    const token = await this.getValidToken();
+    if (!token) return [];
 
     try {
-      let url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(query.trim())}&region=IND&tokenizeAddress=true&access_token=${this.MapplsToken}`;
+      let url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(query.trim())}&region=IND&tokenizeAddress=true&access_token=${token}`;
       if (nearLat && nearLng) url += `&location=${nearLat},${nearLng}`;
 
       const controller = new AbortController();
@@ -266,7 +338,8 @@ export class GeolocationService {
     fromLat: number, fromLng: number,
     toLat:   number, toLng:   number,
   ): Promise<DistanceResult> {
-    if (!this.MapplsToken) {
+    const token = await this.getValidToken();
+    if (!token) {
       throw new Error('MAPPLS_ACCESS_TOKEN not configured. Cannot calculate road distance.');
     }
     if (!this.isValidCoordinates(fromLat, fromLng) || !this.isValidCoordinates(toLat, toLng)) {
@@ -275,8 +348,9 @@ export class GeolocationService {
 
     // Mappls route_adv uses longitude,latitude order
     const urls = [
-      `https://apis.mappls.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
-      `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+      `https://apis.mappls.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+      `https://apis.mapmyindia.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+      `https://apis.mappls.com/advancedmaps/v1/${token}/distance_matrix/driving/${fromLng},${fromLat};${toLng},${toLat}`,
     ];
 
     let lastError: Error | null = null;
@@ -284,7 +358,10 @@ export class GeolocationService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
       try {
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
 
         if (!response.ok) {
@@ -293,8 +370,18 @@ export class GeolocationService {
         }
 
         const data = await response.json();
-        const route = data?.routes?.[0];
-        if (!route) throw new Error('Mappls Routing returned no routes — location may be unserviceable');
+        const route = data?.routes?.[0] || data?.results?.routes?.[0];
+        if (!route) {
+          // Check if distance matrix format
+          const distVal = data?.results?.distances?.[0]?.[1] ?? data?.durations?.[0]?.[1];
+          if (distVal !== undefined && distVal !== null) {
+            return {
+              distanceKm: Math.round((distVal / 1000) * 100) / 100,
+              etaMinutes: Math.ceil((distVal / 1000 / 30) * 60), // estimated 30km/h
+            };
+          }
+          throw new Error('Mappls Routing returned no routes — location may be unserviceable');
+        }
 
         return {
           distanceKm:  Math.round((route.distance / 1000) * 100) / 100,
