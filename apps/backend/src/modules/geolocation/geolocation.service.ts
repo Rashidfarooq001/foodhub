@@ -42,6 +42,9 @@ export class GeolocationService {
     return (
       process.env.MAPPLS_ACCESS_TOKEN ||
       process.env.MAPPLS_API_KEY ||
+      process.env.MAPPLS_REST_KEY ||
+      process.env.MAPPLS_TOKEN ||
+      process.env.MAPPLS_KEY ||
       process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
       'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
     ).trim();
@@ -271,32 +274,40 @@ export class GeolocationService {
     }
 
     // Mappls route_adv uses longitude,latitude order
-    const url = `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`;
+    const urls = [
+      `https://apis.mappls.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+      `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+    ];
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
+    let lastError: Error | null = null;
+    for (const url of urls) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
 
-      if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const route = data?.routes?.[0];
+        if (!route) throw new Error('Mappls Routing returned no routes — location may be unserviceable');
+
+        return {
+          distanceKm:  Math.round((route.distance / 1000) * 100) / 100,
+          etaMinutes:  Math.ceil(route.duration / 60),
+        };
+      } catch (err: any) {
+        clearTimeout(timeout);
+        lastError = err;
       }
-
-      const data = await response.json();
-      const route = data?.routes?.[0];
-      if (!route) throw new Error('Mappls Routing returned no routes — location may be unserviceable');
-
-      return {
-        distanceKm:  Math.round((route.distance / 1000) * 100) / 100,
-        etaMinutes:  Math.ceil(route.duration / 60),
-      };
-    } catch (err: any) {
-      clearTimeout(timeout);
-      this.logger.error(`Mappls Routing error: ${err.message}`);
-      throw err;
     }
+
+    this.logger.error(`Mappls Routing failed across all endpoints: ${lastError?.message}`);
+    throw lastError || new Error('Mappls Routing failed');
   }
 
   // 5. DISTANCE MATRIX — Mappls batch
