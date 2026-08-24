@@ -50,13 +50,37 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     if (res) {
       const { coords, address } = res;
       setGpsStatus('success');
+      const locality = address.locality || address.village || address.subLocality || 'Current Location';
+      const district = address.district || address.city || '';
+      const state = address.state || 'Jammu & Kashmir';
+      const pincode = address.pincode || address.postalCode || '';
+
+      const cleanAddress = address.formattedAddress || [locality, district, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '');
+
+      const gpsAddr = {
+        id: 'current-location',
+        label: 'Current Location',
+        placeName: locality,
+        addressLine1: locality,
+        city: district,
+        state: state,
+        postalCode: pincode,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        locationSource: 'CURRENT_GPS' as const,
+        verificationStatus: 'VERIFIED' as const,
+        isDefault: false,
+      };
+      useAddressStore.getState().addAddress(gpsAddr);
+      setSelectedAddress('current-location');
+
       onSelectLocation({
-        label: address.locality || (address.formattedAddress ? address.formattedAddress.split(',')[0] : 'Current Location'),
-        address: address.formattedAddress || (coords.latitude.toFixed(4) + ', ' + coords.longitude.toFixed(4)),
+        label: locality,
+        address: cleanAddress,
         lat: coords.latitude,
         lng: coords.longitude,
-        locality: address.locality,
-        district: address.district,
+        locality,
+        district,
       });
       setTimeout(onClose, 400);
     } else {

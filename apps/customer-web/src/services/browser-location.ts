@@ -11,11 +11,22 @@ export interface GeoLocationResult {
 export interface ReverseGeocodeResult {
   formattedAddress?: string;
   locality?: string;
+  village?: string;
+  subLocality?: string;
+  subDistrict?: string;
   district?: string;
+  city?: string;
   state?: string;
   country?: string;
+  pincode?: string;
+  postalCode?: string;
+  mapplsPin?: string;
+  street?: string;
+  houseNumber?: string;
   address?: string;
   displayName?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export class BrowserLocationService {

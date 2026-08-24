@@ -27,7 +27,10 @@ export interface OrderQuoteResult {
   discountAmount: number;
   tipAmount: number;
 
-  distanceKm: number;
+  distanceKm: number | null;
+  etaMinutes: number | null;
+  routeAvailable: boolean;
+  serviceable: boolean;
   distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
@@ -60,7 +63,7 @@ export interface OrderQuoteResult {
   platformContributionMargin: number;
 
   // Authoritative Distance-Based Delivery Snapshot
-  deliveryDistanceKm: number;
+  deliveryDistanceKm: number | null;
   deliveryFeeBaseKm: number;
   deliveryFeeBaseAmount: number;
   deliveryFeePerExtraKm: number;
@@ -89,7 +92,10 @@ export class OrderQuoteService {
     const restaurantState = req.restaurantState || 'J&K';
 
     // 1. Authoritative Distance & Radius Check via DistanceService
-    let distanceKm = Math.max(0, req.distanceKm || 0);
+    let distanceKm: number | null = req.distanceKm !== undefined && req.distanceKm !== null && req.distanceKm >= 0 ? req.distanceKm : null;
+    let etaMinutes: number | null = null;
+    let routeAvailable = true;
+    let serviceable = true;
     let deliveryEligible = true;
     let deliveryRadiusKm = 15.0;
     const locationSource = req.locationSource || 'MANUAL_GEOCODED';
@@ -108,11 +114,12 @@ export class OrderQuoteService {
         req.latitude,
         req.longitude,
       );
-      if (distRes.valid || distRes.distanceKm > 0 || distRes.distanceKm === -1) {
-        distanceKm = distRes.distanceKm;
-        deliveryEligible = distRes.valid;
-        deliveryRadiusKm = distRes.radiusKm;
-      }
+      distanceKm = distRes.distanceKm;
+      etaMinutes = distRes.etaMinutes;
+      routeAvailable = distRes.routeAvailable;
+      serviceable = distRes.serviceable;
+      deliveryEligible = distRes.valid;
+      deliveryRadiusKm = distRes.radiusKm;
     }
 
     // 2. Authoritative Distance-Based Customer Delivery Fee Rule:
@@ -124,13 +131,14 @@ export class OrderQuoteService {
     const deliveryFeePerExtraKm = 5.0;
 
     let customerDeliveryFee = deliveryFeeBaseAmount;
-    if (distanceKm > deliveryFeeBaseKm) {
+    if (distanceKm !== null && distanceKm > deliveryFeeBaseKm) {
       const extraKm = distanceKm - deliveryFeeBaseKm;
       customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
     }
 
-    if (!deliveryEligible || distanceKm > deliveryRadiusKm) {
+    if (!deliveryEligible || distanceKm === null || distanceKm > deliveryRadiusKm) {
       deliveryEligible = false;
+      serviceable = false;
     }
 
     // 3. Platform Fee (Fixed ₹3.00) & Small Order Fee (Disabled: ₹0.00)
@@ -250,6 +258,9 @@ export class OrderQuoteService {
       tipAmount,
 
       distanceKm,
+      etaMinutes,
+      routeAvailable,
+      serviceable,
       distanceType: 'MAPPLS_ROAD_ROUTING',
       deliveryEligible,
       deliveryRadiusKm,

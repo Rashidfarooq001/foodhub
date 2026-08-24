@@ -8,7 +8,10 @@ export class CustomerOrderQuoteDto {
   discountAmount: number;
   tipAmount: number;
 
-  distanceKm: number;
+  distanceKm: number | null;
+  etaMinutes: number | null;
+  routeAvailable: boolean;
+  serviceable: boolean;
   distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
@@ -23,7 +26,7 @@ export class CustomerOrderQuoteDto {
   }>;
   quoteTimestamp: string;
 
-  deliveryDistanceKm: number;
+  deliveryDistanceKm: number | null;
   deliveryFeeBaseKm: number;
   deliveryFeeBaseAmount: number;
   deliveryFeePerExtraKm: number;
@@ -44,6 +47,9 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     tipAmount: fullQuote.tipAmount,
 
     distanceKm: fullQuote.distanceKm,
+    etaMinutes: fullQuote.etaMinutes,
+    routeAvailable: fullQuote.routeAvailable,
+    serviceable: fullQuote.serviceable,
     distanceType: fullQuote.distanceType,
     deliveryEligible: fullQuote.deliveryEligible,
     deliveryRadiusKm: fullQuote.deliveryRadiusKm,

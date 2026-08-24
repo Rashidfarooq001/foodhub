@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -196,25 +196,26 @@ export default function CheckoutPage() {
     if (res) {
       const { coords, address } = res;
       
-      const reverseArea = address.formattedAddress || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
-      const addressParts = reverseArea.split(',').map(s => s.trim());
-      const detectedPlace = address.locality || addressParts[0] || 'Detected Location';
-      const detectedCity = address.district || (addressParts.length > 2 ? addressParts[addressParts.length - 2] : '');
-      const detectedState = address.state || (addressParts.length > 1 ? addressParts[addressParts.length - 1] : '');
+      const locality = address.locality || address.village || address.subLocality || 'Current Location';
+      const district = address.district || address.city || '';
+      const state = address.state || 'Jammu & Kashmir';
+      const pincode = address.pincode || address.postalCode || '';
 
-      const gpsAddr = {
+      const gpsAddr: CustomerAddressItem = {
         id: 'current-location',
         label: 'Current Location',
-        placeName: detectedPlace,
-        addressLine1: reverseArea,
-        city: detectedCity,
-        state: detectedState,
-        postalCode: address.country || '',
+        placeName: locality,
+        addressLine1: locality,
+        city: district,
+        state: state,
+        postalCode: pincode,
         latitude: coords.latitude,
-        longitude: coords.longitude, isDefault: false,
+        longitude: coords.longitude,
+        locationSource: 'CURRENT_GPS',
+        verificationStatus: 'VERIFIED',
+        isDefault: false,
       };
 
-      
       addAddress(gpsAddr);
       setSelectedAddress('current-location');
       setShowCustomAddressModal(false);
@@ -738,8 +739,11 @@ export default function CheckoutPage() {
                     {addresses.map((addr) => {
                       const isSelected = selectedAddressId === addr.id;
                       const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
-                      const addrDist = hasCoords ? (isSelected ? orderQuote?.distanceKm || null : null) : null;
-                      const addrEligible = addrDist === null || (addrDist !== -1 && addrDist <= maxRadiusKm);
+                      const addrDist = hasCoords && isSelected && orderQuote?.distanceKm !== null && orderQuote?.distanceKm !== undefined && orderQuote.distanceKm >= 0
+                        ? orderQuote.distanceKm
+                        : null;
+                      const addrRouteAvailable = isSelected ? (orderQuote?.routeAvailable ?? true) : true;
+                      const addrEligible = isSelected ? (orderQuote?.deliveryEligible ?? (addrDist !== null && addrDist <= maxRadiusKm)) : true;
 
                       return (
                         <div
@@ -761,10 +765,19 @@ export default function CheckoutPage() {
                                   <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 Address location verified' : '✍️ Text Address'}
                                 </span>
                               )}
-                              {addrDist !== null && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
-                                  {addrDist} km away • {addrEligible ? '✓ Delivery available' : '✕ Outside delivery area'}
-                                </span>
+                              {isSelected && orderQuote && (
+                                <>
+                                  {addrRouteAvailable && addrDist !== null && (
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
+                                      {addrDist} km away • {addrEligible ? '✓ Inside delivery radius (15 km)' : '✕ Outside delivery radius (15 km)'}
+                                    </span>
+                                  )}
+                                  {(!addrRouteAvailable || addrDist === null) && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border text-amber-800 bg-amber-50 border-amber-200">
+                                      ⚠️ Unable to calculate delivery distance. Please try again.
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
 
@@ -781,9 +794,11 @@ export default function CheckoutPage() {
                                 Landmark: {addr.landmark}
                               </p>
                             )}
-                            <p className="text-[11px] text-gray-500 font-medium">
-                              {addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.postalCode ? `- ${addr.postalCode}` : ''}
-                            </p>
+                            {(addr.city || addr.state || addr.postalCode) && (
+                              <p className="text-[11px] text-gray-500 font-medium">
+                                {[addr.city, addr.state].filter(Boolean).join(', ')}{addr.postalCode && addr.postalCode !== 'India' ? ` - ${addr.postalCode}` : ''}
+                              </p>
+                            )}
 
                             {!hasCoords && (
                               <p className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md mt-1">
@@ -791,7 +806,7 @@ export default function CheckoutPage() {
                               </p>
                             )}
 
-                            {hasCoords && !addrEligible && (
+                            {hasCoords && isSelected && orderQuote && addrRouteAvailable && !addrEligible && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pt-1">
                                 <AlertTriangle className="h-3 w-3" /> Exceeds store delivery radius ({maxRadiusKm} km)
                               </p>

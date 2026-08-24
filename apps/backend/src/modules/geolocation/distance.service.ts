@@ -9,7 +9,10 @@ export interface Coordinates {
 
 export interface DeliveryDistanceResult {
   valid: boolean;
-  distanceKm: number;
+  serviceable: boolean;
+  routeAvailable: boolean;
+  distanceKm: number | null;
+  etaMinutes: number | null;
   radiusKm: number;
   distanceType: 'MAPPLS_ROAD_ROUTING';
   reason?: string;
@@ -47,7 +50,10 @@ export class DistanceService {
     if (!this.validateCoordinates(customerLat, customerLng)) {
       return {
         valid: false,
-        distanceKm: 999, // Should really throw
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
         radiusKm: 0,
         distanceType: 'MAPPLS_ROAD_ROUTING',
         reason: 'INVALID_CUSTOMER_COORDINATES',
@@ -61,7 +67,10 @@ export class DistanceService {
     if (!restaurant || !this.validateCoordinates(restaurant.latitude, restaurant.longitude)) {
       return {
         valid: false,
-        distanceKm: 999, // Should really throw
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
         radiusKm: 0,
         distanceType: 'MAPPLS_ROAD_ROUTING',
         reason: 'INVALID_RESTAURANT_COORDINATES',
@@ -71,26 +80,41 @@ export class DistanceService {
     const radiusKm = Number(restaurant.deliveryRadius || 15.0);
 
     try {
-      const { distanceKm } = await this.geoService.calculateDistanceAndEta(
+      const { distanceKm, etaMinutes } = await this.geoService.calculateDistanceAndEta(
         restaurant.latitude,
         restaurant.longitude,
         customerLat,
         customerLng,
       );
 
-      const valid = distanceKm <= radiusKm;
+      if (distanceKm == null || distanceKm < 0 || !Number.isFinite(distanceKm)) {
+        throw new Error(`Invalid distance returned: ${distanceKm}`);
+      }
+
+      const serviceable = distanceKm <= radiusKm;
 
       return {
-        valid,
+        valid: serviceable,
+        serviceable,
+        routeAvailable: true,
         distanceKm,
+        etaMinutes,
         radiusKm,
         distanceType: 'MAPPLS_ROAD_ROUTING',
-        reason: valid ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
+        reason: serviceable ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
       };
-    } catch (error) {
-      return { valid: false, distanceKm: -1, radiusKm, distanceType: 'MAPPLS_ROAD_ROUTING', reason: 'ROUTE_CALCULATION_FAILED' };
+    } catch (error: any) {
+      this.logger.error(`Distance calculation failed (${restaurantId} -> [${customerLat}, ${customerLng}]): ${error?.message || error}`);
+      return {
+        valid: false,
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
+        radiusKm,
+        distanceType: 'MAPPLS_ROAD_ROUTING',
+        reason: 'ROUTE_CALCULATION_FAILED',
+      };
     }
   }
 }
-
-
