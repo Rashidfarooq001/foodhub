@@ -27,7 +27,7 @@ export interface CustomerOrderQuoteData {
   tipAmount: number;
 
   distanceKm: number;
-  distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
+  distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
   locationSource: string;
@@ -102,3 +102,4 @@ export async function fetchActiveTaxRules(): Promise<any[]> {
   }
   return [];
 }
+

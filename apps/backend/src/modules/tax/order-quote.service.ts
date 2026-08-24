@@ -28,7 +28,7 @@ export interface OrderQuoteResult {
   tipAmount: number;
 
   distanceKm: number;
-  distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
+  distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
   locationSource: string;
@@ -108,7 +108,7 @@ export class OrderQuoteService {
         req.latitude,
         req.longitude,
       );
-      if (distRes.valid || distRes.distanceKm > 0) {
+      if (distRes.valid || distRes.distanceKm > 0 || distRes.distanceKm === -1) {
         distanceKm = distRes.distanceKm;
         deliveryEligible = distRes.valid;
         deliveryRadiusKm = distRes.radiusKm;
@@ -250,7 +250,7 @@ export class OrderQuoteService {
       tipAmount,
 
       distanceKm,
-      distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
+      distanceType: 'MAPPLS_ROAD_ROUTING',
       deliveryEligible,
       deliveryRadiusKm,
       locationSource,
@@ -290,3 +290,5 @@ export class OrderQuoteService {
     };
   }
 }
+
+

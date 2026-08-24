@@ -731,7 +731,7 @@ export default function CheckoutPage() {
                       const isSelected = selectedAddressId === addr.id;
                       const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
                       const addrDist = hasCoords ? (isSelected ? orderQuote?.distanceKm || null : null) : null;
-                      const addrEligible = addrDist === null || addrDist <= maxRadiusKm;
+                      const addrEligible = addrDist === null || (addrDist !== -1 && addrDist <= maxRadiusKm);
 
                       return (
                         <div
@@ -1198,3 +1198,4 @@ export default function CheckoutPage() {
     </CustomerAuthGuard>
   );
 }
+

@@ -107,11 +107,18 @@ export class GeolocationService {
       const pincode     = result.pincode     || '';
       const mapplsPin   = result.mapplsPin   || '';
 
-      const parts = [locality, district, state].filter(Boolean);
-      const formattedAddress =
-        result.formattedAddress ||
-        (pincode ? `${parts.join(', ')} - ${pincode}` : parts.join(', ')) ||
-        'Location detected';
+      const houseNumber = result.houseNumber || result.houseName || '';
+      const street = result.street || '';
+      const village = result.village || '';
+      const finalLocality = result.locality || village || result.subLocality || result.poi || '';
+      const finalSubDistrict = result.subDistrict || '';
+      
+      const parts = [houseNumber, street, finalLocality, finalSubDistrict, district, state].filter(Boolean);
+      // Clean up duplicates and empty strings
+      const uniqueParts = Array.from(new Set(parts.map(p => p.trim()))).filter(Boolean);
+      
+      const builtAddress = pincode ? `${uniqueParts.join(', ')} - ${pincode}` : uniqueParts.join(', ');
+      const formattedAddress = builtAddress || result.formattedAddress || 'Location detected';
 
       return { latitude: lat, longitude: lng, locality, district, subDistrict, state, country, pincode, mapplsPin, formattedAddress };
     } catch (err: any) {
@@ -413,4 +420,6 @@ export class GeolocationService {
     };
   }
 }
+
+
 

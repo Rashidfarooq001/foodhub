@@ -9,7 +9,7 @@ export class CustomerOrderQuoteDto {
   tipAmount: number;
 
   distanceKm: number;
-  distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
+  distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
   locationSource: string;
@@ -64,3 +64,4 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     deliveryFeePerExtraKm: fullQuote.deliveryFeePerExtraKm,
   };
 }
+
