@@ -222,7 +222,7 @@ export class OrderQuoteService {
 
     // 7. Rider Payout (₹25 base + ₹6/km)
     const riderBasePay = config.riderBasePay;
-    const riderDistancePay = Math.round(distanceKm * config.riderPerKmPay * 100) / 100;
+    const riderDistancePay = Math.round((distanceKm || 0) * config.riderPerKmPay * 100) / 100;
     const riderTip = tipAmount; // 100% pass-through
     const totalRiderPayout = Math.round(
       (riderBasePay + riderDistancePay + config.riderWaitingPay + config.riderPeakBonus + config.riderLongDistanceBonus + config.riderBatchBonus + riderTip) * 100,
@@ -290,5 +290,6 @@ export class OrderQuoteService {
     };
   }
 }
+
 
 
