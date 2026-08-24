@@ -113,7 +113,11 @@ export default function CheckoutPage() {
   
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
-  const realDistanceKm = orderQuote?.distanceKm ?? null;
+  const _rawDistanceKm = orderQuote?.distanceKm ?? null;
+  const realDistanceKm = (_rawDistanceKm !== null && Number.isFinite(_rawDistanceKm) && _rawDistanceKm >= 0)
+    ? _rawDistanceKm
+    : null;
+  const routeAvailable = orderQuote ? (orderQuote.routeAvailable ?? (realDistanceKm !== null)) : true;
 
   // Authoritative distance-based delivery fee: First 3 km = ₹15, After 3 km = ₹5 / extra km
   const fallbackDeliveryFee =
@@ -1103,7 +1107,7 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePlaceOrder}
-              disabled={isPlacing || !isDeliveryEligible || !selectedAddress}
+              disabled={isPlacing || !isDeliveryEligible || !selectedAddress || (orderQuote != null && !routeAvailable)}
               className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
@@ -1198,5 +1202,6 @@ export default function CheckoutPage() {
     </CustomerAuthGuard>
   );
 }
+
 
 

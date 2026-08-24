@@ -26,7 +26,10 @@ export interface CustomerOrderQuoteData {
   discountAmount: number;
   tipAmount: number;
 
-  distanceKm: number;
+  distanceKm: number | null;
+  etaMinutes: number | null;
+  routeAvailable: boolean;
+  serviceable: boolean;
   distanceType: 'MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;

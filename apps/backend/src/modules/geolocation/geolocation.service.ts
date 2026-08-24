@@ -99,28 +99,31 @@ export class GeolocationService {
       const result = Array.isArray(data?.results) ? data.results[0] : (data?.results ?? data);
       if (!result) return fallback;
 
-      const locality    = result.locality    || result.subLocality || result.poi || '';
-      const district    = result.district    || result.city        || '';
-      const subDistrict = result.subDistrict || '';
-      const state       = result.state       || '';
+      // Log raw Mappls fields for debugging coordinate/geocoding issues
+      this.logger.debug(`Mappls raw rev-geocode: locality=${result.locality}, village=${result.village}, subLocality=${result.subLocality}, subDistrict=${result.subDistrict}, district=${result.district}, city=${result.city}, state=${result.state}, pincode=${result.pincode}`);
+
+      const houseNumber   = (result.houseNumber || result.houseName || '').trim();
+      const street        = (result.street || '').trim();
+      const village       = (result.village || '').trim();
+      const poi           = (result.poi || '').trim();
+      const finalLocality = (result.locality || village || result.subLocality || poi || '').trim();
+      const district      = (result.district || result.city || '').trim();
+      const subDistrict   = (result.subDistrict || '').trim();
+      const state         = (result.state || '').trim();
       const country     = result.country     || 'India';
       const pincode     = result.pincode     || '';
       const mapplsPin   = result.mapplsPin   || '';
 
-      const houseNumber = result.houseNumber || result.houseName || '';
-      const street = result.street || '';
-      const village = result.village || '';
-      const finalLocality = result.locality || village || result.subLocality || result.poi || '';
-      const finalSubDistrict = result.subDistrict || '';
-      
-      const parts = [houseNumber, street, finalLocality, finalSubDistrict, district, state].filter(Boolean);
-      // Clean up duplicates and empty strings
+      const parts = [houseNumber, street, finalLocality, subDistrict, district, state].filter(Boolean);
+      // Deduplicate and remove empty strings
       const uniqueParts = Array.from(new Set(parts.map(p => p.trim()))).filter(Boolean);
-      
+
       const builtAddress = pincode ? `${uniqueParts.join(', ')} - ${pincode}` : uniqueParts.join(', ');
       const formattedAddress = builtAddress || result.formattedAddress || 'Location detected';
 
-      return { latitude: lat, longitude: lng, locality, district, subDistrict, state, country, pincode, mapplsPin, formattedAddress };
+      this.logger.debug(`Mappls built address: "${formattedAddress}" (locality="${finalLocality}", district="${district}", pincode="${pincode}")`);
+
+      return { latitude: lat, longitude: lng, locality: finalLocality, district, subDistrict, state, country, pincode, mapplsPin, formattedAddress };
     } catch (err: any) {
       if (err.name !== 'AbortError') this.logger.error(`Mappls Rev-Geocode error: ${err.message}`);
       return fallback;
