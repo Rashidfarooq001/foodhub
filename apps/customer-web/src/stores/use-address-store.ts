@@ -88,11 +88,11 @@ export const useAddressStore = create<AddressState>()(
       clearAddresses: () => set({ addresses: [], selectedAddressId: null }),
     }),
     {
-      name: 'foodhub-customer-addresses-v3',
+      name: 'foodhub-customer-addresses-v4',
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
-        if (version < 3) {
+        if (version < 4) {
           return { addresses: [], selectedAddressId: null };
         }
         return persistedState as AddressState;
@@ -100,3 +100,4 @@ export const useAddressStore = create<AddressState>()(
     },
   ),
 );
+

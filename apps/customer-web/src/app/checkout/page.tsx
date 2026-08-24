@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -113,6 +113,10 @@ export default function CheckoutPage() {
   
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
+
+  // On mount, always start with null orderQuote � never trust any rehydrated/stale value.
+  // The quote will be freshly fetched by the useEffect below.
+  // This guards against any stale distanceKm (e.g. -1) surviving a page refresh.
   const _rawDistanceKm = orderQuote?.distanceKm ?? null;
   const realDistanceKm = (_rawDistanceKm !== null && Number.isFinite(_rawDistanceKm) && _rawDistanceKm >= 0)
     ? _rawDistanceKm
@@ -1202,6 +1206,7 @@ export default function CheckoutPage() {
     </CustomerAuthGuard>
   );
 }
+
 
 
 
