@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
-  ChevronDown,
   Bell,
   Search,
   Mic,
@@ -20,6 +19,7 @@ import { LocationSelectorModal } from '../components/home/LocationSelectorModal'
 import { FilterModal, FilterState, initialFilterState } from '../components/home/FilterModal';
 import { RestaurantData, normalizeRestaurantData } from '../data/mock-data';
 import { useAuthStore } from '../stores/use-auth-store';
+import { useAddressStore } from '../stores/use-address-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -65,74 +65,125 @@ export default function CustomerHomePage() {
     }
   }, []);
 
-  // 1. Dynamic Location: Fetch Authenticated Saved Default Address OR Reverse Geocode Browser Coords
+  // 1. Dynamic Location: Sync with useAddressStore (Single Source of Truth)
+  const { addresses, selectedAddressId, addAddress, setSelectedAddress } = useAddressStore();
+  const selectedAddress = useMemo(() => {
+    return addresses.find((a) => a.id === selectedAddressId) || addresses[0] || null;
+  }, [addresses, selectedAddressId]);
+
   useEffect(() => {
     let isMounted = true;
 
-    const loadLocation = async () => {
-      setLocationStatus('requesting');
-      
-      // If customer is authenticated, check their saved default delivery address
+    // A. If address already exists in store, use it immediately
+    if (selectedAddress) {
+      const label = selectedAddress.placeName || selectedAddress.addressLine1 || selectedAddress.label || 'Current Location';
+      const detail = [selectedAddress.addressLine1, selectedAddress.city, selectedAddress.state].filter(Boolean).join(', ') || selectedAddress.city || 'Location detected';
+      setLocationLabel(label);
+      setLocationAddress(detail);
+      setLocationStatus('resolved');
+      if (selectedAddress.latitude && selectedAddress.longitude) {
+        const coords = { lat: Number(selectedAddress.latitude), lng: Number(selectedAddress.longitude) };
+        setUserCoords(coords);
+        fetchRestaurants(coords);
+      }
+      return;
+    }
+
+    // B. If user is authenticated, check saved addresses from backend
+    const loadSavedOrGpsLocation = async () => {
       if (isAuthenticated && accessToken) {
         try {
           const res = await fetch(`${API_BASE}/addresses`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
           if (res.ok) {
-            const addresses = await res.json();
-            const list = Array.isArray(addresses) ? addresses : addresses.addresses ?? [];
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : data.addresses ?? [];
             const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
 
             if (defaultAddr && isMounted) {
-              setLocationLabel(defaultAddr.addressLabel || 'Saved Address');
-              setLocationAddress([defaultAddr.addressLine1, defaultAddr.city, defaultAddr.postalCode].filter(Boolean).join(', '));
+              const locality = defaultAddr.placeName || defaultAddr.addressLine1 || defaultAddr.addressLabel || 'Saved Address';
+              const detail = [defaultAddr.addressLine1, defaultAddr.city, defaultAddr.state].filter(Boolean).join(', ');
+              setLocationLabel(locality);
+              setLocationAddress(detail);
               if (defaultAddr.latitude && defaultAddr.longitude) {
-                setUserCoords({ lat: Number(defaultAddr.latitude), lng: Number(defaultAddr.longitude) });
+                const coords = { lat: Number(defaultAddr.latitude), lng: Number(defaultAddr.longitude) };
+                setUserCoords(coords);
                 setLocationStatus('resolved');
+                addAddress({
+                  id: defaultAddr.id || 'saved-default',
+                  label: defaultAddr.addressLabel || 'Saved Address',
+                  addressLine1: defaultAddr.addressLine1,
+                  city: defaultAddr.city,
+                  state: defaultAddr.state,
+                  postalCode: defaultAddr.postalCode,
+                  latitude: coords.lat,
+                  longitude: coords.lng,
+                  locationSource: 'SAVED_ADDRESS',
+                  verificationStatus: 'VERIFIED',
+                  isDefault: true,
+                });
+                fetchRestaurants(coords);
                 return;
               }
             }
           }
         } catch {
-          // fallback to geolocation
+          // fallback to GPS
         }
       }
 
-      // Otherwise, request browser geolocation and reverse geocode via backend
+      // C. Request browser GPS with finite timeout and error handling
       if (typeof window !== 'undefined' && 'geolocation' in navigator) {
         if (isMounted) {
+          setLocationStatus('requesting');
           setLocationLabel('Detecting location...');
-          setLocationAddress('Awaiting GPS signal');
+          setLocationAddress('Please allow GPS access');
         }
-        
+
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             if (!isMounted) return;
-            setUserCoords({ lat, lng });
+
+            const coords = { lat, lng };
+            setUserCoords(coords);
             setLocationStatus('resolving');
-            setLocationAddress('Resolving location...');
 
             try {
-              const geoRes = await fetch(`${API_BASE}/geolocation/resolve?lat=${lat}&lng=${lng}`);
+              const geoRes = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
               if (geoRes.ok) {
                 const geoData = await geoRes.json();
                 if (geoData && isMounted) {
-                  setLocationLabel('Current Location');
-                  
-                  // Use robust logic: locality -> district -> state -> fallback
-                  if (geoData.locality && geoData.district) {
-                    setLocationAddress(`${geoData.locality}, ${geoData.district}`);
-                  } else if (geoData.district && geoData.state) {
-                    setLocationAddress(`${geoData.district}, ${geoData.state}`);
-                  } else if (geoData.formattedAddress) {
-                    setLocationAddress(geoData.formattedAddress);
-                  } else {
-                    setLocationAddress('Location determined');
-                  }
-                  
+                  const locality = geoData.locality || geoData.village || geoData.subLocality || 'Current Location';
+                  const district = geoData.district || geoData.city || '';
+                  const state = geoData.state || 'Jammu & Kashmir';
+                  const pincode = geoData.pincode || geoData.postalCode || '';
+
+                  const cleanAddress = geoData.formattedAddress || [locality, district, state].filter(Boolean).join(', ');
+
+                  setLocationLabel(locality);
+                  setLocationAddress(cleanAddress);
                   setLocationStatus('resolved');
+
+                  // Save into authoritative address store
+                  addAddress({
+                    id: 'current-location',
+                    label: 'Current Location',
+                    placeName: locality,
+                    addressLine1: locality,
+                    city: district,
+                    state: state,
+                    postalCode: pincode,
+                    latitude: lat,
+                    longitude: lng,
+                    locationSource: 'CURRENT_GPS',
+                    verificationStatus: 'VERIFIED',
+                    isDefault: false,
+                  });
+                  setSelectedAddress('current-location');
+                  fetchRestaurants(coords);
                   return;
                 }
               }
@@ -142,38 +193,41 @@ export default function CustomerHomePage() {
 
             if (isMounted) {
               setLocationLabel('Current Location');
-              setLocationAddress('Unable to resolve exact address');
-              setLocationStatus('failed');
+              setLocationAddress('Location verified via GPS');
+              setLocationStatus('resolved');
+              fetchRestaurants(coords);
             }
           },
           (err) => {
             if (!isMounted) return;
-            setLocationLabel('Location Unavailable');
+            setLocationLabel('Location');
             if (err.code === err.PERMISSION_DENIED) {
-              setLocationAddress('Allow location access to find restaurants');
+              setLocationAddress('Tap to set delivery location');
               setLocationStatus('permission-denied');
             } else if (err.code === err.TIMEOUT) {
-              setLocationAddress('GPS timeout. Please search manually');
+              setLocationAddress('GPS timed out — Tap to select location');
               setLocationStatus('timeout');
             } else {
-              setLocationAddress('Unable to detect your location');
+              setLocationAddress('Tap to select delivery location');
               setLocationStatus('failed');
             }
+            fetchRestaurants();
           },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
         );
       } else {
         if (isMounted) {
-          setLocationLabel('Location Error');
-          setLocationAddress('GPS not supported on this device');
+          setLocationLabel('Location');
+          setLocationAddress('Tap to select delivery location');
           setLocationStatus('unavailable');
+          fetchRestaurants();
         }
       }
     };
 
-    loadLocation();
+    loadSavedOrGpsLocation();
     return () => { isMounted = false; };
-  }, [isAuthenticated, accessToken]);
+  }, [selectedAddressId, isAuthenticated, accessToken]);
 
   // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
   const fetchRestaurants = async (coords = userCoords) => {
@@ -438,7 +492,6 @@ export default function CustomerHomePage() {
             <div className="min-w-0 pr-2">
               <div className="flex items-center gap-1">
                 <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight truncate">{locationLabel}</span>
-                <ChevronDown className="h-4 w-4 text-gray-500 stroke-[2.5] shrink-0" />
               </div>
               <p className="text-[11px] sm:text-xs text-gray-500 truncate font-medium mt-0.5">
                 {locationAddress}
