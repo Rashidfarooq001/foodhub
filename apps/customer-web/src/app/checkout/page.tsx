@@ -762,31 +762,30 @@ export default function CheckoutPage() {
                               : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                           }`}
                         >
-                          <div className="space-y-1 text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase text-white tracking-wide">
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase text-white tracking-wide shrink-0">
                                 {addr.label}
                               </span>
                               {isSelected && (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
                                   <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 Address location verified' : '✍️ Text Address'}
                                 </span>
                               )}
-                              {isSelected && orderQuote && (
-                                <>
-                                  {addrRouteAvailable && addrDist !== null && (
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
-                                      {addrDist} km away • {addrEligible ? '✓ Inside delivery radius (15 km)' : '✕ Outside delivery radius (15 km)'}
-                                    </span>
-                                  )}
-                                  {(!addrRouteAvailable || addrDist === null) && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border text-amber-800 bg-amber-50 border-amber-200">
-                                      ⚠️ Unable to calculate delivery distance. Please try again.
-                                    </span>
-                                  )}
-                                </>
+                              {isSelected && orderQuote && addrRouteAvailable && addrDist !== null && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
+                                  {addrDist} km away • {addrEligible ? '✓ Inside delivery radius (15 km)' : '✕ Outside delivery radius (15 km)'}
+                                </span>
                               )}
                             </div>
+
+                            {isSelected && orderQuote && (!addrRouteAvailable || addrDist === null) && (
+                              <div className="pt-0.5">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border text-amber-800 bg-amber-50 border-amber-200">
+                                  ⚠️ Unable to calculate delivery distance. Please try again.
+                                </span>
+                              </div>
+                            )}
 
                             <p className="text-xs font-bold text-gray-900 leading-snug pt-0.5">
                               {addr.addressLine1}
