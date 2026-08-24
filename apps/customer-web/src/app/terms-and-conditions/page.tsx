@@ -116,7 +116,7 @@ export default function TermsAndConditionsPage() {
         </p>
         <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1.5">
           <li><strong>Menu Item Prices:</strong> Set by the respective merchant restaurants and displayed in Indian Rupees (₹/INR).</li>
-          <li><strong>Delivery Distance Fees:</strong> Calculated dynamically based on server-side Haversine distance from the restaurant to your verified delivery address.</li>
+          <li><strong>Delivery Distance Fees:</strong> Calculated dynamically based on server-side MapmyIndia road distance from the restaurant to your verified delivery address.</li>
           <li><strong>Platform Convenience Fee:</strong> A nominal platform technology fee (e.g. ₹3) may apply to support secure infrastructure and customer support operations.</li>
           <li><strong>Statutory Goods and Services Tax (GST):</strong> Calculated in accordance with applicable Indian tax rules. CGST and SGST are itemized where statutory thresholds apply.</li>
           <li><strong>Price Immutability:</strong> Once an order is confirmed, an immutable pricing snapshot is stored in the database. Client-side price modifications are strictly blocked.</li>

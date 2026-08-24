@@ -28,7 +28,7 @@ export interface OrderQuoteResult {
   tipAmount: number;
 
   distanceKm: number;
-  distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+  distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
   deliveryEligible: boolean;
   deliveryRadiusKm: number;
   locationSource: string;
@@ -250,7 +250,7 @@ export class OrderQuoteService {
       tipAmount,
 
       distanceKm,
-      distanceType: 'ROAD_ROUTING',
+      distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
       deliveryEligible,
       deliveryRadiusKm,
       locationSource,

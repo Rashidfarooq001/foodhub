@@ -135,7 +135,7 @@ export default function PrivacyPolicyPage() {
             Zayka Food is a hyper-local marketplace. Location data is collected strictly to deliver core platform services:
           </p>
           <p className="font-mono text-[11px] bg-white/80 p-2.5 rounded-xl border border-orange-200">
-            Device GPS / Browser Location → Latitude &amp; Longitude → Zayka Regional Locality Dataset → Nearby Restaurant Discovery → Store Delivery Radius Eligibility → Accurate Haversine Distance &amp; Fee Calculation
+            Device GPS / Browser Location → Latitude &amp; Longitude → Zayka Regional Locality Dataset → Nearby Restaurant Discovery → Store Delivery Radius Eligibility → Accurate MapmyIndia road Distance &amp; Fee Calculation
           </p>
         </div>
         <ul className="list-disc pl-5 text-sm text-gray-700 space-y-2">

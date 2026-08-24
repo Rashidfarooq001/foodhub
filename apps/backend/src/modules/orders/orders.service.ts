@@ -185,7 +185,7 @@ export class OrdersService {
     // 5. Zero discount (No coupon system)
     const discountAmount = 0;
 
-    // Construct authoritative immutable deliveryAddress snapshot & calculate real Haversine distance
+    // Construct authoritative immutable deliveryAddress snapshot & calculate Mappls road distance
     const rawAddress: any = dto.deliveryAddress || {};
 
     let formattedAddressText = '';

@@ -274,7 +274,7 @@ export default function CurrentDeliveryPage() {
   const restaurantLat = currentJob.pickupLat || currentJob.restaurant?.latitude;
   const restaurantLng = currentJob.pickupLng || currentJob.restaurant?.longitude;
 
-  // Active Target for Google Maps depending on status
+  // Active Target for Navigation depending on status
   const targetLat = currentJob.status === 'ARRIVED_AT_RESTAURANT' || currentJob.status === 'OUT_FOR_DELIVERY' || currentJob.status === 'PICKED_UP'
     ? destinationLat
     : restaurantLat;
@@ -411,13 +411,13 @@ export default function CurrentDeliveryPage() {
       {/* One-Touch Real GPS Navigation Button */}
       {targetLat && targetLng && (
         <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}`}
+          href={`https://www.mappls.com/direction?dir_destination=${targetLat},${targetLng}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 py-3.5 text-xs font-black text-white shadow-lg shadow-blue-500/25 transition min-h-[44px]"
         >
           <Navigation className="h-4 w-4" />
-          <span>Open Google Maps Turn-by-Turn Navigation</span>
+          <span>Open Mappls Turn-by-Turn Navigation</span>
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}

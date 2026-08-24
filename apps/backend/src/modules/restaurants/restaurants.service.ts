@@ -321,18 +321,20 @@ export class RestaurantsService {
     });
 
     let distances = new Map<string, number>();
+    let etas = new Map<string, number>();
 
     if (userLat !== undefined && userLng !== undefined) {
       const origins = [[userLat, userLng]] as [number, number][];
       const destinations = restaurants.map(r => [r.latitude || 0, r.longitude || 0] as [number, number]);
       try {
-        const responseData = await this.geolocationService.computeRouteMatrix(origins, destinations);
-        restaurants.forEach((rest, index) => {
-          const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === index);
-          if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
-             distances.set(rest.id, Math.round((routeData.distanceMeters / 1000) * 100) / 100);
-          }
-        });
+                  const matrixResults = await this.geolocationService.computeDistanceMatrix([userLat, userLng], destinations);
+          restaurants.forEach((rest, index) => {
+            const result = matrixResults[index];
+            if (result && result.distanceKm < 999) {
+              distances.set(rest.id, result.distanceKm);
+              etas.set(rest.id, result.etaMinutes);
+            }
+          });
       } catch (err: any) {
         // Fallback or ignore if Google Routes fails
       }
@@ -733,3 +735,6 @@ export class RestaurantsService {
     };
   }
 }
+
+
+

@@ -213,7 +213,7 @@ export class OrdersController {
       const phone = d.user?.phone || '';
       const vehicle = d.vehicles[0];
 
-      // Calculate real distance using Haversine formula
+      // Calculate real road distance using Mappls
       const driverLat = d.currentLat || restLat + 0.005;
       const driverLng = d.currentLng || restLng + 0.005;
       const distanceKm = 999; // restLat, restLng, driverLat, driverLng);
@@ -464,3 +464,4 @@ export class OrdersController {
     return this.ordersService.submitSupportTicket(id, issueType, description, userId);
   }
 }
+

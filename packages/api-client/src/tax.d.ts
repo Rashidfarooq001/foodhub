@@ -21,7 +21,7 @@ export interface CustomerOrderQuoteData {
     discountAmount: number;
     tipAmount: number;
     distanceKm: number;
-    distanceType: 'HAVERSINE' | 'ROAD_ROUTING';
+    distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
     deliveryEligible: boolean;
     deliveryRadiusKm: number;
     locationSource: string;

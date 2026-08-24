@@ -1,5 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Client, TravelMode } from '@googlemaps/google-maps-services-js';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 
 export interface DetailedGeocodeResult {
@@ -35,61 +34,137 @@ export interface NearbyRestaurant {
 
 @Injectable()
 export class GeolocationService {
+  private readonly logger = new Logger(GeolocationService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  private get MapplsToken(): string {
+    return process.env.MAPPLS_ACCESS_TOKEN || '';
+  }
 
   private isValidCoordinates(lat: number, lng: number): boolean {
-    return (lat >= -90 && lat <= 90) && (lng >= -180 && lng <= 180) && (lat !== 0 || lng !== 0);
+    return (
+      lat >= -90 && lat <= 90 &&
+      lng >= -180 && lng <= 180 &&
+      (lat !== 0 || lng !== 0)
+    );
   }
 
-  private readonly logger = new Logger(GeolocationService.name);
-  private mapsClient: Client;
+  // 1. REVERSE GEOCODING
+  async resolveLocation(lat: number, lng: number): Promise<{
+    latitude: number;
+    longitude: number;
+    locality: string;
+    district: string;
+    subDistrict?: string;
+    state: string;
+    country: string;
+    pincode?: string;
+    mapplsPin?: string;
+    formattedAddress: string;
+  }> {
+    if (!this.isValidCoordinates(lat, lng)) {
+      throw new Error('Invalid GPS coordinates');
+    }
 
-  // Read backend API key which should be restricted to Geocoding + Routes APIs
-  private get GoogleKey(): string {
-    return process.env.GOOGLE_MAPS_SERVER_API_KEY || '';
-  }
+    const fallback = {
+      latitude: lat,
+      longitude: lng,
+      locality: '',
+      district: '',
+      state: '',
+      country: 'India',
+      formattedAddress: 'Location detected',
+    };
 
-  constructor(private readonly prisma: PrismaService) {
-    this.mapsClient = new Client({});
-  }
-
-  /** Forward Geocode using Google Geocoding API */
-  async geocodeAddress(addressStr: string): Promise<DetailedGeocodeResult> {
-    if (!this.GoogleKey) {
-      return this._fallbackGeocodeFailure('Google Maps API key not configured');
+    if (!this.MapplsToken) {
+      this.logger.error('MAPPLS_ACCESS_TOKEN is not configured');
+      return { ...fallback, formattedAddress: 'Location service not configured' };
     }
 
     try {
-      const response = await this.mapsClient.geocode({
-        params: {
-          address: addressStr,
-          key: this.GoogleKey,
-          region: 'in', // Bias towards India
-        },
-        timeout: 5000,
-      });
+      const url = `https://search.mappls.com/search/address/rev-geocode?lat=${lat}&lng=${lng}&access_token=${this.MapplsToken}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
 
-      if (response.data.results && response.data.results.length > 0) {
-        const result = response.data.results[0];
-        
-        return {
-          success: true,
-          latitude: result.geometry.location.lat,
-          longitude: result.geometry.location.lng,
-          displayName: result.formatted_address,
-          geocodeLevel: result.types[0] || 'unknown',
-          precisionLabel: result.geometry.location_type,
-          confidenceScore: 1.0,
-          matchedAddress: result.formatted_address,
-          verificationStatus: 'VERIFIED',
-          queryTierUsed: 1,
-          source: 'google_geocoding',
-        };
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(`Mappls Rev-Geocode HTTP ${response.status}: ${body.substring(0, 200)}`);
+        return fallback;
       }
-    } catch (error: any) {
-      this.logger.error(`Geocoding error: ${error.message}`);
-    }
 
-    return this._fallbackGeocodeFailure('Unable to geocode address via Google Maps');
+      const data = await response.json();
+      const result = Array.isArray(data?.results) ? data.results[0] : (data?.results ?? data);
+      if (!result) return fallback;
+
+      const locality    = result.locality    || result.subLocality || result.poi || '';
+      const district    = result.district    || result.city        || '';
+      const subDistrict = result.subDistrict || '';
+      const state       = result.state       || '';
+      const country     = result.country     || 'India';
+      const pincode     = result.pincode     || '';
+      const mapplsPin   = result.mapplsPin   || '';
+
+      const parts = [locality, district, state].filter(Boolean);
+      const formattedAddress =
+        result.formattedAddress ||
+        (pincode ? `${parts.join(', ')} - ${pincode}` : parts.join(', ')) ||
+        'Location detected';
+
+      return { latitude: lat, longitude: lng, locality, district, subDistrict, state, country, pincode, mapplsPin, formattedAddress };
+    } catch (err: any) {
+      if (err.name !== 'AbortError') this.logger.error(`Mappls Rev-Geocode error: ${err.message}`);
+      return fallback;
+    }
+  }
+
+  async reverseGeocode(lat: number, lng: number): Promise<string> {
+    const r = await this.resolveLocation(lat, lng);
+    return r.formattedAddress;
+  }
+
+  // 2. FORWARD GEOCODING
+  async geocodeAddress(addressStr: string): Promise<DetailedGeocodeResult> {
+    if (!addressStr?.trim()) return this._fallbackGeocodeFailure('Address query is empty');
+    if (!this.MapplsToken) return this._fallbackGeocodeFailure('MAPPLS_ACCESS_TOKEN not configured');
+
+    try {
+      const url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(addressStr.trim())}&region=IND&access_token=${this.MapplsToken}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) return this._fallbackGeocodeFailure(`Mappls search HTTP ${response.status}`);
+
+      const data = await response.json();
+      const suggestions = data?.suggestedLocations || data?.results || [];
+      if (!suggestions.length) return this._fallbackGeocodeFailure('No results from Mappls for this address');
+
+      const best = suggestions[0];
+      const lat = parseFloat(best.latitude);
+      const lng = parseFloat(best.longitude);
+      if (isNaN(lat) || isNaN(lng)) return this._fallbackGeocodeFailure('Mappls returned invalid coordinates');
+
+      return {
+        success: true,
+        latitude: lat,
+        longitude: lng,
+        displayName: best.placeName || best.formattedAddress || addressStr,
+        geocodeLevel: best.type || 'locality',
+        precisionLabel: 'MAPPLS_PLACE',
+        confidenceScore: 1.0,
+        matchedAddress: best.placeAddress || best.placeName || addressStr,
+        verificationStatus: 'VERIFIED',
+        queryTierUsed: 1,
+        source: 'mappls_geocoding',
+      };
+    } catch (err: any) {
+      this.logger.error(`Mappls geocodeAddress error: ${err.message}`);
+      return this._fallbackGeocodeFailure('Mappls geocoding service error');
+    }
   }
 
   async geocodeStructuredAddress(params: {
@@ -103,212 +178,189 @@ export class GeolocationService {
     country?: string;
   }): Promise<DetailedGeocodeResult> {
     const parts = [
-      params.houseNumber,
-      params.street,
-      params.areaLocality,
-      params.landmark,
-      params.city,
-      params.state,
-      params.postalCode,
-      params.country || 'India',
+      params.houseNumber, params.street, params.landmark,
+      params.areaLocality, params.city, params.state,
+      params.postalCode, params.country || 'India',
     ].filter(Boolean);
-    const addressStr = parts.join(', ');
-    return this.geocodeAddress(addressStr);
+    return this.geocodeAddress(parts.join(', '));
   }
 
-  private _fallbackGeocodeFailure(reason: string): DetailedGeocodeResult {
-    return {
-      success: false,
-      latitude: null,
-      longitude: null,
-      displayName: null,
-      geocodeLevel: null,
-      precisionLabel: 'UNKNOWN',
-      confidenceScore: 0,
-      matchedAddress: null,
-      verificationStatus: 'FAILED',
-      queryTierUsed: 0,
-      source: 'google_geocoding',
-      reason,
-    };
+  // 3. PLACE SEARCH / AUTOSUGGEST
+  async searchPlaceByName(query: string): Promise<any[]> {
+    return this.searchPlaces(query);
   }
 
-  /** Reverse Geocode using Google Geocoding API */
-  async resolveLocation(lat: number, lng: number): Promise<{
-    latitude: number;
-    longitude: number;
-    locality: string;
-    district: string;
-    subDistrict?: string;
-    state: string;
-    country: string;
-    formattedAddress: string;
-  }> {
-    if (!this.isValidCoordinates(lat, lng)) throw new Error('Invalid GPS coordinates');
-    const fallback = {
-      latitude: lat,
-      longitude: lng,
-      locality: '',
-      district: '',
-      state: '',
-      country: 'India',
-      formattedAddress: 'Unknown Location',
-    };
+  async getAutosuggest(query: string): Promise<any> {
+    const suggestions = await this.searchPlaces(query);
+    return { suggestions };
+  }
 
-    if (!this.GoogleKey) return fallback;
+  async searchPlaces(query: string, nearLat?: number, nearLng?: number): Promise<any[]> {
+    if (!query?.trim() || !this.MapplsToken) return [];
 
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${Number(lat)},${Number(lng)}&key=${this.GoogleKey}`;
-      const response = await fetch(url);
+      let url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(query.trim())}&region=IND&tokenizeAddress=true&access_token=${this.MapplsToken}`;
+      if (nearLat && nearLng) url += `&location=${nearLat},${nearLng}`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) return [];
+
       const data = await response.json();
+      const items = data?.suggestedLocations || data?.results || [];
 
-      if (data.results && data.results.length > 0) {
-        const bestMatch = data.results[0];
-        let locality = '';
-        let district = '';
-        let state = '';
-        let country = 'India';
-
-        for (const component of bestMatch.address_components) {
-          if (component.types.includes('locality' as any)) {
-            locality = component.long_name;
-          } else if (component.types.includes('administrative_area_level_3' as any)) {
-            locality = locality || component.long_name;
-          }
-          if (component.types.includes('administrative_area_level_2' as any)) {
-            district = component.long_name;
-          }
-          if (component.types.includes('administrative_area_level_1' as any)) {
-            state = component.long_name;
-          }
-          if (component.types.includes('country' as any)) {
-            country = component.long_name;
-          }
-        }
-
-        return {
-          latitude: lat,
-          longitude: lng,
-          locality,
-          district,
-          state,
-          country,
-          formattedAddress: bestMatch.formatted_address,
-        };
-      }
-    } catch (error: any) {
-      this.logger.error(`Reverse geocoding error: ${error.message}`);
+      return items.map((item: any) => ({
+        placeName:    item.placeName    || item.name        || '',
+        placeAddress: item.placeAddress || item.description || '',
+        eLoc:         item.eLoc         || item.mapplsPin   || '',
+        latitude:     parseFloat(item.latitude)  || null,
+        longitude:    parseFloat(item.longitude) || null,
+        type:         item.type || 'locality',
+      }));
+    } catch (err: any) {
+      this.logger.error(`Mappls autosuggest error: ${err.message}`);
+      return [];
     }
-
-    return fallback;
   }
 
-  /** Reverse geocoding returns only formatted string */
-  async reverseGeocode(lat: number, lng: number): Promise<string> {
-    const resolved = await this.resolveLocation(lat, lng);
-    return resolved.formattedAddress;
-  }
-
-  /** 
-   * Calculate exact road distance and ETA between two coordinates using Google Routes API / Distance Matrix API.
-   * STRICT ENFORCEMENT: No Haversine fallback. 
-   */
+  // 4. ROUTING — Mappls route_adv
   async calculateDistanceAndEta(
     fromLat: number, fromLng: number,
     toLat:   number, toLng:   number,
   ): Promise<DistanceResult> {
-    if (!this.GoogleKey) {
-      throw new Error('Google Maps API key is not configured. Cannot calculate accurate road distance.');
+    if (!this.MapplsToken) {
+      throw new Error('MAPPLS_ACCESS_TOKEN not configured. Cannot calculate road distance.');
+    }
+    if (!this.isValidCoordinates(fromLat, fromLng) || !this.isValidCoordinates(toLat, toLng)) {
+      throw new Error('Invalid coordinates for routing.');
     }
 
+    // Mappls route_adv uses longitude,latitude order
+    const url = `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const responseData = await this.computeRouteMatrix([[fromLat, fromLng]], [[toLat, toLng]]);
-      const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === 0);
-      if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
-        let etaMins = 0;
-        if (routeData.duration) {
-          etaMins = Math.ceil(parseInt(routeData.duration) / 60);
-        }
-        return {
-          distanceKm: Math.round((routeData.distanceMeters / 1000) * 100) / 100,
-          etaMinutes: etaMins
-        };
-      } else {
-        throw new Error("Google Routes API returned no valid route (status: " + routeData?.condition + ")");
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
       }
+
+      const data = await response.json();
+      const route = data?.routes?.[0];
+      if (!route) throw new Error('Mappls Routing returned no routes — location may be unserviceable');
+
+      return {
+        distanceKm:  Math.round((route.distance / 1000) * 100) / 100,
+        etaMinutes:  Math.ceil(route.duration / 60),
+      };
     } catch (err: any) {
-      this.logger.error("Google Routes Error: " + err.message);
-      throw new Error('Failed to calculate road distance via Google Maps');
+      clearTimeout(timeout);
+      this.logger.error(`Mappls Routing error: ${err.message}`);
+      throw err;
     }
   }
 
-  /** 
-   * Restaurant discovery:
-   * 1. DB-level geographic bounding box (NOT haversine).
-   * 2. Google Distance Matrix batch call for true road distances.
-   */
-  async getNearbyRestaurants(
-    lat:      number,
-    lng:      number,
-    radiusKm: number = 5,
-  ): Promise<NearbyRestaurant[]> {
-    // 0.1 degree is roughly ~11km. This is just a bounding box to avoid loading the entire database.
-    const delta = 0.2; 
+  // 5. DISTANCE MATRIX — Mappls batch
+  public async computeDistanceMatrix(
+    origin: [number, number],
+    destinations: [number, number][],
+  ): Promise<{ distanceKm: number; etaMinutes: number }[]> {
+    if (!this.MapplsToken || destinations.length === 0) {
+      return destinations.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+    }
+
+    const batch = destinations.slice(0, 99);
+    const [originLat, originLng] = origin;
+
+    // Mappls: lng,lat format; origin first, then destinations
+    const coords = [
+      `${originLng},${originLat}`,
+      ...batch.map(([lat, lng]) => `${lng},${lat}`),
+    ].join(';');
+
+    const url = `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/distance_matrix/driving/${coords}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(`Mappls Distance Matrix HTTP ${response.status}: ${body.substring(0, 200)}`);
+        return batch.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+      }
+
+      const data = await response.json();
+      // distances[0][0] = self (origin to origin = 0), distances[0][i] = origin to destination i-1
+      const distances: number[] = data?.results?.distances?.[0] || [];
+      const durations: number[] = data?.results?.durations?.[0] || [];
+
+      return batch.map((_, i) => ({
+        distanceKm: distances[i + 1] !== undefined
+          ? Math.round((distances[i + 1] / 1000) * 100) / 100
+          : 999,
+        etaMinutes: durations[i + 1] !== undefined
+          ? Math.ceil(durations[i + 1] / 60)
+          : 999,
+      }));
+    } catch (err: any) {
+      clearTimeout(timeout);
+      this.logger.error(`Mappls Distance Matrix error: ${err.message}`);
+      return batch.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+    }
+  }
+
+  // 6. NEARBY RESTAURANTS
+  async getNearbyRestaurants(lat: number, lng: number, radiusKm = 10): Promise<NearbyRestaurant[]> {
+    if (!this.isValidCoordinates(lat, lng)) return [];
+
+    const delta = Math.min(radiusKm / 111, 0.25);
     const candidates = await this.prisma.restaurant.findMany({
       where: {
-        status:   'APPROVED',
-        isOpen:   true,
+        status: 'APPROVED',
+        isOpen: true,
+        deletedAt: null,
         latitude:  { gte: lat - delta, lte: lat + delta },
         longitude: { gte: lng - delta, lte: lng + delta },
-        deletedAt: null,
       },
-      take: 25, // Limit to 25 to respect Distance Matrix standard maximum destinations
+      take: 25,
     });
 
     if (candidates.length === 0) return [];
-    if (!this.GoogleKey) return [];
+    if (!this.MapplsToken) return [];
 
-    const nearby: NearbyRestaurant[] = [];
-    const origins = [[lat, lng]] as [number, number][];
-    const destinations = candidates.map(c => [c.latitude, c.longitude] as [number, number]);
+    const dests = candidates.map(c => [Number(c.latitude), Number(c.longitude)] as [number, number]);
+    const results = await this.computeDistanceMatrix([lat, lng], dests);
 
-    try {
-      const responseData = await this.computeRouteMatrix(origins, destinations);
-      candidates.forEach((rest, index) => {
-        const routeData = responseData.find((r: any) => r.originIndex === 0 && r.destinationIndex === index);
-        if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
-          const distanceKm = Math.round((routeData.distanceMeters / 1000) * 100) / 100;
-          if (distanceKm <= radiusKm) {
-            let etaMins = 0;
-            if (routeData.duration) {
-              etaMins = Math.ceil(parseInt(routeData.duration) / 60);
-            }
-            nearby.push({
-              id: rest.id,
-              name: rest.name,
-              slug: rest.slug,
-              avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
-              distanceKm,
-              etaMinutes: etaMins + 10,
-              lat: rest.latitude,
-              lng: rest.longitude,
-            });
-          }
-        }
-      });
-    } catch (err: any) {
-      this.logger.error("Batch Google Routes Error: " + err.message);
-    }
-
-    return nearby.sort((a, b) => a.distanceKm - b.distanceKm);
+    return candidates
+      .map((rest, i) => ({
+        id:        rest.id,
+        name:      rest.name,
+        slug:      rest.slug,
+        avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
+        distanceKm:  results[i].distanceKm,
+        etaMinutes:  results[i].etaMinutes,
+        lat: Number(rest.latitude),
+        lng: Number(rest.longitude),
+      }))
+      .filter(r => r.distanceKm <= radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
-  /** Find available drivers using true road distance */
-  async getNearbyDrivers(
-    lat: number,
-    lng: number,
-  ): Promise<any[]> {
-    const delta = 0.2;
+  // 7. NEARBY DRIVERS
+  async getNearbyDrivers(lat: number, lng: number): Promise<any[]> {
+    if (!this.isValidCoordinates(lat, lng)) return [];
+
+    const delta = 0.1;
     const drivers = await this.prisma.driver.findMany({
       where: {
         status: 'ONLINE',
@@ -318,107 +370,47 @@ export class GeolocationService {
       take: 25,
     });
 
-    if (drivers.length === 0 || !this.GoogleKey) return [];
+    if (drivers.length === 0 || !this.MapplsToken) return [];
 
-    const origins = drivers.map(d => [d.currentLat!, d.currentLng!] as [number, number]);
-    const destinations = [[lat, lng]] as [number, number][];
+    const dests = drivers.map(d => [d.currentLat!, d.currentLng!] as [number, number]);
+    const results = await this.computeDistanceMatrix([lat, lng], dests);
 
-    const nearbyDrivers: any[] = [];
-    try {
-      const responseData = await this.computeRouteMatrix(origins, destinations);
-      drivers.forEach((driver, index) => {
-        const routeData = responseData.find((r: any) => r.originIndex === index && r.destinationIndex === 0);
-        if (routeData && (routeData.condition === "ROUTE_EXISTS" || routeData.distanceMeters !== undefined)) {
-          const distanceKm = Math.round((routeData.distanceMeters / 1000) * 100) / 100;
-          if (distanceKm <= 10) {
-            let etaMins = 0;
-            if (routeData.duration) {
-              etaMins = Math.ceil(parseInt(routeData.duration) / 60);
-            }
-            nearbyDrivers.push({
-              ...driver,
-              distanceKm,
-              etaMinutes: etaMins,
-            });
-          }
-        }
-      });
-    } catch (err: any) {
-      this.logger.error("Driver Batch Google Routes Error: " + err.message);
-    }
-
-    return nearbyDrivers.sort((a, b) => a.distanceKm - b.distanceKm);
+    return drivers
+      .map((d, i) => ({ ...d, distanceKm: results[i].distanceKm, etaMinutes: results[i].etaMinutes }))
+      .filter(d => d.distanceKm <= 10)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
-  /** Validate delivery radius using actual Google Maps Routes/Distance */
+  // 8. DELIVERY RADIUS VALIDATION
   async validateDeliveryRadius(
     restaurantId: string,
-    deliveryLat:  number,
-    deliveryLng:  number,
+    deliveryLat: number,
+    deliveryLng: number,
   ): Promise<{ valid: boolean; distanceKm: number; radiusKm: number }> {
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-    });
+    const restaurant = await this.prisma.restaurant.findUnique({ where: { id: restaurantId } });
+    if (!restaurant) return { valid: false, distanceKm: 999, radiusKm: 0 };
 
-    if (!restaurant) {
-      throw new NotFoundException(`Restaurant with ID "${restaurantId}" not found`);
-    }
+    const restLat = Number(restaurant.latitude);
+    const restLng = Number(restaurant.longitude);
+    if (!this.isValidCoordinates(restLat, restLng)) return { valid: false, distanceKm: 999, radiusKm: 0 };
 
-    // STRICT: Call Google Routes/Distance API for actual road distance (NO HAVERSINE)
+    const radiusKm = Number(restaurant.deliveryRadius || 15);
+
     try {
-      const roadRoute = await this.calculateDistanceAndEta(
-        restaurant.latitude, restaurant.longitude,
-        deliveryLat, deliveryLng,
-      );
-
-      const valid = roadRoute.distanceKm <= restaurant.deliveryRadius;
-
-      return {
-        valid,
-        distanceKm: roadRoute.distanceKm,
-        radiusKm: restaurant.deliveryRadius,
-      };
-    } catch (error) {
-      // If we cannot verify road distance, delivery is unavailable
-      return {
-        valid: false,
-        distanceKm: 999,
-        radiusKm: restaurant.deliveryRadius,
-      };
+      const { distanceKm } = await this.calculateDistanceAndEta(restLat, restLng, deliveryLat, deliveryLng);
+      return { valid: distanceKm <= radiusKm, distanceKm, radiusKm };
+    } catch {
+      return { valid: false, distanceKm: 999, radiusKm };
     }
   }
 
-  // Deprecated/Stubbed methods for frontend migration
-  async searchPlaceByName(placeName: string): Promise<any[]> {
-    return []; // Handled by Frontend Google Places Autocomplete
-  }
-
-  async getAutosuggest(query: string): Promise<any[]> {
-    return []; // Handled by Frontend Google Places Autocomplete
-  }
-
-  public async computeRouteMatrix(origins: [number, number][], destinations: [number, number][]) {
-    const url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
-    const body = {
-      origins: origins.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: Number(lat), longitude: Number(lng) } } } })),
-      destinations: destinations.map(([lat, lng]) => ({ waypoint: { location: { latLng: { latitude: Number(lat), longitude: Number(lng) } } } })),
-      travelMode: "DRIVE",
-      routingPreference: "TRAFFIC_AWARE"
+  private _fallbackGeocodeFailure(reason: string): DetailedGeocodeResult {
+    return {
+      success: false, latitude: null, longitude: null, displayName: null,
+      geocodeLevel: null, precisionLabel: 'FAILED', confidenceScore: 0,
+      matchedAddress: null, verificationStatus: 'FAILED',
+      queryTierUsed: 0, source: 'mappls_geocoding', reason,
     };
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": this.GoogleKey || "",
-        "X-Goog-FieldMask": "originIndex,destinationIndex,duration,distanceMeters,status,condition"
-      },
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Google Routes API failed: ${response.status} ${text}`);
-    }
-    return await response.json();
   }
 }
 

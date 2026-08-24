@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
+import React, { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 import { Loader2 } from 'lucide-react';
-
-const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 interface Props {
   driverLat: number;
@@ -17,83 +15,102 @@ interface Props {
 }
 
 export const LiveTrackingMap: React.FC<Props> = ({
-  driverLat,
-  driverLng,
-  restaurantLat,
-  restaurantLng,
-  customerLat,
-  customerLng,
+  driverLat, driverLng,
+  restaurantLat, restaurantLng,
+  customerLat, customerLng,
   driverName,
 }) => {
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
+  const mapToken = process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN || '';
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  const initMap = () => {
+    if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
+    try {
+      const centerLat = (driverLat + customerLat) / 2;
+      const centerLng = (driverLng + customerLng) / 2;
+
+      const map = new window.mappls.Map(mapRef.current, {
+        center: { lat: centerLat, lng: centerLng },
+        zoom: 13,
+        zoomControl: true,
+      });
+      mapInstanceRef.current = map;
+
+      // Restaurant marker
+      new window.mappls.Marker({
+        map,
+        position: { lat: restaurantLat, lng: restaurantLng },
+        popupHtml: '<div class="font-bold text-xs">Restaurant</div>',
+      });
+
+      // Customer marker
+      new window.mappls.Marker({
+        map,
+        position: { lat: customerLat, lng: customerLng },
+        popupHtml: '<div class="font-bold text-xs">Your Location</div>',
+      });
+
+      // Driver marker (updatable)
+      driverMarkerRef.current = new window.mappls.Marker({
+        map,
+        position: { lat: driverLat, lng: driverLng },
+        popupHtml: `<div class="font-bold text-xs text-emerald-700">${driverName || 'Rider'}</div>`,
+      });
+
+      // Route polyline
+      new window.mappls.Polyline({
+        map,
+        path: [
+          { lat: restaurantLat, lng: restaurantLng },
+          { lat: customerLat, lng: customerLng },
+        ],
+        strokeColor: '#059669',
+        strokeWidth: 4,
+        strokeOpacity: 0.8,
+      });
+
+      setIsLoaded(true);
+    } catch (err) {
+      console.error('Mappls LiveTrackingMap error:', err);
+      setError(true);
+    }
+  };
+
+  // Update driver marker position in real-time
+  useEffect(() => {
+    if (driverMarkerRef.current && driverLat && driverLng) {
+      driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
+    }
+  }, [driverLat, driverLng]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) initMap();
   });
 
-  const path = useMemo(() => [
-    { lat: restaurantLat, lng: restaurantLng },
-    { lat: customerLat, lng: customerLng },
-  ], [restaurantLat, restaurantLng, customerLat, customerLng]);
-
-  const mapCenter = useMemo(() => ({
-    lat: (driverLat + customerLat) / 2,
-    lng: (driverLng + customerLng) / 2,
-  }), [driverLat, driverLng, customerLat, customerLng]);
-
-  if (loadError) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
-  if (!isLoaded) return (
-    <div className="flex h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner">
-      <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+  if (error) return (
+    <div className="flex h-[350px] items-center justify-center bg-gray-50 rounded-2xl text-sm text-gray-500">
+      Map unavailable
     </div>
   );
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-gray-100 shadow-inner min-h-[400px]">
-      <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '100%' }}
-        center={mapCenter}
-        zoom={14}
-        options={{
-          disableDefaultUI: true,
-          zoomControl: true,
-        }}
-        onLoad={(map) => {
-          const bounds = new window.google.maps.LatLngBounds();
-          bounds.extend({ lat: restaurantLat, lng: restaurantLng });
-          bounds.extend({ lat: customerLat, lng: customerLng });
-          bounds.extend({ lat: driverLat, lng: driverLng });
-          map.fitBounds(bounds);
-        }}
-      >
-        <Marker 
-          position={{ lat: restaurantLat, lng: restaurantLng }} 
-          label={{ text: "R", color: "white", fontWeight: "bold" }}
-        />
-        <Marker 
-          position={{ lat: customerLat, lng: customerLng }} 
-          label={{ text: "Me", color: "white", fontWeight: "bold" }}
-        />
-        <Marker 
-          position={{ lat: driverLat, lng: driverLng }} 
-          icon={{
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: "#059669",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#ffffff",
-            scale: 8
-          }}
-        />
-
-        <Polyline
-          path={path}
-          options={{
-            strokeColor: '#059669',
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
-          }}
-        />
-      </GoogleMap>
+    <div className="relative h-[350px] w-full overflow-hidden rounded-2xl border border-gray-100 shadow-inner">
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        </div>
+      )}
+      <Script
+        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?v=3.0&layer=vector`}
+        strategy="afterInteractive"
+        onLoad={initMap}
+        onError={() => setError(true)}
+      />
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };

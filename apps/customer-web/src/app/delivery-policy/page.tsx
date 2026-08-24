@@ -49,7 +49,7 @@ export default function DeliveryPolicyPage() {
           <span>3.</span> Distance Calculation &amp; Delivery Charges
         </h2>
         <p className="text-sm text-gray-700">
-          Delivery charges are calculated transparently by our backend pricing engine based on the direct radial Haversine distance from the restaurant to your verified delivery point:
+          Delivery charges are calculated transparently by our backend pricing engine based on the direct radial MapmyIndia road distance from the restaurant to your verified delivery point:
         </p>
         <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1.5">
           <li><strong>Base Delivery Fee:</strong> Tiered starting from a base rate (e.g. ₹15 for local short-distance deliveries).</li>

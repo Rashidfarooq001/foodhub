@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
+import React, { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 import { Loader2 } from 'lucide-react';
-
-const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 interface Props {
   driverLat: number;
@@ -16,92 +14,105 @@ interface Props {
 }
 
 export const DeliveryMap: React.FC<Props> = ({
-  driverLat,
-  driverLng,
-  restaurantLat,
-  restaurantLng,
-  customerLat,
-  customerLng,
+  driverLat, driverLng,
+  restaurantLat, restaurantLng,
+  customerLat, customerLng,
 }) => {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
-    libraries,
+  const mapToken = process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN || '';
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  const centerLat = (driverLat + customerLat) / 2;
+  const centerLng = (driverLng + customerLng) / 2;
+
+  const initMap = () => {
+    if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
+    try {
+      const map = new window.mappls.Map(mapRef.current, {
+        center: { lat: centerLat, lng: centerLng },
+        zoom: 13,
+        zoomControl: true,
+      });
+      mapInstanceRef.current = map;
+
+      // Restaurant marker
+      new window.mappls.Marker({
+        map,
+        position: { lat: restaurantLat, lng: restaurantLng },
+        popupHtml: '<div class="font-bold text-xs text-orange-700">Restaurant</div>',
+      });
+
+      // Customer marker
+      new window.mappls.Marker({
+        map,
+        position: { lat: customerLat, lng: customerLng },
+        popupHtml: '<div class="font-bold text-xs text-emerald-700">Customer</div>',
+      });
+
+      // Driver marker
+      driverMarkerRef.current = new window.mappls.Marker({
+        map,
+        position: { lat: driverLat, lng: driverLng },
+        popupHtml: '<div class="font-bold text-xs text-blue-700">You</div>',
+      });
+
+      // Route polyline: driver → restaurant → customer
+      new window.mappls.Polyline({
+        map,
+        path: [
+          { lat: driverLat, lng: driverLng },
+          { lat: restaurantLat, lng: restaurantLng },
+          { lat: customerLat, lng: customerLng },
+        ],
+        strokeColor: '#059669',
+        strokeWidth: 4,
+        strokeOpacity: 0.8,
+      });
+
+      setIsLoaded(true);
+    } catch (err) {
+      console.error('Mappls DeliveryMap error:', err);
+      setError(true);
+    }
+  };
+
+  // Live update driver marker as GPS changes
+  useEffect(() => {
+    if (driverMarkerRef.current && driverLat && driverLng) {
+      driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
+    }
+  }, [driverLat, driverLng]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) initMap();
   });
 
-  const path = useMemo(() => [
-    { lat: driverLat, lng: driverLng },
-    { lat: restaurantLat, lng: restaurantLng },
-    { lat: customerLat, lng: customerLng },
-  ], [driverLat, driverLng, restaurantLat, restaurantLng, customerLat, customerLng]);
-
-  const mapCenter = useMemo(() => ({
-    lat: (driverLat + customerLat) / 2,
-    lng: (driverLng + customerLng) / 2,
-  }), [driverLat, driverLng, customerLat, customerLng]);
-
-  if (!apiKey || loadError) {
+  if (!mapToken || error) {
     return (
       <div className="flex flex-col h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner text-sm text-gray-500 p-6 text-center">
         <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Google Maps configuration is missing or invalid. Please configure the Map API key.</span>
+        <span>Mappls map configuration is missing. Please configure NEXT_PUBLIC_MAPPLS_MAP_TOKEN.</span>
       </div>
     );
   }
-  
-  if (!isLoaded) return (
-    <div className="flex h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner">
-      <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
-    </div>
-  );
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-3xl border border-gray-100 shadow-inner min-h-[400px]">
-      <GoogleMap
-        mapContainerStyle={{ width: '100%', height: '100%' }}
-        center={mapCenter}
-        zoom={13}
-        options={{
-          disableDefaultUI: true,
-          zoomControl: true,
-        }}
-        onLoad={(map) => {
-          const bounds = new window.google.maps.LatLngBounds();
-          path.forEach(({ lat, lng }) => {
-            if (lat && lng) bounds.extend(new window.google.maps.LatLng(lat, lng));
-          });
-          map.fitBounds(bounds);
-        }}
-      >
-        <Marker 
-          position={{ lat: restaurantLat, lng: restaurantLng }} 
-          label={{ text: "R", color: "white", fontWeight: "bold" }}
-        />
-        <Marker 
-          position={{ lat: customerLat, lng: customerLng }} 
-          label={{ text: "C", color: "white", fontWeight: "bold" }}
-        />
-        <Marker 
-          position={{ lat: driverLat, lng: driverLng }} 
-          icon={{
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: "#059669",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#ffffff",
-            scale: 8
-          }}
-        />
-
-        <Polyline
-          path={path}
-          options={{
-            strokeColor: '#059669',
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
-          }}
-        />
-      </GoogleMap>
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+        </div>
+      )}
+      <Script
+        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?v=3.0&layer=vector`}
+        strategy="afterInteractive"
+        onLoad={initMap}
+        onError={() => setError(true)}
+      />
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };

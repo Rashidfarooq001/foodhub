@@ -11,7 +11,7 @@ export interface DeliveryDistanceResult {
   valid: boolean;
   distanceKm: number;
   radiusKm: number;
-  distanceType: 'ROAD_ROUTING';
+  distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING';
   reason?: string;
 }
 
@@ -37,7 +37,7 @@ export class DistanceService {
 
   /**
    * Authoritative Delivery Distance Calculation (Point A: Restaurant -> Point B: Verified Customer Address)
-   * Exclusively uses Google Routes / Distance Matrix (No Haversine).
+   * Exclusively uses Mappls Routing / Distance Matrix (No Haversine).
    */
   async getDeliveryDistance(
     restaurantId: string,
@@ -49,7 +49,7 @@ export class DistanceService {
         valid: false,
         distanceKm: 0,
         radiusKm: 0,
-        distanceType: 'ROAD_ROUTING',
+        distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
         reason: 'INVALID_CUSTOMER_COORDINATES',
       };
     }
@@ -63,7 +63,7 @@ export class DistanceService {
         valid: false,
         distanceKm: 0,
         radiusKm: 0,
-        distanceType: 'ROAD_ROUTING',
+        distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
         reason: 'INVALID_RESTAURANT_COORDINATES',
       };
     }
@@ -84,7 +84,7 @@ export class DistanceService {
         valid,
         distanceKm,
         radiusKm,
-        distanceType: 'ROAD_ROUTING',
+        distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
         reason: valid ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
       };
     } catch (error) {
@@ -92,7 +92,7 @@ export class DistanceService {
         valid: false,
         distanceKm: 999,
         radiusKm,
-        distanceType: 'ROAD_ROUTING',
+        distanceType: 'MAPPLS_MAPPLS_ROAD_ROUTING',
         reason: 'ROUTE_CALCULATION_FAILED',
       };
     }
