@@ -159,15 +159,19 @@ async function main() {
 
   const restaurant = await prisma.restaurant.upsert({
     where: { slug: 'spice-garden-restaurant' },
-    update: { isOpen: true },
+    update: {
+      isOpen: true,
+      latitude: 34.2980,
+      longitude: 74.4690,
+    },
     create: {
       name: 'Spice Garden Restaurant',
       slug: 'spice-garden-restaurant',
       phone: ownerPhone,
       licenseFssai: '11223344556677',
       addressLine: 'Main Chowk, Sopore, Kashmir 193201',
-      latitude: 34.3868,
-      longitude: 74.5221,
+      latitude: 34.2980,
+      longitude: 74.4690,
       ownerId: restaurantOwner.id,
       avgRating: 4.8,
       bannerUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
