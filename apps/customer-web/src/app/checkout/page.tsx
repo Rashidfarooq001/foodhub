@@ -196,6 +196,13 @@ export default function CheckoutPage() {
     if (res) {
       const { coords, address } = res;
       
+      console.log('[GPS] Native coordinates detected:', {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
+      console.log('[Mappls Rev-Geocode] Raw response:', address);
+
       const locality = address.locality || address.village || address.subLocality || 'Current Location';
       const district = address.district || address.city || '';
       const state = address.state || 'Jammu & Kashmir';

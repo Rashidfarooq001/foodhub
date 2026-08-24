@@ -39,7 +39,12 @@ export class GeolocationService {
   constructor(private readonly prisma: PrismaService) {}
 
   private get MapplsToken(): string {
-    return process.env.MAPPLS_ACCESS_TOKEN || '';
+    return (
+      process.env.MAPPLS_ACCESS_TOKEN ||
+      process.env.MAPPLS_API_KEY ||
+      process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
+      'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+    ).trim();
   }
 
   private isValidCoordinates(lat: number, lng: number): boolean {
@@ -55,6 +60,8 @@ export class GeolocationService {
     latitude: number;
     longitude: number;
     locality: string;
+    village?: string;
+    subLocality?: string;
     district: string;
     subDistrict?: string;
     state: string;
@@ -72,7 +79,7 @@ export class GeolocationService {
       longitude: lng,
       locality: '',
       district: '',
-      state: '',
+      state: 'Jammu & Kashmir',
       country: 'India',
       formattedAddress: 'Location detected',
     };
@@ -100,30 +107,45 @@ export class GeolocationService {
       if (!result) return fallback;
 
       // Log raw Mappls fields for debugging coordinate/geocoding issues
-      this.logger.debug(`Mappls raw rev-geocode: locality=${result.locality}, village=${result.village}, subLocality=${result.subLocality}, subDistrict=${result.subDistrict}, district=${result.district}, city=${result.city}, state=${result.state}, pincode=${result.pincode}`);
+      this.logger.debug(`Mappls raw rev-geocode [${lat}, ${lng}]: village="${result.village}", locality="${result.locality}", subLocality="${result.subLocality}", subDistrict="${result.subDistrict}", district="${result.district}", city="${result.city}", state="${result.state}", pincode="${result.pincode}"`);
 
       const houseNumber   = (result.houseNumber || result.houseName || '').trim();
       const street        = (result.street || '').trim();
       const village       = (result.village || '').trim();
+      const locality      = (result.locality || '').trim();
+      const subLocality   = (result.subLocality || '').trim();
       const poi           = (result.poi || '').trim();
-      const finalLocality = (result.locality || village || result.subLocality || poi || '').trim();
-      const district      = (result.district || result.city || '').trim();
+      const finalLocality = (village || locality || subLocality || poi || street || 'Detected Location').trim();
+      const cleanDistrict = (result.district || result.city || '').replace(/\s+District$/i, '').trim();
       const subDistrict   = (result.subDistrict || '').trim();
-      const state         = (result.state || '').trim();
-      const country     = result.country     || 'India';
-      const pincode     = result.pincode     || '';
-      const mapplsPin   = result.mapplsPin   || '';
+      const state         = (result.state || 'Jammu & Kashmir').trim();
+      const country       = (result.country || 'India').trim();
+      const pincode       = (result.pincode || '').trim();
+      const mapplsPin     = (result.mapplsPin || '').trim();
 
-      const parts = [houseNumber, street, finalLocality, subDistrict, district, state].filter(Boolean);
+      const parts = [houseNumber, street, finalLocality, subDistrict, cleanDistrict, state].filter(Boolean);
       // Deduplicate and remove empty strings
       const uniqueParts = Array.from(new Set(parts.map(p => p.trim()))).filter(Boolean);
 
       const builtAddress = pincode ? `${uniqueParts.join(', ')} - ${pincode}` : uniqueParts.join(', ');
-      const formattedAddress = builtAddress || result.formattedAddress || 'Location detected';
+      const formattedAddress = builtAddress || result.formatted_address || result.formattedAddress || 'Location detected';
 
-      this.logger.debug(`Mappls built address: "${formattedAddress}" (locality="${finalLocality}", district="${district}", pincode="${pincode}")`);
+      this.logger.debug(`Mappls normalized address: "${formattedAddress}" (locality="${finalLocality}", district="${cleanDistrict}", pincode="${pincode}")`);
 
-      return { latitude: lat, longitude: lng, locality: finalLocality, district, subDistrict, state, country, pincode, mapplsPin, formattedAddress };
+      return {
+        latitude: lat,
+        longitude: lng,
+        locality: finalLocality,
+        village,
+        subLocality,
+        district: cleanDistrict,
+        subDistrict,
+        state,
+        country,
+        pincode,
+        mapplsPin,
+        formattedAddress,
+      };
     } catch (err: any) {
       if (err.name !== 'AbortError') this.logger.error(`Mappls Rev-Geocode error: ${err.message}`);
       return fallback;
