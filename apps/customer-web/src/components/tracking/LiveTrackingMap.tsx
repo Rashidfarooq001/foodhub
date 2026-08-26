@@ -82,13 +82,12 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
 
       const addOverlays = () => {
         try {
-          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
           // 1. Restaurant Marker
           if (restValid) {
             new window.mappls.Marker({
               map,
               position: { lat: restaurantLat, lng: restaurantLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">dY? Kitchen / Restaurant</div>',
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏪 Kitchen / Restaurant</div>',
             });
           }
 
@@ -97,7 +96,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             new window.mappls.Marker({
               map,
               position: { lat: customerLat, lng: customerLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">dY"? Your Delivery Address</div>',
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
             });
           }
 
@@ -107,34 +106,66 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             const dMarker = new window.mappls.Marker({
               map,
               position: { lat: driverLat, lng: driverLng },
-              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">dYs' ${driverName || 'Delivery Partner'} (Live)</div>`,
+              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
             });
             driverMarkerRef.current = dMarker;
           }
 
           // 4. Real Mappls Road Route Polyline
           if (routeCoordinates && routeCoordinates.length >= 2) {
-            const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
-            const polyline = new window.mappls.Polyline({
-              map,
-              path,
+            // Mappls polyline takes an array of {lat, lng} objects or similar, depending on version
+            const path = routeCoordinates.map(coord => {
+              if (Array.isArray(coord)) {
+                return { lat: Number(coord[0]), lng: Number(coord[1]) };
+              } else if (coord && typeof coord === 'object') {
+                return { lat: Number((coord as any).lat), lng: Number((coord as any).lng) };
+              }
+              return { lat: 0, lng: 0 };
+            }).filter(c => c.lat && c.lng);
+
+            if (path.length >= 2) {
+              const polyline = new window.mappls.Polyline({
+                map,
+                path,
               strokeColor: '#ea580c',
               strokeWeight: 5,
               strokeOpacity: 0.9,
-              fitbounds: true,
+              fitbounds: false, // We will manually compute bounds below
             });
             polylineRef.current = polyline;
-          } else if (restValid && custValid) {
+          }
+        }
+
+          // 5. Automatic Viewport Fitting
+          const bounds: [number, number][] = [];
+          if (restValid) bounds.push([Number(restaurantLat), Number(restaurantLng)]);
+          if (custValid) bounds.push([Number(customerLat), Number(customerLng)]);
+          if (driverValid && driverLat && driverLng) bounds.push([Number(driverLat), Number(driverLng)]);
+          if (routeCoordinates && routeCoordinates.length >= 2) {
+            routeCoordinates.forEach(coord => {
+              if (Array.isArray(coord)) {
+                bounds.push([Number(coord[0]), Number(coord[1])]);
+              } else if (coord && typeof coord === 'object') {
+                bounds.push([Number((coord as any).lat), Number((coord as any).lng)]);
+              }
+            });
+          }
+
+          if (bounds.length > 0) {
+            const minLat = Math.min(...bounds.map(b => b[0]));
+            const maxLat = Math.max(...bounds.map(b => b[0]));
+            const minLng = Math.min(...bounds.map(b => b[1]));
+            const maxLng = Math.max(...bounds.map(b => b[1]));
             try {
               map.fitBounds([
-                [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
-                [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
+                [minLat - 0.005, minLng - 0.005],
+                [maxLat + 0.005, maxLng + 0.005]
               ]);
             } catch {
-              // ignore
+              // ignore fit bounds error
             }
           }
-          */
+
           setMapState('READY');
         } catch (err: any) {
           console.error('[Mappls Web Map] Overlay error:', err);
@@ -162,6 +193,46 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       initMap();
     }
   }, [sdkLoaded, sdkError, initMap]);
+
+  // Smooth real-time update of driver marker location (NO fitBounds / NO camera jump)
+  useEffect(() => {
+    if (!hasValidCoords(driverLat, driverLng) || !driverLat || !driverLng) return;
+
+    if (driverMarkerRef.current) {
+      try {
+        driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
+      } catch (err) {
+        console.error('[Mappls Web Map] Error updating driver marker:', err);
+      }
+    } else if (mapInstanceRef.current && window.mappls && mapState === 'READY') {
+      try {
+        const dMarker = new window.mappls.Marker({
+          map: mapInstanceRef.current,
+          position: { lat: driverLat, lng: driverLng },
+          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
+        });
+        driverMarkerRef.current = dMarker;
+      } catch (err) {
+        console.error('[Mappls Web Map] Error creating driver marker:', err);
+      }
+    }
+  }, [driverLat, driverLng, driverName, mapState]);
+
+  // Handle container resize (e.g., orientation change or responsive layout shifts)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const container = mapContainerRef.current;
+    if (!map || !container || mapState !== 'READY') return;
+
+    const observer = new ResizeObserver(() => {
+      if (typeof map.resize === 'function') {
+        map.resize();
+      }
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [mapState]);
 
   return (
     <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-3xl bg-gray-900 shadow-inner flex flex-col">

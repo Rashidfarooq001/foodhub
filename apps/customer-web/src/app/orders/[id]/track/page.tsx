@@ -142,8 +142,8 @@ export default function LiveOrderTrackingPage() {
   const customerLat = deliveryAddress.latitude ? Number(deliveryAddress.latitude) : 0;
   const customerLng = deliveryAddress.longitude ? Number(deliveryAddress.longitude) : 0;
 
-  const currentDriverLat = driverLoc?.lat || (restaurantLat !== 0 ? restaurantLat + 0.003 : customerLat);
-  const currentDriverLng = driverLoc?.lng || (restaurantLng !== 0 ? restaurantLng + 0.003 : customerLng);
+  const currentDriverLat = driverLoc?.lat;
+  const currentDriverLng = driverLoc?.lng;
 
   const etaMins = serverEtaMins ?? 15;
 
