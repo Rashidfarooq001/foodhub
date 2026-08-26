@@ -873,7 +873,7 @@ export class OrderStateMachineService {
         data: {
           status: targetStatus,
           version: { increment: 1 },
-          ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any, deliveryOtpVerifiedAt: now } : {}),
+          ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any } : {}),
         },
         include: {
           restaurant: true,

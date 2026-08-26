@@ -1,0 +1,1 @@
+ALTER TABLE "Order" ALTER COLUMN "delivery_otp" DROP NOT NULL;

@@ -103,7 +103,7 @@ class MockCompletePrisma {
 
   order = {
     create: async ({ data }: any) => {
-      const ord = { id: 'ord-' + Math.random().toString(36).slice(2, 9), createdAt: new Date(), ...data, deliveryOtpAttempts: 0 };
+      const ord = { id: 'ord-' + Math.random().toString(36).slice(2, 9), createdAt: new Date(), ...data };
       this.orders.set(ord.id, ord);
       return ord;
     },
@@ -144,11 +144,7 @@ class MockCompletePrisma {
     },
     update: async ({ where, data }: any) => {
       const ord = this.orders.get(where.id);
-      if (data.deliveryOtpAttempts?.increment) {
-        ord.deliveryOtpAttempts = (ord.deliveryOtpAttempts || 0) + data.deliveryOtpAttempts.increment;
-      } else {
-        Object.assign(ord, data);
-      }
+      Object.assign(ord, data);
       return ord;
     },
   };
@@ -416,28 +412,14 @@ async function runEndToEndVerification() {
     driverId: driver.id,
   });
   const outOrder = await prisma.order.findUnique({ where: { id: createdOrder.id } });
-  const deliveryOtp = outOrder.deliveryOtp;
-  console.log(`  Customer Delivery Verification OTP: ${deliveryOtp}`);
-  console.log('  ✓ Step 7 Passed: Order is OUT_FOR_DELIVERY with secure OTP generated');
+  console.log('  ✓ Step 7 Passed: Order is OUT_FOR_DELIVERY');
 
-  // 8. FAILURE TESTING: WRONG OTP & SECURITY CHECKS
-  console.log('\nSTEP 8: Failure Testing — Wrong OTP & Security Guard:');
-  let wrongOtpCaught = false;
-  try {
-    await stateMachine.verifyDeliveryOtp(createdOrder.id, '0000', {
-      userId: riderUser.id,
-      role: 'DELIVERY_PARTNER',
-      driverId: driver.id,
-    });
-  } catch (err: any) {
-    wrongOtpCaught = true;
-    console.log(`  ✓ Correctly rejected invalid OTP: "${err?.message}"`);
-  }
-  if (!wrongOtpCaught) throw new Error('Security flaw: Invalid delivery OTP was accepted!');
+  // 8. FAILURE TESTING: SECURITY CHECKS
+  console.log('\nSTEP 8: Failure Testing — Security Guard:');
 
   let unassignedDriverCaught = false;
   try {
-    await stateMachine.verifyDeliveryOtp(createdOrder.id, deliveryOtp, {
+    await stateMachine.completeDelivery(createdOrder.id, {
       userId: 'usr-fake-rider',
       role: 'DELIVERY_PARTNER',
       driverId: 'drv-unassigned',
@@ -446,11 +428,11 @@ async function runEndToEndVerification() {
     unassignedDriverCaught = true;
     console.log(`  ✓ Correctly rejected unauthorized driver: "${err?.message}"`);
   }
-  if (!unassignedDriverCaught) throw new Error('Security flaw: Unassigned driver verified OTP!');
+  if (!unassignedDriverCaught) throw new Error('Security flaw: Unassigned driver verified delivery!');
 
-  // 9. VALID DELIVERY OTP VERIFICATION -> DELIVERED & WALLET CREDIT
-  console.log('\nSTEP 9: Valid Delivery OTP Verification & Double-Entry Settlement:');
-  await stateMachine.verifyDeliveryOtp(createdOrder.id, deliveryOtp, {
+  // 9. VALID DELIVERY COMPLETION -> DELIVERED & WALLET CREDIT
+  console.log('\nSTEP 9: Valid Delivery Completion & Double-Entry Settlement:');
+  await stateMachine.completeDelivery(createdOrder.id, {
     userId: riderUser.id,
     role: 'DELIVERY_PARTNER',
     driverId: driver.id,
@@ -473,7 +455,7 @@ async function runEndToEndVerification() {
 
   // 10. DUPLICATE DELIVERY RE-SUBMISSION (IDEMPOTENT PROTECTION)
   console.log('\nSTEP 10: Duplicate Delivery Confirmation Idempotency:');
-  const duplicateRes = await stateMachine.verifyDeliveryOtp(createdOrder.id, deliveryOtp, {
+  const duplicateRes = await stateMachine.completeDelivery(createdOrder.id, {
     userId: riderUser.id,
     role: 'DELIVERY_PARTNER',
     driverId: driver.id,

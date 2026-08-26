@@ -6,7 +6,7 @@ import { DeliveryJob } from '../data/delivery-mock-data';
 interface ActiveDeliveryState {
   currentJob: DeliveryJob | null;
   setCurrentJob: (job: DeliveryJob | null) => void;
-  verifyOtpAndComplete: (otp: string) => boolean;
+  completeDelivery: () => void;
   markPickedUp: () => void;
   acceptNewJob: (job: DeliveryJob) => void;
 }
@@ -17,13 +17,8 @@ export const useActiveDeliveryStore = create<ActiveDeliveryState>()((set, get) =
 
   setCurrentJob: (job) => set({ currentJob: job }),
 
-  verifyOtpAndComplete: (otp) => {
-    const job = get().currentJob;
-    if (job && job.deliveryOtp === otp) {
-      set({ currentJob: null });
-      return true;
-    }
-    return false;
+  completeDelivery: () => {
+    set({ currentJob: null });
   },
 markPickedUp: () => {
   set((state) => ({

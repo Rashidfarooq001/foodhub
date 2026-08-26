@@ -116,11 +116,7 @@ export class OrdersRepository {
       take:    limit,
     });
 
-    // Redact deliveryOtp for restaurant privacy
-    return orders.map((o) => {
-      const { deliveryOtp, ...safeOrder } = o as any;
-      return safeOrder;
-    });
+    return orders;
   }
 
   async findAll(status?: any, page = 1, limit = 20) {

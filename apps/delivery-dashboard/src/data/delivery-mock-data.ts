@@ -19,16 +19,9 @@ export interface DeliveryJob {
   distanceKm: number;
   estimatedEarnings: number;
   estimatedTimeMins: number;
-  deliveryOtp: string;
   paymentMethod?: 'COD' | 'ONLINE';
   codAmountToCollect?: number;
- status:
-  | 'PENDING'
-  | 'PREPARING'
-  | 'READY_FOR_PICKUP'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'CANCELLED';
+  status: 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP' | 'DRIVER_ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
   items: { name: string; quantity: number }[];
 }
 

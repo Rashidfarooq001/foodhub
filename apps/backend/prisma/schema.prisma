@@ -782,7 +782,7 @@ model Order {
   deliveryAddress  Json          @map("delivery_address")
   taxSnapshot      Json?         @map("tax_snapshot")
   pricingSnapshot  Json?         @map("pricing_snapshot")
-  deliveryOtp      String        @map("delivery_otp") // 4-digit OTP
+  deliveryOtp      String?       @map("delivery_otp") // Legacy 4-digit OTP
   deliveryOtpHash        String?       @map("delivery_otp_hash")
   deliveryOtpExpiresAt   DateTime?     @map("delivery_otp_expires_at")
   deliveryOtpAttempts    Int           @default(0) @map("delivery_otp_attempts")

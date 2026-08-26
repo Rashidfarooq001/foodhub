@@ -324,7 +324,6 @@ export class OrdersService {
           deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
           taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
           pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
-          deliveryOtp:        'NOT_REQUIRED',
           specialInstruction: dto.specialInstruction,
         },
       });
@@ -641,15 +640,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
   async updateSelfDeliveryStatus(orderId: string, status: string, otp?: string) {
     const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
 
-    if (status === 'DELIVERED') {
-      if (!otp) {
-        throw new BadRequestException('Delivery confirmation OTP is required.');
-      }
-      const isOtpValid = order.deliveryOtp === otp || (order.deliveryOtpHash && hashOtp(otp) === order.deliveryOtpHash);
-      if (!isOtpValid) {
-        throw new BadRequestException('Invalid Delivery OTP');
-      }
-    }
+    // OTP requirement removed from delivery completion
 
     const nextStatus = status as OrderStatus;
 
@@ -774,7 +765,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         driverName,
         driverPhone,
         vehicleNumber,
-        deliveryOtp: activeOrder.status === OrderStatus.OUT_FOR_DELIVERY ? activeOrder.deliveryOtp : undefined,
+
         etaMins,
         status: activeOrder.status,
         placedAt: activeOrder.createdAt,
@@ -856,7 +847,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         restaurantBanner: ord.restaurant?.bannerUrl,
         date: ord.createdAt.toLocaleDateString() + ' ' + ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         createdAt: ord.createdAt,
-        deliveredAt: ord.deliveryJob?.deliveredAt || ord.deliveryOtpVerifiedAt || ord.updatedAt,
+        deliveredAt: ord.deliveryJob?.deliveredAt || ord.updatedAt,
         totalAmount: Number(ord.totalAmount),
         itemCount: ord.orderItems.reduce((acc, i) => acc + i.quantity, 0),
         itemsSummary: ord.orderItems.map((i) => `${i.quantity}x ${i.foodItem?.name || 'Item'}`).join(', '),

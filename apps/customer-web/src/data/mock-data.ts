@@ -103,7 +103,6 @@ export interface ActiveOrderTrackingData {
   driverLng: number;
   vehicleNumber: string;
   status: 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP' | 'DRIVER_ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
-  deliveryOtp: string;
   etaMins: number;
   placedAt: string;
   items: { name: string; quantity: number; price: number }[];
