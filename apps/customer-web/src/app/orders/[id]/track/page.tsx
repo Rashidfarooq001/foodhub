@@ -24,6 +24,8 @@ export default function LiveOrderTrackingPage() {
 
   const [order, setOrder] = useState<any | null>(null);
   const [driverLoc, setDriverLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const [serverEtaMins, setServerEtaMins] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
 
@@ -44,6 +46,12 @@ export default function LiveOrderTrackingPage() {
         const trackData = await trackingRes.json();
         if (trackData?.driverLat && trackData?.driverLng) {
           setDriverLoc({ lat: trackData.driverLat, lng: trackData.driverLng });
+        }
+        if (Array.isArray(trackData?.routeCoordinates) && trackData.routeCoordinates.length > 0) {
+          setRouteCoords(trackData.routeCoordinates);
+        }
+        if (typeof trackData?.etaMins === 'number') {
+          setServerEtaMins(trackData.etaMins);
         }
       }
     } catch {
@@ -136,11 +144,7 @@ export default function LiveOrderTrackingPage() {
   const currentDriverLat = driverLoc?.lat || (restaurantLat !== 0 ? restaurantLat + 0.003 : customerLat);
   const currentDriverLng = driverLoc?.lng || (restaurantLng !== 0 ? restaurantLng + 0.003 : customerLng);
 
-  const distKm = Math.sqrt(
-    Math.pow((customerLat - currentDriverLat) * 111, 2) +
-    Math.pow((customerLng - currentDriverLng) * 111, 2),
-  );
-  const etaMins = Math.max(5, Math.ceil((distKm / 25) * 60) + 5);
+  const etaMins = serverEtaMins ?? 15;
 
   const isDriverAssigned = Boolean(order.assignedRestaurantDriver);
   const driverName = isDriverAssigned
@@ -270,6 +274,7 @@ export default function LiveOrderTrackingPage() {
               driverLat={currentDriverLat}
               driverLng={currentDriverLng}
               driverName={driverName}
+              routeCoordinates={routeCoords}
             />
           </div>
 

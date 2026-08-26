@@ -17,7 +17,10 @@ export const GoogleMapPicker: React.FC<Props> = ({
   onLocationChange,
   className = 'w-full h-[300px] rounded-xl overflow-hidden',
 }) => {
-  const mapToken = process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN || '';
+  const mapKey =
+    process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY ||
+    process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN ||
+    'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -31,7 +34,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
     if (!mapRef.current || !window.mappls) return;
     try {
       const map = new window.mappls.Map(mapRef.current, {
-        center: { lat: centerLat, lng: centerLng },
+        center: [centerLat, centerLng],
         zoom: 14,
         zoomControl: true,
       });
@@ -71,11 +74,11 @@ export const GoogleMapPicker: React.FC<Props> = ({
     }
   });
 
-  if (!mapToken || error) {
+  if (error) {
     return (
       <div className={`${className} flex flex-col items-center justify-center bg-gray-100 text-sm text-gray-500 p-6 text-center`}>
         <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Mappls map configuration is missing. Please configure NEXT_PUBLIC_MAPPLS_MAP_TOKEN.</span>
+        <span>Mappls map initialization error. Please try again.</span>
       </div>
     );
   }
@@ -88,7 +91,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
         </div>
       )}
       <Script
-        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?v=3.0&layer=vector`}
+        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
         strategy="afterInteractive"
         onLoad={initMap}
         onError={() => setError(true)}
@@ -97,3 +100,4 @@ export const GoogleMapPicker: React.FC<Props> = ({
     </div>
   );
 };
+

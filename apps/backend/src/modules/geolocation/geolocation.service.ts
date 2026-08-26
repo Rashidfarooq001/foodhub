@@ -400,6 +400,59 @@ export class GeolocationService {
     }
   }
 
+  // 4b. ROUTE GEOMETRY — Authoritative Mappls Road Geometry (GeoJSON)
+  async getRouteGeometry(
+    fromLat: number, fromLng: number,
+    toLat:   number, toLng:   number,
+  ): Promise<{ coordinates: [number, number][]; distanceKm: number; etaMinutes: number }> {
+    const token = await this.getValidToken();
+    if (!token) {
+      throw new Error('MAPPLS_ACCESS_TOKEN not configured.');
+    }
+    if (!this.isValidCoordinates(fromLat, fromLng) || !this.isValidCoordinates(toLat, toLng)) {
+      throw new Error('Invalid coordinates for route geometry.');
+    }
+
+    const url = `https://route.mappls.com/route/direction/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}?access_token=${encodeURIComponent(token)}&geometries=geojson&overview=full`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`Mappls Route Geometry HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const route = data?.routes?.[0];
+      if (!route) {
+        throw new Error('No route found from Mappls.');
+      }
+
+      const distNum = Number(route.distance) || 0;
+      const durNum = Number(route.duration) || 0;
+
+      // Mappls GeoJSON returns coordinates as [lng, lat]. Convert to [lat, lng]
+      const rawCoords: [number, number][] = route.geometry?.coordinates || [];
+      const coordinates: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
+
+      return {
+        coordinates,
+        distanceKm: Math.round((distNum / 1000) * 100) / 100,
+        etaMinutes: Math.ceil(durNum / 60),
+      };
+    } catch (err: any) {
+      clearTimeout(timeout);
+      this.logger.error(`Mappls Route Geometry error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`);
+      throw err;
+    }
+  }
+
   // 5. DISTANCE MATRIX — Authoritative Mappls Batch Endpoint
   public async computeDistanceMatrix(
     origin: [number, number],

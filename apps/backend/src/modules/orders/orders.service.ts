@@ -1029,17 +1029,32 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     }
 
     const deliveryAddress: any = order.deliveryAddress || {};
-const restaurantLat = order.restaurant.latitude;
-const restaurantLng = order.restaurant.longitude;
-const customerLat = deliveryAddress?.latitude;
-const customerLng = deliveryAddress?.longitude;
-const driverLat = order.tracking?.currentLat || restaurantLat + 0.002;
-const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
-    const distKm = Math.sqrt(
-      Math.pow((customerLat - driverLat) * 111, 2) +
-      Math.pow((customerLng - driverLng) * 111, 2),
-    );
-    const etaMins = Math.max(5, Math.ceil((distKm / 25) * 60) + 5);
+    const restaurantLat = Number(order.restaurant.latitude) || 0;
+    const restaurantLng = Number(order.restaurant.longitude) || 0;
+    const customerLat = Number(deliveryAddress?.latitude) || 0;
+    const customerLng = Number(deliveryAddress?.longitude) || 0;
+    const driverLat = order.tracking?.currentLat ? Number(order.tracking.currentLat) : null;
+    const driverLng = order.tracking?.currentLng ? Number(order.tracking.currentLng) : null;
+
+    let routeCoordinates: [number, number][] = [];
+    let roadDistanceKm: number | null = null;
+    let etaMins = 15;
+
+    if (restaurantLat && restaurantLng && customerLat && customerLng) {
+      try {
+        const routeData = await this.geolocationService.getRouteGeometry(
+          restaurantLat,
+          restaurantLng,
+          customerLat,
+          customerLng,
+        );
+        routeCoordinates = routeData.coordinates;
+        roadDistanceKm = routeData.distanceKm;
+        etaMins = routeData.etaMinutes;
+      } catch (err: any) {
+        this.logger.warn(`[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`);
+      }
+    }
 
     let customerDeliveryOtp: string | undefined = undefined;
     if (isCustomerOwner && order.status === OrderStatus.OUT_FOR_DELIVERY) {
@@ -1076,6 +1091,8 @@ const driverLng = order.tracking?.currentLng || restaurantLng + 0.002;
       driverPhone: order.assignedRestaurantDriver?.phone || '+919876543210',
       vehicleNumber: order.assignedRestaurantDriver?.vehicleNumber || 'KA-01-EE-9482',
       etaMins,
+      distanceKm: roadDistanceKm,
+      routeCoordinates,
       deliveryOtp: customerDeliveryOtp,
       updatedAt: order.tracking?.updatedAt || new Date(),
     });

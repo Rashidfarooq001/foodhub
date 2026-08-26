@@ -28,7 +28,10 @@ export default function NearbyRestaurantsMap({
   restaurants,
   onSelect,
 }: NearbyRestaurantsMapProps) {
-  const mapToken = process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN || '';
+  const mapKey =
+    process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY ||
+    process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN ||
+    'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -38,7 +41,7 @@ export default function NearbyRestaurantsMap({
     if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
     try {
       const map = new window.mappls.Map(mapRef.current, {
-        center: { lat: userLat, lng: userLng },
+        center: [userLat, userLng],
         zoom: 13,
         zoomControl: true,
       });
@@ -84,7 +87,7 @@ export default function NearbyRestaurantsMap({
         </div>
       )}
       <Script
-        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?v=3.0&layer=vector`}
+        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
         strategy="afterInteractive"
         onLoad={initMap}
         onError={() => setError(true)}
@@ -93,3 +96,4 @@ export default function NearbyRestaurantsMap({
     </div>
   );
 }
+
