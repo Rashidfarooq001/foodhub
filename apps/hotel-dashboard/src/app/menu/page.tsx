@@ -88,18 +88,44 @@ export default function HotelMenuPage() {
         fetch(`${API_BASE}/menus/restaurant/${restaurantId}`),
       ]);
 
+      let loadedCategories: Category[] = [];
+      let loadedItems: FoodItem[] = [];
+
       if (catRes.ok) {
         const catData = await catRes.json();
-        setCategories(Array.isArray(catData) ? catData : []);
-        if (catData.length > 0 && !categoryId) {
-          setCategoryId(catData[0].id);
+        const catArray: any[] = Array.isArray(catData) ? catData : [];
+
+        // Normalize categories — strip embedded foodItems for the category list
+        loadedCategories = catArray.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          displayOrder: c.displayOrder ?? 0,
+          isActive: c.isActive ?? true,
+        }));
+        setCategories(loadedCategories);
+        if (loadedCategories.length > 0 && !categoryId) {
+          setCategoryId(loadedCategories[0].id);
+        }
+
+        // OLD API format: food items are embedded inside category.foodItems
+        const embeddedItems: FoodItem[] = catArray.flatMap((c: any) =>
+          Array.isArray(c.foodItems) ? c.foodItems : [],
+        );
+        if (embeddedItems.length > 0) {
+          loadedItems = embeddedItems;
         }
       }
 
       if (menuRes.ok) {
         const menuData = await menuRes.json();
-        setItems(Array.isArray(menuData) ? menuData : []);
+        const flatItems: FoodItem[] = Array.isArray(menuData) ? menuData : [];
+        // Prefer the flat menu endpoint; fall back to embedded items if flat is empty
+        if (flatItems.length > 0) {
+          loadedItems = flatItems;
+        }
       }
+
+      setItems(loadedItems);
     } catch {
       /* ignore */
     } finally {
