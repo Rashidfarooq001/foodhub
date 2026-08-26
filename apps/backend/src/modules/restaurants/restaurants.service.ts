@@ -324,27 +324,30 @@ export class RestaurantsService {
     let etas = new Map<string, number>();
 
     if (userLat !== undefined && userLng !== undefined) {
-      const origins = [[userLat, userLng]] as [number, number][];
       const destinations = restaurants.map(r => [r.latitude || 0, r.longitude || 0] as [number, number]);
       try {
-                  const matrixResults = await this.geolocationService.computeDistanceMatrix([userLat, userLng], destinations);
-          restaurants.forEach((rest, index) => {
-            const result = matrixResults[index];
-            if (result && result.distanceKm < 999) {
-              distances.set(rest.id, result.distanceKm);
+        const matrixResults = await this.geolocationService.computeDistanceMatrix([userLat, userLng], destinations);
+        restaurants.forEach((rest, index) => {
+          const result = matrixResults[index];
+          if (result && typeof result.distanceKm === 'number' && result.distanceKm >= 0) {
+            distances.set(rest.id, result.distanceKm);
+            if (typeof result.etaMinutes === 'number' && result.etaMinutes >= 0) {
               etas.set(rest.id, result.etaMinutes);
             }
-          });
+          }
+        });
       } catch (err: any) {
-        // Fallback or ignore if Google Routes fails
+        // Distance matrix calculation failure
       }
     }
 
     return serializePrisma(restaurants.map((restaurant) => {
       let distanceKm: number | null = distances.get(restaurant.id) ?? null;
+      let deliveryTimeMins: number | null = etas.get(restaurant.id) ?? null;
       return {
         ...restaurant,
         distanceKm,
+        deliveryTimeMins,
         avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
         commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
       };

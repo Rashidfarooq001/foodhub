@@ -90,7 +90,7 @@ export class GeolocationService {
     }
 
     // 2. Otherwise return Static Key from environment
-    return (
+    const staticToken = (
       process.env.MAPPLS_ACCESS_TOKEN ||
       process.env.MAPPLS_API_KEY ||
       process.env.MAPPLS_REST_KEY ||
@@ -98,8 +98,10 @@ export class GeolocationService {
       process.env.MAPPLS_TOKEN ||
       process.env.MAPPLS_KEY ||
       process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
-      'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+      ''
     ).trim();
+
+    return staticToken;
   }
 
   private get MapplsToken(): string {
@@ -111,7 +113,7 @@ export class GeolocationService {
       process.env.MAPPLS_TOKEN ||
       process.env.MAPPLS_KEY ||
       process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
-      'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+      ''
     ).trim();
   }
 
@@ -401,9 +403,10 @@ export class GeolocationService {
   public async computeDistanceMatrix(
     origin: [number, number],
     destinations: [number, number][],
-  ): Promise<{ distanceKm: number; etaMinutes: number }[]> {
-    if (!this.MapplsToken || destinations.length === 0) {
-      return destinations.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+  ): Promise<{ distanceKm: number | null; etaMinutes: number | null }[]> {
+    const token = await this.getValidToken();
+    if (!token || destinations.length === 0) {
+      return destinations.map(() => ({ distanceKm: null, etaMinutes: null }));
     }
 
     const batch = destinations.slice(0, 99);
@@ -415,7 +418,7 @@ export class GeolocationService {
       ...batch.map(([lat, lng]) => `${lng},${lat}`),
     ].join(';');
 
-    const url = `https://apis.mapmyindia.com/advancedmaps/v1/${this.MapplsToken}/distance_matrix/driving/${coords}`;
+    const url = `https://apis.mapmyindia.com/advancedmaps/v1/${token}/distance_matrix/driving/${coords}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
@@ -426,7 +429,7 @@ export class GeolocationService {
       if (!response.ok) {
         const body = await response.text();
         this.logger.error(`Mappls Distance Matrix HTTP ${response.status}: ${body.substring(0, 200)}`);
-        return batch.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+        return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
       }
 
       const data = await response.json();
@@ -435,17 +438,17 @@ export class GeolocationService {
       const durations: number[] = data?.results?.durations?.[0] || [];
 
       return batch.map((_, i) => ({
-        distanceKm: distances[i + 1] !== undefined
+        distanceKm: distances[i + 1] !== undefined && distances[i + 1] !== null && distances[i + 1] >= 0
           ? Math.round((distances[i + 1] / 1000) * 100) / 100
-          : 999,
-        etaMinutes: durations[i + 1] !== undefined
+          : null,
+        etaMinutes: durations[i + 1] !== undefined && durations[i + 1] !== null && durations[i + 1] >= 0
           ? Math.ceil(durations[i + 1] / 60)
-          : 999,
+          : null,
       }));
     } catch (err: any) {
       clearTimeout(timeout);
       this.logger.error(`Mappls Distance Matrix error: ${err.message}`);
-      return batch.map(() => ({ distanceKm: 999, etaMinutes: 999 }));
+      return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
     }
   }
 

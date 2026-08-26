@@ -410,9 +410,9 @@ export default function CustomerHomePage() {
     if (filters.sortBy === 'rating') {
       list.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
     } else if (filters.sortBy === 'deliveryTime') {
-      list.sort((a, b) => (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999));
+      list.sort((a, b) => (a.deliveryTimeMins ?? Infinity) - (b.deliveryTimeMins ?? Infinity));
     } else if (filters.sortBy === 'distance' || filters.nearMe) {
-      list.sort((a, b) => (a.distanceKm || 999) - (b.distanceKm || 999));
+      list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
 
     return list;

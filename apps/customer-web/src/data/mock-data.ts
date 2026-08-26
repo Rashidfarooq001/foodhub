@@ -225,15 +225,12 @@ export function normalizeRestaurantData(
   const restLat = r.latitude ? safeNumber(r.latitude) : 0;
   const restLng = r.longitude ? safeNumber(r.longitude) : 0;
 
-  // 3. Distance & Delivery Time
+  // 3. Distance & Delivery Time (Strictly from Backend Mappls Road Routing - No Fake/Manhattan Fallback)
   let distanceKm: number | undefined = undefined;
   let deliveryTimeMins: number | undefined = undefined;
 
   if (r.distanceKm !== undefined && r.distanceKm !== null && safeNumber(r.distanceKm) > 0) {
     distanceKm = Math.round(safeNumber(r.distanceKm) * 10) / 10;
-  } else if (userCoords && userCoords.lat && userCoords.lng && restLat !== 0 && restLng !== 0) {
-    const rawDist = Math.abs(userCoords.lat - restLat) * 111 + Math.abs(userCoords.lng - restLng) * 111;
-    distanceKm = Math.round(rawDist * 10) / 10;
   }
 
   if (r.deliveryTimeMins !== undefined && r.deliveryTimeMins !== null && safeNumber(r.deliveryTimeMins) > 0) {
