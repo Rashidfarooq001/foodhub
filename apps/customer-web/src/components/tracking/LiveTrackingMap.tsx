@@ -87,8 +87,8 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         });
       }
 
-      // 3. Live Driver Marker
-      if (driverValid && driverLat && driverLng) {
+      // 3. Initial Driver Marker (if already assigned)
+      if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
         const dMarker = new window.mappls.Marker({
           map,
           position: { lat: driverLat, lng: driverLng },
@@ -97,7 +97,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         driverMarkerRef.current = dMarker;
       }
 
-      // 4. Real Mappls Road Route Polyline
+      // 4. Real Mappls Road Route Polyline (fitbounds ONCE on initial route load)
       if (routeCoordinates && routeCoordinates.length >= 2) {
         const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
         const polyline = new window.mappls.Polyline({
@@ -110,7 +110,6 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         });
         polylineRef.current = polyline;
       } else if (restValid && custValid) {
-        // Fallback bounds fit if route geometry is still fetching
         try {
           map.fitBounds([
             [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
@@ -126,7 +125,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       console.error('[Mappls Web Map] Initialization error:', err);
       setMapState('ERROR');
     }
-  }, [restaurantLat, restaurantLng, customerLat, customerLng, driverLat, driverLng, driverName, routeCoordinates]);
+  }, [restaurantLat, restaurantLng, customerLat, customerLng, routeCoordinates, driverName]);
 
   useEffect(() => {
     if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
@@ -134,16 +133,29 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
     }
   }, [sdkLoaded, initMap]);
 
-  // Real-time update of driver marker location
+  // Smooth real-time update of driver marker location (NO fitBounds / NO camera jump)
   useEffect(() => {
-    if (driverMarkerRef.current && hasValidCoords(driverLat, driverLng) && driverLat && driverLng) {
+    if (!hasValidCoords(driverLat, driverLng) || !driverLat || !driverLng) return;
+
+    if (driverMarkerRef.current) {
       try {
         driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
       } catch (err) {
         console.error('[Mappls Web Map] Error updating driver marker:', err);
       }
+    } else if (mapInstanceRef.current && window.mappls) {
+      try {
+        const dMarker = new window.mappls.Marker({
+          map: mapInstanceRef.current,
+          position: { lat: driverLat, lng: driverLng },
+          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
+        });
+        driverMarkerRef.current = dMarker;
+      } catch (err) {
+        console.error('[Mappls Web Map] Error creating driver marker:', err);
+      }
     }
-  }, [driverLat, driverLng]);
+  }, [driverLat, driverLng, driverName]);
 
   return (
     <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-3xl bg-gray-900 shadow-inner">
