@@ -44,26 +44,34 @@ export default function NearbyRestaurantsMap({
       });
       mapInstanceRef.current = map;
 
-      // User location marker
-      new window.mappls.Marker({
-        map,
-        position: { lat: userLat, lng: userLng },
-        popupHtml: '<div class="font-bold text-xs text-blue-700">You</div>',
-      });
+      const addOverlays = () => {
+        try {
+          // User location marker
+          new window.mappls.Marker({
+            map,
+            position: { lat: userLat, lng: userLng },
+            popupHtml: '<div class="font-bold text-xs text-blue-700">You</div>',
+          });
 
-      // Restaurant markers
-      restaurants.forEach(rest => {
-        const marker = new window.mappls.Marker({
-          map,
-          position: { lat: rest.lat, lng: rest.lng },
-          popupHtml: `<div class="font-bold text-xs">${rest.name}<br/>${rest.distanceKm} km A ${rest.etaMinutes} mins</div>`,
-        });
-        if (onSelect) {
-          marker.addListener('click', () => onSelect(rest));
+          // Restaurant markers
+          restaurants.forEach(rest => {
+            const marker = new window.mappls.Marker({
+              map,
+              position: { lat: rest.lat, lng: rest.lng },
+              popupHtml: `<div class="font-bold text-xs">${rest.name}<br/>${rest.distanceKm} km · ${rest.etaMinutes} mins</div>`,
+            });
+            if (onSelect) {
+              marker.addListener('click', () => onSelect(rest));
+            }
+          });
+          setIsLoaded(true);
+        } catch (err: any) {
+          console.error('Mappls NearbyRestaurantsMap overlay error:', err);
+          setErrorDetails(err.message || String(err));
         }
-      });
+      };
 
-      setIsLoaded(true);
+      map.addListener('load', addOverlays);
     } catch (err: any) {
       console.error('Mappls NearbyRestaurantsMap error:', err);
       setErrorDetails(err.message || String(err));

@@ -80,58 +80,69 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       // === MAP MARKERS & ROUTE ENABLED ===
       const driverValid = hasValidCoords(driverLat, driverLng);
 
-      // 1. Restaurant Marker
-      if (restValid) {
-        new window.mappls.Marker({
-          map,
-          position: { lat: restaurantLat, lng: restaurantLng },
-          popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏬 Kitchen / Restaurant</div>',
-        });
-      }
-
-      // 2. Customer Destination Marker
-      if (custValid) {
-        new window.mappls.Marker({
-          map,
-          position: { lat: customerLat, lng: customerLng },
-          popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
-        });
-      }
-
-      // 3. Initial Driver Marker
-      if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
-        const dMarker = new window.mappls.Marker({
-          map,
-          position: { lat: driverLat, lng: driverLng },
-          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
-        });
-        driverMarkerRef.current = dMarker;
-      }
-
-      // 4. Real Mappls Road Route Polyline
-      if (routeCoordinates && routeCoordinates.length >= 2) {
-        const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
-        const polyline = new window.mappls.Polyline({
-          map,
-          path,
-          strokeColor: '#ea580c',
-          strokeWeight: 5,
-          strokeOpacity: 0.9,
-          fitbounds: true,
-        });
-        polylineRef.current = polyline;
-      } else if (restValid && custValid) {
+      const addOverlays = () => {
         try {
-          map.fitBounds([
-            [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
-            [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
-          ]);
-        } catch {
-          /* ignore */
-        }
-      }
+          // 1. Restaurant Marker
+          if (restValid) {
+            new window.mappls.Marker({
+              map,
+              position: { lat: restaurantLat, lng: restaurantLng },
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏬 Kitchen / Restaurant</div>',
+            });
+          }
 
-      setMapState('READY');
+          // 2. Customer Destination Marker
+          if (custValid) {
+            new window.mappls.Marker({
+              map,
+              position: { lat: customerLat, lng: customerLng },
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
+            });
+          }
+
+          // 3. Initial Driver Marker
+          if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
+            const dMarker = new window.mappls.Marker({
+              map,
+              position: { lat: driverLat, lng: driverLng },
+              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
+            });
+            driverMarkerRef.current = dMarker;
+          }
+
+          // 4. Real Mappls Road Route Polyline
+          if (routeCoordinates && routeCoordinates.length >= 2) {
+            const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
+            const polyline = new window.mappls.Polyline({
+              map,
+              path,
+              strokeColor: '#ea580c',
+              strokeWeight: 5,
+              strokeOpacity: 0.9,
+              fitbounds: true,
+            });
+            polylineRef.current = polyline;
+          } else if (restValid && custValid) {
+            try {
+              map.fitBounds([
+                [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
+                [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
+              ]);
+            } catch {
+              /* ignore */
+            }
+          }
+          setMapState('READY');
+        } catch (err: any) {
+          console.error('[Mappls Web Map] Overlay error:', err);
+          const errStr = err?.message || String(err);
+          setErrorDetails(`Overlay Error: ${errStr}`);
+          setMapState('ERROR');
+        }
+      };
+
+      map.addListener('load', addOverlays);
+
     } catch (err: any) {
       console.error('[Mappls Web Map] Initialization error:', err);
       const errStr = err?.message || String(err);

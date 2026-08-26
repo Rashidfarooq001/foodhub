@@ -37,28 +37,37 @@ export const GoogleMapPicker: React.FC<Props> = ({
       });
       mapInstanceRef.current = map;
 
-      const marker = new window.mappls.Marker({
-        map,
-        position: { lat: centerLat, lng: centerLng },
-        draggable: true,
-      });
-      markerRef.current = marker;
+      const addOverlays = () => {
+        try {
+          const marker = new window.mappls.Marker({
+            map,
+            position: { lat: centerLat, lng: centerLng },
+            draggable: true,
+          });
+          markerRef.current = marker;
 
-      marker.addListener('dragend', () => {
-        const pos = marker.getPosition();
-        if (pos) onLocationChange(pos.lat, pos.lng);
-      });
+          marker.addListener('dragend', () => {
+            const pos = marker.getPosition();
+            if (pos) onLocationChange(pos.lat, pos.lng);
+          });
 
-      map.addListener('click', (e: any) => {
-        const lat = e.lngLat?.lat ?? e.latLng?.lat();
-        const lng = e.lngLat?.lng ?? e.latLng?.lng();
-        if (lat && lng) {
-          marker.setPosition({ lat, lng });
-          onLocationChange(lat, lng);
+          map.addListener('click', (e: any) => {
+            const lat = e.lngLat?.lat ?? e.latLng?.lat();
+            const lng = e.lngLat?.lng ?? e.latLng?.lng();
+            if (lat && lng) {
+              marker.setPosition({ lat, lng });
+              onLocationChange(lat, lng);
+            }
+          });
+
+          setIsLoaded(true);
+        } catch (err: any) {
+          console.error('Mappls map overlay error:', err);
+          setErrorDetails(err.message || String(err));
         }
-      });
+      };
 
-      setIsLoaded(true);
+      map.addListener('load', addOverlays);
     } catch (err: any) {
       console.error('Mappls map init error:', err);
       setErrorDetails(err.message || String(err));

@@ -76,52 +76,63 @@ export default function DeliveryRouteMap({
       mapInstanceRef.current = map;
 
       // === MAP MARKERS & ROUTE ENABLED ===
-      if (restValid) {
-        new window.mappls.Marker({
-          map,
-          position: { lat: restaurantLat, lng: restaurantLng },
-          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;">🏬 ${restaurantName}</div>`,
-        });
-      }
-
-      if (custValid) {
-        new window.mappls.Marker({
-          map,
-          position: { lat: customerLat, lng: customerLng },
-          popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;">📍 Delivery Location</div>',
-        });
-      }
-
-      if (driverValid && driverLat && driverLng) {
-        new window.mappls.Marker({
-          map,
-          position: { lat: driverLat, lng: driverLng },
-          popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;">🚴 Rider</div>',
-        });
-      }
-
-      if (routeCoordinates && routeCoordinates.length >= 2) {
-        const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
-        new window.mappls.Polyline({
-          map,
-          path,
-          strokeColor: '#ea580c',
-          strokeWeight: 5,
-          strokeOpacity: 0.9,
-          fitbounds: true,
-        });
-      } else if (restValid && custValid) {
+      const addOverlays = () => {
         try {
-          map.fitBounds([
-            [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
-            [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
-          ]);
-        } catch {
-          /* ignore */
-        }
-      }
+          if (restValid) {
+            new window.mappls.Marker({
+              map,
+              position: { lat: restaurantLat, lng: restaurantLng },
+              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;">🏬 ${restaurantName}</div>`,
+            });
+          }
 
-      setMapState('READY');
+          if (custValid) {
+            new window.mappls.Marker({
+              map,
+              position: { lat: customerLat, lng: customerLng },
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;">📍 Delivery Location</div>',
+            });
+          }
+
+          if (driverValid && driverLat && driverLng) {
+            new window.mappls.Marker({
+              map,
+              position: { lat: driverLat, lng: driverLng },
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;">🚴 Rider</div>',
+            });
+          }
+
+          if (routeCoordinates && routeCoordinates.length >= 2) {
+            const path = routeCoordinates.map(([lat, lng]) => ({ lat, lng }));
+            new window.mappls.Polyline({
+              map,
+              path,
+              strokeColor: '#ea580c',
+              strokeWeight: 5,
+              strokeOpacity: 0.9,
+              fitbounds: true,
+            });
+          } else if (restValid && custValid) {
+            try {
+              map.fitBounds([
+                [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
+                [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
+              ]);
+            } catch {
+              /* ignore */
+            }
+          }
+          setMapState('READY');
+        } catch (err: any) {
+          console.error('[Mappls DeliveryRouteMap] Overlay error:', err);
+          const errStr = err?.message || String(err);
+          setErrorDetails(`Overlay Error: ${errStr}`);
+          setMapState('ERROR');
+        }
+      };
+
+      map.addListener('load', addOverlays);
+
     } catch (err: any) {
       console.error('[Mappls DeliveryRouteMap] error:', err);
       const errStr = err?.message || String(err);
