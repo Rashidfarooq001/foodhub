@@ -35,10 +35,22 @@ export default function NearbyRestaurantsMap({
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const initMap = () => {
-    if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
+    if (mapInstanceRef.current) return;
+    if (!window.mappls) return;
+
+    const containerId = 'mappls-nearby-map';
+    const element = document.getElementById(containerId);
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
     try {
-      const map = new window.mappls.Map(mapRef.current, {
-        center: [userLat, userLng],
+      const map = new window.mappls.Map(containerId, {
+        center: {
+          lat: Number(userLat),
+          lng: Number(userLng)
+        },
         zoom: 13,
         zoomControl: true,
       });
@@ -46,6 +58,7 @@ export default function NearbyRestaurantsMap({
 
       const addOverlays = () => {
         try {
+          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
           // User location marker
           new window.mappls.Marker({
             map,
@@ -64,6 +77,7 @@ export default function NearbyRestaurantsMap({
               marker.addListener('click', () => onSelect(rest));
             }
           });
+          */
           setIsLoaded(true);
         } catch (err: any) {
           console.error('Mappls NearbyRestaurantsMap overlay error:', err);
@@ -101,7 +115,7 @@ export default function NearbyRestaurantsMap({
           {!mapKey && <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>}
         </div>
       )}
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <div id="mappls-nearby-map" ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 }

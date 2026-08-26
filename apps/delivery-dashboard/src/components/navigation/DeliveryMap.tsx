@@ -29,50 +29,69 @@ export const DeliveryMap: React.FC<Props> = ({
   const centerLng = (driverLng + customerLng) / 2;
 
   const initMap = () => {
-    if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
+    if (mapInstanceRef.current) return;
+    if (!window.mappls) return;
+
+    const containerId = 'mappls-delivery-map';
+    const element = document.getElementById(containerId);
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
     try {
-      const map = new window.mappls.Map(mapRef.current, {
-        center: { lat: centerLat, lng: centerLng },
+      const map = new window.mappls.Map(containerId, {
+        center: { lat: Number(centerLat), lng: Number(centerLng) },
         zoom: 13,
         zoomControl: true,
       });
       mapInstanceRef.current = map;
 
-      // Restaurant marker
-      new window.mappls.Marker({
-        map,
-        position: { lat: restaurantLat, lng: restaurantLng },
-        popupHtml: '<div class="font-bold text-xs text-orange-700">Restaurant</div>',
-      });
+      const addOverlays = () => {
+        try {
+          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
+          // Restaurant marker
+          new window.mappls.Marker({
+            map,
+            position: { lat: restaurantLat, lng: restaurantLng },
+            popupHtml: '<div class="font-bold text-xs text-orange-700">Restaurant</div>',
+          });
 
-      // Customer marker
-      new window.mappls.Marker({
-        map,
-        position: { lat: customerLat, lng: customerLng },
-        popupHtml: '<div class="font-bold text-xs text-emerald-700">Customer</div>',
-      });
+          // Customer marker
+          new window.mappls.Marker({
+            map,
+            position: { lat: customerLat, lng: customerLng },
+            popupHtml: '<div class="font-bold text-xs text-emerald-700">Customer</div>',
+          });
 
-      // Driver marker
-      driverMarkerRef.current = new window.mappls.Marker({
-        map,
-        position: { lat: driverLat, lng: driverLng },
-        popupHtml: '<div class="font-bold text-xs text-blue-700">You</div>',
-      });
+          // Driver marker
+          driverMarkerRef.current = new window.mappls.Marker({
+            map,
+            position: { lat: driverLat, lng: driverLng },
+            popupHtml: '<div class="font-bold text-xs text-blue-700">You</div>',
+          });
 
-      // Route polyline: driver → restaurant → customer
-      new window.mappls.Polyline({
-        map,
-        path: [
-          { lat: driverLat, lng: driverLng },
-          { lat: restaurantLat, lng: restaurantLng },
-          { lat: customerLat, lng: customerLng },
-        ],
-        strokeColor: '#059669',
-        strokeWidth: 4,
-        strokeOpacity: 0.8,
-      });
+          // Route polyline: driver -> restaurant -> customer
+          new window.mappls.Polyline({
+            map,
+            path: [
+              { lat: driverLat, lng: driverLng },
+              { lat: restaurantLat, lng: restaurantLng },
+              { lat: customerLat, lng: customerLng },
+            ],
+            strokeColor: '#059669',
+            strokeWidth: 4,
+            strokeOpacity: 0.8,
+          });
+          */
+          setIsLoaded(true);
+        } catch (err: any) {
+          console.error('Mappls DeliveryMap overlay error:', err);
+          setError(true);
+        }
+      };
 
-      setIsLoaded(true);
+      map.addListener('load', addOverlays);
     } catch (err) {
       console.error('Mappls DeliveryMap error:', err);
       setError(true);
@@ -107,12 +126,12 @@ export const DeliveryMap: React.FC<Props> = ({
         </div>
       )}
       <Script
-        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?v=3.0&layer=vector`}
+        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapToken}`}
         strategy="afterInteractive"
         onLoad={initMap}
         onError={() => setError(true)}
       />
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <div id="mappls-delivery-map" ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };

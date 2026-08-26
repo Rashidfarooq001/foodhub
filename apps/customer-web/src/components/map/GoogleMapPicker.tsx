@@ -28,10 +28,22 @@ export const GoogleMapPicker: React.FC<Props> = ({
   const centerLng = initialLng || 74.8204;
 
   const initMap = () => {
-    if (!mapRef.current || !window.mappls) return;
+    if (mapInstanceRef.current) return;
+    if (!window.mappls) return;
+
+    const containerId = 'mappls-location-picker';
+    const element = document.getElementById(containerId);
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
     try {
-      const map = new window.mappls.Map(mapRef.current, {
-        center: [centerLat, centerLng],
+      const map = new window.mappls.Map(containerId, {
+        center: {
+          lat: Number(centerLat),
+          lng: Number(centerLng)
+        },
         zoom: 14,
         zoomControl: true,
       });
@@ -39,6 +51,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
 
       const addOverlays = () => {
         try {
+          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
           const marker = new window.mappls.Marker({
             map,
             position: { lat: centerLat, lng: centerLng },
@@ -59,7 +72,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
               onLocationChange(lat, lng);
             }
           });
-
+          */
           setIsLoaded(true);
         } catch (err: any) {
           console.error('Mappls map overlay error:', err);
@@ -99,7 +112,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
           {!mapKey && <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>}
         </div>
       )}
-      <div ref={mapRef} style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }} />
+      <div id="mappls-location-picker" ref={mapRef} style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }} />
     </div>
   );
 };

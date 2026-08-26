@@ -39,55 +39,56 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
     typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
 
   const initMap = useCallback(() => {
-    if (!mapContainerRef.current) {
-      console.warn('[Mappls Web Map] mapContainerRef is null');
+    if (mapInstanceRef.current) {
       return;
     }
+
     if (!window.mappls) {
       console.warn('[Mappls Web Map] window.mappls is undefined');
       return;
     }
 
-    try {
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.remove?.();
-        } catch {
-          /* ignore */
-        }
-        mapInstanceRef.current = null;
-      }
+    const containerId = 'mappls-live-tracking-map';
+    const element = document.getElementById(containerId);
 
+    if (!element) {
+      console.warn(`[Mappls Web Map] Container #${containerId} not found`);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      console.warn(`[Mappls Web Map] Invalid dimensions: ${rect.width}x${rect.height}`);
+      return;
+    }
+
+    try {
       const restValid = hasValidCoords(restaurantLat, restaurantLng);
       const custValid = hasValidCoords(customerLat, customerLng);
 
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
       const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.5220;
 
-      // Ensure container has dimensions
-      if (mapContainerRef.current.clientHeight === 0 || mapContainerRef.current.clientWidth === 0) {
-        throw new Error(`Container dimensions are 0 (w: ${mapContainerRef.current.clientWidth}, h: ${mapContainerRef.current.clientHeight})`);
-      }
-
-      const map = new window.mappls.Map(mapContainerRef.current, {
-        center: [centerLat, centerLng],
+      const map = new window.mappls.Map(containerId, {
+        center: {
+          lat: Number(centerLat),
+          lng: Number(centerLng)
+        },
         zoom: 13,
         zoomControl: true,
       });
 
       mapInstanceRef.current = map;
 
-      // === MAP MARKERS & ROUTE ENABLED ===
-      const driverValid = hasValidCoords(driverLat, driverLng);
-
       const addOverlays = () => {
         try {
+          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
           // 1. Restaurant Marker
           if (restValid) {
             new window.mappls.Marker({
               map,
               position: { lat: restaurantLat, lng: restaurantLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏬 Kitchen / Restaurant</div>',
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">dY? Kitchen / Restaurant</div>',
             });
           }
 
@@ -96,16 +97,17 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             new window.mappls.Marker({
               map,
               position: { lat: customerLat, lng: customerLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
+              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">dY"? Your Delivery Address</div>',
             });
           }
 
           // 3. Initial Driver Marker
+          const driverValid = hasValidCoords(driverLat, driverLng);
           if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
             const dMarker = new window.mappls.Marker({
               map,
               position: { lat: driverLat, lng: driverLng },
-              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
+              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">dYs' ${driverName || 'Delivery Partner'} (Live)</div>`,
             });
             driverMarkerRef.current = dMarker;
           }
@@ -129,9 +131,10 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
                 [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
               ]);
             } catch {
-              /* ignore */
+              // ignore
             }
           }
+          */
           setMapState('READY');
         } catch (err: any) {
           console.error('[Mappls Web Map] Overlay error:', err);
@@ -160,30 +163,6 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
     }
   }, [sdkLoaded, sdkError, initMap]);
 
-  // Smooth real-time update of driver marker location (NO fitBounds / NO camera jump)
-  useEffect(() => {
-    if (!hasValidCoords(driverLat, driverLng) || !driverLat || !driverLng) return;
-
-    if (driverMarkerRef.current) {
-      try {
-        driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
-      } catch (err) {
-        console.error('[Mappls Web Map] Error updating driver marker:', err);
-      }
-    } else if (mapInstanceRef.current && window.mappls) {
-      try {
-        const dMarker = new window.mappls.Marker({
-          map: mapInstanceRef.current,
-          position: { lat: driverLat, lng: driverLng },
-          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🚴 ${driverName || 'Delivery Partner'} (Live)</div>`,
-        });
-        driverMarkerRef.current = dMarker;
-      } catch (err) {
-        console.error('[Mappls Web Map] Error creating driver marker:', err);
-      }
-    }
-  }, [driverLat, driverLng, driverName]);
-
   return (
     <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-3xl bg-gray-900 shadow-inner flex flex-col">
       {mapState === 'LOADING' && (
@@ -210,7 +189,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         </div>
       )}
 
-      <div ref={mapContainerRef} className="flex-1 w-full min-h-[350px]" style={{ zIndex: 1 }} />
+      <div id="mappls-live-tracking-map" ref={mapContainerRef} className="flex-1 w-full min-h-[350px]" style={{ zIndex: 1 }} />
     </div>
   );
 };

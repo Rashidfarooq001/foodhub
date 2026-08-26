@@ -36,25 +36,30 @@ export default function DeliveryRouteMap({
     typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
 
   const initMap = useCallback(() => {
-    if (!mapContainerRef.current) {
-      console.warn('[Mappls Web Map] mapContainerRef is null');
+    if (mapInstanceRef.current) {
       return;
     }
+
     if (!window.mappls) {
       console.warn('[Mappls Web Map] window.mappls is undefined');
       return;
     }
 
-    try {
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.remove?.();
-        } catch {
-          /* ignore */
-        }
-        mapInstanceRef.current = null;
-      }
+    const containerId = 'mappls-delivery-route-map';
+    const element = document.getElementById(containerId);
 
+    if (!element) {
+      console.warn(`[Mappls Web Map] Container #${containerId} not found`);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      console.warn(`[Mappls Web Map] Invalid dimensions: ${rect.width}x${rect.height}`);
+      return;
+    }
+
+    try {
       const restValid = hasValidCoords(restaurantLat, restaurantLng);
       const custValid = hasValidCoords(customerLat, customerLng);
       const driverValid = hasValidCoords(driverLat, driverLng);
@@ -62,13 +67,11 @@ export default function DeliveryRouteMap({
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
       const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.5220;
 
-      // Ensure container has dimensions
-      if (mapContainerRef.current.clientHeight === 0 || mapContainerRef.current.clientWidth === 0) {
-        throw new Error(`Container dimensions are 0 (w: ${mapContainerRef.current.clientWidth}, h: ${mapContainerRef.current.clientHeight})`);
-      }
-
-      const map = new window.mappls.Map(mapContainerRef.current, {
-        center: [centerLat, centerLng],
+      const map = new window.mappls.Map(containerId, {
+        center: {
+          lat: Number(centerLat),
+          lng: Number(centerLng)
+        },
         zoom: 13,
         zoomControl: true,
       });
@@ -78,6 +81,7 @@ export default function DeliveryRouteMap({
       // === MAP MARKERS & ROUTE ENABLED ===
       const addOverlays = () => {
         try {
+          /* --- MARKERS TEMPORARILY DISABLED FOR BASE MAP TEST ---
           if (restValid) {
             new window.mappls.Marker({
               map,
@@ -119,9 +123,10 @@ export default function DeliveryRouteMap({
                 [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
               ]);
             } catch {
-              /* ignore */
+              // ignore
             }
           }
+          */
           setMapState('READY');
         } catch (err: any) {
           console.error('[Mappls DeliveryRouteMap] Overlay error:', err);
@@ -173,7 +178,7 @@ export default function DeliveryRouteMap({
           </button>
         </div>
       )}
-      <div ref={mapContainerRef} className="flex-1 w-full" style={{ zIndex: 1 }} />
+      <div id="mappls-delivery-route-map" ref={mapContainerRef} className="flex-1 w-full" style={{ zIndex: 1 }} />
     </div>
   );
 }
