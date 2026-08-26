@@ -348,13 +348,8 @@ export class GeolocationService {
       throw new Error('Invalid coordinates for routing.');
     }
 
-    // Mappls route_adv & distance_matrix use longitude,latitude order
-    const urls = [
-      `https://apis.mappls.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
-      `https://apis.mapmyindia.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`,
-      `https://apis.mappls.com/advancedmaps/v1/${token}/distance_matrix/driving/${fromLng},${fromLat};${toLng},${toLat}`,
-      `https://apis.mapmyindia.com/advancedmaps/v1/${token}/distance_matrix/driving/${fromLng},${fromLat};${toLng},${toLat}`,
-    ];
+    // Authoritative Mappls Production Advanced Routing Endpoint
+    const url = `https://apis.mappls.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`;
 
     const isJwt = token.startsWith('ey');
     const headers: Record<string, string> = {
@@ -364,54 +359,41 @@ export class GeolocationService {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    let lastError: Error | null = null;
-    for (const url of urls) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      try {
-        const response = await fetch(url, {
-          headers,
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-        if (!response.ok) {
-          const body = await response.text();
-          if (response.status === 401) {
-            this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized from ${new URL(url).hostname}. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`);
-          }
-          throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
+      if (!response.ok) {
+        const body = await response.text();
+        if (response.status === 401) {
+          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized from apis.mappls.com. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`);
         }
-
-        const data = await response.json();
-        const route = data?.routes?.[0] || data?.results?.routes?.[0];
-        if (!route) {
-          // Check if distance matrix format
-          const distVal = data?.results?.distances?.[0]?.[1] ?? data?.durations?.[0]?.[1];
-          if (distVal !== undefined && distVal !== null) {
-            return {
-              distanceKm: Math.round((distVal / 1000) * 100) / 100,
-              etaMinutes: Math.ceil((distVal / 1000 / 30) * 60), // estimated 30km/h
-            };
-          }
-          throw new Error('Mappls Routing returned no routes — location may be unserviceable');
-        }
-
-        return {
-          distanceKm:  Math.round((route.distance / 1000) * 100) / 100,
-          etaMinutes:  Math.ceil(route.duration / 60),
-        };
-      } catch (err: any) {
-        clearTimeout(timeout);
-        lastError = err;
+        throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
       }
-    }
 
-    this.logger.error(`Mappls Routing failed across all endpoints: ${lastError?.message}`);
-    throw lastError || new Error('Mappls Routing failed');
+      const data = await response.json();
+      const route = data?.routes?.[0] || data?.results?.routes?.[0];
+      if (!route || typeof route.distance !== 'number' || typeof route.duration !== 'number') {
+        throw new Error('Mappls Routing returned no valid road routes between the specified coordinates.');
+      }
+
+      return {
+        distanceKm: Math.round((route.distance / 1000) * 100) / 100,
+        etaMinutes: Math.ceil(route.duration / 60),
+      };
+    } catch (err: any) {
+      clearTimeout(timeout);
+      this.logger.error(`Mappls Routing error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`);
+      throw err;
+    }
   }
 
-  // 5. DISTANCE MATRIX — Mappls batch
+  // 5. DISTANCE MATRIX — Authoritative Mappls Batch Endpoint
   public async computeDistanceMatrix(
     origin: [number, number],
     destinations: [number, number][],
@@ -424,7 +406,7 @@ export class GeolocationService {
     const batch = destinations.slice(0, 99);
     const [originLat, originLng] = origin;
 
-    // Mappls: lng,lat format; origin first, then destinations
+    // Mappls format: lng,lat; origin first, followed by destinations
     const coords = [
       `${originLng},${originLat}`,
       ...batch.map(([lat, lng]) => `${lng},${lat}`),
@@ -438,44 +420,39 @@ export class GeolocationService {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const urls = [
-      `https://apis.mapmyindia.com/advancedmaps/v1/${token}/distance_matrix/driving/${coords}`,
-      `https://apis.mappls.com/advancedmaps/v1/${token}/distance_matrix/driving/${coords}`,
-    ];
+    const url = `https://apis.mappls.com/advancedmaps/v1/${token}/distance_matrix/driving/${coords}`;
 
-    for (const url of urls) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      try {
-        const response = await fetch(url, { headers, signal: controller.signal });
-        clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(url, { headers, signal: controller.signal });
+      clearTimeout(timeout);
 
-        if (!response.ok) {
-          const body = await response.text();
-          if (response.status === 401) {
-            this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized for Distance Matrix on ${new URL(url).hostname}.`);
-          }
-          continue;
+      if (!response.ok) {
+        const body = await response.text();
+        if (response.status === 401) {
+          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized for Distance Matrix on apis.mappls.com.`);
         }
-
-        const data = await response.json();
-        const distances: number[] = data?.results?.distances?.[0] || [];
-        const durations: number[] = data?.results?.durations?.[0] || [];
-
-        return batch.map((_, i) => ({
-          distanceKm: distances[i + 1] !== undefined && distances[i + 1] !== null && distances[i + 1] >= 0
-            ? Math.round((distances[i + 1] / 1000) * 100) / 100
-            : null,
-          etaMinutes: durations[i + 1] !== undefined && durations[i + 1] !== null && durations[i + 1] >= 0
-            ? Math.ceil(durations[i + 1] / 60)
-            : null,
-        }));
-      } catch (err: any) {
-        clearTimeout(timeout);
+        return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
       }
-    }
 
-    return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
+      const data = await response.json();
+      const distances: number[] = data?.results?.distances?.[0] || [];
+      const durations: number[] = data?.results?.durations?.[0] || [];
+
+      return batch.map((_, i) => ({
+        distanceKm: distances[i + 1] !== undefined && distances[i + 1] !== null && distances[i + 1] >= 0
+          ? Math.round((distances[i + 1] / 1000) * 100) / 100
+          : null,
+        etaMinutes: durations[i + 1] !== undefined && durations[i + 1] !== null && durations[i + 1] >= 0
+          ? Math.ceil(durations[i + 1] / 60)
+          : null,
+      }));
+    } catch (err: any) {
+      clearTimeout(timeout);
+      this.logger.error(`Mappls Distance Matrix error: ${err?.message || err}`);
+      return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
+    }
   }
 
   // 6. NEARBY RESTAURANTS
