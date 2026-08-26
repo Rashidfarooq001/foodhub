@@ -19,8 +19,8 @@ export interface PricingConfigDto {
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
   restaurantCommissionPercent: 13.0, // 13% platform standard commission
-  customerDeliveryPerKm: 0.0,
-  minimumCustomerDeliveryFee: 15.0,
+  customerDeliveryPerKm: 5.0, // ₹5.00 per extra km after base 3 km
+  minimumCustomerDeliveryFee: 15.0, // ₹15.00 base delivery fee up to 3 km
   platformFee: 3.0,
   smallOrderThreshold: 0.0,
   smallOrderFee: 0.0,
