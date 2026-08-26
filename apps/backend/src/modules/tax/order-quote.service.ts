@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TaxEngineService, TaxComponentOutput } from './tax-engine.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -117,6 +117,11 @@ export class OrderQuoteService {
         req.latitude,
         req.longitude,
       );
+      
+      if (!distRes.valid && distRes.reason === 'ROUTE_CALCULATION_FAILED') {
+        throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
+      }
+      
       distanceKm = distRes.distanceKm;
       etaMinutes = distRes.etaMinutes;
       routeAvailable = distRes.routeAvailable;

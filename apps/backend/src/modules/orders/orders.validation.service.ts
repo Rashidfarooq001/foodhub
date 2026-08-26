@@ -63,6 +63,9 @@ export class OrdersValidationService {
     const distanceKm = distResult.distanceKm;
 
     if (!distResult.valid) {
+      if (distResult.reason === 'ROUTE_CALCULATION_FAILED') {
+        throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
+      }
       throw new BadRequestException(
         `Your selected delivery location (${distanceKm} km away) is outside this restaurant's delivery area of ${radiusKm} km.`,
       );

@@ -160,10 +160,13 @@ export default function CheckoutPage() {
       discountAmount: 0,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
-    }).then((quote) => {
-      if (quote) setOrderQuote(quote);
-    });
-  }, [items, selectedAddress, tipAmount]);
+      }).then((quote) => {
+        if (quote) setOrderQuote(quote);
+      }).catch((err) => {
+        setPaymentError(err.message || 'Failed to calculate delivery fee.');
+        setOrderQuote(null);
+      });
+    }, [items, selectedAddress, tipAmount]);
 
   useEffect(() => {
     refreshQuote();
