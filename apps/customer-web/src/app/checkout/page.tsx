@@ -141,6 +141,15 @@ export default function CheckoutPage() {
       selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
     const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
+    console.log('[Checkout Location]', {
+      source: locationSource,
+      hasCoordinates: hasCoords,
+      locality: selectedAddress?.placeName || selectedAddress?.addressLine1,
+      district: selectedAddress?.city,
+      state: selectedAddress?.state,
+      pincode: selectedAddress?.postalCode,
+    });
+
     fetchOrderQuote({
       foodSubtotal: sub,
       distanceKm: realDistanceKm ?? 0,
