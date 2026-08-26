@@ -301,7 +301,23 @@ export default function HotelMenuPage() {
 
   const handleSaveFoodItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !categoryId || !restaurantId) return;
+    if (!name.trim()) {
+      setItemError('Dish Name is required.');
+      return;
+    }
+    if (name.trim().toLowerCase() === 'menu') {
+      setItemError('Please provide a valid dish name.');
+      return;
+    }
+    const numPrice = Number(price);
+    if (variants.length === 0 && (isNaN(numPrice) || numPrice <= 0)) {
+      setItemError('Base price must be a valid number greater than 0.');
+      return;
+    }
+    if (!categoryId || !restaurantId) {
+      setItemError('Category and Restaurant ID are required.');
+      return;
+    }
 
     setIsSavingItem(true);
     setItemError(null);
@@ -494,12 +510,14 @@ export default function HotelMenuPage() {
                             {item.name}
                           </h3>
                         </div>
-                        <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5">
-                          {item.description || 'Authentic dish prepared fresh.'}
-                        </p>
+                        {item.description && (
+                          <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5">
+                            {item.description}
+                          </p>
+                        )}
                         <div className="mt-1.5 flex items-center gap-2">
                           <span className="text-sm sm:text-base font-black text-gray-900">
-                            ₹{item.price}
+                            ₹{item.price ?? 0}
                           </span>
                           {hasVariants && (
                             <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">

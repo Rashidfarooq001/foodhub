@@ -64,7 +64,7 @@ export class MenusController {
   }
 
   @Public()
-  @Get(['categories/restaurant/:restaurantId', 'restaurant/:restaurantId'])
+  @Get('categories/restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get all categories for a restaurant' })
   async getRestaurantCategories(
     @Param('restaurantId') restaurantId: string,
