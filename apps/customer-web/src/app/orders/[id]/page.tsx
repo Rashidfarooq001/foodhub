@@ -294,26 +294,7 @@ export default function OrderDetailsPage() {
             )}
           </div>
 
-          {/* CUSTOMER DELIVERY OTP VERIFICATION CARD */}
-          {order.status === 'OUT_FOR_DELIVERY' && order.deliveryOtp && (
-            <div className="rounded-2xl border-2 border-orange-500/40 bg-gradient-to-r from-orange-500 to-amber-500 p-5 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 my-2">
-              <div className="space-y-1 text-center sm:text-left">
-                <span className="rounded-full bg-white/20 px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-white border border-white/30">
-                  DELIVERY CONFIRMATION CODE
-                </span>
-                <h3 className="text-lg font-black">Share this OTP with your delivery partner</h3>
-                <p className="text-xs text-orange-100 font-medium">
-                  Give this 4-digit code to the delivery rider when they arrive at your door.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white px-6 py-2.5 text-center shadow-md border border-orange-200 shrink-0">
-                <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">YOUR OTP</span>
-                <span className="text-2xl sm:text-3xl font-black tracking-widest text-orange-600 font-mono">
-                  {order.deliveryOtp}
-                </span>
-              </div>
-            </div>
-          )}
+
 
           {/* STATUS TIMELINE */}
           {!isCancelled ? (

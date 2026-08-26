@@ -242,26 +242,7 @@ export default function LiveOrderTrackingPage() {
         </div>
       </div>
 
-      {/* CUSTOMER DELIVERY OTP VERIFICATION CARD */}
-      {order.status === 'OUT_FOR_DELIVERY' && order.deliveryOtp && (
-        <div className="rounded-3xl border-2 border-orange-500/40 bg-gradient-to-r from-orange-500 to-amber-500 p-6 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="space-y-1 text-center sm:text-left">
-            <span className="rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white border border-white/30">
-              DELIVERY CONFIRMATION CODE
-            </span>
-            <h2 className="text-xl font-black">Share with your delivery partner</h2>
-            <p className="text-xs text-orange-100 font-medium">
-              Give this 4-digit verification code to the courier when they arrive to complete delivery.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white px-8 py-3 text-center shadow-lg border border-orange-200">
-            <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">YOUR OTP</span>
-            <span className="text-3xl font-black tracking-widest text-orange-600 font-mono">
-              {order.deliveryOtp}
-            </span>
-          </div>
-        </div>
-      )}
+
 
       {/* Main Grid: Interactive Map & Progress Timeline */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

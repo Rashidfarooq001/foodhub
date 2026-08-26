@@ -28,10 +28,8 @@ function generateOrderNumber(): string {
   return `FH-${num}`;
 }
 
-/** Generates a cryptographically secure 4-digit numeric delivery OTP */
-function generateDeliveryOtp(): string {
-  return crypto.randomInt(1000, 10000).toString();
-}
+
+
 
 @Injectable()
 export class OrdersService {
@@ -310,7 +308,6 @@ export class OrdersService {
 
     // 7. Create order in transaction
     const order = await this.prisma.$transaction(async (tx) => {
-      const rawDeliveryOtp = generateDeliveryOtp();
       const newOrder = await tx.order.create({
         data: {
           orderNumber:        generateOrderNumber(),
@@ -327,9 +324,6 @@ export class OrdersService {
           deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
           taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
           pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
-          deliveryOtp:        rawDeliveryOtp,
-          deliveryOtpHash:    hashOtp(rawDeliveryOtp),
-          deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
           specialInstruction: dto.specialInstruction,
         },
       });
@@ -949,27 +943,11 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       delete serialized.pricingSnapshot;
     }
 
-    // STRICT DELIVERY OTP PRIVACY:
-    // Only the authenticated ordering customer receives deliveryOtp, and ONLY when the order is OUT_FOR_DELIVERY
-    if (isCustomerOwner && order.status === OrderStatus.OUT_FOR_DELIVERY) {
-      if (!order.deliveryOtp || order.deliveryOtp === 'USED') {
-        const generatedOtp = generateDeliveryOtp();
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            deliveryOtp: generatedOtp,
-            deliveryOtpHash: hashOtp(generatedOtp),
-            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
-          },
-        });
-        serialized.deliveryOtp = generatedOtp;
-      } else {
-        serialized.deliveryOtp = order.deliveryOtp;
-      }
-    } else {
-      delete serialized.deliveryOtp;
-      delete serialized.deliveryOtpHash;
-    }
+    // Always redact OTP fields from all responses
+    delete serialized.deliveryOtp;
+    delete serialized.deliveryOtpHash;
+    delete serialized.deliveryOtpExpiresAt;
+    delete serialized.deliveryOtpAttempts;
 
     return serialized;
   }
@@ -1056,24 +1034,6 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       }
     }
 
-    let customerDeliveryOtp: string | undefined = undefined;
-    if (isCustomerOwner && order.status === OrderStatus.OUT_FOR_DELIVERY) {
-      if (!order.deliveryOtp || order.deliveryOtp === 'USED') {
-        const generatedOtp = generateDeliveryOtp();
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            deliveryOtp: generatedOtp,
-            deliveryOtpHash: hashOtp(generatedOtp),
-            deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000),
-          },
-        });
-        customerDeliveryOtp = generatedOtp;
-      } else {
-        customerDeliveryOtp = order.deliveryOtp;
-      }
-    }
-
     return serializePrisma({
       orderId: order.id,
       orderNumber: order.orderNumber,
@@ -1093,7 +1053,6 @@ if (!allowed.includes(dto.status as OrderStatus)) {
       etaMins,
       distanceKm: roadDistanceKm,
       routeCoordinates,
-      deliveryOtp: customerDeliveryOtp,
       updatedAt: order.tracking?.updatedAt || new Date(),
     });
   }

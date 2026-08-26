@@ -192,18 +192,17 @@ export default function CurrentDeliveryPage() {
 
   const handleVerifyDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentJob || !deliveryOtp) return;
+    if (!currentJob) return;
     setError('');
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/verify-delivery`, {
+      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/complete-delivery`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ otp: deliveryOtp }),
       });
 
       const data = await res.json();
@@ -498,30 +497,21 @@ export default function CurrentDeliveryPage() {
         </div>
       )}
 
-      {/* 4. If Out for Delivery -> Verify Delivery OTP from Customer */}
+      {/* 4. If Out for Delivery -> Complete Delivery */}
       {currentJob.status === 'OUT_FOR_DELIVERY' && (
         <div className="rounded-2xl sm:rounded-3xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-xs font-black text-emerald-900 uppercase">
             <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            <span>Step 4: Customer Handover &amp; Delivery OTP</span>
+            <span>Step 4: Customer Handover</span>
           </div>
           <p className="text-xs text-emerald-800">
-            Hand over food package to customer and ask them for their 4-digit Delivery OTP.
+            Hand over food package to customer and confirm completion.
           </p>
 
           <form onSubmit={handleVerifyDelivery} className="space-y-3">
-            <input
-              type="text"
-              required
-              maxLength={6}
-              placeholder="Customer Delivery OTP"
-              value={deliveryOtp}
-              onChange={(e) => setDeliveryOtp(e.target.value)}
-              className="w-full text-center text-xl font-mono font-black tracking-widest rounded-2xl border border-emerald-300 bg-white py-3 text-gray-900 focus:outline-none min-h-[44px]"
-            />
             <button
               type="submit"
-              disabled={isSubmitting || !deliveryOtp}
+              disabled={isSubmitting}
               className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-3.5 text-xs font-black text-white shadow-md transition min-h-[44px]"
             >
               <span>{isSubmitting ? 'Verifying...' : 'COMPLETE ORDER & RECORD EARNINGS'}</span>

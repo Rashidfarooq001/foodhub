@@ -905,15 +905,13 @@ export class DeliveryJobsController {
     return this.arrivedAtCustomer(orderId, req);
   }
 
-  @Post('jobs/:id/verify-delivery')
-  @ApiOperation({ summary: 'Rider verifies 4-digit customer delivery OTP' })
-  async verifyDeliveryOtp(
+  @Post('jobs/:id/complete-delivery')
+  @ApiOperation({ summary: 'Rider confirms delivery completion' })
+  async completeDelivery(
     @Param('id') id: string,
-    @Body('otp') otp: string,
     @Request() req: any,
   ) {
     try {
-      if (!otp) throw new BadRequestException('Customer delivery OTP is required.');
       const driver = await this.getDriverFromReq(req);
       if (!driver) throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
 
@@ -923,27 +921,26 @@ export class DeliveryJobsController {
         driverId: driver.id,
       };
 
-      return await this.stateMachineService.completeDeliveryWithOtp(id, otp, actor);
+      return await this.stateMachineService.completeDelivery(id, actor);
     } catch (err: any) {
       if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
         throw err;
       }
-      this.logger.error(`verifyDeliveryOtp failed: ${err?.message}`, err?.stack);
+      this.logger.error(`completeDelivery failed: ${err?.message}`, err?.stack);
       throw new InternalServerErrorException({
-        message: err?.message || 'Failed to verify customer delivery OTP',
+        message: err?.message || 'Failed to complete delivery',
         details: err?.stack || String(err),
       });
     }
   }
 
-  @Post('orders/:id/verify-delivery')
-  @ApiOperation({ summary: 'Rider verifies delivery OTP (order alias)' })
-  async verifyDeliveryOtpAlias(
+  @Post('orders/:id/complete-delivery')
+  @ApiOperation({ summary: 'Rider confirms delivery completion (order alias)' })
+  async completeDeliveryAlias(
     @Param('id') id: string,
-    @Body('otp') otp: string,
     @Request() req: any,
   ) {
-    return this.verifyDeliveryOtp(id, otp, req);
+    return this.completeDelivery(id, req);
   }
 
   @Post('jobs/:id/unassign')

@@ -424,24 +424,6 @@ export class OrderStateMachineService {
 
     const now = new Date();
 
-    // Ensure Delivery OTP is generated & hashed for the customer
-    let customerOtp = job.order.deliveryOtp;
-    let otpHash = job.order.deliveryOtpHash;
-
-    if (!customerOtp || customerOtp === 'USED' || !otpHash) {
-      customerOtp = generate4DigitOtp();
-      otpHash = hashOtp(customerOtp);
-      await this.prisma.order.update({
-        where: { id: job.orderId },
-        data: {
-          deliveryOtp: customerOtp,
-          deliveryOtpHash: otpHash,
-          deliveryOtpExpiresAt: new Date(Date.now() + 120 * 60 * 1000), // 2 hours
-          deliveryOtpAttempts: 0,
-        },
-      });
-    }
-
     await this.prisma.deliveryJob.update({
       where: { id: job.id },
       data: {
@@ -455,11 +437,6 @@ export class OrderStateMachineService {
         status: job.order.status,
         message: 'Delivery partner has arrived at your delivery address.',
       },
-    });
-
-    // Dispatch OTP SMS strictly to customer's registered phone (redacted from logs)
-    this.dispatchCustomerDeliveryOtpSms(job.order).catch((err) => {
-      this.logger.error(`Failed to dispatch customer arrival OTP SMS: ${err?.message}`);
     });
 
     if (this.gateway) {
@@ -487,17 +464,11 @@ export class OrderStateMachineService {
   }
 
   /**
-   * Single Authoritative Delivery Completion Service
-   * Atomically validates ownership/assignment, stage, OTP, marks consumed, transitions to DELIVERED,
-   * updates DeliveryJob, credits rider wallet idempotently, and emits completion events.
+   * Authenticated Delivery Completion — No OTP Required
+   * Validates: authenticated rider + assigned order + correct state.
+   * Transitions order OUT_FOR_DELIVERY → DELIVERED.
    */
-  async completeDeliveryWithOtp(orderIdOrJobId: string, otp: string, actor: AuthenticatedActor) {
-    if (!otp || typeof otp !== 'string' || !otp.trim()) {
-      throw new BadRequestException('Delivery confirmation OTP is required.');
-    }
-
-    const cleanOtp = otp.trim();
-
+  async completeDelivery(orderIdOrJobId: string, actor: AuthenticatedActor) {
     const order = await this.prisma.order.findFirst({
       where: {
         OR: [
@@ -528,34 +499,14 @@ export class OrderStateMachineService {
 
     const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
     const isAssignedDriver = actor.driverId && (order.deliveryJob?.driverId === actor.driverId || order.assignedRestaurantDriverId === actor.driverId);
-    const isCustomer = actor.userId && (order.customer.userId === actor.userId || order.customerId === actor.userId);
 
-    if (!isAdmin && !isAssignedDriver && !isCustomer) {
+    // Only assigned rider or admin can complete delivery — customer cannot self-complete
+    if (!isAdmin && !isAssignedDriver) {
       throw new ForbiddenException('You are not authorized to complete delivery for this order.');
     }
 
     if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
       throw new BadRequestException(`Cannot complete delivery. Order status is "${order.status}", expected "OUT_FOR_DELIVERY".`);
-    }
-
-    if (order.deliveryOtpAttempts >= 5) {
-      throw new BadRequestException('Maximum delivery OTP verification attempts (5) exceeded. Please contact support.');
-    }
-
-    if (order.deliveryOtpExpiresAt && new Date() > order.deliveryOtpExpiresAt) {
-      throw new BadRequestException('Delivery OTP has expired. Ask delivery partner to re-signal arrival.');
-    }
-
-    const submittedHash = hashOtp(cleanOtp);
-    const validHashMatch = order.deliveryOtpHash && order.deliveryOtpHash === submittedHash;
-    const validPlaintextMatch = order.deliveryOtp && order.deliveryOtp.trim() === cleanOtp && order.deliveryOtp !== 'USED';
-
-    if (!validHashMatch && !validPlaintextMatch) {
-      await this.prisma.order.update({
-        where: { id: order.id },
-        data: { deliveryOtpAttempts: { increment: 1 } },
-      });
-      throw new BadRequestException('Invalid customer delivery OTP.');
     }
 
     const now = new Date();
@@ -642,16 +593,12 @@ export class OrderStateMachineService {
         });
       }
 
-      // Atomically invalidate OTP and set DELIVERED
+      // Transition to DELIVERED
       const updated = await tx.order.update({
         where: { id: order.id },
         data: {
           status: OrderStatus.DELIVERED,
           paymentStatus: 'COMPLETED' as any,
-          deliveryOtp: 'USED',
-          deliveryOtpHash: null,
-          deliveryOtpExpiresAt: null,
-          deliveryOtpVerifiedAt: now,
           version: { increment: 1 },
         },
         include: {
@@ -695,11 +642,17 @@ export class OrderStateMachineService {
   }
 
   /**
-   * Rider Submits Customer Delivery OTP to Transition Order OUT_FOR_DELIVERY -> DELIVERED
-   * Delegates directly to authoritative completeDeliveryWithOtp method.
+   * Legacy alias — kept for backward compatibility, delegates to completeDelivery
    */
-  async verifyDeliveryOtp(orderId: string, otp: string, actor: AuthenticatedActor) {
-    return this.completeDeliveryWithOtp(orderId, otp, actor);
+  async completeDeliveryWithOtp(orderIdOrJobId: string, _otp: string, actor: AuthenticatedActor) {
+    return this.completeDelivery(orderIdOrJobId, actor);
+  }
+
+  /**
+   * Rider Submits Delivery OTP — now OTP-free, delegates to completeDelivery
+   */
+  async verifyDeliveryOtp(orderId: string, _otp: string, actor: AuthenticatedActor) {
+    return this.completeDelivery(orderId, actor);
   }
 
   /**
@@ -1161,110 +1114,6 @@ export class OrderStateMachineService {
           if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
           break;
       }
-    }
-
-    if (toStatus === OrderStatus.OUT_FOR_DELIVERY) {
-      this.dispatchCustomerDeliveryOtpSms(order).catch((err) => {
-        this.logger.error(`Failed to dispatch Delivery OTP SMS: ${err?.message}`);
-      });
-    }
-  }
-
-  private async dispatchCustomerDeliveryOtpSms(order: any) {
-    try {
-      const fullOrder = await this.prisma.order.findUnique({
-        where: { id: order.id },
-        include: {
-          customer: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-
-      if (!fullOrder) return;
-
-      const deliveryOtp = fullOrder.deliveryOtp;
-      if (!deliveryOtp) return;
-
-      const deliveryAddress: any = fullOrder.deliveryAddress || {};
-      const rawPhone = deliveryAddress.phone || deliveryAddress.contactPhone || fullOrder.customer?.user?.phone;
-
-      if (rawPhone) {
-        const cleanDigits = rawPhone.replace(/\D/g, '');
-        let mobile = cleanDigits;
-        if (cleanDigits.length === 10) {
-          mobile = `91${cleanDigits}`;
-        } else if (cleanDigits.length === 11 && cleanDigits.startsWith('0')) {
-          mobile = `91${cleanDigits.slice(1)}`;
-        } else if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
-          mobile = cleanDigits;
-        }
-
-        const authKey = process.env.MSG91_AUTH_KEY;
-        const widgetId = process.env.MSG91_WIDGET_ID || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-        const flowId = process.env.MSG91_FLOW_ID || process.env.MSG91_DELIVERY_FLOW_ID;
-        const templateId = process.env.MSG91_DELIVERY_TEMPLATE_ID || process.env.MSG91_OTP_TEMPLATE_ID || process.env.MSG91_TEMPLATE_ID;
-        const senderId = process.env.MSG91_SENDER_ID || 'FOODHB';
-
-        if (authKey && authKey !== 'placeholder_auth_key' && authKey !== 'dummy_auth_key') {
-          if (flowId) {
-            const flowPayload = {
-              flow_id: flowId,
-              sender: senderId,
-              recipients: [
-                {
-                  mobiles: mobile,
-                  otp: deliveryOtp,
-                  OTP: deliveryOtp,
-                  order: fullOrder.orderNumber,
-                  ORDER: fullOrder.orderNumber,
-                },
-              ],
-            };
-            const flowRes = await fetch('https://control.msg91.com/api/v5/flow', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                authkey: authKey,
-              },
-              body: JSON.stringify(flowPayload),
-            });
-            const flowData = await flowRes.json().catch(() => ({}));
-            this.logger.log(`[MSG91 Flow SMS] OTP sent to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${flowRes.status}): ${JSON.stringify(flowData)}`);
-          } else if (templateId) {
-            const otpUrl = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId)}&mobile=${mobile}&authkey=${encodeURIComponent(authKey)}&otp=${encodeURIComponent(deliveryOtp)}&otp_expiry=120`;
-            const otpRes = await fetch(otpUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-            });
-            const otpData = await otpRes.json().catch(() => ({}));
-            this.logger.log(`[MSG91 OTP SMS] OTP dispatched to ${mobile} for Order #${fullOrder.orderNumber} (HTTP ${otpRes.status}): ${JSON.stringify(otpData)}`);
-          } else if (widgetId) {
-            // Dispatches OTP via the configured MSG91 Widget
-            const widgetRes = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                authkey: authKey,
-              },
-              body: JSON.stringify({
-                widgetId,
-                identifier: mobile,
-              }),
-            });
-            const widgetData = await widgetRes.json().catch(() => ({}));
-            this.logger.log(`[MSG91 Widget SMS] Dispatched OTP to ${mobile} via Widget ${widgetId} (HTTP ${widgetRes.status}): ${JSON.stringify(widgetData)}`);
-          }
-        } else {
-          this.logger.log(`[MSG91 Delivery OTP SMS Simulation] ORDER #${fullOrder.orderNumber} | Phone: ${mobile.slice(0, 4)}**** | Delivery confirmation code dispatched`);
-        }
-      } else {
-        this.logger.warn(`[MSG91 Delivery OTP SMS] No phone found for Order #${fullOrder.orderNumber} — SMS skipped.`);
-      }
-    } catch (err: any) {
-      this.logger.error(`[MSG91 SMS Dispatch Error] Order #${order?.orderNumber}: ${err?.message}`);
     }
   }
 
