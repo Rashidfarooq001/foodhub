@@ -17,10 +17,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
   onLocationChange,
   className = 'w-full h-[300px] rounded-xl overflow-hidden',
 }) => {
-  const mapKey =
-    process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY ||
-    process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN ||
-    'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
+  const mapKey = process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY;
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
