@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -121,30 +121,21 @@ export default function CheckoutPage() {
   const realDistanceKm = (_rawDistanceKm !== null && Number.isFinite(_rawDistanceKm) && _rawDistanceKm >= 0)
     ? _rawDistanceKm
     : null;
-  const routeAvailable = orderQuote ? (orderQuote.routeAvailable ?? (realDistanceKm !== null)) : true;
+  const routeAvailable = orderQuote ? (Boolean(orderQuote.routeAvailable) && realDistanceKm !== null) : false;
 
-  // Authoritative distance-based delivery fee: First 3 km = ₹15, After 3 km = ₹5 / extra km
-  const fallbackDeliveryFee =
-    realDistanceKm !== null && realDistanceKm > 3
-      ? Math.round((15.0 + (realDistanceKm - 3.0) * 5.0) * 100) / 100
-      : 15.0;
-
-  const dynamicDeliveryFee = orderQuote ? orderQuote.customerDeliveryFee : fallbackDeliveryFee;
+  const dynamicDeliveryFee = (orderQuote && routeAvailable && realDistanceKm !== null && typeof orderQuote.customerDeliveryFee === 'number')
+    ? orderQuote.customerDeliveryFee
+    : null;
 
   const platformFee = orderQuote ? orderQuote.platformFee : 3.0;
   const subtotal = getSubtotal();
   const smallOrderFee = 0.0;
 
   const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
-  const isDeliveryEligible = orderQuote
-    ? orderQuote.deliveryEligible
-    : realDistanceKm !== null && realDistanceKm <= maxRadiusKm;
+  const isDeliveryEligible = Boolean(orderQuote && routeAvailable && orderQuote.deliveryEligible);
 
-  useEffect(() => {
+  const refreshQuote = useCallback(() => {
     const sub = getSubtotal();
-    const disc = 0;
-    const dist = realDistanceKm ?? 0;
-
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
     const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined &&
       selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
@@ -152,7 +143,7 @@ export default function CheckoutPage() {
 
     fetchOrderQuote({
       foodSubtotal: sub,
-      distanceKm: dist,
+      distanceKm: realDistanceKm ?? 0,
       restaurantId: restId || undefined,
       latitude: hasCoords ? selectedAddress!.latitude! : undefined,
       longitude: hasCoords ? selectedAddress!.longitude! : undefined,
@@ -166,10 +157,14 @@ export default function CheckoutPage() {
     });
   }, [items, selectedAddress, realDistanceKm, tipAmount]);
 
+  useEffect(() => {
+    refreshQuote();
+  }, [refreshQuote]);
+
   const tax = orderQuote ? orderQuote.totalCustomerTaxes : 0;
   const discount = 0;
   const baseGrandTotal =
-    subtotal + dynamicDeliveryFee + platformFee + tax;
+    subtotal + (dynamicDeliveryFee || 0) + platformFee + tax;
   const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
@@ -1078,7 +1073,11 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Fee</span>
-                    <span>₹{dynamicDeliveryFee || 15}</span>
+                    <span>
+                      {dynamicDeliveryFee !== null
+                        ? `₹${dynamicDeliveryFee}`
+                        : <span className="text-amber-700 font-semibold text-[11px]">Pending distance</span>}
+                    </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Platform Fee</span>
@@ -1136,8 +1135,8 @@ export default function CheckoutPage() {
             </div>
 
             <button
-              onClick={handlePlaceOrder}
-              disabled={isPlacing || !isDeliveryEligible || !selectedAddress || (orderQuote != null && !routeAvailable)}
+              onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
+              disabled={isPlacing || !selectedAddress || (Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible))}
               className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
@@ -1145,6 +1144,8 @@ export default function CheckoutPage() {
                   ? 'Placing Order...'
                   : !selectedAddress
                   ? 'Select Delivery Address'
+                  : orderQuote && (!routeAvailable || realDistanceKm === null)
+                  ? '⚠️ Distance Unavailable (Tap to Retry)'
                   : !isDeliveryEligible
                   ? 'Outside Delivery Radius'
                   : paymentMethod === 'COD'

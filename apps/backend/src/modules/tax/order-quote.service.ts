@@ -130,13 +130,19 @@ export class OrderQuoteService {
     const deliveryFeeBaseAmount = 15.0;
     const deliveryFeePerExtraKm = 5.0;
 
-    let customerDeliveryFee = deliveryFeeBaseAmount;
-    if (distanceKm !== null && distanceKm > deliveryFeeBaseKm) {
-      const extraKm = distanceKm - deliveryFeeBaseKm;
-      customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
+    let customerDeliveryFee: number | null = null;
+    if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
+      if (distanceKm <= deliveryFeeBaseKm) {
+        customerDeliveryFee = deliveryFeeBaseAmount;
+      } else {
+        const extraKm = distanceKm - deliveryFeeBaseKm;
+        customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
+      }
+    } else {
+      customerDeliveryFee = 0; // Unresolved / 0 when route calculation is unavailable
     }
 
-    if (!deliveryEligible || distanceKm === null || distanceKm > deliveryRadiusKm) {
+    if (!deliveryEligible || distanceKm === null || distanceKm > deliveryRadiusKm || !routeAvailable) {
       deliveryEligible = false;
       serviceable = false;
     }

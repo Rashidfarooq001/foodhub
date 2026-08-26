@@ -373,17 +373,25 @@ export class GeolocationService {
       }
 
       const data = await response.json();
-      const route = data?.routes?.[0] || data?.results?.routes?.[0];
+      const route = data?.routes?.[0] || data?.results?.routes?.[0] || data?.results?.trips?.[0];
 
-      this.logger.log(`[Mappls Route Response] HTTP status: ${response.status} | response route available: ${Boolean(route)} | distance returned: ${Boolean(route && typeof route.distance === 'number')} | duration returned: ${Boolean(route && typeof route.duration === 'number')}`);
+      const rawDist = route?.distance ?? route?.legs?.[0]?.distance ?? data?.results?.distances?.[0]?.[1] ?? data?.distance;
+      const rawDur = route?.duration ?? route?.legs?.[0]?.duration ?? data?.results?.durations?.[0]?.[1] ?? data?.duration;
 
-      if (!route || typeof route.distance !== 'number' || typeof route.duration !== 'number') {
-        throw new Error('Mappls Routing returned no valid road routes between the specified coordinates.');
+      const distNum = typeof rawDist === 'number' ? rawDist : (typeof rawDist === 'string' ? parseFloat(rawDist) : NaN);
+      const durNum = typeof rawDur === 'number' ? rawDur : (typeof rawDur === 'string' ? parseFloat(rawDur) : NaN);
+
+      this.logger.log(`[Mappls Route Debug] HTTP status: ${response.status} | response received: ${Boolean(data)} | route found: ${Boolean(route || !isNaN(distNum))} | distance field found: ${!isNaN(distNum)} | duration field found: ${!isNaN(durNum)}`);
+
+      if (isNaN(distNum) || distNum < 0) {
+        throw new Error('Mappls Routing returned no valid road routes or distance between the specified coordinates.');
       }
 
+      const calculatedDuration = !isNaN(durNum) && durNum >= 0 ? durNum : (distNum / 1000 / 30) * 3600; // fallback 30 km/h in seconds if duration missing
+
       return {
-        distanceKm: Math.round((route.distance / 1000) * 100) / 100,
-        etaMinutes: Math.ceil(route.duration / 60),
+        distanceKm: Math.round((distNum / 1000) * 100) / 100,
+        etaMinutes: Math.ceil(calculatedDuration / 60),
       };
     } catch (err: any) {
       clearTimeout(timeout);
