@@ -203,17 +203,22 @@ export default function CheckoutPage() {
       });
       console.log('[Mappls Rev-Geocode] Raw response:', address);
 
-      const locality = address.locality || address.village || address.subLocality || 'Current Location';
-      const district = address.district || address.city || '';
-      const state = address.state || 'Jammu & Kashmir';
-      const pincode = address.pincode || address.postalCode || '';
+      const locality = (address.locality || address.village || address.subLocality || '').trim();
+      const subDistrict = ((address as any).subDistrict || '').trim();
+      const district = (address.district || address.city || '').trim();
+      const state = (address.state || 'Jammu & Kashmir').trim();
+      const pincode = (address.pincode || address.postalCode || '').trim();
+
+      const specificName = locality || subDistrict || district || 'Current Location';
+      const addressLine2 = [subDistrict, district].filter(Boolean).filter(d => d !== specificName).join(', ');
 
       const gpsAddr: CustomerAddressItem = {
         id: 'current-location',
         label: 'Current Location',
-        placeName: locality,
-        addressLine1: locality,
-        city: district,
+        placeName: specificName,
+        addressLine1: specificName,
+        addressLine2: addressLine2 || undefined,
+        city: district || 'Jammu & Kashmir',
         state: state,
         postalCode: pincode,
         latitude: coords.latitude,

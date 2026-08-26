@@ -165,7 +165,7 @@ export class GeolocationService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Accept': 'application/json' },
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -180,36 +180,32 @@ export class GeolocationService {
       const result = Array.isArray(data?.results) ? data.results[0] : (data?.results ?? data);
       if (!result) return fallback;
 
-      // Log raw Mappls fields for debugging coordinate/geocoding issues
-      this.logger.debug(`Mappls raw rev-geocode [${lat}, ${lng}]: village="${result.village}", locality="${result.locality}", subLocality="${result.subLocality}", subDistrict="${result.subDistrict}", district="${result.district}", city="${result.city}", state="${result.state}", pincode="${result.pincode}"`);
-
       const houseNumber   = (result.houseNumber || result.houseName || '').trim();
       const street        = (result.street || '').trim();
       const village       = (result.village || '').trim();
       const locality      = (result.locality || '').trim();
       const subLocality   = (result.subLocality || '').trim();
       const poi           = (result.poi || '').trim();
-      const finalLocality = (village || locality || subLocality || poi || street || 'Detected Location').trim();
+      const finalLocality = (village || locality || subLocality || poi || street || '').trim();
       const cleanDistrict = (result.district || result.city || '').replace(/\s+District$/i, '').trim();
       const subDistrict   = (result.subDistrict || '').trim();
       const state         = (result.state || 'Jammu & Kashmir').trim();
       const country       = (result.country || 'India').trim();
-      const pincode       = (result.pincode || '').trim();
-      const mapplsPin     = (result.mapplsPin || '').trim();
+      const pincode       = (result.pincode || result.pin || '').trim();
+      const mapplsPin     = (result.mapplsPin || result.placeId || result.eLoc || '').trim();
 
       const parts = [houseNumber, street, finalLocality, subDistrict, cleanDistrict, state].filter(Boolean);
-      // Deduplicate and remove empty strings
       const uniqueParts = Array.from(new Set(parts.map(p => p.trim()))).filter(Boolean);
 
       const builtAddress = pincode ? `${uniqueParts.join(', ')} - ${pincode}` : uniqueParts.join(', ');
       const formattedAddress = builtAddress || result.formatted_address || result.formattedAddress || 'Location detected';
 
-      this.logger.debug(`Mappls normalized address: "${formattedAddress}" (locality="${finalLocality}", district="${cleanDistrict}", pincode="${pincode}")`);
+      this.logger.log(`[Mappls Rev-Geocode] HTTP status: ${response.status} | formattedAddress: ${Boolean(formattedAddress && formattedAddress !== 'Location detected')} | locality: ${Boolean(locality)} | village: ${Boolean(village)} | district: ${Boolean(cleanDistrict)} | state: ${Boolean(state)} | pincode: ${Boolean(pincode)} | placeId: ${Boolean(mapplsPin)}`);
 
       return {
         latitude: lat,
         longitude: lng,
-        locality: finalLocality,
+        locality: finalLocality || cleanDistrict || 'Current Location',
         village,
         subLocality,
         district: cleanDistrict,
@@ -378,6 +374,9 @@ export class GeolocationService {
 
       const data = await response.json();
       const route = data?.routes?.[0] || data?.results?.routes?.[0];
+
+      this.logger.log(`[Mappls Route Response] HTTP status: ${response.status} | response route available: ${Boolean(route)} | distance returned: ${Boolean(route && typeof route.distance === 'number')} | duration returned: ${Boolean(route && typeof route.duration === 'number')}`);
+
       if (!route || typeof route.distance !== 'number' || typeof route.duration !== 'number') {
         throw new Error('Mappls Routing returned no valid road routes between the specified coordinates.');
       }

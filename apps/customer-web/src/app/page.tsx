@@ -156,14 +156,17 @@ export default function CustomerHomePage() {
               if (geoRes.ok) {
                 const geoData = await geoRes.json();
                 if (geoData && isMounted) {
-                  const locality = geoData.locality || geoData.village || geoData.subLocality || 'Current Location';
-                  const district = geoData.district || geoData.city || '';
-                  const state = geoData.state || 'Jammu & Kashmir';
-                  const pincode = geoData.pincode || geoData.postalCode || '';
+                  const locality = (geoData.locality || geoData.village || geoData.subLocality || '').trim();
+                  const subDistrict = (geoData.subDistrict || '').trim();
+                  const district = (geoData.district || geoData.city || '').trim();
+                  const state = (geoData.state || 'Jammu & Kashmir').trim();
+                  const pincode = (geoData.pincode || geoData.postalCode || '').trim();
 
-                  const cleanAddress = geoData.formattedAddress || [locality, district, state].filter(Boolean).join(', ');
+                  const specificName = locality || subDistrict || district || 'Current Location';
+                  const cleanAddress = geoData.formattedAddress || [locality, subDistrict, district, state].filter(Boolean).join(', ');
+                  const addressLine2 = [subDistrict, district].filter(Boolean).filter(d => d !== specificName).join(', ');
 
-                  setLocationLabel(locality);
+                  setLocationLabel(specificName);
                   setLocationAddress(cleanAddress);
                   setLocationStatus('resolved');
 
@@ -171,9 +174,10 @@ export default function CustomerHomePage() {
                   addAddress({
                     id: 'current-location',
                     label: 'Current Location',
-                    placeName: locality,
-                    addressLine1: locality,
-                    city: district,
+                    placeName: specificName,
+                    addressLine1: specificName,
+                    addressLine2: addressLine2 || undefined,
+                    city: district || 'Jammu & Kashmir',
                     state: state,
                     postalCode: pincode,
                     latitude: lat,
