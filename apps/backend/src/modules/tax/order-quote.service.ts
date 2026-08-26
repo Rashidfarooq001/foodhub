@@ -91,21 +91,24 @@ export class OrderQuoteService {
     const customerState = req.customerState || 'J&K';
     const restaurantState = req.restaurantState || 'J&K';
 
-    // 1. Authoritative Distance & Radius Check via DistanceService
-    let distanceKm: number | null = req.distanceKm !== undefined && req.distanceKm !== null && req.distanceKm >= 0 ? req.distanceKm : null;
+    // 1. Authoritative Distance & Radius Check via DistanceService (Backend Exclusive Authority)
+    let distanceKm: number | null = null;
     let etaMinutes: number | null = null;
-    let routeAvailable = true;
-    let serviceable = true;
-    let deliveryEligible = true;
+    let routeAvailable = false;
+    let serviceable = false;
+    let deliveryEligible = false;
     let deliveryRadiusKm = 15.0;
     const locationSource = req.locationSource || 'MANUAL_GEOCODED';
 
-    let restaurantRecord: { id: string; commissionRate: any } | null = null;
+    let restaurantRecord: { id: string; commissionRate: any; deliveryRadius: any } | null = null;
     if (req.restaurantId) {
       restaurantRecord = await this.prisma.restaurant.findUnique({
         where: { id: req.restaurantId },
-        select: { id: true, commissionRate: true },
+        select: { id: true, commissionRate: true, deliveryRadius: true },
       });
+      if (restaurantRecord?.deliveryRadius) {
+        deliveryRadiusKm = Number(restaurantRecord.deliveryRadius);
+      }
     }
 
     if (req.restaurantId && typeof req.latitude === 'number' && typeof req.longitude === 'number') {

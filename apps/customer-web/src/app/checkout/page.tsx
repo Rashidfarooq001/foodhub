@@ -152,7 +152,6 @@ export default function CheckoutPage() {
 
     fetchOrderQuote({
       foodSubtotal: sub,
-      distanceKm: realDistanceKm ?? 0,
       restaurantId: restId || undefined,
       latitude: hasCoords ? selectedAddress!.latitude! : undefined,
       longitude: hasCoords ? selectedAddress!.longitude! : undefined,
@@ -164,7 +163,7 @@ export default function CheckoutPage() {
     }).then((quote) => {
       if (quote) setOrderQuote(quote);
     });
-  }, [items, selectedAddress, realDistanceKm, tipAmount]);
+  }, [items, selectedAddress, tipAmount]);
 
   useEffect(() => {
     refreshQuote();
