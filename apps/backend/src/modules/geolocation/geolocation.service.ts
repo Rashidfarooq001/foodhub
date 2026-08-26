@@ -344,8 +344,8 @@ export class GeolocationService {
       throw new Error('Invalid coordinates for routing.');
     }
 
-    // Authoritative Mappls Production Advanced Routing Endpoint
-    const url = `https://apis.mappls.com/advancedmaps/v1/${token}/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}`;
+    // Authoritative Mappls Production Advanced Routing Endpoint (route.mappls.com)
+    const url = `https://route.mappls.com/route/direction/route_adv/driving/${fromLng},${fromLat};${toLng},${toLat}?access_token=${encodeURIComponent(token)}`;
 
     const isJwt = token.startsWith('ey');
     const headers: Record<string, string> = {
@@ -367,7 +367,7 @@ export class GeolocationService {
       if (!response.ok) {
         const body = await response.text();
         if (response.status === 401) {
-          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized from apis.mappls.com. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`);
+          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized from route.mappls.com. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`);
         }
         throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
       }
