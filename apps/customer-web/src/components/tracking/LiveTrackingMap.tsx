@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import Script from 'next/script';
+import { useMapplsSdk } from '../../hooks/useMapplsSdk';
 import { Loader2, RefreshCw, AlertCircle, Bike } from 'lucide-react';
 
 interface Props {
@@ -25,14 +25,13 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
   driverName,
   routeCoordinates = [],
 }) => {
-  const mapKey = process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY;
+  const { isLoaded: sdkLoaded, error: sdkError, mapKey } = useMapplsSdk();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
 
-  const [sdkLoaded, setSdkLoaded] = useState(false);
   const [mapState, setMapState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
   const [errorDetails, setErrorDetails] = useState<string>('');
 
@@ -78,10 +77,9 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
 
       mapInstanceRef.current = map;
 
-      // === BASE MAP TEST ===
-      // Temporarily commenting out all markers and polylines to isolate the map rendering issue
-      
-      /*
+      // === MAP MARKERS & ROUTE ENABLED ===
+      const driverValid = hasValidCoords(driverLat, driverLng);
+
       // 1. Restaurant Marker
       if (restValid) {
         new window.mappls.Marker({
@@ -122,8 +120,16 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
           fitbounds: true,
         });
         polylineRef.current = polyline;
+      } else if (restValid && custValid) {
+        try {
+          map.fitBounds([
+            [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
+            [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
+          ]);
+        } catch {
+          /* ignore */
+        }
       }
-      */
 
       setMapState('READY');
     } catch (err: any) {
@@ -132,20 +138,19 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       setErrorDetails(`Init Error: ${errStr}`);
       setMapState('ERROR');
     }
-  }, [restaurantLat, restaurantLng, customerLat, customerLng, routeCoordinates, driverName]);
+  }, [restaurantLat, restaurantLng, customerLat, customerLng, routeCoordinates, driverName, driverLat, driverLng]);
 
   useEffect(() => {
-    if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
+    if (sdkError) {
+      setErrorDetails(sdkError);
+      setMapState('ERROR');
+    } else if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
       initMap();
     }
-  }, [sdkLoaded, initMap]);
+  }, [sdkLoaded, sdkError, initMap]);
 
   // Smooth real-time update of driver marker location (NO fitBounds / NO camera jump)
   useEffect(() => {
-    // === BASE MAP TEST: Skipping driver marker updates ===
-    return;
-    
-    /*
     if (!hasValidCoords(driverLat, driverLng) || !driverLat || !driverLng) return;
 
     if (driverMarkerRef.current) {
@@ -166,25 +171,10 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         console.error('[Mappls Web Map] Error creating driver marker:', err);
       }
     }
-    */
   }, [driverLat, driverLng, driverName]);
 
   return (
     <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-3xl bg-gray-900 shadow-inner flex flex-col">
-      <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
-        strategy="afterInteractive"
-        onLoad={() => {
-          console.log('[Mappls Web SDK] Script loaded');
-          setSdkLoaded(true);
-        }}
-        onError={(e: any) => {
-          console.error('[Mappls Web SDK] Failed to load script:', e);
-          setErrorDetails(`Script Load Error: SDK failed to load. Check Network tab.`);
-          setMapState('ERROR');
-        }}
-      />
-
       {mapState === 'LOADING' && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-gray-900/80 backdrop-blur-xs text-white">
           <Loader2 className="h-7 w-7 animate-spin text-orange-500" />
@@ -201,7 +191,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
              <code className="text-[10px] text-red-200 whitespace-pre-wrap">{errorDetails || 'Unknown error'}</code>
           </div>
           <button
-            onClick={initMap}
+            onClick={() => window.location.reload()}
             className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Tap to Retry

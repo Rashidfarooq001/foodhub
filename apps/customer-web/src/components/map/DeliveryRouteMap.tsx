@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import Script from 'next/script';
+import { useMapplsSdk } from '../../hooks/useMapplsSdk';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface DeliveryRouteMapProps {
@@ -25,11 +25,10 @@ export default function DeliveryRouteMap({
   restaurantName = 'Restaurant',
   routeCoordinates = [],
 }: DeliveryRouteMapProps) {
-  const mapKey = process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY;
+  const { isLoaded: sdkLoaded, error: sdkError, mapKey } = useMapplsSdk();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const [sdkLoaded, setSdkLoaded] = useState(false);
   const [mapState, setMapState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
   const [errorDetails, setErrorDetails] = useState<string>('');
 
@@ -58,6 +57,7 @@ export default function DeliveryRouteMap({
 
       const restValid = hasValidCoords(restaurantLat, restaurantLng);
       const custValid = hasValidCoords(customerLat, customerLng);
+      const driverValid = hasValidCoords(driverLat, driverLng);
 
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
       const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.5220;
@@ -75,8 +75,7 @@ export default function DeliveryRouteMap({
 
       mapInstanceRef.current = map;
 
-      // === BASE MAP TEST ===
-      /*
+      // === MAP MARKERS & ROUTE ENABLED ===
       if (restValid) {
         new window.mappls.Marker({
           map,
@@ -111,8 +110,16 @@ export default function DeliveryRouteMap({
           strokeOpacity: 0.9,
           fitbounds: true,
         });
+      } else if (restValid && custValid) {
+        try {
+          map.fitBounds([
+            [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
+            [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
+          ]);
+        } catch {
+          /* ignore */
+        }
       }
-      */
 
       setMapState('READY');
     } catch (err: any) {
@@ -124,27 +131,16 @@ export default function DeliveryRouteMap({
   }, [restaurantLat, restaurantLng, customerLat, customerLng, driverLat, driverLng, restaurantName, routeCoordinates]);
 
   useEffect(() => {
-    if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
+    if (sdkError) {
+      setErrorDetails(sdkError);
+      setMapState('ERROR');
+    } else if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
       initMap();
     }
-  }, [sdkLoaded, initMap]);
+  }, [sdkLoaded, sdkError, initMap]);
 
   return (
     <div className="relative h-[300px] w-full overflow-hidden rounded-2xl border border-gray-100 shadow-inner bg-gray-900 flex flex-col">
-      <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
-        strategy="afterInteractive"
-        onLoad={() => {
-          console.log('[Mappls DeliveryRouteMap] SDK Loaded');
-          setSdkLoaded(true);
-        }}
-        onError={(e: any) => {
-          console.error('[Mappls DeliveryRouteMap] Failed to load SDK:', e);
-          setErrorDetails('Script Load Error: SDK failed to load. Check Network tab.');
-          setMapState('ERROR');
-        }}
-      />
-
       {mapState === 'LOADING' && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-gray-900/80">
           <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
@@ -159,7 +155,7 @@ export default function DeliveryRouteMap({
              <code className="text-[10px] text-red-200 whitespace-pre-wrap">{errorDetails || 'Unknown error'}</code>
           </div>
           <button
-            onClick={initMap}
+            onClick={() => window.location.reload()}
             className="inline-flex items-center gap-1 rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-700 transition"
           >
             <RefreshCw className="h-3 w-3" /> Retry

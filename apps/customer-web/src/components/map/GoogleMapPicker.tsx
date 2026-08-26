@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useMapplsSdk } from '../../hooks/useMapplsSdk';
 import { Loader2 } from 'lucide-react';
 
 interface Props {
@@ -17,12 +17,12 @@ export const GoogleMapPicker: React.FC<Props> = ({
   onLocationChange,
   className = 'w-full h-[300px] rounded-xl overflow-hidden',
 }) => {
-  const mapKey = process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY;
+  const { isLoaded: sdkLoaded, error: sdkError, mapKey } = useMapplsSdk();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const centerLat = initialLat || 34.0747;
   const centerLng = initialLng || 74.8204;
@@ -59,23 +59,25 @@ export const GoogleMapPicker: React.FC<Props> = ({
       });
 
       setIsLoaded(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Mappls map init error:', err);
-      setError(true);
+      setErrorDetails(err.message || String(err));
     }
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) {
+    if (sdkError) {
+      setErrorDetails(sdkError);
+    } else if (sdkLoaded && typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) {
       initMap();
     }
-  });
+  }, [sdkLoaded, sdkError]);
 
-  if (error) {
+  if (errorDetails) {
     return (
-      <div className={`${className} flex flex-col items-center justify-center bg-gray-100 text-sm text-gray-500 p-6 text-center`}>
-        <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Mappls map initialization error. Please try again.</span>
+      <div className={`${className} flex flex-col items-center justify-center bg-red-50 border border-red-100 text-sm p-6 text-center`}>
+        <span className="font-bold text-red-700 mb-2">Map Unavailable</span>
+        <span className="text-red-500 text-xs">{errorDetails}</span>
       </div>
     );
   }
@@ -83,16 +85,11 @@ export const GoogleMapPicker: React.FC<Props> = ({
   return (
     <div className={className}>
       {!isLoaded && (
-        <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-2">
           <Loader2 className="h-6 w-6 animate-spin text-rose-500" />
+          {!mapKey && <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>}
         </div>
       )}
-      <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
-        strategy="afterInteractive"
-        onLoad={initMap}
-        onError={() => setError(true)}
-      />
       <div ref={mapRef} style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }} />
     </div>
   );

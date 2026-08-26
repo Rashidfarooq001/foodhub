@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useMapplsSdk } from '../../hooks/useMapplsSdk';
 import { Loader2 } from 'lucide-react';
 
 interface RestaurantPin {
@@ -28,11 +28,11 @@ export default function NearbyRestaurantsMap({
   restaurants,
   onSelect,
 }: NearbyRestaurantsMapProps) {
-  const mapKey = process.env.NEXT_PUBLIC_MAPPLS_WEB_KEY;
+  const { isLoaded: sdkLoaded, error: sdkError, mapKey } = useMapplsSdk();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const initMap = () => {
     if (!mapRef.current || !window.mappls || mapInstanceRef.current) return;
@@ -56,7 +56,7 @@ export default function NearbyRestaurantsMap({
         const marker = new window.mappls.Marker({
           map,
           position: { lat: rest.lat, lng: rest.lng },
-          popupHtml: `<div class="font-bold text-xs">${rest.name}<br/>${rest.distanceKm} km · ${rest.etaMinutes} mins</div>`,
+          popupHtml: `<div class="font-bold text-xs">${rest.name}<br/>${rest.distanceKm} km A ${rest.etaMinutes} mins</div>`,
         });
         if (onSelect) {
           marker.addListener('click', () => onSelect(rest));
@@ -64,31 +64,35 @@ export default function NearbyRestaurantsMap({
       });
 
       setIsLoaded(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Mappls NearbyRestaurantsMap error:', err);
-      setError(true);
+      setErrorDetails(err.message || String(err));
     }
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) initMap();
-  });
+    if (sdkError) {
+      setErrorDetails(sdkError);
+    } else if (sdkLoaded && typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) {
+      initMap();
+    }
+  }, [sdkLoaded, sdkError]);
 
-  if (error) return <div className="text-sm text-red-500 p-4">Error loading map</div>;
+  if (errorDetails) return (
+    <div className="relative h-[350px] w-full overflow-hidden rounded-2xl border border-red-100 bg-red-50 p-4 flex flex-col items-center justify-center text-center">
+      <span className="font-bold text-red-700 text-sm mb-1">Map Error</span>
+      <span className="text-red-500 text-xs">{errorDetails}</span>
+    </div>
+  );
 
   return (
     <div className="relative h-[350px] w-full overflow-hidden rounded-2xl border border-gray-100 shadow-inner">
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 gap-2 z-10">
           <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+          {!mapKey && <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>}
         </div>
       )}
-      <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`}
-        strategy="afterInteractive"
-        onLoad={initMap}
-        onError={() => setError(true)}
-      />
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );

@@ -30,8 +30,9 @@ export default function LiveOrderTrackingPage() {
   const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   const fetchOrderAndTracking = async () => {
+    if (!accessToken) return;
     try {
-      const headers: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      const headers: HeadersInit = { Authorization: `Bearer ${accessToken}` };
       const [orderRes, trackingRes] = await Promise.all([
         fetch(`${API_BASE}/orders/${orderId}`, { headers }),
         fetch(`${API_BASE}/orders/${orderId}/tracking`, { headers }),
