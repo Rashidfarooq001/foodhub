@@ -324,6 +324,7 @@ export class OrdersService {
           deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
           taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
           pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
+          deliveryOtp:        'NOT_REQUIRED',
           specialInstruction: dto.specialInstruction,
         },
       });
