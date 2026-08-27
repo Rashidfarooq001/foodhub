@@ -42,7 +42,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className={`sticky top-0 z-30 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md ${isHome ? 'hidden md:block' : ''}`}>
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 md:h-16">
+      <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 sm:px-6 lg:px-8 md:h-[72px] lg:h-[76px]">
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -50,7 +50,7 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {/* Desktop Search */}
-        <div className="hidden flex-1 max-w-md mx-6 md:block">
+        <div className="hidden flex-1 max-w-[500px] lg:max-w-[560px] mx-6 md:block">
           <div
             onClick={() => router.push('/search')}
             className="flex cursor-pointer items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-2 text-sm text-gray-400 hover:border-rose-300 hover:bg-white transition shadow-sm"

@@ -458,7 +458,7 @@ export default function CustomerHomePage() {
   const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
   return (
     <div className="bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8 md:space-y-12 pb-10">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 pt-4 pb-10 md:pt-8">
 
         {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">
@@ -483,7 +483,7 @@ export default function CustomerHomePage() {
         </div>
 
         {/* ─── ROW 2: LOCATION (LEFT) + VEG TOGGLE + NOTIFICATION + PROFILE (RIGHT) ─── */}
-        <div className="flex items-center justify-between gap-3 pt-2 pb-1">
+        <div className="flex items-center justify-between gap-3 pt-2 pb-1 mt-0 md:mt-0">
           {/* Current Location on Left */}
           <button
             type="button"
@@ -580,7 +580,7 @@ export default function CustomerHomePage() {
         )}
 
         {/* ─── ROW 3: LARGE ROUNDED SEARCH BAR (Mobile Only) ─────────────── */}
-        <div className="relative w-full md:hidden pt-1">
+        <div className="relative w-full md:hidden pt-1 mt-6">
           <div className="relative flex items-center rounded-full border border-gray-200 bg-gray-50/50 hover:bg-white hover:border-rose-400 transition-all duration-200 shadow-sm">
             <div className="pl-4 pr-2 text-rose-600">
               <Search className="h-5 w-5 stroke-[2.5]" />
@@ -609,10 +609,12 @@ export default function CustomerHomePage() {
         </div>
 
         {/* ─── ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) ─── */}
-        <CategoryCarousel
-          selectedCategory={selectedCategory}
-          onSelectCategory={(cat) => setSelectedCategory(cat)}
-        />
+        <div className="mt-6 md:mt-7">
+            <CategoryCarousel
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat) => setSelectedCategory(cat)}
+            />
+          </div>
 
         {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
         <div className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0" style={{ overscrollBehaviorX: 'contain' }}>
@@ -713,7 +715,7 @@ export default function CustomerHomePage() {
         </div>
 
         {/* ─── ROW 6: RECOMMENDED FOR YOU (DYNAMIC) ────────── */}
-        <section className="space-y-3 pt-2">
+        <section className="space-y-3 pt-2 mt-8 md:mt-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
               RECOMMENDED FOR YOU
@@ -726,7 +728,7 @@ export default function CustomerHomePage() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
+            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
@@ -742,7 +744,7 @@ export default function CustomerHomePage() {
               </button>
             </div>
           ) : recommendedList.length > 0 ? (
-            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
+            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
               {recommendedList.map((restaurant) => (
                 <div className="snap-start"><RecommendedCard
                   key={restaurant.id}
@@ -767,7 +769,7 @@ export default function CustomerHomePage() {
         </section>
 
         {/* ─── ROW 7: POPULAR NEAR YOU (DYNAMIC) ───────────── */}
-        <section className="space-y-3 pt-3">
+        <section className="space-y-3 pt-3 mt-8 md:mt-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
               POPULAR NEAR YOU
@@ -781,13 +783,13 @@ export default function CustomerHomePage() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
+            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : popularList.length > 0 ? (
-            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
+            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
               {popularList.map((restaurant) => (
                 <div className="snap-start"><RecommendedCard
                   key={restaurant.id}
