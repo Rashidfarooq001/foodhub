@@ -20,7 +20,10 @@ export interface CustomerOrderQuoteData {
     smallOrderFee: number;
     discountAmount: number;
     tipAmount: number;
-    distanceKm: number;
+    distanceKm: number | null;
+    etaMinutes: number | null;
+    routeAvailable: boolean;
+    serviceable: boolean;
     distanceType: 'MAPPLS_ROAD_ROUTING';
     deliveryEligible: boolean;
     deliveryRadiusKm: number;
@@ -64,5 +67,3 @@ export declare function fetchOrderQuote(req: {
     restaurantState?: string;
 }): Promise<CustomerOrderQuoteData | null>;
 export declare function fetchActiveTaxRules(): Promise<any[]>;
-
-

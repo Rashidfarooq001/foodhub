@@ -1,4 +1,6 @@
-import React from 'react';
+const fs = require('fs');
+
+const content = `import React from 'react';
 import Link from 'next/link';
 import { Mail, Clock, Phone, MapPin, ExternalLink } from 'lucide-react';
 
@@ -39,7 +41,7 @@ export default function SupportPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-900">Operating Hours</p>
-                  <p className="text-[11px] text-gray-500">10:00 AM ï¿½ 11:00 PM</p>
+                  <p className="text-[11px] text-gray-500">10:00 AM – 11:00 PM</p>
                   <p className="text-[11px] text-gray-500">Open 7 days a week</p>
                 </div>
               </div>
@@ -73,3 +75,6 @@ export default function SupportPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('apps/customer-web/src/app/support/page.tsx', content);

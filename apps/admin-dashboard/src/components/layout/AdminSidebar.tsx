@@ -32,7 +32,6 @@ const NAVIGATION = [
   { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
   { name: 'Finance & Settlements', href: '/finance', icon: CreditCard },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
-  { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
 ];
 

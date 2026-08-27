@@ -452,16 +452,6 @@ export class OrdersController {
     return this.ordersService.repeatOrder(id, userId);
   }
 
-  @Post(':id/support')
-  @ApiOperation({ summary: 'Customer reports an issue with an order' })
-  async submitSupportTicket(
-    @Param('id') id: string,
-    @Body('issueType') issueType: string,
-    @Body('description') description: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.submitSupportTicket(id, issueType, description, userId);
-  }
+
 }
 

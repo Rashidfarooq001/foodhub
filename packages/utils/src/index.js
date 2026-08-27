@@ -16,7 +16,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./formatters.js"), exports);
 __exportStar(require("./validators.js"), exports);
-__exportStar(require("./geo.js"), exports);
 __exportStar(require("./helpers.js"), exports);
 __exportStar(require("./serializer.js"), exports);
 __exportStar(require("./mappls.js"), exports);

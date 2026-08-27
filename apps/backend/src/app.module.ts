@@ -42,7 +42,6 @@ import { SecurityModule } from './modules/security/security.module';
 // Pricing & Tax Modules
 import { PricingModule } from './modules/pricing/pricing.module';
 import { TaxModule } from './modules/tax/tax.module';
-import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
@@ -88,7 +87,6 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
     // Pricing & Tax Modules
     PricingModule,
     TaxModule,
-    SupportTicketsModule,
     PrivacyModule,
   ],
   providers: [

@@ -1115,28 +1115,6 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     return serializePrisma(review);
   }
 
-  async submitSupportTicket(orderId: string, issueType: string, description: string, userId: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
-
-    const timeline = await this.prisma.orderTimeline.create({
-      data: {
-        orderId,
-        status: order.status,
-        message: `Customer Support Issue Reported: [${issueType}] ${description}`,
-      },
-    });
-
-    return serializePrisma({
-      ticketId: `TICKET-${Date.now().toString().slice(-6)}`,
-      orderId,
-      issueType,
-      status: 'OPEN',
-      createdAt: timeline.createdAt,
-      message: 'Support request submitted. FoodHub Resolution Team will contact you within 15 minutes.',
-    });
-  }
-
   async getOrderInvoice(orderId: string, userId: string, role?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
