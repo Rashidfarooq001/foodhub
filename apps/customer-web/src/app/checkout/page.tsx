@@ -616,7 +616,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-12">
+      <div className="min-h-[100dvh] bg-gray-50/50 pb-32 sm:pb-28">
         {/* Mobile Header & Progress Bar */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
@@ -657,27 +657,34 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* LEFT COLUMN: Delivery Location & Options */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Delivery Address Card */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                    <MapPin className="h-4 w-4 text-orange-600 shrink-0" />
-                    <span>Delivery Address</span>
+                {/* Delivery Address Card */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between pb-3">
+                    <div className="flex items-center gap-2 text-sm font-black text-gray-900">
+                      <MapPin className="h-4 w-4 text-orange-600" />
+                      <span>Delivery Address</span>
+                    </div>
+                    {addresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomAddressModal(true)}
+                        className="text-xs font-bold text-orange-600 hover:underline"
+                      >
+                        Change
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {/* OPTION 1 — AUTO CAPTURE CURRENT LOCATION */}
+                  <div className="flex gap-2 pb-4">
                     <button
                       type="button"
                       onClick={handleUseCurrentLocation}
                       disabled={isLocatingUser}
-                      className="flex items-center gap-1.5 rounded-xl bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50 border border-orange-100"
                     >
                       <MapPin className={`h-3.5 w-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                      <span>{isLocatingUser ? 'Locating...' : '📍 Use Current Location'}</span>
+                      <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
                     </button>
-
-                    {/* OPTION 2 — PLACE-NAME SEARCH */}
                     <button
                       type="button"
                       onClick={() => {
@@ -686,198 +693,107 @@ export default function CheckoutPage() {
                         setPlaceSearchError(null);
                         setShowCustomAddressModal(true);
                       }}
-                      className="flex items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-black transition"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-gray-700 hover:bg-gray-200 transition border border-gray-200"
                     >
-                      <Search className="h-3.5 w-3.5 text-orange-400" />
-                      <span>🔎 Change Location</span>
+                      <Search className="h-3.5 w-3.5 text-gray-500" />
+                      <span>Change Location</span>
                     </button>
                   </div>
-                </div>
 
-                {locationError && (
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center justify-between">
-                    <span>⚠️ {locationError}</span>
-                    <button type="button" onClick={() => setLocationError(null)} className="text-rose-500 hover:text-rose-800">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Address Selection / Empty State */}
-                {addresses.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-4 text-center space-y-4">
-                    <div className="mx-auto h-10 w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
-                      <MapPin className="h-5 w-5" />
+                  {locationError && (
+                    <div className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-2 text-[11px] font-bold text-rose-700 flex items-center justify-between">
+                      <span>⚠️ {locationError}</span>
+                      <button type="button" onClick={() => setLocationError(null)} className="text-rose-500">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                    <div>
+                  )}
+
+                  {addresses.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-4 text-center">
                       <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
-                      <p className="text-[11px] text-gray-500 font-medium">Select your delivery location method to continue checkout:</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Please select a location above.</p>
                     </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {addresses.map((addr) => {
+                        const isSelected = selectedAddressId === addr.id;
+                        if (!isSelected) return null; // ONLY SHOW SELECTED ADDRESS TO SAVE SPACE
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 max-w-lg mx-auto">
-                      {/* OPTION 1 CARD */}
-                      <button
-                        type="button"
-                        onClick={handleUseCurrentLocation}
-                        disabled={isLocatingUser}
-                        className="p-4 rounded-2xl border border-orange-200 bg-orange-50/80 hover:bg-orange-100 transition flex flex-col items-center gap-2 text-center disabled:opacity-50"
-                      >
-                        <div className="h-8 w-8 rounded-full bg-orange-600 text-white flex items-center justify-center">
-                          <MapPin className={`h-4 w-4 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                        </div>
-                        <div>
-                          <span className="text-xs font-black text-gray-900 block">📍 Use Current Location</span>
-                          <span className="text-[10px] text-gray-600 font-medium">Automatically locate me via GPS</span>
-                        </div>
-                      </button>
+                        const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
+                        const addrDist = hasCoords && isSelected && orderQuote?.distanceKm !== null && orderQuote?.distanceKm !== undefined && orderQuote.distanceKm >= 0
+                          ? orderQuote.distanceKm
+                          : null;
+                        const addrRouteAvailable = isSelected ? (orderQuote?.routeAvailable ?? true) : true;
+                        const addrEligible = isSelected ? (orderQuote?.deliveryEligible ?? (addrDist !== null && addrDist <= maxRadiusKm)) : true;
 
-                      {/* OPTION 2 CARD — PLACE-NAME SEARCH */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPlaceSearchInput('');
-                          setPlaceCandidates([]);
-                          setPlaceSearchError(null);
-                          setShowCustomAddressModal(true);
-                        }}
-                        className="p-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 transition flex flex-col items-center gap-2 text-center"
-                      >
-                        <div className="h-8 w-8 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                          <Search className="h-4 w-4 text-orange-400" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-black text-gray-900 block">🔎 Search Location by Place Name</span>
-                          <span className="text-[10px] text-gray-600 font-medium">Kehnusa, Aloosa, Sopore, Bandipora</span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {addresses.map((addr) => {
-                      const isSelected = selectedAddressId === addr.id;
-                      const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
-                      const addrDist = hasCoords && isSelected && orderQuote?.distanceKm !== null && orderQuote?.distanceKm !== undefined && orderQuote.distanceKm >= 0
-                        ? orderQuote.distanceKm
-                        : null;
-                      const addrRouteAvailable = isSelected ? (orderQuote?.routeAvailable ?? true) : true;
-                      const addrEligible = isSelected ? (orderQuote?.deliveryEligible ?? (addrDist !== null && addrDist <= maxRadiusKm)) : true;
-
-                      return (
-                        <div
-                          key={addr.id}
-                          onClick={() => setSelectedAddress(addr.id)}
-                          className={`cursor-pointer rounded-2xl border p-4 transition flex items-start justify-between ${
-                            isSelected
-                              ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                              : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                          }`}
-                        >
-                          <div className="space-y-1.5 text-xs">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="rounded-md bg-orange-600 px-2 py-0.5 text-[10px] font-black uppercase text-white tracking-wide shrink-0">
-                                {addr.label}
-                              </span>
-                              {isSelected && (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {hasCoords ? '📍 Address location verified' : '✍️ Text Address'}
-                                </span>
-                              )}
-                              {isSelected && orderQuote && addrRouteAvailable && addrDist !== null && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${addrEligible ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'}`}>
-                                  {addrDist} km away • {addrEligible ? '✓ Inside delivery radius (15 km)' : '✕ Outside delivery radius (15 km)'}
+                        return (
+                          <div key={addr.id} className="pt-2 border-t border-gray-100 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                              <span className="font-black text-gray-900 uppercase tracking-wide">{addr.label}</span>
+                              {hasCoords && (
+                                <span className="font-bold text-emerald-700 flex items-center gap-0.5">
+                                  <Check className="h-3 w-3" /> Address location verified
                                 </span>
                               )}
                             </div>
-
-                            {isSelected && orderQuote && (!addrRouteAvailable || addrDist === null) && (
-                              <div className="pt-0.5">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border text-amber-800 bg-amber-50 border-amber-200">
-                                  ⚠️ Unable to calculate delivery distance. Please try again.
+                            
+                            {addrRouteAvailable && addrDist !== null ? (
+                              <div className="text-[10px] font-bold text-gray-600 flex items-center gap-1">
+                                <span>{addrDist} km away</span>
+                                <span>·</span>
+                                <span className={addrEligible ? "text-emerald-700" : "text-rose-700"}>
+                                  {addrEligible ? `✓ Inside delivery radius (${maxRadiusKm} km)` : `✕ Outside delivery radius (${maxRadiusKm} km)`}
                                 </span>
                               </div>
+                            ) : (
+                              !addrRouteAvailable || addrDist === null ? (
+                                <div className="text-[10px] font-bold text-amber-700">⚠️ Unable to calculate delivery distance.</div>
+                              ) : null
                             )}
 
-                            <p className="text-xs font-bold text-gray-900 leading-snug pt-0.5">
-                              {addr.addressLine1}
-                            </p>
-                            {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && (
-                              <p className="text-[11px] text-gray-600 font-medium">
-                                {addr.addressLine2}
-                              </p>
-                            )}
-                            {addr.landmark && (
-                              <p className="text-[11px] text-gray-500 font-medium">
-                                Landmark: {addr.landmark}
-                              </p>
-                            )}
-                            {(addr.city || addr.state || addr.postalCode) && (
-                              <p className="text-[11px] text-gray-500 font-medium">
-                                {[addr.city, addr.state].filter(Boolean).join(', ')}{addr.postalCode && addr.postalCode !== 'India' ? ` - ${addr.postalCode}` : ''}
-                              </p>
-                            )}
-
-                            {!hasCoords && (
-                              <p className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md mt-1">
-                                ℹ️ Delivery availability will be confirmed after address verification.
-                              </p>
-                            )}
-
-                            {hasCoords && isSelected && orderQuote && addrRouteAvailable && !addrEligible && (
-                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pt-1">
-                                <AlertTriangle className="h-3 w-3" /> Exceeds store delivery radius ({maxRadiusKm} km)
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowCustomAddressModal(true);
-                              }}
-                              className="text-xs font-bold text-orange-600 hover:underline"
-                            >
-                              Change
-                            </button>
-                            <div
-                              className={`h-4 w-4 rounded-full border flex items-center justify-center ${
-                                isSelected
-                                  ? 'border-orange-600 bg-orange-600 text-white'
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                            <div className="pt-1 text-[11px] leading-snug text-gray-800">
+                              <p className="font-bold text-gray-900">{addr.addressLine1}</p>
+                              {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && <p>{addr.addressLine2}</p>}
+                              {(addr.city || addr.state || addr.postalCode) && (
+                                <p className="text-gray-500">
+                                  {[addr.city, addr.state].filter(Boolean).join(', ')}{addr.postalCode && addr.postalCode !== 'India' ? ` - ${addr.postalCode}` : ''}
+                                </p>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-              {/* Delivery Instructions */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                  <MessageSquare className="h-4 w-4 text-orange-600 shrink-0" />
-                  <span>Delivery Instructions</span>
+                {/* Delivery Instructions */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-sm font-black text-gray-900">
+                    <MessageSquare className="h-4 w-4 text-orange-600" />
+                    <span>Delivery Instructions</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400">Optional</span>
                 </div>
                 <input
                   type="text"
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   placeholder="e.g. Leave at gate, do not ring bell..."
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-medium text-gray-900 focus:border-orange-500 focus:bg-white focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-900 focus:border-orange-500 focus:bg-white focus:outline-none"
                 />
               </div>
 
               {/* Tip Your Driver */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                  <HeartHandshake className="h-4 w-4 text-orange-600 shrink-0" />
-                  <span>Tip Your Driver</span>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-gray-900">
+                    <HeartHandshake className="h-4 w-4 text-orange-600" />
+                    <span>Tip Your Driver</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400">100% goes to driver</span>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2">
@@ -888,10 +804,10 @@ export default function CheckoutPage() {
                         key={amt}
                         type="button"
                         onClick={() => handleSelectTip(amt)}
-                        className={`rounded-xl border py-2 text-xs font-bold transition text-center ${
+                        className={`rounded-xl border py-2.5 text-xs font-bold transition text-center flex items-center justify-center ${
                           isSelected
-                            ? 'border-orange-500 bg-orange-600 text-white shadow-xs'
-                            : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                         }`}
                       >
                         ₹{amt}
@@ -901,10 +817,10 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setShowCustomTipInput(!showCustomTipInput)}
-                    className={`rounded-xl border py-2 text-xs font-bold transition text-center ${
+                    className={`rounded-xl border py-2.5 text-xs font-bold transition text-center flex items-center justify-center ${
                       showCustomTipInput || (tipAmount > 0 && ![20, 30, 50].includes(tipAmount))
-                        ? 'border-orange-500 bg-orange-600 text-white shadow-xs'
-                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     Custom
@@ -912,18 +828,18 @@ export default function CheckoutPage() {
                 </div>
 
                 {showCustomTipInput && (
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 mt-3">
                     <input
                       type="number"
                       placeholder="Enter tip ₹"
                       value={customTip}
                       onChange={(e) => setCustomTip(e.target.value)}
-                      className="flex-1 rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold focus:border-orange-500 focus:outline-none"
+                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold focus:border-orange-500 focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleApplyCustomTip}
-                      className="rounded-xl bg-orange-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-700"
+                      className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700"
                     >
                       Add
                     </button>
@@ -932,28 +848,28 @@ export default function CheckoutPage() {
               </div>
 
               {/* Payment Method Selector */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-900">
-                  <CreditCard className="h-4 w-4 text-orange-600 shrink-0" />
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-black text-gray-900 mb-3">
+                  <CreditCard className="h-4 w-4 text-orange-600" />
                   <span>Payment Method</span>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div
                     onClick={() => setPaymentMethod('UPI')}
-                    className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
+                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
                       paymentMethod === 'UPI'
                         ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                        : 'border-gray-100 bg-white hover:border-gray-200'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 shrink-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 shrink-0">
                         <Smartphone className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-gray-900">UPI Instant Pay</p>
-                        <p className="text-[10px] text-gray-400">Google Pay, PhonePe, Paytm, BHIM</p>
+                        <p className="text-[13px] font-bold text-gray-900">UPI Instant Pay</p>
+                        <p className="text-[10px] text-gray-500">Google Pay, PhonePe, Paytm, BHIM</p>
                       </div>
                     </div>
                     <div
@@ -969,19 +885,19 @@ export default function CheckoutPage() {
 
                   <div
                     onClick={() => setPaymentMethod('CARD')}
-                    className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
+                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
                       paymentMethod === 'CARD'
                         ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                        : 'border-gray-100 bg-white hover:border-gray-200'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 shrink-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shrink-0">
                         <CreditCard className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-gray-900">Credit / Debit Card</p>
-                        <p className="text-[10px] text-gray-400">Visa, Mastercard, RuPay Cards</p>
+                        <p className="text-[13px] font-bold text-gray-900">Credit / Debit Card</p>
+                        <p className="text-[10px] text-gray-500">Visa, Mastercard, RuPay Cards</p>
                       </div>
                     </div>
                     <div
@@ -997,19 +913,19 @@ export default function CheckoutPage() {
 
                   <div
                     onClick={() => setPaymentMethod('COD')}
-                    className={`cursor-pointer rounded-xl border p-3.5 transition flex items-center justify-between ${
+                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
                       paymentMethod === 'COD'
                         ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                        : 'border-gray-100 bg-white hover:border-gray-200'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 shrink-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
                         <Banknote className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-gray-900">Cash on Delivery</p>
-                        <p className="text-[10px] text-gray-400">Pay cash upon order arrival</p>
+                        <p className="text-[13px] font-bold text-gray-900">Cash on Delivery</p>
+                        <p className="text-[10px] text-gray-500">Pay cash upon order arrival</p>
                       </div>
                     </div>
                     <div
@@ -1138,7 +1054,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* Floating/Fixed Bottom Payment Button for Mobile & Desktop */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 py-3 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg">
           <div className="mx-auto max-w-4xl flex items-center justify-between gap-4">
             <div className="hidden sm:block">
               <span className="text-[11px] font-semibold text-gray-500 block">Total Payable</span>
@@ -1148,7 +1064,7 @@ export default function CheckoutPage() {
             <button
               onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
               disabled={isPlacing || !selectedAddress || (Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible))}
-              className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
+              className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3.5 sm:py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
                 {isPlacing
@@ -1156,7 +1072,7 @@ export default function CheckoutPage() {
                   : !selectedAddress
                   ? 'Select Delivery Address'
                   : orderQuote && (!routeAvailable || realDistanceKm === null)
-                  ? '⚠️ Distance Unavailable (Tap to Retry)'
+                  ? '⚠️ Distance Unavailable'
                   : !isDeliveryEligible
                   ? 'Outside Delivery Radius'
                   : paymentMethod === 'COD'
