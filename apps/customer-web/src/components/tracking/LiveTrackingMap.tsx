@@ -175,7 +175,25 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         }
       };
 
-      map.addListener('load', addOverlays);
+              let overlayAdded = false;
+        const safeAddOverlays = () => {
+          if (overlayAdded) return;
+          overlayAdded = true;
+          addOverlays();
+        };
+
+        if (map.isStyleLoaded && map.isStyleLoaded()) {
+          safeAddOverlays();
+        } else {
+          if (typeof map.addListener === 'function') {
+            map.addListener('load', safeAddOverlays);
+          } else if (typeof map.on === 'function') {
+            map.on('load', safeAddOverlays);
+          }
+          setTimeout(() => {
+            safeAddOverlays();
+          }, 1500);
+        }
 
     } catch (err: any) {
       console.error('[Mappls Web Map] Initialization error:', err);
