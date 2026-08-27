@@ -56,7 +56,7 @@ function SearchPageInner() {
   const popularTags = ['Biryani', 'Paneer Butter Masala', 'Pizza', 'Garlic Naan', 'Burger', 'Chinese'];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       {/* Search Header Input */}
       <div className="relative mx-auto max-w-2xl">
         <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -65,7 +65,7 @@ function SearchPageInner() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for restaurants, dishes, or cuisines..."
-          className="w-full rounded-3xl border-2 border-gray-200 bg-white py-4 pl-14 pr-12 text-base font-bold text-gray-900 shadow-md focus:border-rose-500 focus:outline-none"
+          className="w-full rounded-2xl border-2 border-gray-200 bg-white py-3 pl-14 pr-12 text-base font-bold text-gray-900 shadow-md focus:border-rose-500 focus:outline-none"
         />
         {query && (
           <button
@@ -99,7 +99,7 @@ function SearchPageInner() {
 
       {/* Search Results */}
       {query.trim() && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Tab Filter */}
           <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
             {(['all', 'dishes', 'restaurants'] as const).map((tab) => (
@@ -123,11 +123,11 @@ function SearchPageInner() {
               subtitle="Try searching for another dish or restaurant name."
             />
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-5">
               {(activeTab === 'all' || activeTab === 'restaurants') && filteredRestaurants.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Restaurants</h3>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredRestaurants.map((r: RestaurantData) => (
                       <RestaurantCard key={r.id} restaurant={r} />
                     ))}
@@ -155,7 +155,7 @@ function SearchPageInner() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-16 text-center text-gray-400 text-sm">Loading search...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-10 text-center text-gray-400 text-sm">Loading search...</div>}>
       <SearchPageInner />
     </Suspense>
   );

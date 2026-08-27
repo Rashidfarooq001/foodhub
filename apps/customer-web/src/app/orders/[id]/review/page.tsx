@@ -145,14 +145,14 @@ export default function OrderReviewPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 p-6 text-center">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 p-4 text-center">
         <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-500" />
         <h2 className="text-2xl font-black text-gray-900">Thank You!</h2>
         <p className="mt-2 text-sm text-gray-500">Your review helps others make better choices.</p>
         <button
           id="go-to-orders-btn"
           onClick={() => router.push('/orders')}
-          className="mt-6 rounded-2xl bg-purple-600 px-8 py-3 text-sm font-black text-white shadow-lg hover:bg-purple-700"
+          className="mt-6 rounded-2xl bg-purple-600 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-purple-700"
         >
           Back to Orders
         </button>
@@ -161,7 +161,7 @@ export default function OrderReviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-4">
       <div className="mx-auto max-w-lg space-y-4">
 
         <div className="pb-2">
@@ -170,7 +170,7 @@ export default function OrderReviewPage() {
         </div>
 
         {/* Restaurant Review Card */}
-        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-purple-600">🍽 Restaurant</h3>
 
           <div className="space-y-3">
@@ -202,7 +202,7 @@ export default function OrderReviewPage() {
         </div>
 
         {/* Food Review Card */}
-        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
           <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-amber-600">🍱 Food Items</h3>
           <div className="space-y-3">
             <StarRating label="Taste & Quality"     value={foodRating} onChange={setFoodRating} />
@@ -210,7 +210,7 @@ export default function OrderReviewPage() {
         </div>
 
         {/* Driver Review Card */}
-        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
           <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-blue-600">🛵 Delivery Partner</h3>
           <div className="space-y-3">
             <StarRating label="Behaviour & Speed"    value={driverRating} onChange={setDriverRating} />
@@ -234,7 +234,7 @@ export default function OrderReviewPage() {
           id="submit-review-btn"
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-pink-500 py-4 text-sm font-black text-white shadow-lg hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-pink-500 py-3 text-sm font-black text-white shadow-lg hover:opacity-90 disabled:opacity-50"
         >
           {submitting ? 'Submitting…' : 'Submit Review'}
         </button>

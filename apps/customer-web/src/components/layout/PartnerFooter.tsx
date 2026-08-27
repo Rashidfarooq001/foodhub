@@ -8,8 +8,8 @@ import { getHotelDashboardUrl, getDeliveryDashboardUrl } from '@foodhub/config';
 export const PartnerFooter: React.FC = () => {
   return (
     <footer className="border-t border-gray-200 bg-gray-950 text-gray-400">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
           <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2">
               <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" style={{filter: 'brightness(0) invert(1)'}} />

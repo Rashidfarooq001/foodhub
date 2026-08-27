@@ -27,7 +27,7 @@ export default function CategoriesPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       <div>
         <h1 className="text-3xl font-black text-gray-900">Food Categories</h1>
         <p className="text-xs text-gray-500">Explore meals by specialty and cuisine type</p>
@@ -36,13 +36,13 @@ export default function CategoriesPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {isLoading
           ? [1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="h-48 animate-pulse rounded-3xl bg-gray-100" />
+              <div key={i} className="h-48 animate-pulse rounded-2xl bg-gray-100" />
             ))
           : categories.map((cat: CategoryData) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.id}`}
-                className="group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
                 <div className="relative h-32 w-full overflow-hidden rounded-2xl">
                   <img

@@ -58,7 +58,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3.5 sm:gap-6 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {[0, 1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
             <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-100" />
@@ -77,7 +77,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-3.5 sm:gap-6 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {allItems.map((cat) => {
           const isSelected =
             (selectedCategory === '' && cat.id === 'all') ||

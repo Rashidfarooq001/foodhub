@@ -179,14 +179,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
+          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition ${
             isDragging
               ? 'border-orange-500 bg-orange-50/50'
               : 'border-gray-200 bg-gray-50/50 hover:border-orange-400 hover:bg-white'
           }`}
         >
           {isUploading ? (
-            <div className="py-4 space-y-2 text-orange-600">
+            <div className="py-3 space-y-2 text-orange-600">
               <Loader2 className="mx-auto h-8 w-8 animate-spin" />
               <span className="block text-xs font-bold">Uploading media to server...</span>
             </div>

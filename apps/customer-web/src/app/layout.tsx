@@ -164,7 +164,7 @@ export default function RootLayout({
       <body className={`${inter.className} flex min-h-full w-full max-w-full flex-col font-sans antialiased text-gray-900 bg-white`}>
         <AppProviders>
           <Navbar />
-          <main className="flex-1 w-full max-w-full min-w-0">{children}</main>
+          <main className="flex-1 w-full max-w-full min-w-0 pb-20 md:pb-0">{children}</main>
           <MobileBottomNav />
           <Footer />
         </AppProviders>

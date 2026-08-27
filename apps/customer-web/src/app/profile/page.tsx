@@ -201,7 +201,7 @@ export default function ProfilePage() {
     : 'U';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-3 sm:px-4 lg:px-5 space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         <p className="text-sm text-gray-500">Manage your personal details and password</p>
@@ -255,24 +255,24 @@ export default function ProfilePage() {
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-5">
           {/* Avatar Upload */}
-          <div className="flex flex-col sm:flex-row items-center gap-5 border-b border-gray-100 pb-5">
+          <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
             <div className="relative shrink-0">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
                   alt="Profile Avatar"
-                  className="h-24 w-24 rounded-full object-cover border-4 border-orange-500 shadow-md"
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-2 border-orange-500 shadow-sm"
                 />
               ) : (
-                <div className="h-24 w-24 rounded-full border-4 border-orange-200 bg-orange-100 flex items-center justify-center">
-                  <span className="text-2xl font-black text-orange-600">{initials}</span>
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-orange-200 bg-orange-100 flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-black text-orange-600">{initials}</span>
                 </div>
               )}
               <label
                 htmlFor="customer-avatar-upload"
-                className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-orange-600 text-white shadow-lg hover:bg-orange-700 transition"
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-orange-600 text-white shadow hover:bg-orange-700 transition"
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-3 w-3" />
                 <input
                   id="customer-avatar-upload"
                   type="file"
@@ -283,26 +283,26 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <div className="space-y-3 text-center sm:text-left">
+            <div className="space-y-2 text-left">
               <div>
-                <h3 className="text-base font-bold text-gray-900">Profile Photo</h3>
-                <p className="text-xs text-gray-500">Supports JPEG, PNG, or WebP up to 5MB.</p>
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">Profile Photo</h3>
+                <p className="text-[10px] sm:text-xs text-gray-500">JPG, PNG up to 5MB.</p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+              <div className="flex flex-wrap items-center justify-start gap-2">
                 <label
                   htmlFor="customer-avatar-upload"
-                  className="cursor-pointer rounded-2xl bg-orange-50 px-4 py-2.5 text-xs font-bold text-orange-700 border border-orange-200 hover:bg-orange-100 transition"
+                  className="cursor-pointer rounded-xl bg-orange-50 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-orange-700 border border-orange-200 hover:bg-orange-100 transition"
                 >
-                  Upload New Photo
+                  Change
                 </label>
                 {avatarPreview && (
                   <button
                     type="button"
                     onClick={handleRemoveAvatar}
-                    className="flex items-center gap-1.5 rounded-2xl bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
+                    className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Remove Photo
+                    <Trash2 className="h-3 w-3" /> Remove
                   </button>
                 )}
               </div>
@@ -354,7 +354,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 rounded-2xl bg-orange-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-orange-700 disabled:opacity-50 transition"
+            className="flex items-center gap-2 rounded-2xl bg-orange-600 px-4 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-orange-700 disabled:opacity-50 transition"
           >
             <Save className="h-4 w-4" />
             <span>{isLoading ? 'Saving Profile...' : 'Save Profile Changes'}</span>
@@ -418,7 +418,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 rounded-2xl bg-orange-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-orange-700 disabled:opacity-50 transition"
+            className="flex items-center gap-2 rounded-2xl bg-orange-600 px-4 py-3.5 text-xs font-bold text-white shadow-lg hover:bg-orange-700 disabled:opacity-50 transition"
           >
             <Save className="h-4 w-4" />
             <span>{isLoading ? 'Updating Password...' : 'Update Password'}</span>

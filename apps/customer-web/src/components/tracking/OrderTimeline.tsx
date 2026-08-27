@@ -48,7 +48,7 @@ export const OrderTimeline: React.FC<Props> = ({ currentStatus }) => {
   const currentIndex = getStepIndex(currentStatus);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">Live Delivery Progress</h3>
 
       <div className="relative flex items-center justify-between overflow-x-auto pb-4">

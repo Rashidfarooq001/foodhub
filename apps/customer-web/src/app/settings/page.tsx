@@ -8,13 +8,13 @@ export default function SettingsPage() {
   const { isVegOnly, toggleVegOnly, pushEnabled, togglePush, smsEnabled, toggleSms } = useSettingsStore();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-3xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       <div>
         <h1 className="text-3xl font-black text-gray-900">App Settings</h1>
         <p className="text-xs text-gray-500">Configure dietary preferences, alerts & notifications</p>
       </div>
 
-      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-6">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
         {/* Veg Only Toggle */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">

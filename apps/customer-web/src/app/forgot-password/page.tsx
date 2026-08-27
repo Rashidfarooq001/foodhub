@@ -263,8 +263,8 @@ export default function ForgotPasswordPage() {
 
   if (!isAuthEnabled()) {
     return (
-      <div className="flex min-h-[75vh] items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+      <div className="flex min-h-[75vh] items-center justify-center px-4 py-5">
+        <div className="w-full max-w-md text-center space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
             <Lock className="h-8 w-8" />
           </div>
@@ -277,7 +277,7 @@ export default function ForgotPasswordPage() {
           <div className="pt-2">
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
             >
               <span>Return Home</span>
               <ArrowRight className="h-4 w-4" />
@@ -289,8 +289,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+    <div className="flex min-h-[80vh] items-center justify-center px-4 py-5">
+      <div className="w-full max-w-md space-y-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
             <Sparkles className="h-7 w-7" />

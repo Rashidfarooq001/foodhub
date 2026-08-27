@@ -457,8 +457,8 @@ export default function CustomerHomePage() {
 
   const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
   return (
-    <div className="min-h-screen bg-white pb-24 md:pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
+    <div className="min-h-[100dvh] bg-white pb-24 md:pb-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-5 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
 
         {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">
@@ -728,11 +728,11 @@ export default function CustomerHomePage() {
           {isLoading ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/3] rounded-3xl bg-gray-100 animate-pulse" />
+                <div key={i} className="aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : isError ? (
-            <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-6 text-center space-y-2">
+            <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-center space-y-2">
               <p className="text-xs sm:text-sm font-bold text-rose-800">Unable to load kitchens at this time.</p>
               <button
                 onClick={() => fetchRestaurants(userCoords)}
@@ -752,7 +752,7 @@ export default function CustomerHomePage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-gray-100 bg-gray-50/50 p-6 text-center space-y-2">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 text-center space-y-2">
               <p className="text-xs sm:text-sm font-bold text-gray-700">No restaurants match your selected filters.</p>
               <p className="text-[11px] text-gray-400">Try broadening your criteria or reset all filters.</p>
               <button
@@ -783,7 +783,7 @@ export default function CustomerHomePage() {
           {isLoading ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/3] rounded-3xl bg-gray-100 animate-pulse" />
+                <div key={i} className="aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : popularList.length > 0 ? (

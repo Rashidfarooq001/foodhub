@@ -28,7 +28,7 @@ export default function WishlistPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
           <Heart className="h-5 w-5 fill-rose-600" />
@@ -40,17 +40,17 @@ export default function WishlistPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-3xl bg-gray-100" />
+            <div key={i} className="h-40 animate-pulse rounded-2xl bg-gray-100" />
           ))}
         </div>
       ) : wishlistedItems.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
           No favorite items saved yet. Click the heart icon on any dish to add it here.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {wishlistedItems.map((food: FoodItemData) => (
             <FoodCard key={food.id} food={food} />
           ))}

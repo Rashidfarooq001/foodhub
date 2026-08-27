@@ -147,7 +147,7 @@ export default function AddressesPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Saved Delivery Addresses</h1>
@@ -162,22 +162,22 @@ export default function AddressesPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-3xl bg-gray-100" />
+            <div key={i} className="h-40 animate-pulse rounded-2xl bg-gray-100" />
           ))}
         </div>
       ) : addresses.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-xs font-bold text-gray-400 space-y-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-xs font-bold text-gray-400 space-y-3">
           <MapPin className="h-10 w-10 mx-auto text-gray-300" />
           <p>No saved addresses yet. Click &quot;Add New Address&quot; above to pin your location.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={`relative rounded-3xl border p-6 space-y-4 shadow-sm transition ${
+              className={`relative rounded-2xl border p-4 space-y-4 shadow-sm transition ${
                 selectedAddressId === addr.id
                   ? 'border-orange-500 bg-orange-50/30 ring-2 ring-orange-500/20'
                   : 'border-gray-100 bg-white'
@@ -227,7 +227,7 @@ export default function AddressesPage() {
       {/* MAP ADDRESS PICKER MODAL */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-orange-600" /> Pin Delivery Location
@@ -238,7 +238,7 @@ export default function AddressesPage() {
             </div>
 
             {/* Interactive Leaflet Location Picker */}
-            <div className="h-64 rounded-3xl overflow-hidden border border-gray-200 shadow-inner">
+            <div className="h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-inner">
               <DynamicAddressPickerMap
                 initialLat={latitude}
                 initialLng={longitude}

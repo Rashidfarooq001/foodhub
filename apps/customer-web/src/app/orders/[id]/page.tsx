@@ -190,16 +190,16 @@ export default function OrderDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
-        <div className="h-24 animate-pulse rounded-3xl bg-gray-100" />
-        <div className="h-96 animate-pulse rounded-3xl bg-gray-100" />
+      <div className="mx-auto max-w-5xl px-4 py-5 space-y-4">
+        <div className="h-24 animate-pulse rounded-2xl bg-gray-100" />
+        <div className="h-96 animate-pulse rounded-2xl bg-gray-100" />
       </div>
     );
   }
 
   if (errorMsg || !order) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-xl px-4 py-10 text-center space-y-4">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-rose-600">
           <AlertCircle className="h-8 w-8" />
         </div>
@@ -207,7 +207,7 @@ export default function OrderDetailsPage() {
         <p className="text-xs text-gray-500">{errorMsg || 'Order could not be loaded.'}</p>
         <Link
           href="/orders"
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-bold text-white shadow"
+          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow"
         >
           <ArrowLeft className="h-4 w-4" /> Back to My Orders
         </Link>
@@ -232,7 +232,7 @@ export default function OrderDetailsPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <div className="mx-auto max-w-5xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
         {/* Top Back Link & Actions */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <Link
@@ -260,7 +260,7 @@ export default function OrderDetailsPage() {
         </div>
 
         {/* ORDER HEADER CARD */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
               <div className="flex items-center gap-3">
@@ -286,7 +286,7 @@ export default function OrderDetailsPage() {
             {!isCancelled && order.status !== 'DELIVERED' && (
               <Link
                 href={`/orders/${order.id}/track`}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 transition"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 text-xs font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 transition"
               >
                 <Clock className="h-4 w-4 animate-spin" />
                 <span>Track Live Delivery Map</span>
@@ -298,7 +298,7 @@ export default function OrderDetailsPage() {
 
           {/* STATUS TIMELINE */}
           {!isCancelled ? (
-            <div className="py-4">
+            <div className="py-3">
               <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-4">Order Progress</h4>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 text-center">
                 {statusSteps.map((step, idx) => {
@@ -343,10 +343,10 @@ export default function OrderDetailsPage() {
         </div>
 
         {/* RESTAURANT & ITEMS BREAKDOWN */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
             {/* Restaurant Info Card */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm flex items-center justify-between">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
                   <Store className="h-6 w-6" />
@@ -368,7 +368,7 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* Itemization Table */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
               <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Items Ordered</h3>
               <div className="divide-y divide-gray-100">
                 {(order.orderItems || []).map((item: any) => (
@@ -384,7 +384,7 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* Delivery Address & Courier Card */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
               <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Delivery Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
@@ -411,8 +411,8 @@ export default function OrderDetailsPage() {
           </div>
 
           {/* Right Column: Price Summary & Actions */}
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
               <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Bill Summary</h3>
 
               <div className="space-y-2 text-xs">
@@ -507,7 +507,7 @@ export default function OrderDetailsPage() {
         {/* RECEIPT MODAL */}
         {showReceipt && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="text-lg font-black text-gray-900">ZaykaFood Tax Invoice</h3>
                 <button onClick={() => setShowReceipt(false)} className="text-gray-400 hover:text-gray-600">
@@ -550,7 +550,7 @@ export default function OrderDetailsPage() {
         {/* CANCEL MODAL */}
         {showCancelModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-lg font-black text-rose-600">Cancel Order</h3>
               <p className="text-xs text-gray-500">Please provide a reason for cancelling this order.</p>
 
@@ -581,7 +581,7 @@ export default function OrderDetailsPage() {
         {/* REVIEW MODAL */}
         {showReviewModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-lg font-black text-gray-900">Rate &amp; Review Order</h3>
 
               <div className="flex justify-center gap-2">
@@ -624,7 +624,7 @@ export default function OrderDetailsPage() {
         {/* SUPPORT MODAL */}
         {showSupportModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-lg font-black text-gray-900">Need Help with Order #{order.orderNumber}?</h3>
 
               {supportSuccessMsg ? (

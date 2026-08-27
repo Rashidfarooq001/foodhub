@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
-      <div className="max-w-md w-full text-center space-y-6">
-        <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-orange-100 text-orange-600 font-black text-3xl shadow-sm">
+    <div className="min-h-[70vh] flex items-center justify-center px-4 py-10">
+      <div className="max-w-md w-full text-center space-y-4">
+        <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 font-black text-3xl shadow-sm">
           404
         </div>
         <div className="space-y-2">

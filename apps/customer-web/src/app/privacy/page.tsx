@@ -286,8 +286,8 @@ export default function CustomerPrivacyCenterPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 py-10 sm:py-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-8">
+      <div className="min-h-[100dvh] bg-gradient-to-b from-gray-50 via-white to-gray-50 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl px-4 sm:px-4 lg:px-5 space-y-5">
           {/* Breadcrumbs */}
           <nav className="flex items-center space-x-2 text-xs font-semibold text-gray-500">
             <Link href="/" className="hover:text-orange-600 transition">Home</Link>
@@ -298,7 +298,7 @@ export default function CustomerPrivacyCenterPage() {
           </nav>
 
           {/* Header Banner */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-2 max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/60 px-3.5 py-1 text-xs font-black text-emerald-800">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -380,9 +380,9 @@ export default function CustomerPrivacyCenterPage() {
 
           {/* Tab 1: Overview */}
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Account Card */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4 md:col-span-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4 md:col-span-2">
                 <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
                   Data Principal Profile Snapshot
                 </h3>
@@ -420,7 +420,7 @@ export default function CustomerPrivacyCenterPage() {
               </div>
 
               {/* Quick Actions Card */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
                 <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
                   Exercise Your Rights
                 </h3>
@@ -469,7 +469,7 @@ export default function CustomerPrivacyCenterPage() {
 
           {/* Tab 2: Consents */}
           {activeTab === 'consents' && (
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-gray-900">Consent Management Dashboard</h3>
                 <p className="text-xs text-gray-600">
@@ -585,7 +585,7 @@ export default function CustomerPrivacyCenterPage() {
 
           {/* Tab 3: Requests Tracker */}
           {activeTab === 'requests' && (
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-gray-900">Your Privacy Requests</h3>
@@ -656,7 +656,7 @@ export default function CustomerPrivacyCenterPage() {
 
           {/* Tab 4: Complaints */}
           {activeTab === 'complaints' && (
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-gray-900">Privacy Complaints &amp; Grievances</h3>
@@ -715,7 +715,7 @@ export default function CustomerPrivacyCenterPage() {
 
           {/* Tab 5: Retention Schedules */}
           {activeTab === 'retention' && (
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-gray-900">Platform Data Retention Schedules</h3>
                 <p className="text-xs text-gray-600">
@@ -752,7 +752,7 @@ export default function CustomerPrivacyCenterPage() {
         {/* Correction Modal */}
         {showCorrectionModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-base font-black text-gray-900">Request Data Correction</h3>
               <form onSubmit={handleSubmitCorrection} className="space-y-4 text-xs">
                 <div>
@@ -813,7 +813,7 @@ export default function CustomerPrivacyCenterPage() {
         {/* Deletion Modal */}
         {showDeletionModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <div className="flex items-center gap-2 text-rose-600 font-black">
                 <AlertTriangle className="h-5 w-5" />
                 <h3>Request Account Erasure (DPDP Act)</h3>
@@ -869,7 +869,7 @@ export default function CustomerPrivacyCenterPage() {
         {/* Complaint Modal */}
         {showComplaintModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               <h3 className="text-base font-black text-gray-900">File a Privacy Grievance</h3>
               <form onSubmit={handleSubmitComplaint} className="space-y-3 text-xs">
                 <div>

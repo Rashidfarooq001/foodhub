@@ -85,12 +85,12 @@ export default function ReferralPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-lg space-y-6">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-4">
+      <div className="mx-auto max-w-lg space-y-4">
 
         {/* Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600 to-pink-500 p-6 text-white shadow-2xl">
-          <div className="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-white/10" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-pink-500 p-4 text-white shadow-2xl">
+          <div className="absolute -right-8 -top-5 h-36 w-36 rounded-full bg-white/10" />
           <div className="absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-white/10" />
           <Gift className="mb-3 h-10 w-10" />
           <h1 className="text-2xl font-black">Refer & Earn</h1>
@@ -128,7 +128,7 @@ export default function ReferralPage() {
             { icon: Users, label: 'Friends Joined', value: stats.totalReferrals, color: 'text-purple-600', bg: 'bg-purple-50' },
             { icon: TrendingUp, label: 'Total Earned', value: `₹${stats.totalEarned}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           ].map((s) => (
-            <div key={s.label} className={`rounded-3xl ${s.bg} p-5`}>
+            <div key={s.label} className={`rounded-2xl ${s.bg} p-5`}>
               <s.icon className={`h-6 w-6 ${s.color} mb-2`} />
               <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
               <p className="text-xs text-gray-500 font-medium mt-0.5">{s.label}</p>
@@ -137,7 +137,7 @@ export default function ReferralPage() {
         </div>
 
         {/* How it works */}
-        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
           <h2 className="text-base font-black text-gray-900">How It Works</h2>
           {[
             { step: '1', text: 'Share your unique referral code with friends' },
@@ -155,7 +155,7 @@ export default function ReferralPage() {
         </div>
 
         {/* Apply referral code */}
-        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
           <h2 className="text-base font-black text-gray-900">Have a Friend's Code?</h2>
           <p className="text-xs text-gray-500">Enter a referral code to claim your ₹30 welcome bonus.</p>
           <div className="flex gap-2">

@@ -42,9 +42,9 @@ export default function CategoryDetailPage() {
   const displayImage = category?.image ?? '';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       {/* Category Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gray-900 text-white p-8 sm:p-12 shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white p-5 sm:p-12 shadow-xl">
         <div className="relative z-10 space-y-2">
           <span className="rounded-full bg-orange-500/30 px-3 py-1 text-xs font-bold text-orange-300">
             CUISINE CATEGORY
@@ -68,17 +68,17 @@ export default function CategoryDetailPage() {
         <h3 className="text-xl font-bold text-gray-900">
           Restaurants serving {displayName}
         </h3>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading
             ? [1, 2, 3].map((i) => (
-                <div key={i} className="h-72 animate-pulse rounded-3xl bg-gray-100" />
+                <div key={i} className="h-72 animate-pulse rounded-2xl bg-gray-100" />
               ))
             : restaurants.length > 0
             ? restaurants.map((r: RestaurantData) => (
                 <RestaurantCard key={r.id} restaurant={r} />
               ))
             : (
-              <div className="col-span-3 rounded-3xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
+              <div className="col-span-3 rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
                 No restaurants found in this category.
               </div>
             )}

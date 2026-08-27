@@ -585,9 +585,9 @@ export default function CheckoutPage() {
 
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-gray-50/50 p-6 flex flex-col items-center justify-center">
+      <div className="min-h-[100dvh] bg-gray-50/50 p-4 flex flex-col items-center justify-center">
         <div className="h-8 w-48 rounded-xl bg-gray-200 animate-pulse mb-4" />
-        <div className="h-64 w-full max-w-2xl rounded-3xl bg-white p-6 shadow-sm border border-gray-100 space-y-4">
+        <div className="h-64 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-sm border border-gray-100 space-y-4">
           <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse" />
           <div className="h-6 w-1/2 rounded bg-gray-200 animate-pulse" />
           <div className="h-10 w-full rounded-2xl bg-gray-200 animate-pulse" />
@@ -598,7 +598,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-md px-4 py-10 text-center space-y-4">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
           <Store className="h-7 w-7" />
         </div>
@@ -606,7 +606,7 @@ export default function CheckoutPage() {
         <p className="text-xs text-gray-500">Add items from your favorite local kitchen to proceed.</p>
         <button
           onClick={() => router.push('/')}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-6 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
         >
           Explore Restaurants
         </button>
@@ -616,7 +616,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-screen bg-gray-50/50 pb-28 sm:pb-12">
+      <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-12">
         {/* Mobile Header & Progress Bar */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
@@ -646,7 +646,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6 lg:px-8 space-y-4">
+        <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-4 lg:px-5 space-y-4">
           {paymentError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 shadow-xs">
               ⚠️ {paymentError}
@@ -705,7 +705,7 @@ export default function CheckoutPage() {
 
                 {/* Address Selection / Empty State */}
                 {addresses.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-6 text-center space-y-4">
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-4 text-center space-y-4">
                     <div className="mx-auto h-10 w-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
                       <MapPin className="h-5 w-5" />
                     </div>
@@ -1148,7 +1148,7 @@ export default function CheckoutPage() {
             <button
               onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
               disabled={isPlacing || !selectedAddress || (Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible))}
-              className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
+              className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
                 {isPlacing
@@ -1171,7 +1171,7 @@ export default function CheckoutPage() {
         {/* PLACE-NAME LOCATION SEARCH MODAL (MODE 2 — NO MAP, NO 6-FIELD FORM) */}
         {showCustomAddressModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>

@@ -43,7 +43,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-md px-4 py-10 text-center space-y-4">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
           <ShoppingBag className="h-8 w-8" />
         </div>
@@ -51,7 +51,7 @@ export default function CartPage() {
         <p className="text-xs text-gray-500">Good food is always waiting for you. Discover top kitchens nearby!</p>
         <button
           onClick={() => router.push('/')}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-6 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
         >
           Explore Restaurants
         </button>
@@ -61,7 +61,7 @@ export default function CartPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-screen bg-gray-50/50 pb-28 sm:pb-12">
+      <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-12">
         {/* Header & Stepper */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
@@ -86,7 +86,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-2xl px-4 pt-4 sm:px-6 space-y-4">
+        <div className="mx-auto max-w-2xl px-4 pt-4 sm:px-4 space-y-4">
           {/* Restaurant Card */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -201,7 +201,7 @@ export default function CartPage() {
 
             <button
               onClick={() => router.push('/checkout')}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-8 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition"
             >
               <span>Proceed to Payment</span>
               <ArrowRight className="h-4 w-4" />

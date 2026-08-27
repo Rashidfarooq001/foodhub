@@ -74,8 +74,8 @@ export default function LoginPage() {
 
   if (!isAuthEnabled()) {
     return (
-      <div className="flex min-h-0 items-center justify-center px-4 py-6 sm:py-12">
-        <div className="w-full max-w-md mx-auto text-center space-y-5 sm:space-y-6 rounded-3xl border border-gray-100 bg-white p-5 sm:p-8 shadow-2xl">
+      <div className="flex min-h-0 items-center justify-center px-4 py-3 sm:py-5">
+        <div className="w-full max-w-md mx-auto text-center space-y-5 sm:space-y-4 rounded-2xl border border-gray-100 bg-white p-5 sm:p-5 shadow-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
             <Lock className="h-8 w-8" />
           </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <div className="pt-2">
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
             >
               <span>Return Home</span>
               <ArrowRight className="h-4 w-4" />
@@ -100,8 +100,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-0 items-center justify-center px-4 py-6 sm:py-12">
-      <div className="w-full max-w-md mx-auto space-y-5 sm:space-y-8 rounded-3xl border border-gray-100 bg-white p-5 sm:p-8 shadow-2xl">
+    <div className="flex min-h-0 items-center justify-center px-4 py-3 sm:py-5">
+      <div className="w-full max-w-md mx-auto space-y-5 sm:space-y-5 rounded-2xl border border-gray-100 bg-white p-5 sm:p-5 shadow-2xl">
         <div className="text-center space-y-1.5">
           <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25">
             <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />

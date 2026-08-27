@@ -53,7 +53,7 @@ export default function AllRestaurantsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       {/* Header */}
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3.5 py-1 text-xs font-black text-orange-700">
@@ -113,13 +113,13 @@ export default function AllRestaurantsPage() {
 
       {/* Grid View */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-72 animate-pulse rounded-3xl bg-gray-100" />
+            <div key={i} className="h-72 animate-pulse rounded-2xl bg-gray-100" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3 shadow-sm">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
             <Search className="h-6 w-6" />
           </div>
@@ -129,7 +129,7 @@ export default function AllRestaurantsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((r) => (
             <RestaurantCard key={r.id} restaurant={r} />
           ))}

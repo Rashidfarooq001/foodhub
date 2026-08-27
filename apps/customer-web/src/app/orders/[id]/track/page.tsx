@@ -112,22 +112,22 @@ export default function LiveOrderTrackingPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        <div className="h-40 animate-pulse rounded-3xl bg-gray-100" />
-        <div className="h-96 animate-pulse rounded-3xl bg-gray-100" />
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
+        <div className="h-40 animate-pulse rounded-2xl bg-gray-100" />
+        <div className="h-96 animate-pulse rounded-2xl bg-gray-100" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-xl px-4 py-10 text-center space-y-4">
         <AlertCircle className="h-12 w-12 mx-auto text-rose-500" />
         <h2 className="text-2xl font-black text-gray-900">Order Not Found</h2>
         <p className="text-xs text-gray-500">We couldn't locate this order or you do not have permission to view it.</p>
         <button
           onClick={() => router.push('/orders')}
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-orange-700"
+          className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-lg hover:bg-orange-700"
         >
           <ArrowLeft className="h-4 w-4" /> Return to Orders
         </button>
@@ -155,7 +155,7 @@ export default function LiveOrderTrackingPage() {
   const vehicleNumber = order.assignedRestaurantDriver?.vehicleNumber || '';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       {/* Explicit Location Status Banner (STATE A, B, C, D) */}
       <div
         className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
@@ -245,9 +245,9 @@ export default function LiveOrderTrackingPage() {
 
 
       {/* Main Grid: Interactive Map & Progress Timeline */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="overflow-hidden rounded-3xl border border-gray-200 shadow-xl bg-gray-900 h-[400px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-xl bg-gray-900 h-[350px] md:h-[400px] lg:h-[500px]">
             <DynamicLiveTrackingMap
               restaurantLat={restaurantLat}
               restaurantLng={restaurantLng}
@@ -261,7 +261,7 @@ export default function LiveOrderTrackingPage() {
           </div>
 
           {/* Assigned Driver Card */}
-          <div className="flex flex-col justify-between gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
                 <Bike className="h-7 w-7" />
@@ -295,12 +295,12 @@ export default function LiveOrderTrackingPage() {
         </div>
 
         {/* Right Column: Timeline & Store Info */}
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <OrderTimeline currentStatus={order.status} />
           </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
             <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
               <div className="p-2.5 bg-orange-50 rounded-2xl text-orange-600">
                 <Store className="h-5 w-5" />

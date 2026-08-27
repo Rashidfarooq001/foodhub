@@ -74,7 +74,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-white p-5 sm:p-6 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-4 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div className="flex items-center gap-2">

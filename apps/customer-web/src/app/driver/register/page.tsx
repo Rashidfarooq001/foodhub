@@ -11,8 +11,8 @@ const API_BASE = getApiBaseUrl();
 export default function DriverRegisterPage() {
   if (!isAuthEnabled()) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center px-4 py-16">
-        <div className="w-full max-w-md text-center space-y-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+      <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md text-center space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
             <Bike className="h-8 w-8" />
           </div>
@@ -25,7 +25,7 @@ export default function DriverRegisterPage() {
           <div className="pt-2">
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-6 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
             >
               <span>Return to ZaykaFood Home</span>
               <ArrowRight className="h-4 w-4" />
@@ -88,12 +88,12 @@ export default function DriverRegisterPage() {
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center space-y-6">
+      <div className="mx-auto max-w-3xl px-4 py-10 text-center space-y-4">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-900 space-y-2">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-sm text-emerald-900 space-y-2">
           <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
           <p className="text-xs text-emerald-700">
             Thank you for registering with ZaykaFood. Our team will review your application and reach you within 24 hours.
@@ -101,7 +101,7 @@ export default function DriverRegisterPage() {
         </div>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-2xl bg-gray-900 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-gray-800"
+          className="inline-flex items-center gap-2 rounded-2xl bg-gray-900 px-4 py-3 text-xs font-bold text-white shadow-lg hover:bg-gray-800"
         >
           Return to ZaykaFood Home <ArrowRight className="h-4 w-4" />
         </Link>
@@ -110,7 +110,7 @@ export default function DriverRegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       <div className="text-center space-y-2">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
           <Bike className="h-8 w-8" />
@@ -121,7 +121,7 @@ export default function DriverRegisterPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-600">
             {error}
@@ -129,7 +129,7 @@ export default function DriverRegisterPage() {
         )}
 
         {/* Step 1: Personal Information */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <User className="h-5 w-5 text-emerald-600" /> 1. Personal Details
           </div>
@@ -193,7 +193,7 @@ export default function DriverRegisterPage() {
         </div>
 
         {/* Step 2: Vehicle & Driving License Documents */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Verification Documents
           </div>
@@ -247,7 +247,7 @@ export default function DriverRegisterPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 pt-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pt-2">
             <MediaUploader
               label="Driving License Photo/PDF *"
               acceptType="any"
@@ -270,7 +270,7 @@ export default function DriverRegisterPage() {
         </div>
 
         {/* Step 3: Bank Details */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <CreditCard className="h-5 w-5 text-emerald-600" /> 3. Payout Bank Account Details
           </div>
@@ -344,7 +344,7 @@ export default function DriverRegisterPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-bold text-white shadow-xl shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-base font-bold text-white shadow-xl shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
         >
           <span>{isSubmitting ? 'Submitting Application...' : 'Submit Delivery Partner Registration'}</span>
           <ArrowRight className="h-5 w-5" />

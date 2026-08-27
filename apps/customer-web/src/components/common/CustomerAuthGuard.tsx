@@ -16,7 +16,7 @@ export function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!mounted) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <div className="flex min-h-[50vh] items-center justify-center p-5">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
       </div>
     );

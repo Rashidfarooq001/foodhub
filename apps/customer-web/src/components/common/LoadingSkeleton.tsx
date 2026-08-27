@@ -4,9 +4,9 @@ import React from 'react';
 
 export const LoadingSkeleton: React.FC = () => {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="overflow-hidden rounded-3xl border border-gray-100 bg-white p-4 space-y-4">
+        <div key={i} className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 space-y-4">
           <div className="h-44 w-full rounded-2xl bg-gray-200" />
           <div className="h-5 w-3/4 rounded-lg bg-gray-200" />
           <div className="h-4 w-1/2 rounded-lg bg-gray-200" />
@@ -25,7 +25,7 @@ export const ErrorState: React.FC<{ message?: string; onRetry?: () => void }> = 
   onRetry,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 rounded-3xl border border-rose-100 bg-rose-50/50">
+    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 rounded-2xl border border-rose-100 bg-rose-50/50">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-xl font-bold">
         !
       </div>
@@ -50,7 +50,7 @@ export const EmptyState: React.FC<{ title?: string; subtitle?: string; actionTex
   onAction,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 rounded-3xl border border-gray-100 bg-gray-50/50">
+    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 rounded-2xl border border-gray-100 bg-gray-50/50">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-500 text-xl font-bold">
         🔍
       </div>

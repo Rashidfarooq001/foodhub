@@ -253,7 +253,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
   }, [mapState]);
 
   return (
-    <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-3xl bg-gray-900 shadow-inner flex flex-col">
+    <div className="relative h-full w-full min-h-[350px] overflow-hidden rounded-2xl bg-gray-900 shadow-inner flex flex-col">
       {mapState === 'LOADING' && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-gray-900/80 backdrop-blur-xs text-white">
           <Loader2 className="h-7 w-7 animate-spin text-orange-500" />
@@ -263,7 +263,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       )}
 
       {mapState === 'ERROR' && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-gray-900 text-white p-6 text-center overflow-auto">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-gray-900 text-white p-4 text-center overflow-auto">
           <AlertCircle className="h-8 w-8 text-rose-500 mx-auto shrink-0" />
           <p className="text-xs text-gray-300 font-semibold">Mappls live map failed to load</p>
           <div className="bg-red-950/50 p-3 rounded-lg text-left max-w-full overflow-x-auto border border-red-900">

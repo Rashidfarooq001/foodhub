@@ -64,13 +64,13 @@ export default function PrivacyComplaintPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl space-y-8">
+    <div className="min-h-[100dvh] bg-gray-50 py-5 px-4 sm:px-4 lg:px-5">
+      <div className="mx-auto max-w-3xl space-y-5">
         <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-orange-600 transition">
           <ArrowLeft className="h-4 w-4" /> Back to Home
         </Link>
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 shadow-sm space-y-6">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-10 shadow-sm space-y-4">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 border border-purple-200/60 px-3.5 py-1 text-xs font-black text-purple-800">
               <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />

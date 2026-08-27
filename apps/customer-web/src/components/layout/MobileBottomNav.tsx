@@ -36,7 +36,7 @@ export const MobileBottomNav: React.FC = () => {
     <>
       {/* Fixed Mobile Bottom Navigation (Non Slide) */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 block border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 py-2 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 block border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_25px_rgba(0,0,0,0.06)] md:hidden"
         aria-label="Mobile Navigation"
       >
         <div className="flex items-center justify-around max-w-md mx-auto">

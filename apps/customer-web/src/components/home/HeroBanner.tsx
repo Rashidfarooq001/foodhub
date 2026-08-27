@@ -48,13 +48,13 @@ export const HeroBanner: React.FC = () => {
   }, [coupons]);
 
   if (isLoading) {
-    return <div className="h-32 sm:h-40 w-full rounded-3xl bg-gray-100 animate-pulse" />;
+    return <div className="h-32 sm:h-40 w-full rounded-2xl bg-gray-100 animate-pulse" />;
   }
 
   // If no active coupons exist in backend, render clean platform welcome card
   if (coupons.length === 0) {
     return (
-      <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-r from-rose-600 to-rose-700 p-5 sm:p-7 text-white shadow-sm">
+      <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-rose-600 to-rose-700 p-5 sm:p-7 text-white shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-1.5 text-rose-200 text-xs font-bold uppercase tracking-wider">
@@ -85,7 +85,7 @@ export const HeroBanner: React.FC = () => {
       : `FLAT ₹${activeCoupon.discountVal} OFF`;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-r from-rose-600 to-rose-700 p-5 sm:p-7 text-white shadow-sm transition-all duration-500">
+    <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-rose-600 to-rose-700 p-5 sm:p-7 text-white shadow-sm transition-all duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-2 min-w-0">
           <div className="flex items-center gap-1.5 text-rose-200 text-xs font-bold uppercase tracking-wider">

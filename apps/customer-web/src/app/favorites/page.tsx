@@ -70,7 +70,7 @@ export default function FavoritesPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-md px-4 py-10 text-center space-y-4">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
           <Heart className="h-8 w-8" />
         </div>
@@ -78,7 +78,7 @@ export default function FavoritesPage() {
         <p className="text-xs text-gray-500">Save your favorite restaurants and dishes to easily reorder them anytime.</p>
         <Link
           href="/login?redirect=/favorites"
-          className="inline-block rounded-2xl bg-rose-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:bg-rose-700 transition"
+          className="inline-block rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:bg-rose-700 transition"
         >
           Sign In
         </Link>
@@ -87,7 +87,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
           <Heart className="h-5 w-5 fill-rose-600" />
@@ -127,12 +127,12 @@ export default function FavoritesPage() {
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[4/3] rounded-3xl bg-gray-100 animate-pulse" />
+            <div key={i} className="aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : activeTab === 'restaurants' ? (
         favoriteRestaurants.length === 0 ? (
-          <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
+          <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
             <Store className="mx-auto h-10 w-10 text-gray-300" />
             <p className="text-base font-bold text-gray-700">No favorite restaurants yet</p>
             <p className="text-xs text-gray-400">Tap the heart icon on any restaurant to save it here for fast ordering.</p>
@@ -155,7 +155,7 @@ export default function FavoritesPage() {
           </div>
         )
       ) : favoriteDishes.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <UtensilsCrossed className="mx-auto h-10 w-10 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No favorite dishes yet</p>
           <p className="text-xs text-gray-400">Save dishes you love to reorder them with one tap.</p>

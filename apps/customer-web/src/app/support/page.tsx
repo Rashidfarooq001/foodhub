@@ -142,7 +142,7 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       {/* Header */}
       <div className="space-y-1">
         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Help &amp; Customer Support</h1>
@@ -151,10 +151,10 @@ export default function SupportPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Left Column: Official Contact & Desk Details */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
             <h3 className="text-base font-black text-gray-900">Official Support Helpdesk</h3>
             <p className="text-xs text-gray-600 leading-relaxed">
               For fastest resolution of order-specific issues, submit a ticket using the form. All tickets are logged directly into our administration control center with guaranteed acknowledgment.
@@ -191,7 +191,7 @@ export default function SupportPage() {
           </div>
 
           {/* Quick Legal & Grievance Links */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-3">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-gray-400">Policies &amp; Grievances</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <Link
@@ -223,7 +223,7 @@ export default function SupportPage() {
 
           {/* Recent Submitted Tickets (if any) */}
           {recentTickets.length > 0 && (
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-3">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-gray-400">Your Recent Tickets</h4>
               <div className="space-y-2">
                 {recentTickets.map((t) => (
@@ -244,7 +244,7 @@ export default function SupportPage() {
 
         {/* Right Column: Support Ticket Form */}
         <div className="lg:col-span-7">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
             <div>
               <h3 className="text-xl font-black text-gray-900">Submit a Support Ticket</h3>
               <p className="text-xs text-gray-500">
@@ -253,7 +253,7 @@ export default function SupportPage() {
             </div>
 
             {createdTicket ? (
-              <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 bg-emerald-50 rounded-3xl border border-emerald-200">
+              <div className="flex flex-col items-center justify-center p-5 text-center space-y-4 bg-emerald-50 rounded-2xl border border-emerald-200">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                   <CheckCircle2 className="h-10 w-10" />
                 </div>

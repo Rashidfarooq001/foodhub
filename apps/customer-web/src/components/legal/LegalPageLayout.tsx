@@ -42,8 +42,8 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 py-10 sm:py-14">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-gray-50 via-white to-gray-50 py-10 sm:py-14">
+      <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-5">
         {/* Breadcrumb Navigation */}
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center space-x-2 text-xs font-semibold text-gray-500">
           <Link href="/" className="hover:text-orange-600 transition">
@@ -56,8 +56,8 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
         </nav>
 
         {/* Page Header */}
-        <header className="mb-10 rounded-3xl border border-gray-100 bg-white p-8 sm:p-10 shadow-sm relative overflow-hidden">
-          <div className="absolute -right-8 -top-8 h-44 w-44 rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
+        <header className="mb-10 rounded-2xl border border-gray-100 bg-white p-5 sm:p-10 shadow-sm relative overflow-hidden">
+          <div className="absolute -right-8 -top-5 h-44 w-44 rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
           <div className="relative z-10 max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-200/60 px-3.5 py-1 text-xs font-black text-orange-800">
               <Scale className="h-3.5 w-3.5 text-orange-600" />
@@ -86,12 +86,12 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
         </header>
 
         {/* Main Grid: Sidebar + Content */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
           {/* Navigation Sidebar */}
-          <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
-            <div className="sticky top-24 space-y-6">
+          <aside className="lg:col-span-4 xl:col-span-3 space-y-4">
+            <div className="sticky top-24 space-y-4">
               {/* Policies Navigation Menu */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 px-3 pb-2 border-b border-gray-100">
                   Legal Documents
                 </h3>
@@ -118,7 +118,7 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
               </div>
 
               {/* Entity & Contact Summary Card */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 text-xs">
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 text-xs">
                 <h4 className="font-black text-gray-900 flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-orange-600" /> Operating Entity Details
                 </h4>
@@ -154,7 +154,7 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
 
           {/* Policy Main Article Content */}
           <main className="lg:col-span-8 xl:col-span-9">
-            <article className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm prose prose-orange max-w-none text-gray-800 leading-relaxed space-y-8">
+            <article className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-10 shadow-sm prose prose-orange max-w-none text-gray-800 leading-relaxed space-y-5">
               {children}
             </article>
           </main>

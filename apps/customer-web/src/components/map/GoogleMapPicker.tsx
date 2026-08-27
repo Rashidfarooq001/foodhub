@@ -97,7 +97,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
 
   if (errorDetails) {
     return (
-      <div className={`${className} flex flex-col items-center justify-center bg-red-50 border border-red-100 text-sm p-6 text-center`}>
+      <div className={`${className} flex flex-col items-center justify-center bg-red-50 border border-red-100 text-sm p-4 text-center`}>
         <span className="font-bold text-red-700 mb-2">Map Unavailable</span>
         <span className="text-red-500 text-xs">{errorDetails}</span>
       </div>

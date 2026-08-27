@@ -37,7 +37,7 @@ export default function GrievanceRedressalPage() {
           Consumers, merchants, and delivery partners may submit complaints and grievance representations directly to our designated Grievance Team:
         </p>
 
-        <div className="rounded-3xl border border-gray-200 bg-gray-50/80 p-6 space-y-4 text-xs">
+        <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Designated Department</span>

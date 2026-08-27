@@ -138,7 +138,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
@@ -167,7 +167,7 @@ export default function NotificationsPage() {
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Bell className="mx-auto h-10 w-10 text-gray-300" />
           <p className="text-base font-bold text-gray-700">You&apos;re all caught up</p>
           <p className="text-xs text-gray-400">You don&apos;t have any unread notifications right now.</p>

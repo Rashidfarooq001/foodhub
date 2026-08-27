@@ -113,9 +113,9 @@ export default function RestaurantDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="min-h-[100dvh] bg-gray-50 pb-24">
         <div className="h-14 bg-white border-b border-gray-100" />
-        <div className="mx-auto max-w-4xl px-3 py-4 space-y-4">
+        <div className="mx-auto max-w-4xl px-3 py-3 space-y-4">
           <div className="h-36 animate-pulse rounded-2xl bg-gray-200" />
           <div className="h-10 animate-pulse rounded-xl bg-gray-100" />
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -128,8 +128,8 @@ export default function RestaurantDetailPage() {
 
   if (notFound || !restaurant) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm space-y-4">
+      <div className="mx-auto max-w-md px-4 py-10 text-center">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
           <UtensilsCrossed className="mx-auto h-12 w-12 text-gray-200" />
           <p className="text-xl font-black text-gray-900">Restaurant Not Found</p>
           <p className="text-xs text-gray-500">This kitchen is unavailable or doesn&apos;t exist.</p>
@@ -142,7 +142,7 @@ export default function RestaurantDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-28 sm:pb-20">
+    <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-20">
       {/* RESTAURANT SUB-BAR */}
       <div className="bg-white border-b border-gray-100 px-4 py-2.5 shadow-sm">
         <div className="mx-auto max-w-4xl flex items-center gap-3">
@@ -254,7 +254,7 @@ export default function RestaurantDetailPage() {
           </div>
 
           {filteredItems.length === 0 ? (
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center space-y-2 shadow-sm">
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 text-center space-y-2 shadow-sm">
               <UtensilsCrossed className="mx-auto h-8 w-8 text-gray-300" />
               <p className="text-xs font-bold text-gray-800">No matching items</p>
               <p className="text-[11px] text-gray-400">Try a different search or reset filters.</p>
@@ -328,7 +328,7 @@ export default function RestaurantDetailPage() {
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
           onClick={(e) => { if (e.target === e.currentTarget) { setSelectedFood(null); setSelectedAddons([]); } }}
         >
-          <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-5 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto">
+          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto">
             <div className="flex items-start justify-between border-b border-gray-100 pb-3">
               <div>
                 <h3 className="text-sm font-black text-gray-900">{selectedFood.name}</h3>

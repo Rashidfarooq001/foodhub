@@ -70,7 +70,7 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-[100dvh] bg-gray-50 p-4 sm:p-4">
       <div className="mx-auto max-w-lg space-y-5">
 
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
@@ -81,13 +81,13 @@ export default function ReviewsPage() {
         </div>
 
         {reviews.length === 0 ? (
-          <div className="py-16 text-center">
+          <div className="py-10 text-center">
             <MessageSquare className="mx-auto mb-3 h-12 w-12 text-gray-200" />
             <p className="text-gray-400">No reviews yet. Order something delicious!</p>
           </div>
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+            <div key={review.id} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-black text-gray-900">{review.restaurantName}</p>

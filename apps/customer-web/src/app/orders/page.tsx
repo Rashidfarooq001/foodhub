@@ -126,7 +126,7 @@ export default function OrderHistoryPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+      <div className="mx-auto max-w-3xl px-4 py-3 sm:px-4 lg:px-5 space-y-4">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -150,48 +150,51 @@ export default function OrderHistoryPage() {
 
         {/* PROMINENT ACTIVE ORDER CARD */}
         {activeOrder && (
-          <div className="rounded-3xl border-2 border-orange-500 bg-gradient-to-r from-orange-50/80 to-amber-50/50 p-6 shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-orange-200/60 pb-3">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-orange-600 px-3.5 py-1 text-xs font-black text-white shadow-sm">
-                  <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-                  LIVE ACTIVE ORDER
-                </span>
-                <span className="text-xs font-black text-gray-900">#{activeOrder.orderNumber}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-orange-700 bg-white/80 px-3 py-1 rounded-full shadow-sm">
-                <Clock className="h-4 w-4 text-orange-600 animate-spin" />
-                <span>Estimated Arrival: ~{activeOrder.etaMins} mins</span>
+          <div className="rounded-xl border border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 p-4 shadow-sm space-y-3 mb-2">
+            <div className="flex justify-between items-start border-b border-orange-200/60 pb-2">
+              <div className="space-y-1 w-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 rounded-full bg-orange-600 px-2 py-0.5 text-[10px] font-black text-white">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> LIVE
+                    </span>
+                    <span className="text-xs font-bold text-gray-700">#{activeOrder.orderNumber}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-orange-700">
+                    <Clock className="h-3.5 w-3.5 text-orange-600" />
+                    <span>~{activeOrder.etaMins} mins</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="space-y-1">
-                <h3 className="text-xl font-black text-gray-900">{activeOrder.restaurantName}</h3>
-                <p className="text-xs font-semibold text-gray-600">
-                  {activeOrder.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}
-                </p>
-                <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 text-orange-600" /> {activeOrder.customerAddress}
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-gray-900">{activeOrder.restaurantName}</h3>
+              <p className="text-xs font-semibold text-gray-600 truncate">
+                {activeOrder.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}
+              </p>
+              <div className="flex items-start gap-1 mt-1">
+                <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-gray-500 line-clamp-2 leading-tight">
+                  {activeOrder.customerAddress}
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <Link
-                  href={`/orders/${activeOrder.orderId}`}
-                  className="flex-1 sm:flex-initial text-center rounded-2xl border border-orange-300 bg-white px-5 py-3 text-xs font-bold text-gray-800 hover:bg-orange-50 transition"
-                >
-                  View Details
-                </Link>
-
-                <Link
-                  href={`/orders/${activeOrder.orderId}/track`}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 transition"
-                >
-                  <span>Track Live Map</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+            <div className="flex items-center gap-2 pt-2">
+              <Link
+                href={`/orders/${activeOrder.orderId}`}
+                className="flex-1 text-center rounded-xl border border-orange-300 bg-white px-3 py-2 text-xs font-bold text-gray-800 hover:bg-orange-50 transition"
+              >
+                View Details
+              </Link>
+              <Link
+                href={`/orders/${activeOrder.orderId}/track`}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-3 py-2 text-xs font-black text-white hover:bg-orange-700 transition"
+              >
+                <span className="whitespace-nowrap">Track Map</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         )}
@@ -226,11 +229,11 @@ export default function OrderHistoryPage() {
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 animate-pulse rounded-3xl bg-gray-100" />
+                <div key={i} className="h-32 animate-pulse rounded-2xl bg-gray-100" />
               ))}
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center text-xs font-bold text-gray-400 space-y-3">
+            <div className="rounded-2xl border border-gray-100 bg-white py-8 px-4 text-center text-xs font-bold text-gray-400 space-y-3">
               <FileText className="h-10 w-10 mx-auto text-gray-300" />
               <p>No orders found under &quot;{activeTab}&quot;.</p>
             </div>
@@ -239,7 +242,7 @@ export default function OrderHistoryPage() {
               {filteredOrders.map((ord) => (
                 <div
                   key={ord.id}
-                  className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm space-y-4 hover:border-orange-200 transition"
+                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4 hover:border-orange-200 transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
                     <div className="flex items-center gap-3">
