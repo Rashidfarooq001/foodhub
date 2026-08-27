@@ -13,9 +13,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         isMobileMenuOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
-      <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
+      <div className="flex flex-1 flex-col min-w-0">
         <AdminHeader onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+        <main className="flex-1 w-full mx-auto px-[14px] sm:px-6 pt-5 pb-8 max-w-[1300px] min-w-0">
           {children}
         </main>
       </div>

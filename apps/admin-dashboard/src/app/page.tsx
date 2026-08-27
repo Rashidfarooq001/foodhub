@@ -80,25 +80,22 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="w-full max-w-[1280px] mx-auto overflow-x-hidden pb-16 space-y-5 sm:space-y-6">
+    <div className="flex flex-col gap-5 sm:gap-6 w-full pb-16">
       {/* Header */}
-      <div className="flex flex-row items-center justify-between gap-3 border-b border-gray-100 pb-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex-1">
-          <h1 className="text-[24px] sm:text-[28px] font-bold text-gray-900 leading-tight">
+          <h1 className="text-[24px] font-bold text-gray-900 leading-tight">
             Platform Command Center
           </h1>
-          <p className="text-[14px] text-gray-500 leading-snug mt-1 max-w-lg hidden sm:block">
+          <p className="text-[13px] text-gray-500 mt-1 max-w-lg leading-snug">
             Real-time GMV, live orders, onboarding and ecosystem health
-          </p>
-          <p className="text-[12px] text-gray-500 leading-snug mt-0.5 max-w-lg sm:hidden">
-            Real-time GMV, live orders & onboarding
           </p>
         </div>
 
         <button
           onClick={fetchStats}
           disabled={isLoading}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-700 transition h-10"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 h-[40px] text-xs font-bold text-gray-700 transition"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           <span className="hidden sm:inline">Refresh</span>
@@ -106,99 +103,99 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Action Alert Pills for Pending Approvals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <Link
           href="/restaurants/approval"
-          className="flex items-center justify-between p-4 rounded-[16px] border border-purple-200 bg-purple-50/40 hover:bg-purple-100/60 transition min-h-[96px]"
+          className="flex items-center justify-between p-3.5 sm:p-4 rounded-[16px] border border-purple-200 bg-purple-50/40 hover:bg-purple-100/60 transition min-h-[85px] sm:min-h-[95px]"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white">
               <Store className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-[15px] font-bold text-gray-900 block leading-tight">Restaurant Approval</span>
+              <span className="text-[14px] sm:text-[15px] font-bold text-gray-900 block leading-tight">Restaurant Approval</span>
               <span className="text-[12px] text-gray-500 block mt-0.5">Verify licenses &amp; FSSAI</span>
             </div>
           </div>
-          <span className="rounded-full bg-purple-100 px-3 py-1 text-[13px] font-bold text-purple-700 shrink-0 border border-purple-200">
+          <span className="flex items-center justify-center min-w-[32px] h-7 rounded-full bg-purple-100 px-2 text-[13px] font-bold text-purple-700 shrink-0 border border-purple-200">
             {kpi.pendingApprovals}
           </span>
         </Link>
 
         <Link
           href="/delivery-partners/approval"
-          className="flex items-center justify-between p-4 rounded-[16px] border border-teal-200 bg-teal-50/40 hover:bg-teal-100/60 transition min-h-[96px]"
+          className="flex items-center justify-between p-3.5 sm:p-4 rounded-[16px] border border-teal-200 bg-teal-50/40 hover:bg-teal-100/60 transition min-h-[85px] sm:min-h-[95px]"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
               <Bike className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-[15px] font-bold text-gray-900 block leading-tight">Driver Approval</span>
+              <span className="text-[14px] sm:text-[15px] font-bold text-gray-900 block leading-tight">Driver Approval</span>
               <span className="text-[12px] text-gray-500 block mt-0.5">Verify driving licenses &amp; RC documents</span>
             </div>
           </div>
-          <span className="rounded-full bg-teal-100 px-3 py-1 text-[13px] font-bold text-teal-700 shrink-0 border border-teal-200">
+          <span className="flex items-center justify-center min-w-[32px] h-7 rounded-full bg-teal-100 px-2 text-[13px] font-bold text-teal-700 shrink-0 border border-teal-200">
             {kpi.pendingDriverApprovals}
           </span>
         </Link>
       </div>
 
       {/* Platform KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-[10px] sm:gap-3">
         {/* Today GMV */}
-        <div className="flex flex-col rounded-[16px] border border-gray-100 bg-white p-4 shadow-sm h-full">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">TODAY GMV</span>
+        <div className="flex flex-col justify-between rounded-[16px] border border-gray-100 bg-white p-[14px] shadow-sm min-h-[115px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">TODAY GMV</span>
             <DollarSign className="h-6 w-6 rounded-lg bg-orange-50 p-1.5 text-orange-600" />
           </div>
-          <div className="mt-auto">
-            <h2 className="text-[26px] font-black text-gray-900 leading-none mb-1">
-              ?{kpi.todayRevenue.toLocaleString()}
+          <div className="mt-2">
+            <h2 className="text-[24px] sm:text-[28px] font-black text-gray-900 leading-none mb-1 truncate">
+              &#8377;{kpi.todayRevenue.toLocaleString()}
             </h2>
-            <span className="text-[12px] text-gray-500">Gross turnover</span>
+            <span className="text-[11px] text-gray-500 block">Gross turnover</span>
           </div>
         </div>
 
         {/* Today Orders */}
-        <div className="flex flex-col rounded-[16px] border border-gray-100 bg-white p-4 shadow-sm h-full">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">TODAY ORDERS</span>
+        <div className="flex flex-col justify-between rounded-[16px] border border-gray-100 bg-white p-[14px] shadow-sm min-h-[115px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">TODAY ORDERS</span>
             <ShoppingBag className="h-6 w-6 rounded-lg bg-blue-50 p-1.5 text-blue-600" />
           </div>
-          <div className="mt-auto">
-            <h2 className="text-[26px] font-black text-gray-900 leading-none mb-1">
+          <div className="mt-2">
+            <h2 className="text-[24px] sm:text-[28px] font-black text-gray-900 leading-none mb-1 truncate">
               {kpi.todayOrders}
             </h2>
-            <span className="text-[12px] text-gray-500">Platform volume</span>
+            <span className="text-[11px] text-gray-500 block">Platform volume</span>
           </div>
         </div>
 
         {/* Active Restaurants */}
-        <div className="flex flex-col rounded-[16px] border border-gray-100 bg-white p-4 shadow-sm h-full">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">RESTAURANTS</span>
-            <Store className="h-6 w-6 rounded-lg bg-emerald-50 p-1.5 text-emerald-600" />
+        <div className="flex flex-col justify-between rounded-[16px] border border-gray-100 bg-white p-[14px] shadow-sm min-h-[115px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">RESTAURANTS</span>
+            <Store className="h-6 w-6 rounded-lg bg-purple-50 p-1.5 text-purple-600" />
           </div>
-          <div className="mt-auto">
-            <h2 className="text-[26px] font-black text-gray-900 leading-none mb-1">
+          <div className="mt-2">
+            <h2 className="text-[24px] sm:text-[28px] font-black text-gray-900 leading-none mb-1 truncate">
               {kpi.activeRestaurants}
             </h2>
-            <span className="text-[12px] text-gray-500">Approved stores</span>
+            <span className="text-[11px] text-gray-500 block">Approved stores</span>
           </div>
         </div>
 
         {/* Active Riders */}
-        <div className="flex flex-col rounded-[16px] border border-gray-100 bg-white p-4 shadow-sm h-full">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">COURIER FLEET</span>
-            <Bike className="h-6 w-6 rounded-lg bg-blue-50 p-1.5 text-blue-600" />
+        <div className="flex flex-col justify-between rounded-[16px] border border-gray-100 bg-white p-[14px] shadow-sm min-h-[115px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">COURIER FLEET</span>
+            <Bike className="h-6 w-6 rounded-lg bg-teal-50 p-1.5 text-teal-600" />
           </div>
-          <div className="mt-auto">
-            <h2 className="text-[26px] font-black text-gray-900 leading-none mb-1">
+          <div className="mt-2">
+            <h2 className="text-[24px] sm:text-[28px] font-black text-gray-900 leading-none mb-1 truncate">
               {kpi.onlineDrivers}
             </h2>
-            <span className="text-[12px] text-gray-500">Active riders</span>
+            <span className="text-[11px] text-gray-500 block">Active riders</span>
           </div>
         </div>
       </div>

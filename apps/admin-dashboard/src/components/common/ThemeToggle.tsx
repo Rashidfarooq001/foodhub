@@ -42,7 +42,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
       type="button"
       title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle Theme Mode"
-      className={`flex h-10 w-10 items-center justify-center rounded-2xl border transition shrink-0 shadow-sm ${
+      className={`flex h-10 w-10 items-center justify-center rounded-xl snap-start border transition shrink-0 shadow-sm ${
         theme === 'dark'
           ? 'border-gray-700 bg-gray-800 text-amber-400 hover:bg-gray-700'
           : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
