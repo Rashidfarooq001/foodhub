@@ -255,6 +255,11 @@ export class OrdersService {
       calculatedCustomerTotal: quote.customerTotal,
     });
 
+    
+    if (quote.customerDeliveryFee === null || quote.customerTotal === null) {
+      throw new BadRequestException('Delivery route is unavailable for the selected location.');
+    }
+    
     const deliveryFee = quote.customerDeliveryFee;
     const taxAmount = quote.totalCustomerTaxes;
     const totalAmount = quote.customerTotal;

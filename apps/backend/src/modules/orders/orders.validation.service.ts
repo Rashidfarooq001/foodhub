@@ -55,8 +55,7 @@ export class OrdersValidationService {
     const custLng = deliveryAddress?.longitude ? Number(deliveryAddress.longitude) : null;
 
     if (custLat === null || custLng === null || (custLat === 0 && custLng === 0) || isNaN(custLat) || isNaN(custLng)) {
-      // Manual text address without GPS coordinates: skip strict radius check for manual address verification
-      return 0;
+      throw new BadRequestException('Delivery coordinates are missing. Please provide a valid verified address.');
     }
 
     const distResult = await this.distanceService.getDeliveryDistance(restaurantId, custLat, custLng);

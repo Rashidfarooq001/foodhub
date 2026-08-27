@@ -20,7 +20,7 @@ export interface OrderQuoteRequest {
 
 export interface OrderQuoteResult {
   foodSubtotal: number;
-  customerDeliveryFee: number;
+  customerDeliveryFee: number | null;
   platformFee: number;
   smallOrderFee: number;
   packagingFee: number;
@@ -42,7 +42,7 @@ export interface OrderQuoteResult {
   smallOrderFeeGst: number;
   deliveryFeeGst: number;
   totalCustomerTaxes: number;
-  customerTotal: number;
+  customerTotal: number | null;
 
   // Authoritative Commission Snapshot
   commissionRate: number | null;
@@ -92,11 +92,11 @@ export class OrderQuoteService {
     const restaurantState = req.restaurantState || 'J&K';
 
     // 1. Authoritative Distance & Radius Check via DistanceService (Backend Exclusive Authority)
-    let distanceKm: number | null = null;
+    let distanceKm: number | null = req.distanceKm ?? null;
     let etaMinutes: number | null = null;
-    let routeAvailable = false;
-    let serviceable = false;
-    let deliveryEligible = false;
+    let routeAvailable = req.distanceKm !== undefined && req.distanceKm !== null;
+    let serviceable = req.distanceKm !== undefined && req.distanceKm !== null;
+    let deliveryEligible = req.distanceKm !== undefined && req.distanceKm !== null;
     let deliveryRadiusKm = 15.0;
     const locationSource = req.locationSource || 'MANUAL_GEOCODED';
 
@@ -137,9 +137,9 @@ export class OrderQuoteService {
     // First 3 km: Base delivery fee = ₹15.00
     // After 3 km: Additional charge = ₹5.00 per additional KM
     // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
-    const deliveryFeeBaseKm = 3.0;
-    const deliveryFeeBaseAmount = 15.0;
-    const deliveryFeePerExtraKm = 5.0;
+    const deliveryFeeBaseKm = 3.0; // Wait, I'll keep this hardcoded as it's not in DB
+      const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee || 15.0;
+      const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
@@ -150,7 +150,7 @@ export class OrderQuoteService {
         customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
       }
     } else {
-      customerDeliveryFee = 0; // Unresolved / 0 when route calculation is unavailable
+      customerDeliveryFee = null; // Unresolved / null when route calculation is unavailable
     }
 
     if (!deliveryEligible || distanceKm === null || distanceKm > deliveryRadiusKm || !routeAvailable) {
@@ -207,12 +207,12 @@ export class OrderQuoteService {
     const totalCustomerTaxes = 0.0;
 
     // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
-    const customerTotal = Math.max(
-      0,
-      Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
-      ) / 100,
-    );
+    const customerTotal = customerDeliveryFee !== null ? Math.max(
+        0,
+        Math.round(
+          (foodSubtotal + customerDeliveryFee + platformFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
+        ) / 100,
+      ) : null;
 
     // ==========================================
     // 6. AUTHORITATIVE COMMISSION RESOLUTION (13% on every individual order)
@@ -254,13 +254,13 @@ export class OrderQuoteService {
     ) / 100;
 
     // 8. Payment Gateway Internal Cost (Default 2% planning rate)
-    const paymentGatewayCost = Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100;
+    const paymentGatewayCost = customerTotal !== null ? Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100 : 0;
 
     // 9. Core Accounting Isolation
     const statutoryGstLiability = 0.0;
     const platformOperatingRevenue = Math.round(
-      (restaurantCommission + platformFee + customerDeliveryFee) * 100,
-    ) / 100;
+        (restaurantCommission + platformFee + (customerDeliveryFee || 0)) * 100,
+      ) / 100;
 
     const riderDirectCost = totalRiderPayout - riderTip;
     const platformContributionMargin = Math.round((platformOperatingRevenue - riderDirectCost - paymentGatewayCost) * 100) / 100;
