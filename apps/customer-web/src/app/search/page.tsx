@@ -127,9 +127,9 @@ function SearchPageInner() {
               {(activeTab === 'all' || activeTab === 'restaurants') && filteredRestaurants.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Restaurants</h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
                     {filteredRestaurants.map((r: RestaurantData) => (
-                      <RestaurantCard key={r.id} restaurant={r} />
+                      <div className="snap-start"><RestaurantCard key={r.id} restaurant={r} /></div>
                     ))}
                   </div>
                 </div>
@@ -138,9 +138,9 @@ function SearchPageInner() {
               {(activeTab === 'all' || activeTab === 'dishes') && filteredFood.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Dishes</h3>
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                  <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
                     {filteredFood.map((f: FoodItemData) => (
-                      <FoodCard key={f.id} food={f} />
+                      <div className="snap-start"><FoodCard key={f.id} food={f} /></div>
                     ))}
                   </div>
                 </div>

@@ -726,9 +726,9 @@ export default function CustomerHomePage() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
+                <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : isError ? (
@@ -742,13 +742,13 @@ export default function CustomerHomePage() {
               </button>
             </div>
           ) : recommendedList.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
               {recommendedList.map((restaurant) => (
-                <RecommendedCard
+                <div className="snap-start"><RecommendedCard
                   key={restaurant.id}
                   restaurant={restaurant}
                   isInitiallyFavorite={favorites.includes(restaurant.id)}
-                />
+                  /></div>
               ))}
             </div>
           ) : (
@@ -781,19 +781,19 @@ export default function CustomerHomePage() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
+                <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : popularList.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
               {popularList.map((restaurant) => (
-                <RecommendedCard
+                <div className="snap-start"><RecommendedCard
                   key={restaurant.id}
                   restaurant={restaurant}
                   isInitiallyFavorite={favorites.includes(restaurant.id)}
-                />
+                  /></div>
               ))}
             </div>
           ) : null}

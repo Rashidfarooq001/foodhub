@@ -68,14 +68,14 @@ export default function CategoryDetailPage() {
         <h3 className="text-xl font-bold text-gray-900">
           Restaurants serving {displayName}
         </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
           {isLoading
             ? [1, 2, 3].map((i) => (
-                <div key={i} className="h-72 animate-pulse rounded-2xl bg-gray-100" />
+                <div key={i} className="snap-start h-72 animate-pulse rounded-2xl bg-gray-100" />
               ))
             : restaurants.length > 0
             ? restaurants.map((r: RestaurantData) => (
-                <RestaurantCard key={r.id} restaurant={r} />
+                <div className="snap-start"><RestaurantCard key={r.id} restaurant={r} /></div>
               ))
             : (
               <div className="col-span-3 rounded-2xl border border-gray-100 bg-white p-12 text-center text-sm text-gray-400">
