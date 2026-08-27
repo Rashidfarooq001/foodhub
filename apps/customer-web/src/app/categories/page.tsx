@@ -27,7 +27,7 @@ export default function CategoriesPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       <div>
         <h1 className="text-3xl font-black text-gray-900">Food Categories</h1>
         <p className="text-xs text-gray-500">Explore meals by specialty and cuisine type</p>

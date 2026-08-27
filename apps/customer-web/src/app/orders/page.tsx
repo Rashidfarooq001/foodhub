@@ -126,7 +126,7 @@ export default function OrderHistoryPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="mx-auto max-w-3xl px-4 py-3 sm:px-4 lg:px-5 space-y-4">
+      <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

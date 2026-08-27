@@ -28,7 +28,7 @@ export default function WishlistPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
           <Heart className="h-5 w-5 fill-rose-600" />

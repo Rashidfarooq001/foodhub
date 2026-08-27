@@ -142,7 +142,7 @@ export default function RestaurantDetailPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-20">
+    <div className="bg-gray-50/50 pb-8">
       {/* RESTAURANT SUB-BAR */}
       <div className="bg-white border-b border-gray-100 px-4 py-2.5 shadow-sm">
         <div className="mx-auto max-w-4xl flex items-center gap-3">

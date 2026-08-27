@@ -53,7 +53,7 @@ export default function AllRestaurantsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
+    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       {/* Header */}
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3.5 py-1 text-xs font-black text-orange-700">

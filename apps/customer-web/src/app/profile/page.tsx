@@ -201,7 +201,7 @@ export default function ProfilePage() {
     : 'U';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-3 sm:px-4 lg:px-5 space-y-4">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         <p className="text-sm text-gray-500">Manage your personal details and password</p>

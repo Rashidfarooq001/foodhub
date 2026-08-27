@@ -42,7 +42,7 @@ export default function CategoryDetailPage() {
   const displayImage = category?.image ?? '';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       {/* Category Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white p-5 sm:p-12 shadow-xl">
         <div className="relative z-10 space-y-2">

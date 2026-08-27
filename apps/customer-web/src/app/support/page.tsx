@@ -142,7 +142,7 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       {/* Header */}
       <div className="space-y-1">
         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Help &amp; Customer Support</h1>

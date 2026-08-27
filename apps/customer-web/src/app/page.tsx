@@ -457,8 +457,8 @@ export default function CustomerHomePage() {
 
   const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
   return (
-    <div className="min-h-[100dvh] bg-white pb-24 md:pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-5 pt-2 sm:pt-4 space-y-4 sm:space-y-5">
+    <div className="bg-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8 md:space-y-12 pb-10">
 
         {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">

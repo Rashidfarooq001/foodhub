@@ -56,7 +56,7 @@ function SearchPageInner() {
   const popularTags = ['Biryani', 'Paneer Butter Masala', 'Pizza', 'Garlic Naan', 'Burger', 'Chinese'];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       {/* Search Header Input */}
       <div className="relative mx-auto max-w-2xl">
         <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />

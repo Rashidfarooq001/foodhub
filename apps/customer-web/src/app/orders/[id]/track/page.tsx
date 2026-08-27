@@ -112,7 +112,7 @@ export default function LiveOrderTrackingPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
         <div className="h-40 animate-pulse rounded-2xl bg-gray-100" />
         <div className="h-96 animate-pulse rounded-2xl bg-gray-100" />
       </div>
@@ -155,7 +155,7 @@ export default function LiveOrderTrackingPage() {
   const vehicleNumber = order.assignedRestaurantDriver?.vehicleNumber || '';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-4 lg:px-5 space-y-4">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
       {/* Explicit Location Status Banner (STATE A, B, C, D) */}
       <div
         className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
