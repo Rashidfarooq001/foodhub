@@ -239,13 +239,14 @@ export class OrdersService {
 
     // Authoritative Quote Calculation (Customer Packaging Fee = ₹0)
     const quote = await this.quoteService.calculateQuote({
-      foodSubtotal: subtotal,
-      distanceKm: calculatedDistanceKm,
-      restaurantId: dto.restaurantId,
-      discountAmount,
-      packagingFee: 0,
-      tipAmount: (dto as any).tipAmount || 0,
-    });
+        foodSubtotal: subtotal,
+        distanceKm: calculatedDistanceKm,
+        restaurantId: dto.restaurantId,
+        locationSource: locationSourceText as any,
+        discountAmount,
+        packagingFee: 0,
+        tipAmount: (dto as any).tipAmount || 0,
+      });
 
     this.logger.log({
       msg: 'Order quote calculated',

@@ -808,7 +808,7 @@ export default function CustomerHomePage() {
         currentLocality={locationLabel}
         currentAddress={locationAddress}
         onSelectLocation={(loc) => {
-          setLocationLabel(loc.label || loc.locality || 'Selected Location');
+          setLocationLabel(loc.label || 'Selected Location');
           setLocationAddress(loc.address);
           setUserCoords({ lat: loc.lat, lng: loc.lng });
         }}

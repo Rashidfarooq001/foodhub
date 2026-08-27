@@ -10,7 +10,7 @@ export interface OrderQuoteRequest {
   restaurantId?: string;
   latitude?: number;
   longitude?: number;
-  locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS';
+  locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MAPPLS_GEOCODE';
   tipAmount?: number;
   discountAmount?: number;
   packagingFee?: number;
@@ -142,7 +142,12 @@ export class OrderQuoteService {
       const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
 
     let customerDeliveryFee: number | null = null;
-    if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
+    if (locationSource === 'MANUAL_ADDRESS') {
+      customerDeliveryFee = config.minimumCustomerDeliveryFee || 15.0; // Flat delivery charge for manual unverified addresses
+      serviceable = true;
+      deliveryEligible = true;
+      routeAvailable = true; // Bypass route requirement
+    } else if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
       if (distanceKm <= deliveryFeeBaseKm) {
         customerDeliveryFee = deliveryFeeBaseAmount;
       } else {

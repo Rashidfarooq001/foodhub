@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+let code = fs.readFileSync('apps/customer-web/src/components/home/LocationSelectorModal.tsx', 'utf8');
+
+code = `import React, { useState, useEffect } from 'react';
 import { X, MapPin, Navigation2, Check, AlertTriangle } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useAddressStore } from '../../stores/use-address-store';
@@ -7,8 +10,6 @@ import { CustomerAddressItem } from '../../stores/use-address-store';
 interface LocationSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentLocality?: string;
-  currentAddress?: string;
   onSelectLocation: (loc: { label: string; address: string; lat: number; lng: number; locationSource: string }) => void;
 }
 
@@ -159,3 +160,6 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     </div>
   );
 };
+`;
+
+fs.writeFileSync('apps/customer-web/src/components/home/LocationSelectorModal.tsx', code);
