@@ -340,7 +340,7 @@ export default function CheckoutPage() {
           foodItemId: isUUID(foodId) ? foodId : item.id,
           variantId: item.variantId && isUUID(item.variantId) ? item.variantId : undefined,
           variantName: item.variantName || undefined,
-          quantity: item.quantity,
+          quantity: item.quantity || 1,
           addonsJson:
             item.addons && item.addons.length > 0
               ? item.addons.map((a) => ({ addonId: a.id, name: a.name, price: a.price }))
