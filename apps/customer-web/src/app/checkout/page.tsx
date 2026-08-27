@@ -585,7 +585,7 @@ export default function CheckoutPage() {
 
   if (!isHydrated) {
     return (
-      <div className="min-h-[100dvh] bg-gray-50/50 p-4 flex flex-col items-center justify-center">
+      <div className="bg-gray-50/50 p-4 flex flex-col items-center justify-center py-20">
         <div className="h-8 w-48 rounded-xl bg-gray-200 animate-pulse mb-4" />
         <div className="h-64 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-sm border border-gray-100 space-y-4">
           <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse" />
@@ -616,7 +616,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-[100dvh] bg-gray-50/50 pb-32 sm:pb-28">
+      <div className="bg-gray-50/50 pb-8">
         {/* Mobile Header & Progress Bar */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">

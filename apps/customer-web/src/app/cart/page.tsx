@@ -61,7 +61,7 @@ export default function CartPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-[100dvh] bg-gray-50/50 pb-28 sm:pb-12">
+      <div className="bg-gray-50/50 pb-8">
         {/* Header & Stepper */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
