@@ -24,7 +24,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-3 sm:px-4 md:px-6 gap-2">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-4 sm:px-6 gap-2">
       {/* Mobile Search Overlay */}
       {isSearchExpanded ? (
         <div className="absolute inset-0 z-40 flex items-center bg-white px-3 sm:px-6 gap-2">
@@ -39,7 +39,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
           </div>
           <button
             onClick={() => setIsSearchExpanded(false)}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0"
             aria-label="Close search"
           >
             <X className="h-5 w-5" />
@@ -51,7 +51,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={onOpenMobileMenu}
-              className="flex lg:hidden h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
+              className="flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu className="h-5 w-5" />
@@ -74,11 +74,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
           </div>
 
           {/* Right Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-1">
             {/* Mobile Search Button */}
             <button
               onClick={() => setIsSearchExpanded(true)}
-              className="flex md:hidden h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0"
+              className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0 snap-start"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
@@ -87,7 +87,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
             {/* Maintenance Toggle Pill */}
             <button
               onClick={toggleMaintenanceMode}
-              className={`flex items-center gap-1 sm:gap-2 rounded-2xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold transition shadow-sm shrink-0 min-h-[40px] sm:min-h-[44px] ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition shrink-0 h-10 snap-start ${
                 isMaintenanceMode
                   ? 'bg-rose-50 text-rose-700 border border-rose-200'
                   : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -107,7 +107,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
 
             {/* Notification Bell */}
             <button
-              className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0 snap-start"
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
@@ -129,7 +129,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
                     (e.target as HTMLImageElement).src =
                       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
                   }}
-                  className="h-9 w-9 rounded-full object-cover border-2 border-purple-600 shadow-sm"
+                  className="h-9 w-9 rounded-full object-cover border-2 border-purple-600 shrink-0"
                 />
 
                 <div className="hidden xl:block">
@@ -145,7 +145,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
               <button
                 onClick={handleLogout}
                 title="Logout"
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition shrink-0"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition shrink-0 snap-start"
                 aria-label="Logout"
               >
                 <LogOut className="h-4 w-4" />
