@@ -121,6 +121,9 @@ export class OrderQuoteService {
       if (!distRes.valid && distRes.reason === 'ROUTE_CALCULATION_FAILED') {
         throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
       }
+      if (!distRes.valid && (distRes.reason === 'INVALID_RESTAURANT_COORDINATES' || distRes.reason === 'INVALID_CUSTOMER_COORDINATES')) {
+        throw new BadRequestException('Invalid coordinates provided for delivery calculation.');
+      }
       
       distanceKm = distRes.distanceKm;
       etaMinutes = distRes.etaMinutes;

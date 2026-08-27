@@ -66,6 +66,9 @@ export class OrdersValidationService {
       if (distResult.reason === 'ROUTE_CALCULATION_FAILED') {
         throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
       }
+      if (distResult.reason === 'INVALID_RESTAURANT_COORDINATES' || distResult.reason === 'INVALID_CUSTOMER_COORDINATES') {
+        throw new BadRequestException('Invalid coordinates provided for delivery calculation.');
+      }
       throw new BadRequestException(
         `Your selected delivery location (${distanceKm} km away) is outside this restaurant's delivery area of ${radiusKm} km.`,
       );

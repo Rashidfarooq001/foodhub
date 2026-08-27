@@ -1,31 +1,25 @@
-const fs=require('fs'); 
-let c=fs.readFileSync('apps/customer-web/src/components/home/LocationSelectorModal.tsx', 'utf8'); 
+﻿const fs = require('fs');
+const path = 'apps/customer-web/src/app/checkout/page.tsx';
+let content = fs.readFileSync(path, 'utf8');
 
-c = c.replace(/import \{ MapPin[\s\S]*?lucide-react';/, (match) => match + '\nimport { useGeolocation } from \'../../hooks/useGeolocation\';'); 
+const oldBlock =     } catch (err: any) {
+      console.error('Checkout error:', err);
+      setPaymentError(err.message || 'Failed to place order. Please try again.');
+    } finally {;
 
-c = c.replace(/  const handleUseCurrentLocation = \(\) => \{[\s\S]*?maximumAge: 60000,\r?\n      \}\r?\n    \);\r?\n  \};/, 
-    const { status: hookStatus, error: hookError, requestLocation } = useGeolocation();
-  const handleUseCurrentLocation = async () => {
-    setGpsStatus('detecting');
-    setErrorMessage('');
-    const res = await requestLocation();
-    if (res) {
-      const { coords, address } = res;
-      setGpsStatus('success');
-      onSelectLocation({
-        label: address.locality || (address.formattedAddress ? address.formattedAddress.split(',')[0] : 'Current Location'),
-        address: address.formattedAddress || coords.latitude.toFixed(4) + ', ' + coords.longitude.toFixed(4),
-        lat: coords.latitude,
-        lng: coords.longitude,
-        locality: address.locality,
-        district: address.district,
-      });
-      setTimeout(onClose, 400);
-    } else {
-      setGpsStatus('error');
-    }
-  };
-); 
+const newBlock =     } catch (err: any) {
+      console.error('Checkout error:', err);
+      let msg = err.message || 'Failed to place order. Please try again.';
+      if (msg.includes('Failed to fetch')) {
+        msg = 'Network error or server is temporarily unavailable (502 Bad Gateway). Please try again in a few moments.';
+      }
+      setPaymentError(msg);
+    } finally {;
 
-c = c.replace(/\{errorMessage && \(/g, '{(errorMessage || hookError) && (').replace(/<span>\{errorMessage\}<\/span>/g, '<span>{errorMessage || hookError}</span>'); 
-fs.writeFileSync('apps/customer-web/src/components/home/LocationSelectorModal.tsx', c);
+if (content.includes(oldBlock)) {
+    content = content.replace(oldBlock, newBlock);
+    fs.writeFileSync(path, content, 'utf8');
+    console.log('Successfully replaced block.');
+} else {
+    console.log('Block not found.');
+}
