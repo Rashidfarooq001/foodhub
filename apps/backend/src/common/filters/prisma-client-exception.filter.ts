@@ -66,7 +66,8 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
       case 'P2011': {
         // Null constraint violation
         statusCode = HttpStatus.BAD_REQUEST;
-        const field = (exception.meta?.constraint as string | undefined) ?? 'unknown field';
+        const rawField = exception.meta?.constraint;
+        const field = Array.isArray(rawField) ? rawField.join(', ') : (rawField || 'unknown field') as string;
         message = `Required field is missing: ${field.replace(/_/g, ' ')}.`;
         break;
       }
