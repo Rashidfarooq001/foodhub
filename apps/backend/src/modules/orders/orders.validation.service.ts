@@ -55,6 +55,9 @@ export class OrdersValidationService {
     const custLng = deliveryAddress?.longitude ? Number(deliveryAddress.longitude) : null;
 
     if (custLat === null || custLng === null || (custLat === 0 && custLng === 0) || isNaN(custLat) || isNaN(custLng)) {
+      if (deliveryAddress?.locationSource === 'MANUAL_ADDRESS') {
+        return 0; // Manual address bypassed routing
+      }
       throw new BadRequestException('Delivery coordinates are missing. Please provide a valid verified address.');
     }
 

@@ -143,7 +143,7 @@ export class OrderQuoteService {
 
     let customerDeliveryFee: number | null = null;
     if (locationSource === 'MANUAL_ADDRESS') {
-      customerDeliveryFee = config.minimumCustomerDeliveryFee || 15.0; // Flat delivery charge for manual unverified addresses
+      customerDeliveryFee = 35.0; // Fixed delivery rate for manual unverified addresses
       serviceable = true;
       deliveryEligible = true;
       routeAvailable = true; // Bypass route requirement
