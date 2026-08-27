@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, Sliders, LogOut, Menu } from 'lucide-react';
-import { useAdminStore } from '../../stores/use-admin-store';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { useRouter } from 'next/navigation';
 import { getImageUrl } from '@foodhub/config';
@@ -14,7 +13,6 @@ interface AdminHeaderProps {
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) => {
   const router = useRouter();
-  const { isMaintenanceMode, toggleMaintenanceMode } = useAdminStore();
   const { user, logout } = useAdminAuthStore();
 
   const handleLogout = () => {
@@ -43,25 +41,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
       {/* Right Controls - Horizontally scrollable */}
       <div className="flex flex-1 items-center justify-end gap-[6px] overflow-x-auto min-w-0 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="flex items-center gap-[6px] shrink-0 px-1">
-          
-          {/* Maintenance Toggle Pill */}
-          <button
-            onClick={toggleMaintenanceMode}
-            className={`flex items-center justify-center gap-1.5 rounded-xl px-3 text-[10px] font-bold transition shrink-0 h-[40px] snap-start ${
-              isMaintenanceMode
-                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            }`}
-            title="Toggle Platform Maintenance Mode"
-          >
-            <Sliders className="h-[14px] w-[14px] shrink-0" />
-            <span className="hidden lg:inline">
-              {isMaintenanceMode ? 'MAINTENANCE MODE' : 'PLATFORM LIVE'}
-            </span>
-            <span className="lg:hidden">
-              {isMaintenanceMode ? 'MAINT' : 'LIVE'}
-            </span>
-          </button>
 
           <ThemeToggle />
 
