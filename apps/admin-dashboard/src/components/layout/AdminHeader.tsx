@@ -22,7 +22,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
 
   return (
     <header className="sticky top-0 z-30 flex h-[56px] w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-[16px] sm:px-6 gap-[6px] min-w-0">
-      {/* Left: Mobile Hamburger & Desktop Search */}
+      {/* Left: Mobile Hamburger */}
       <div className="flex items-center gap-[6px] sm:gap-4 shrink-0 mr-1">
         <button
           onClick={onOpenMobileMenu}
@@ -38,7 +38,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
         </div>
       </div>
 
-      {/* Right Controls - Horizontally scrollable */}
+      {/* Right Controls */}
       <div className="flex flex-1 items-center justify-end gap-[6px] overflow-x-auto min-w-0 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="flex items-center gap-[6px] shrink-0 px-1">
 
