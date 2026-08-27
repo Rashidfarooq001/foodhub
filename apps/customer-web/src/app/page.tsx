@@ -615,12 +615,12 @@ export default function CustomerHomePage() {
         />
 
         {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
-        <div className="flex items-center flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0" style={{ overscrollBehaviorX: 'contain' }}>
           {/* Main Filters Button (Opens Modal) */}
           <button
             type="button"
             onClick={() => setIsFilterModalOpen(true)}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center gap-1.5 h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               activeFiltersCount > 0
                 ? 'border-rose-600 bg-rose-50 text-rose-700 font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -639,7 +639,7 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, under30Mins: !prev.under30Mins }))}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               filters.under30Mins
                 ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -652,7 +652,7 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, rating4Plus: !prev.rating4Plus }))}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               filters.rating4Plus
                 ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -665,7 +665,7 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, pureVeg: !prev.pureVeg }))}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               filters.pureVeg
                 ? 'border-emerald-600 bg-emerald-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -678,7 +678,7 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, nearMe: !prev.nearMe }))}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               filters.nearMe
                 ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -691,7 +691,7 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, hasOffers: !prev.hasOffers }))}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
               filters.hasOffers
                 ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -705,7 +705,7 @@ export default function CustomerHomePage() {
             <button
               type="button"
               onClick={handleClearAllFilters}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition-all whitespace-nowrap"
+              className="flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border border-rose-200 bg-rose-50 px-[14px] text-xs font-bold text-rose-600 hover:bg-rose-100 transition-all whitespace-nowrap"
             >
               Clear Filters ✕
             </button>

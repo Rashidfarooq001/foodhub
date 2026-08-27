@@ -201,8 +201,8 @@ export default function ProfilePage() {
     : 'U';
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6 lg:px-8 pb-24 md:pb-12">
-      <div>
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 pb-24 md:pb-12 pt-4 md:pt-6 space-y-4 md:space-y-5">
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         <p className="text-sm text-gray-500">Manage your personal details and password</p>
       </div>
@@ -222,32 +222,32 @@ export default function ProfilePage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-100 pb-3">
+      <div className="grid grid-cols-[0.8fr_0.8fr_1.2fr] gap-2">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
+          className={`flex flex-col items-center justify-center gap-1 sm:gap-2 sm:flex-row rounded-xl px-1 sm:px-4 text-[11px] sm:text-xs font-bold transition h-[72px] sm:h-12 text-center leading-tight ${
             activeTab === 'profile'
-              ? 'bg-orange-600 text-white'
+              ? 'bg-orange-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <User className="h-4 w-4" /> Profile
+          <User className="h-4 w-4" /> <span>Profile</span>
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
+          className={`flex flex-col items-center justify-center gap-1 sm:gap-2 sm:flex-row rounded-xl px-1 sm:px-4 text-[11px] sm:text-xs font-bold transition h-[72px] sm:h-12 text-center leading-tight ${
             activeTab === 'security'
-              ? 'bg-orange-600 text-white'
+              ? 'bg-orange-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <KeyRound className="h-4 w-4" /> Security
+          <KeyRound className="h-4 w-4" /> <span>Security</span>
         </button>
         <Link
           href="/privacy"
-          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition ml-auto"
+          className="flex flex-col items-center justify-center gap-1 sm:gap-2 sm:flex-row rounded-xl px-1 sm:px-4 text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition h-[72px] sm:h-12 text-center leading-tight"
         >
-          <ShieldCheck className="h-4 w-4 text-emerald-600" /> Privacy &amp; Data Center
+          <ShieldCheck className="h-4 w-4 text-emerald-600" /> <span>Privacy & Data Center</span>
         </Link>
       </div>
 
@@ -255,54 +255,45 @@ export default function ProfilePage() {
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-5">
           {/* Avatar Upload */}
-          <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-4 border-b border-gray-100 pb-5">
             <div className="relative shrink-0">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
                   alt="Profile Avatar"
-                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-2 border-orange-500 shadow-sm"
+                  className="h-16 w-16 rounded-full object-cover border-2 border-orange-500 shadow-sm"
                 />
               ) : (
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-orange-200 bg-orange-100 flex items-center justify-center">
-                  <span className="text-xl sm:text-2xl font-black text-orange-600">{initials}</span>
+                <div className="h-16 w-16 rounded-full border-2 border-orange-200 bg-orange-100 flex items-center justify-center">
+                  <span className="text-xl font-black text-orange-600">{initials}</span>
                 </div>
               )}
-              <label
-                htmlFor="customer-avatar-upload"
-                className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-orange-600 text-white shadow hover:bg-orange-700 transition"
-              >
-                <Camera className="h-3 w-3" />
-                <input
-                  id="customer-avatar-upload"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-              </label>
             </div>
-
-            <div className="space-y-2 text-left">
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-gray-900">Profile Photo</h3>
-                <p className="text-[10px] sm:text-xs text-gray-500">JPG, PNG up to 5MB.</p>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-start gap-2">
+            
+            <div className="flex-1">
+              <p className="text-sm font-bold text-gray-900">Profile Photo</p>
+              <p className="text-[11px] text-gray-500 mb-2">JPG, PNG up to 5MB</p>
+              <div className="flex flex-wrap items-center gap-2">
                 <label
                   htmlFor="customer-avatar-upload"
-                  className="cursor-pointer rounded-xl bg-orange-50 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-orange-700 border border-orange-200 hover:bg-orange-100 transition"
+                  className="cursor-pointer rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 hover:bg-orange-100 transition"
                 >
                   Change
+                  <input
+                    id="customer-avatar-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
                 </label>
                 {avatarPreview && (
                   <button
                     type="button"
                     onClick={handleRemoveAvatar}
-                    className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
                   >
-                    <Trash2 className="h-3 w-3" /> Remove
+                    Remove
                   </button>
                 )}
               </div>
@@ -311,7 +302,7 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">First Name</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">First Name</label>
               <input
                 type="text"
                 required
@@ -321,7 +312,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Last Name</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Last Name</label>
               <input
                 type="text"
                 value={lastName}
@@ -332,7 +323,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Email Address</label>
             <input
               type="email"
               value={email}
@@ -342,7 +333,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Registered Phone (Verified)</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Registered Phone (Verified)</label>
             <input
               type="text"
               disabled
@@ -371,7 +362,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Current Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Current Password</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -386,7 +377,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">New Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">New Password</label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -401,7 +392,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm New Password</label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
