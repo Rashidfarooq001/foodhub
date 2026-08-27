@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const code = `'use client';
 
 import React, { useState } from 'react';
 import { MapPin, Navigation, X, Check, Loader2, AlertCircle } from 'lucide-react';
@@ -52,7 +54,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
       const district = address.district || address.city || '';
       const state = address.state || 'Jammu & Kashmir';
       const pincode = address.pincode || address.postalCode || '';
-      const cleanAddress = address.formattedAddress || [locality, district, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '');
+      const cleanAddress = address.formattedAddress || [locality, district, state].filter(Boolean).join(', ') + (pincode ? \` - \${pincode}\` : '');
 
       const gpsAddr = {
         id: 'current-location',
@@ -98,7 +100,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     setMatchedLocation(null);
 
     try {
-      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+      const res = await fetch(\`\${API_BASE}/geolocation/forward-geocode\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: manualAddress.trim() }),
@@ -282,3 +284,6 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     </div>
   );
 };
+`;
+
+fs.writeFileSync('apps/customer-web/src/components/home/LocationSelectorModal.tsx', code);

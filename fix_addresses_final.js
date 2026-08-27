@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const code = `'use client';
 
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Trash2, CheckCircle2, X, Navigation, Home, Briefcase, Tag } from 'lucide-react';
@@ -30,8 +32,8 @@ export default function AddressesPage() {
 
   const fetchAddresses = async () => {
     try {
-      const headers: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-      const res = await fetch(`${API_BASE}/addresses`, { headers });
+      const headers: HeadersInit = accessToken ? { Authorization: \`Bearer \${accessToken}\` } : {};
+      const res = await fetch(\`\${API_BASE}/addresses\`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -68,7 +70,7 @@ export default function AddressesPage() {
     setVerificationError('');
     setMatchedAddress(null);
     try {
-      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+      const res = await fetch(\`\${API_BASE}/geolocation/forward-geocode\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: addressLine1.trim() }),
@@ -114,9 +116,9 @@ export default function AddressesPage() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(accessToken ? { Authorization: \`Bearer \${accessToken}\` } : {}),
       };
-      const res = await fetch(`${API_BASE}/addresses`, {
+      const res = await fetch(\`\${API_BASE}/addresses\`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -165,8 +167,8 @@ export default function AddressesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const headers: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-      await fetch(`${API_BASE}/addresses/${id}`, { method: 'DELETE', headers });
+      const headers: HeadersInit = accessToken ? { Authorization: \`Bearer \${accessToken}\` } : {};
+      await fetch(\`\${API_BASE}/addresses/\${id}\`, { method: 'DELETE', headers });
     } catch {
       /* offline */
     }
@@ -209,11 +211,11 @@ export default function AddressesPage() {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={`relative rounded-2xl border p-4 space-y-4 shadow-sm transition ${
+              className={\`relative rounded-2xl border p-4 space-y-4 shadow-sm transition \${
                 selectedAddressId === addr.id
                   ? 'border-orange-500 bg-orange-50/30 ring-2 ring-orange-500/20'
                   : 'border-gray-100 bg-white'
-              }`}
+              }\`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-black text-gray-900">
@@ -234,7 +236,7 @@ export default function AddressesPage() {
               </div>
 
               <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                {addr.addressLine1}, {addr.addressLine2 ? `${addr.addressLine2}, ` : ''}{addr.city}, {addr.state} - {addr.postalCode}
+                {addr.addressLine1}, {addr.addressLine2 ? \`\${addr.addressLine2}, \` : ''}{addr.city}, {addr.state} - {addr.postalCode}
               </p>
 
               <div className="flex justify-between items-center border-t border-gray-100 pt-3 text-xs font-bold">
@@ -278,9 +280,9 @@ export default function AddressesPage() {
                       key={l}
                       type="button"
                       onClick={() => setLabel(l)}
-                      className={`flex-1 rounded-2xl py-2.5 text-xs font-bold border transition ${
+                      className={\`flex-1 rounded-2xl py-2.5 text-xs font-bold border transition \${
                         label === l ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-xs' : 'border-gray-200 text-gray-600'
-                      }`}
+                      }\`}
                     >
                       {l}
                     </button>
@@ -356,3 +358,7 @@ export default function AddressesPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('apps/customer-web/src/app/addresses/page.tsx', code);
+console.log("Completely rewrote addresses page");

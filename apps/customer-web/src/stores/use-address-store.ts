@@ -15,7 +15,7 @@ export interface CustomerAddressItem {
   postalCode: string;
   latitude?: number | null;
   longitude?: number | null;
-  locationSource?: 'CURRENT_GPS' | 'PLACE_SEARCH' | 'SAVED_ADDRESS';
+  locationSource?: 'CURRENT_GPS' | 'PLACE_SEARCH' | 'SAVED_ADDRESS' | 'MAPPLS_GEOCODE';
   verificationStatus?: 'VERIFIED' | 'FAILED' | 'UNVERIFIED';
   accuracyMeters?: number | null;
   isDefault: boolean;
