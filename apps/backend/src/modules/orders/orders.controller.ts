@@ -13,6 +13,7 @@ import { CancelOrderDto } from './dto/cancel-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrderStatus, DriverStatus, DeliveryJobStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { GeolocationService } from '../geolocation/geolocation.service';
 
 @ApiTags('Orders (Phase 10)')
 @ApiBearerAuth()
@@ -25,6 +26,7 @@ export class OrdersController {
     private readonly ordersService: OrdersService,
     private readonly stateMachineService: OrderStateMachineService,
     private readonly prisma: PrismaService,
+    private readonly geoService: GeolocationService,
   ) {}
 
   @Get()
@@ -198,6 +200,18 @@ export class OrdersController {
     const restLat = Number(order.restaurant.latitude || 0);
     const restLng = Number(order.restaurant.longitude || 74.5221);
 
+    const now = new Date();
+
+    const getHaversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) * 10) / 10;
+    };
+
     return drivers.map((d) => {
       const activeJobs = d.deliveryJobs.filter((j) =>
         [
@@ -213,10 +227,17 @@ export class OrdersController {
       const phone = d.user?.phone || '';
       const vehicle = d.vehicles[0];
 
-      // Calculate real road distance using Mappls
-      const driverLat = d.currentLat || restLat + 0.005;
-      const driverLng = d.currentLng || restLng + 0.005;
-      const distanceKm = 999; // restLat, restLng, driverLat, driverLng);
+      let distanceKm: number | null = null;
+      let distanceText = 'Location unavailable';
+
+      if (d.currentLat && d.currentLng) {
+        if (d.lastSeenAt && (now.getTime() - new Date(d.lastSeenAt).getTime() > 15 * 60 * 1000)) {
+          distanceText = 'Location outdated';
+        } else {
+          distanceKm = getHaversine(restLat, restLng, d.currentLat, d.currentLng);
+          distanceText = `${distanceKm} km away`;
+        }
+      }
 
       // Real calculated rating
       const avgRating = Number(d.avgRating) > 0 ? Number(d.avgRating) : 5.0;
@@ -262,6 +283,7 @@ export class OrdersController {
         vehicleType: vehicle?.vehicleType || 'Motorcycle',
         vehicleNumber: vehicle?.vehicleNumber || 'N/A',
         distanceKm,
+        distanceText,
       };
     });
   }

@@ -144,13 +144,13 @@ export default function HotelOrdersPage() {
             if (typeof o.deliveryAddress === 'string') {
               addrStr = o.deliveryAddress;
             } else {
-              const a = o.deliveryAddress;
-              const parts = [a.street, a.landmark, a.city, a.state, a.postalCode].filter(Boolean);
-              addrStr = parts.length > 0 ? parts.join(', ') : a.label || 'Customer Location';
+                const a = o.deliveryAddress;
+                const parts = [a.addressLine1 || a.street, a.addressLine2, a.landmark, a.city, a.state, a.postalCode].filter(Boolean);
+                addrStr = parts.length > 0 ? parts.join(', ') : a.label || 'Customer Location';
             }
           }
 
-          const itemsArr: OrderItem[] = (o.items || []).map((i: any) => ({
+          const itemsArr: OrderItem[] = (o.items || o.orderItems || []).map((i: any) => ({
             id: i.id,
             name: i.foodItem?.name || i.name || 'Food Item',
             quantity: i.quantity || 1,
@@ -820,7 +820,7 @@ export default function HotelOrdersPage() {
                             <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
                               <span className="text-amber-600 font-black">★ {r.rating}</span>
                               <span>{r.completedCount} deliveries completed</span>
-                              <span className="text-emerald-700 font-bold">{r.distanceKm} km away</span>
+                              <span className="text-emerald-700 font-bold">{r.distanceText || (r.distanceKm != null && r.distanceKm !== 999 ? `${r.distanceKm} km away` : 'Location unavailable')}</span>
                             </div>
                           </div>
                         </div>
