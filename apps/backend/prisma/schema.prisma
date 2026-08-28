@@ -157,9 +157,11 @@ enum VehicleType {
 
 enum SettlementStatus {
   PENDING
+  ELIGIBLE
   PROCESSING
-  SETTLED
-  PAYOUT_FAILED
+  PAID
+  FAILED
+  ON_HOLD
 }
 
 enum AuditAction {
@@ -469,7 +471,7 @@ model Restaurant {
   categories       Category[]
   foodItems        FoodItem[]
   orders           Order[]
-  settlements      Settlement[]
+  restaurantSettlements RestaurantSettlement[]
   reviews          RestaurantReview[]
   savedByCustomers SavedRestaurant[]
 
@@ -791,6 +793,8 @@ model Order {
   payments                 Payment[]
   deliveryAssignments      DeliveryAssignment[]
   deliveryJob              DeliveryJob?
+  restaurantSettlement     RestaurantSettlement?
+  riderSettlement          RiderSettlement?
   restaurantReviews        RestaurantReview[]
   foodReviews              FoodReview[]
   driverReviews            DriverReview[]
@@ -931,19 +935,17 @@ model PaymentRefund {
   @@map("payment_refunds")
 }
 
-model Settlement {
+model RestaurantSettlement {
   id               String           @id @default(uuid()) @db.Uuid
   restaurantId     String           @map("restaurant_id") @db.Uuid
+  orderId          String           @unique @map("order_id") @db.Uuid
   periodStart      DateTime         @map("period_start")
   periodEnd        DateTime         @map("period_end")
-  orderCount       Int              @default(0) @map("order_count")
   grossAmount      Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
   commissionRate   Decimal          @default(13.00) @map("commission_rate") @db.Decimal(5, 2)
   commissionAmount Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
   deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
   netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
-  paidAmount       Decimal          @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
-  pendingAmount    Decimal          @default(0.00) @map("pending_amount") @db.Decimal(10, 2)
   status           SettlementStatus @default(PENDING)
   payoutId         String?          @map("payout_id")
   utrNumber        String?          @map("utr_number")
@@ -956,12 +958,43 @@ model Settlement {
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@unique([restaurantId, periodStart, periodEnd])
   @@index([restaurantId])
   @@index([status])
   @@index([periodStart, periodEnd])
-  @@map("settlements")
+  @@map("restaurant_settlements")
+}
+
+model RiderSettlement {
+  id               String           @id @default(uuid()) @db.Uuid
+  driverId         String           @map("driver_id") @db.Uuid
+  orderId          String           @unique @map("order_id") @db.Uuid
+  periodStart      DateTime         @map("period_start")
+  periodEnd        DateTime         @map("period_end")
+  basePayoutAmount Decimal          @default(0.00) @map("base_payout_amount") @db.Decimal(10, 2)
+  distancePayout   Decimal          @default(0.00) @map("distance_payout") @db.Decimal(10, 2)
+  bonusAmount      Decimal          @default(0.00) @map("bonus_amount") @db.Decimal(10, 2)
+  deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
+  netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
+  status           SettlementStatus @default(PENDING)
+  payoutId         String?          @map("payout_id")
+  utrNumber        String?          @map("utr_number")
+  failureReason    String?          @map("failure_reason")
+  initiatedAt      DateTime?        @map("initiated_at")
+  settledAt        DateTime?        @map("settled_at")
+  adminId          String?          @map("admin_id") @db.Uuid
+  notes            String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("rider_settlements")
 }
 
 model Invoice {
@@ -1031,6 +1064,7 @@ model Driver {
   histories    DeliveryHistory[]
   driverWallet DriverWallet?
   reviews      DriverReview[]
+  riderSettlements RiderSettlement[]
 
   @@index([status])
   @@index([currentLat, currentLng])
@@ -1792,3 +1826,4 @@ enum TicketPriority {
   HIGH
   URGENT
 }
+

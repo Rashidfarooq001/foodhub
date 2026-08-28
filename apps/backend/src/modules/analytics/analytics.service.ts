@@ -532,14 +532,14 @@ export class AnalyticsService {
     }
 
     if (type === 'settlements') {
-      const settlements = await this.prisma.settlement.findMany({
+      const settlements = await this.prisma.restaurantSettlement.findMany({
         where:   { settledAt: { gte: from, lte: to } },
         take:    500,
       });
       return formatCsv(settlements.map((s) => ({
         id:              s.id,
         restaurantId:    s.restaurantId,
-        amount:          Number(s.paidAmount || s.netPayable || 0),
+        amount:          Number(s.netPayable || 0),
         utrNumber:       s.utrNumber,
         settledAt:       s.settledAt ? s.settledAt.toISOString().slice(0, 10) : 'PENDING',
       })));
