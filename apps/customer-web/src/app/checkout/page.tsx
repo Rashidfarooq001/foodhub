@@ -170,7 +170,7 @@ export default function CheckoutPage() {
     refreshQuote();
   }, [refreshQuote]);
 
-  const tax = orderQuote ? orderQuote.totalCustomerTaxes : 0;
+  const tax = orderQuote?.totalCustomerTaxes ?? 0;
   const discount = 0;
   const baseGrandTotal =
     subtotal + (dynamicDeliveryFee || 0) + platformFee + tax;
