@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Navigation2, Check, AlertTriangle } from 'lucide-react';
+import { X, Navigation2 } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { useAddressStore } from '../../stores/use-address-store';
+import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
-import { CustomerAddressItem } from '../../stores/use-address-store';
 
 interface LocationSelectorModalProps {
   isOpen: boolean;
@@ -56,8 +55,10 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
         lng: coordinates.longitude,
         locationSource: 'CURRENT_GPS',
       });
+      
+      onClose(); // Auto-close on success
     }
-  }, [status, coordinates, addressData, onSelectLocation]);
+  }, [status, coordinates, addressData, onSelectLocation, onClose]);
 
   const handleUseCurrentLocation = async () => {
     await requestLocation();
@@ -80,7 +81,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
 
       if (res.ok && data.success && data.latitude && data.longitude) {
         const addrId = 'manual-' + Date.now();
-        const manualAddr = {
+        const manualAddr: CustomerAddressItem = {
           id: addrId,
           label: 'Manual Address',
           placeName: data.formattedAddress || 'Manual Address',
@@ -91,8 +92,8 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           postalCode: '',
           latitude: data.latitude,
           longitude: data.longitude,
-          locationSource: 'MANUAL_GEOCODED' as const,
-          verificationStatus: 'VERIFIED' as const,
+          locationSource: 'MANUAL_GEOCODED',
+          verificationStatus: 'VERIFIED',
           isDefault: false,
         };
 
@@ -121,69 +122,67 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-100 p-4">
-          <h2 className="text-lg font-black text-gray-900">Delivery Location</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
+          <h2 className="text-base font-black text-gray-900">Delivery Location</h2>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-4 space-y-5">
+        <div className="p-4 pt-3 space-y-4">
           {/* OPTION 1: CURRENT GPS */}
           <div>
             <button
               onClick={handleUseCurrentLocation}
               disabled={status === 'requesting'}
-              className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4 text-left transition hover:bg-orange-50 hover:border-orange-100 group disabled:opacity-50"
+              className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 h-[68px] text-left transition hover:bg-orange-50 hover:border-orange-100 group disabled:opacity-50"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-orange-600 group-hover:scale-110 transition-transform">
-                <Navigation2 className="h-5 w-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-orange-600 group-hover:scale-110 transition-transform">
+                <Navigation2 className="h-[18px] w-[18px]" />
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Use Current Location</h3>
-                <p className="text-xs text-gray-500 font-medium">Use device GPS</p>
+              <div className="flex-1 overflow-hidden">
+                <h3 className="font-bold text-sm text-gray-900 truncate">Use Current Location</h3>
+                <p className="text-[11px] text-gray-500 font-medium truncate">Use device GPS</p>
               </div>
             </button>
             {error && (
-              <p className="mt-2 text-xs font-bold text-red-500 px-2">{error}</p>
+              <p className="mt-1.5 text-[11px] font-bold text-red-500 px-1">{error}</p>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-2">
             <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">OR</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
             <div className="h-px flex-1 bg-gray-100" />
           </div>
 
           {/* OPTION 2: MANUAL ADDRESS */}
-          <div className="space-y-3">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-              Enter your complete delivery address
+          <div className="space-y-2.5">
+            <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+              Delivery Address
             </label>
             <textarea
               value={manualAddress}
               onChange={(e) => setManualAddress(e.target.value)}
-              placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
-              rows={4}
-              className="w-full rounded-xl border border-gray-200 bg-white p-4 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border"
+              placeholder="Enter your location/address..."
+              className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border h-[80px]"
             />
             <button
               onClick={handleConfirmManualAddress}
               disabled={!manualAddress.trim() || isResolving}
-              className="w-full rounded-xl bg-orange-600 py-3.5 text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
+              className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
             >
               {isResolving ? 'Verifying location...' : 'Save Location'}
             </button>
             {resolveError && (
-              <p className="mt-2 text-xs font-bold text-red-500 text-center">{resolveError}</p>
+              <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">{resolveError}</p>
             )}
           </div>
-
         </div>
       </div>
     </div>
