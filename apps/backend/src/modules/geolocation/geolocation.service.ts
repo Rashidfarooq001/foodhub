@@ -307,10 +307,23 @@ export class GeolocationService {
           
           elocDebugUrl = elocUrl;
           const elocResponse = await fetch(elocUrl, { headers: elocHeaders, signal: elocController.signal });
-          clearTimeout(elocTimeout);
           elocDebugStatus = elocResponse.status;
-          if (elocResponse.ok) {
-            const elocData = await elocResponse.json();
+          
+          let finalElocResponse = elocResponse;
+          if (!elocResponse.ok) {
+            // fallback to outpost
+            const outpostUrl = elocUrl.replace('explore', 'outpost');
+            elocDebugUrl = outpostUrl;
+            const outpostController = new AbortController();
+            const outpostTimeout = setTimeout(() => outpostController.abort(), 8000);
+            const outpostResponse = await fetch(outpostUrl, { headers: elocHeaders, signal: outpostController.signal });
+            clearTimeout(outpostTimeout);
+            elocDebugStatus = outpostResponse.status;
+            finalElocResponse = outpostResponse;
+          }
+
+          if (finalElocResponse.ok) {
+            const elocData = await finalElocResponse.json();
             const elocLat = parseFloat(elocData?.latitude ?? elocData?.lat);
             const elocLng = parseFloat(elocData?.longitude ?? elocData?.lng);
             if (!isNaN(elocLat) && !isNaN(elocLng)) {
