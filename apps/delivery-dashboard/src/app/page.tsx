@@ -154,7 +154,7 @@ export default function DeliveryDashboardPage() {
         body: JSON.stringify({ isOnline: newStatus, status: newStatus ? 'ONLINE' : 'OFFLINE' }),
       });
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 400 && res.status !== 403) {
         res = await fetch(`${API_BASE}/delivery/duty-status`, {
           method: 'PATCH',
           headers: {
@@ -167,9 +167,12 @@ export default function DeliveryDashboardPage() {
 
       if (res.ok) {
         setIsOnDuty(newStatus);
+      } else {
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.message || 'Failed to change duty status. Please try again.');
       }
     } catch {
-      /* ignore */
+      alert('Network error. Could not connect to the server.');
     } finally {
       setIsTogglingDuty(false);
     }
@@ -218,9 +221,11 @@ export default function DeliveryDashboardPage() {
 
         <button
           onClick={toggleDuty}
-          disabled={isTogglingDuty}
+          disabled={isTogglingDuty || (isOnDuty && !!currentDelivery)}
           className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-black transition min-h-[44px] shrink-0 ${
-            isOnDuty
+            isOnDuty && !!currentDelivery
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              : isOnDuty
               ? 'bg-white text-emerald-800 hover:bg-emerald-50'
               : 'bg-emerald-500 text-white hover:bg-emerald-600'
           }`}
