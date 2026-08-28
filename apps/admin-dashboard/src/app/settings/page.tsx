@@ -316,7 +316,7 @@ export default function CombinedSettingsPage() {
                   <div className="flex justify-between"><span>Food Subtotal:</span> <span className="font-bold">,1{simResults.foodSubtotal}</span></div>
                   <div className="flex justify-between"><span>Delivery Fee:</span> <span className="font-bold">,1{simResults.customerDeliveryFee}</span></div>
                   <div className="flex justify-between"><span>Platform Fee:</span> <span className="font-bold">,1{simResults.platformFee}</span></div>
-                  <div className="flex justify-between"><span>GST:</span> <span className="font-bold">,1{simResults.taxes}</span></div>
+                  <div className="flex justify-between"><span>GST:</span> <span className="font-bold">,1{simResults.totalCustomerTaxes}</span></div>
                   <div className="flex justify-between"><span>Tip (Simulated):</span> <span className="font-bold">,120</span></div>
                   <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700 text-sm font-black text-emerald-600 dark:text-emerald-400">
                     <span>Customer Grand Total:</span> <span>,1{simResults.customerTotal}</span>

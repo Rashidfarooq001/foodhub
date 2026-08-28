@@ -16,7 +16,7 @@ export interface UnitEconomicsBreakdown {
   smallOrderFee: number;
   packagingFee: number;
   discountAmount: number;
-  taxes: number;
+  totalCustomerTaxes: number;
   tipAmount: number;
   customerTotal: number;
 
@@ -67,13 +67,13 @@ export class UnitEconomicsService {
     const smallOrderFee = 0.0;
 
     // Taxes
-    const taxes = Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
+    const totalCustomerTaxes = Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
 
     // Customer Total
     const customerTotal = Math.max(
       0,
       Math.round(
-        (foodSubtotal + customerDeliveryFee + platformFee + taxes + tipAmount - discountAmount) * 100,
+        (foodSubtotal + customerDeliveryFee + platformFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
       ) / 100,
     );
 
@@ -111,7 +111,7 @@ export class UnitEconomicsService {
       smallOrderFee: 0,
       packagingFee: 0,
       discountAmount,
-      taxes,
+      totalCustomerTaxes,
       tipAmount,
       customerTotal,
       restaurantCommissionPercent,
