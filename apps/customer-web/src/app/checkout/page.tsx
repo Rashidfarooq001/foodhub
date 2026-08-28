@@ -260,33 +260,53 @@ export default function CheckoutPage() {
   
   const handleVerifyManualAddress = async () => {};
 
-  const handleConfirmManualAddress = () => {
+  const handleConfirmManualAddress = async () => {
     if (!manualAddress.trim()) return;
     
-    const newAddr = {
-      id: 'addr-manual-' + Date.now(),
-      label: 'Manual Address',
-      placeName: 'Manual Address',
-      addressLine1: manualAddress.trim(),
-      addressLine2: '',
-      city: '',
-      state: '',
-      postalCode: '',
-      latitude: undefined as any,
-      longitude: undefined as any,
-      locationSource: 'MANUAL_ADDRESS' as const,
-      verificationStatus: 'VERIFIED' as const,
-      isDefault: false,
-    };
-    
-    addAddress(newAddr);
-    setSelectedAddress(newAddr.id);
-    setShowCustomAddressModal(false);
-    
-    setOrderQuote(null); setLocationError(null);
-    
-    setManualAddress('');
-    setMatchedAddressResult(null);
+    setIsVerifyingAddress(true);
+    setAddressVerificationError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: manualAddress.trim() })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success && data.latitude && data.longitude) {
+        const newAddr = {
+          id: 'addr-manual-' + Date.now(),
+          label: 'Manual Address',
+          placeName: data.formattedAddress || 'Manual Address',
+          addressLine1: manualAddress.trim(),
+          addressLine2: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationSource: 'MANUAL_GEOCODED' as const,
+          verificationStatus: 'VERIFIED' as const,
+          isDefault: false,
+        };
+        
+        addAddress(newAddr as any);
+        setSelectedAddress(newAddr.id);
+        setShowCustomAddressModal(false);
+        
+        setOrderQuote(null); setLocationError(null);
+        
+        setManualAddress('');
+        setMatchedAddressResult(null);
+      } else {
+        setAddressVerificationError(data.message || "Couldn't verify this location. Please enter a more specific address.");
+      }
+    } catch (err) {
+      setAddressVerificationError("Network error while verifying location. Please try again.");
+    } finally {
+      setIsVerifyingAddress(false);
+    }
   };
   
 const handlePlaceOrder = async () => {
@@ -1109,11 +1129,14 @@ setAddressVerificationError(null);
                         />
                         <button
                           onClick={handleConfirmManualAddress}
-                          disabled={!manualAddress.trim()}
+                          disabled={!manualAddress.trim() || isVerifyingAddress}
                           className="w-full flex items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
                         >
-                          Save Location
+                          {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
                         </button>
+                        {addressVerificationError && (
+                          <p className="mt-2 text-xs font-bold text-red-500 text-center">{addressVerificationError}</p>
+                        )}
                       </>
                 </div>
               </div>

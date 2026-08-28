@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, MapPin, Navigation2, Check, AlertTriangle } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useAddressStore } from '../../stores/use-address-store';
+import { getApiBaseUrl } from '@foodhub/config';
+
+const API_BASE = getApiBaseUrl();
 import { CustomerAddressItem } from '../../stores/use-address-store';
 
 interface LocationSelectorModalProps {
@@ -20,6 +23,8 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   const { status, coordinates, addressData, error, requestLocation } = useGeolocation();
   
   const [manualAddress, setManualAddress] = useState('');
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState('');
 
   // 1. Current GPS Location Handler
   useEffect(() => {
@@ -58,37 +63,59 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     await requestLocation();
   };
 
-  // 2. Manual Address Handler (Pure Text, NO MAPPLS)
-  const handleConfirmManualAddress = () => {
+  // 2. Manual Address Handler (Resolves via Mappls Backend)
+  const handleConfirmManualAddress = async () => {
     if (!manualAddress.trim()) return;
     
-    const addrId = 'manual-' + Date.now();
-    const manualAddr = {
-      id: addrId,
-      label: 'Manual Address',
-      placeName: 'Manual Address',
-      addressLine1: manualAddress.trim(),
-      addressLine2: '',
-      city: '',
-      state: '',
-      postalCode: '',
-      latitude: undefined as any,
-      longitude: undefined as any,
-      locationSource: 'MANUAL_ADDRESS' as const,
-      verificationStatus: 'UNVERIFIED' as const,
-      isDefault: false,
-    };
+    setIsResolving(true);
+    setResolveError('');
 
-    useAddressStore.getState().addAddress(manualAddr);
-    useAddressStore.getState().setSelectedAddress(addrId);
+    try {
+      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: manualAddress.trim() })
+      });
+      const data = await res.json();
 
-    onSelectLocation({
-      label: 'Manual Address',
-      address: manualAddress.trim(),
-      lat: 0, // Fallback for the callback
-      lng: 0, // Fallback for the callback
-      locationSource: 'MANUAL_ADDRESS',
-    });
+      if (res.ok && data.success && data.latitude && data.longitude) {
+        const addrId = 'manual-' + Date.now();
+        const manualAddr = {
+          id: addrId,
+          label: 'Manual Address',
+          placeName: data.formattedAddress || 'Manual Address',
+          addressLine1: manualAddress.trim(),
+          addressLine2: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationSource: 'MANUAL_ADDRESS' as const,
+          verificationStatus: 'VERIFIED' as const,
+          isDefault: false,
+        };
+
+        useAddressStore.getState().addAddress(manualAddr);
+        useAddressStore.getState().setSelectedAddress(addrId);
+
+        onSelectLocation({
+          label: 'Manual Address',
+          address: data.formattedAddress || manualAddress.trim(),
+          lat: data.latitude,
+          lng: data.longitude,
+          locationSource: 'MANUAL_ADDRESS',
+        });
+        
+        onClose(); // Automatically close after successful resolution
+      } else {
+        setResolveError(data.message || "Couldn't verify this location. Please enter a more specific address.");
+      }
+    } catch (err) {
+      setResolveError("Network error while verifying location. Please try again.");
+    } finally {
+      setIsResolving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -147,11 +174,14 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
             />
             <button
               onClick={handleConfirmManualAddress}
-              disabled={!manualAddress.trim()}
+              disabled={!manualAddress.trim() || isResolving}
               className="w-full rounded-xl bg-orange-600 py-3.5 text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
             >
-              Save Location
+              {isResolving ? 'Verifying location...' : 'Save Location'}
             </button>
+            {resolveError && (
+              <p className="mt-2 text-xs font-bold text-red-500 text-center">{resolveError}</p>
+            )}
           </div>
 
         </div>
