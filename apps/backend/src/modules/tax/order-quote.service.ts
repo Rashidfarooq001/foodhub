@@ -142,12 +142,7 @@ export class OrderQuoteService {
       const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
 
     let customerDeliveryFee: number | null = null;
-    if (locationSource === 'MANUAL_ADDRESS') {
-      customerDeliveryFee = 35.0; // Fixed delivery rate for manual unverified addresses
-      serviceable = true;
-      deliveryEligible = true;
-      routeAvailable = true; // Bypass route requirement
-    } else if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
+    if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
       if (distanceKm <= deliveryFeeBaseKm) {
         customerDeliveryFee = deliveryFeeBaseAmount;
       } else {

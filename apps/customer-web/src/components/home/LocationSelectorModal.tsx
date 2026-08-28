@@ -91,7 +91,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           postalCode: '',
           latitude: data.latitude,
           longitude: data.longitude,
-          locationSource: 'MANUAL_ADDRESS' as const,
+          locationSource: 'MANUAL_GEOCODED' as const,
           verificationStatus: 'VERIFIED' as const,
           isDefault: false,
         };
@@ -104,7 +104,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           address: data.formattedAddress || manualAddress.trim(),
           lat: data.latitude,
           lng: data.longitude,
-          locationSource: 'MANUAL_ADDRESS',
+          locationSource: 'MANUAL_GEOCODED',
         });
         
         onClose(); // Automatically close after successful resolution
