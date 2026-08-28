@@ -40,7 +40,6 @@ export default function CartPage() {
   const platformFee = 5; // To get dynamic platform fee, we need a config endpoint in cart. For now, let's leave it as a variable if we can.
   const tax = getTaxAmount();
   const deliveryFee = getDeliveryFee();
-  const tax = getTaxAmount();
   const grandTotal = getGrandTotal();
 
   if (items.length === 0) {
@@ -171,19 +170,19 @@ export default function CartPage() {
             <h3 className="font-bold text-gray-900 border-b border-gray-100 pb-2">Bill Summary</h3>
             <div className="flex justify-between text-gray-600">
               <span>Item Subtotal</span>
-              <span>₹{subtotal}</span>
+              <span>&#x20B9;{subtotal}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Delivery Fee</span>
-              <span>₹{deliveryFee}</span>
+              <span>&#x20B9;{deliveryFee}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Platform Fee</span>
-                <span>?{platformFee}</span>
+                <span>&#x20B9;{platformFee}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>GST &amp; Taxes</span>
-                <span>?{tax}</span>
+                <span>&#x20B9;{tax}</span>
             </div>
 
             <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center text-sm font-black text-gray-900">

@@ -1008,7 +1008,7 @@ setAddressVerificationError(null);
                 <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between text-gray-600">
                     <span>Food Subtotal</span>
-                    <span>₹{subtotal}</span>
+                    <span>&#x20B9;{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Fee</span>
@@ -1020,11 +1020,11 @@ setAddressVerificationError(null);
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Platform Fee</span>
-                    <span>₹{platformFee || 3}</span>
+                      <span>&#x20B9;{platformFee || 3}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>GST &amp; Taxes</span>
-                    <span>?{tax}</span>
+                    <span>&#x20B9;{tax}</span>
                   </div>
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-orange-600 font-bold">
