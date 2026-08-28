@@ -1024,7 +1024,7 @@ setAddressVerificationError(null);
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>GST &amp; Taxes</span>
-                    <span>₹0</span>
+                    <span>?{tax}</span>
                   </div>
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-orange-600 font-bold">

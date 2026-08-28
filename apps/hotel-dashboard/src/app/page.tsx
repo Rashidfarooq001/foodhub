@@ -65,7 +65,14 @@ export default function HotelDashboardPage() {
           setMe(meData);
         }
 
-        const [statsRes, ordersRes] = await Promise.all([
+        const [statsRes, ordersRes, configRes] = await Promise.all([
+          fetch(`${API_BASE}/analytics/restaurant`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+          fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+          fetch(`${API_BASE}/pricing/config`)
           fetch(`${API_BASE}/analytics/restaurant`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
@@ -74,7 +81,11 @@ export default function HotelDashboardPage() {
           }),
         ]);
 
-        if (statsRes.ok) {
+        if (configRes && configRes.ok) {
+            const configData = await configRes.json();
+            if (configData.foodGstRate) setGstRate(configData.foodGstRate);
+          }
+          if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
         }
@@ -278,8 +289,8 @@ export default function HotelDashboardPage() {
           </div>
 
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-teal-700 uppercase block">Sec 9(5) GST (5%)</span>
-            <span className="text-base sm:text-lg font-black text-teal-800">₹{Math.round(kpi.todayRevenue * 0.05).toLocaleString()}</span>
+            <span className="text-[9px] font-bold text-teal-700 uppercase block">Sec 9(5) GST ({gstRate}%)</span>
+            <span className="text-base sm:text-lg font-black text-teal-800">₹{Math.round(kpi.todayRevenue * (gstRate / 100)).toLocaleString()}</span>
             <span className="text-[9px] text-teal-600 font-bold block">Remitted by ZaykaFood</span>
           </div>
 
