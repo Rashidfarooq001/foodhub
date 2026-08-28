@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm --filter=customer-web build",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=customer-web",
   "outputDirectory": ".next",
   "framework": "nextjs"
 }
