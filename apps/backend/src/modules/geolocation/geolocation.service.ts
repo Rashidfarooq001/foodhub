@@ -289,7 +289,12 @@ export class GeolocationService {
       const lat = parseFloat(firstResult.latitude);
       const lng = parseFloat(firstResult.longitude);
       if (isNaN(lat) || isNaN(lng)) {
-        return this._fallbackGeocodeFailure('Mappls returned invalid coordinates');
+        return {
+          success: false,
+          debugData: data,
+          debugFirstResult: firstResult,
+          reason: 'Mappls returned invalid coordinates'
+        } as any;
       }
 
       const formattedAddress = firstResult.formattedAddress || firstResult.placeName || addressStr;
