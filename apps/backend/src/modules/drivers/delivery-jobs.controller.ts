@@ -490,7 +490,6 @@ export class DeliveryJobsController {
             DeliveryJobStatus.ASSIGNED,
             DeliveryJobStatus.ARRIVED,
             DeliveryJobStatus.PICKED_UP,
-            DeliveryJobStatus.DELIVERED,
           ],
         },
         order: {

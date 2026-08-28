@@ -44,8 +44,12 @@ export default function CurrentDeliveryPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/delivery/current`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const res = await fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, {
+        headers: { 
+          Authorization: `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        cache: 'no-store'
       });
 
       if (!res.ok) {
@@ -53,8 +57,8 @@ export default function CurrentDeliveryPage() {
         return;
       }
 
-      const data = await res.json();
-      setCurrentJob(data || null);
+      const text = await res.text();
+      setCurrentJob(text ? JSON.parse(text) : null);
     } catch {
       /* offline */
     } finally {

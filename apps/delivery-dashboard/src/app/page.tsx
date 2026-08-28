@@ -38,12 +38,15 @@ export default function DeliveryDashboardPage() {
     }
 
     try {
-      const headers = { Authorization: `Bearer ${accessToken}` };
+      const headers = { 
+        Authorization: `Bearer ${accessToken}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      };
       const [statsRes, currentRes, jobsRes, statusRes] = await Promise.all([
-        fetch(`${API_BASE}/delivery/stats`, { headers }),
-        fetch(`${API_BASE}/delivery/current`, { headers }),
-        fetch(`${API_BASE}/delivery/jobs/available`, { headers }).catch(() => fetch(`${API_BASE}/delivery/available`, { headers })),
-        fetch(`${API_BASE}/delivery/me/status`, { headers }),
+        fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' }),
+        fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, { headers, cache: 'no-store' }),
+        fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' }).catch(() => fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' })),
+        fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' }),
       ]);
 
       if (statsRes.ok) {
@@ -52,8 +55,10 @@ export default function DeliveryDashboardPage() {
       }
 
       if (currentRes.ok) {
-        const currentData = await currentRes.json();
-        setCurrentDelivery(currentData || null);
+        const text = await currentRes.text();
+        setCurrentDelivery(text ? JSON.parse(text) : null);
+      } else {
+        setCurrentDelivery(null);
       }
 
       if (jobsRes && jobsRes.ok) {
