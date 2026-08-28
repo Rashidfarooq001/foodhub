@@ -288,14 +288,39 @@ export class GeolocationService {
 
       const lat = parseFloat(firstResult.latitude);
       const lng = parseFloat(firstResult.longitude);
-      if (isNaN(lat) || isNaN(lng)) {
-        return {
-          success: false,
-          debugData: data,
-          debugFirstResult: firstResult,
-          reason: 'Mappls returned invalid coordinates'
-        } as any;
+      
+      let finalLat = lat;
+      let finalLng = lng;
+
+      // If Geocode API only returns eLoc (common in Mappls REST Geocoding without coordinate entitlements), resolve it
+      if ((isNaN(finalLat) || isNaN(finalLng)) && firstResult.eLoc) {
+        try {
+          const elocUrl = `https://explore.mappls.com/api/places/eloc?eloc=${firstResult.eLoc}&access_token=${token}`;
+          const elocController = new AbortController();
+          const elocTimeout = setTimeout(() => elocController.abort(), 8000);
+          const elocResponse = await fetch(elocUrl, { signal: elocController.signal });
+          clearTimeout(elocTimeout);
+          if (elocResponse.ok) {
+            const elocData = await elocResponse.json();
+            const elocLat = parseFloat(elocData?.latitude ?? elocData?.lat);
+            const elocLng = parseFloat(elocData?.longitude ?? elocData?.lng);
+            if (!isNaN(elocLat) && !isNaN(elocLng)) {
+              finalLat = elocLat;
+              finalLng = elocLng;
+            }
+          }
+        } catch (e) {
+          this.logger.warn('Failed to resolve eLoc: ' + e.message);
+        }
       }
+
+      if (isNaN(finalLat) || isNaN(finalLng)) {
+        return this._fallbackGeocodeFailure('Mappls returned invalid coordinates. ' + (firstResult.eLoc ? 'Failed to resolve eLoc.' : ''));
+      }
+      
+      const latResolved = finalLat;
+      const lngResolved = finalLng;
+
 
       const formattedAddress = firstResult.formattedAddress || firstResult.placeName || addressStr;
       
@@ -303,8 +328,8 @@ export class GeolocationService {
 
       return {
         success: true,
-        latitude: lat,
-        longitude: lng,
+        latitude: latResolved,
+        longitude: lngResolved,
         displayName: formattedAddress,
         geocodeLevel: firstResult.geocodeLevel || firstResult.type || 'address',
         precisionLabel: 'EXACT',
