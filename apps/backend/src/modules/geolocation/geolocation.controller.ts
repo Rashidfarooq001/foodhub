@@ -14,7 +14,7 @@ class ValidateRadiusDto {
 }
 
 @ApiTags('Geolocation (Phase 14)')
-@Controller(['geolocation', 'geo'])
+@Controller(['geolocation', 'geo', 'location'])
 export class GeolocationController {
   constructor(private readonly geo: GeolocationService) {}
 
@@ -76,7 +76,7 @@ export class GeolocationController {
     }
     return { success: false, message: "Couldn't determine the location of this address." };
   }
-  @Post(['resolve', 'location/resolve'])
+  @Post('resolve')
   @ApiOperation({ summary: 'Resolve customer GPS coordinates into structured Zayka Food location' })
   async postResolveLocation(
     @Body() body: { query?: string; latitude?: number; longitude?: number; lat?: number; lng?: number },
@@ -89,7 +89,7 @@ export class GeolocationController {
     return this.geo.resolveLocation(Number(lat), Number(lng));
   }
 
-  @Get(['resolve', 'location/resolve'])
+  @Get('resolve')
   @ApiOperation({ summary: 'GET Resolve customer GPS coordinates into structured Zayka Food location' })
   @ApiQuery({ name: 'lat', required: true })
   @ApiQuery({ name: 'lng', required: true })
