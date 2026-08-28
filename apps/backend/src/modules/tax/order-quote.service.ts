@@ -159,7 +159,7 @@ export class OrderQuoteService {
     }
 
     // 3. Platform Fee (Fixed ₹3.00) & Small Order Fee (Disabled: ₹0.00)
-    const platformFee = 3.0;
+    const platformFee = config.platformFee;
     const smallOrderFee = 0.0;
 
     // 4. Tax Components (GST = ₹0.00)
@@ -204,7 +204,7 @@ export class OrderQuoteService {
     const platformFeeGst = 0.0;
     const smallOrderFeeGst = 0.0;
     const deliveryFeeGst = 0.0;
-    const totalCustomerTaxes = 0.0;
+    const totalCustomerTaxes = Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
 
     // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
     const customerTotal = customerDeliveryFee !== null ? Math.max(
@@ -288,7 +288,7 @@ export class OrderQuoteService {
       platformFeeGst: 0,
       smallOrderFeeGst: 0,
       deliveryFeeGst: 0,
-      totalCustomerTaxes: 0,
+      totalCustomerTaxes,
       customerTotal,
 
       commissionRate: resolvedCommissionRate,

@@ -30,10 +30,10 @@ const NAVIGATION = [
   { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
   { name: 'Payments & Settlements', href: '/payments', icon: CreditCard },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
-  { name: 'Pricing & Unit Economics', href: '/pricing-config', icon: DollarSign },
-  { name: 'System Settings', href: '/system-settings', icon: Settings },
+  
+  { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
-  { name: 'Account Settings', href: '/settings', icon: UserCog },
+  { name: 'Account Settings', href: '/account-settings', icon: UserCog },
 ];
 
 interface AdminSidebarProps {

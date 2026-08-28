@@ -51,21 +51,25 @@ export class UnitEconomicsService {
     const distanceKm = Math.max(0, req.distanceKm || 0);
     const tipAmount = Math.max(0, req.tipAmount || 0);
     const discountAmount = Math.max(0, req.discountAmount || 0);
-    const packagingFee = 0.0; // CUSTOMER PACKAGING FEE IS REMOVED COMPLETELY (₹0)
+    const packagingFee = 0.0;
 
-    // Customer Delivery Fee: Fixed ₹15.00
-    const customerDeliveryFee = 15.0;
+    // Delivery Fee (Using DB Config)
+    let customerDeliveryFee = 0;
+    if (distanceKm <= 3.0) {
+      customerDeliveryFee = config.minimumCustomerDeliveryFee;
+    } else {
+      const extraKm = distanceKm - 3.0;
+      customerDeliveryFee = Math.round((config.minimumCustomerDeliveryFee + extraKm * config.customerDeliveryPerKm) * 100) / 100;
+    }
 
-    // Platform Fee: Fixed ₹3.00
-    const platformFee = 3.0;
-
-    // Small Order Fee: Disabled (₹0.00)
+    // Platform Fee (Using DB Config)
+    const platformFee = config.platformFee;
     const smallOrderFee = 0.0;
 
-    // Taxes: GST = ₹0.00
-    const taxes = 0.0;
+    // Taxes
+    const taxes = Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
 
-    // Customer Payable Total = Subtotal + 15 + 3 + 0 + tip - discount
+    // Customer Total
     const customerTotal = Math.max(
       0,
       Math.round(
@@ -73,26 +77,26 @@ export class UnitEconomicsService {
       ) / 100,
     );
 
-    // Restaurant Commission & Settlement (15% default)
-    const restaurantCommissionPercent = config.restaurantCommissionPercent;
+    // Restaurant Commission & Settlement
+    const restaurantCommissionPercent = config.restaurantCommissionPercent || 13.0;
     const restaurantCommission = Math.round(foodSubtotal * (restaurantCommissionPercent / 100) * 100) / 100;
     const restaurantCommissionGst = Math.round(restaurantCommission * 0.18 * 100) / 100;
     const restaurantSettlement = Math.round((foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100) / 100;
 
-    // Rider Earnings Payout Engine
+    // Rider Payout
     const riderBasePay = config.riderBasePay;
     const riderDistancePay = Math.round(distanceKm * config.riderPerKmPay * 100) / 100;
     const riderWaitingPay = config.riderWaitingPay;
     const riderPeakBonus = config.riderPeakBonus;
     const riderLongDistanceBonus = config.riderLongDistanceBonus;
     const riderBatchBonus = config.riderBatchBonus;
-    const riderTip = tipAmount; // 100% of customer tip goes directly to rider
+    const riderTip = tipAmount;
 
     const totalRiderPayout = Math.round(
       (riderBasePay + riderDistancePay + riderWaitingPay + riderPeakBonus + riderLongDistanceBonus + riderBatchBonus + riderTip) * 100,
     ) / 100;
 
-    // Platform Contribution Margin
+    // Platform Margin
     const platformGrossRevenue = Math.round(
       (restaurantCommission + platformFee + customerDeliveryFee) * 100,
     ) / 100;
@@ -107,7 +111,7 @@ export class UnitEconomicsService {
       smallOrderFee: 0,
       packagingFee: 0,
       discountAmount,
-      taxes: 0,
+      taxes,
       tipAmount,
       customerTotal,
       restaurantCommissionPercent,
@@ -125,4 +129,6 @@ export class UnitEconomicsService {
       platformContributionMargin,
     };
   }
+
+  
 }
