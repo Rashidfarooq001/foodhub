@@ -297,38 +297,27 @@ export class GeolocationService {
       // If Geocode API only returns eLoc (common in Mappls REST Geocoding without coordinate entitlements), resolve it
       if ((isNaN(finalLat) || isNaN(finalLng)) && firstResult.eLoc) {
         try {
-          const elocUrl = `https://explore.mappls.com/api/places/eloc?eloc=${firstResult.eLoc}&access_token=${token}`;
+          // Use Mappls Routing API (which works with REST keys) to extract coordinates for the eLoc!
+          const routeExtractUrl = `https://route.mappls.com/route/direction/route_adv/driving/${firstResult.eLoc};${firstResult.eLoc}?access_token=${encodeURIComponent(token)}`;
           const elocController = new AbortController();
           const elocTimeout = setTimeout(() => elocController.abort(), 8000);
           
-          const isJwt = token.startsWith('ey');
           const elocHeaders = { 'Accept': 'application/json' };
-          if (isJwt) { elocHeaders['Authorization'] = `Bearer ${token}`; }
+          if (token.startsWith('ey')) { elocHeaders['Authorization'] = `Bearer ${token}`; }
           
-          elocDebugUrl = elocUrl;
-          const elocResponse = await fetch(elocUrl, { headers: elocHeaders, signal: elocController.signal });
-          elocDebugStatus = elocResponse.status;
-          
-          let finalElocResponse = elocResponse;
-          if (!elocResponse.ok) {
-            // fallback to outpost
-            const outpostUrl = elocUrl.replace('explore', 'outpost');
-            elocDebugUrl = outpostUrl;
-            const outpostController = new AbortController();
-            const outpostTimeout = setTimeout(() => outpostController.abort(), 8000);
-            const outpostResponse = await fetch(outpostUrl, { headers: elocHeaders, signal: outpostController.signal });
-            clearTimeout(outpostTimeout);
-            elocDebugStatus = outpostResponse.status;
-            finalElocResponse = outpostResponse;
-          }
+          const routeResponse = await fetch(routeExtractUrl, { headers: elocHeaders, signal: elocController.signal });
+          clearTimeout(elocTimeout);
+          elocDebugStatus = routeResponse.status;
+          elocDebugUrl = routeExtractUrl;
 
-          if (finalElocResponse.ok) {
-            const elocData = await finalElocResponse.json();
-            const elocLat = parseFloat(elocData?.latitude ?? elocData?.lat);
-            const elocLng = parseFloat(elocData?.longitude ?? elocData?.lng);
-            if (!isNaN(elocLat) && !isNaN(elocLng)) {
-              finalLat = elocLat;
-              finalLng = elocLng;
+          if (routeResponse.ok) {
+            const routeData = await routeResponse.json();
+            if (routeData?.waypoints && routeData.waypoints.length > 0) {
+              const location = routeData.waypoints[0].location; // [lng, lat]
+              if (location && location.length === 2) {
+                finalLng = parseFloat(location[0]);
+                finalLat = parseFloat(location[1]);
+              }
             }
           }
         } catch (e) {
