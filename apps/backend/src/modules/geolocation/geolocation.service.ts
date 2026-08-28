@@ -298,7 +298,12 @@ export class GeolocationService {
           const elocUrl = `https://explore.mappls.com/api/places/eloc?eloc=${firstResult.eLoc}&access_token=${token}`;
           const elocController = new AbortController();
           const elocTimeout = setTimeout(() => elocController.abort(), 8000);
-          const elocResponse = await fetch(elocUrl, { signal: elocController.signal });
+          
+          const isJwt = token.startsWith('ey');
+          const elocHeaders = { 'Accept': 'application/json' };
+          if (isJwt) { elocHeaders['Authorization'] = `Bearer ${token}`; }
+          
+          const elocResponse = await fetch(elocUrl, { headers: elocHeaders, signal: elocController.signal });
           clearTimeout(elocTimeout);
           if (elocResponse.ok) {
             const elocData = await elocResponse.json();
