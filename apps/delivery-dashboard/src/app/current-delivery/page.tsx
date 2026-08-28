@@ -85,13 +85,21 @@ export default function CurrentDeliveryPage() {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         const now = Date.now();
-        if (now - lastEmit > 3000) {
+        if (now - lastEmit > 5000) {
           lastEmit = now;
           socket.emit('updateLocation', {
             orderId: currentJob.orderId || currentJob.id,
             lat: latitude,
             lng: longitude,
           });
+          fetch(`${API_BASE}/delivery/me/heartbeat`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ lat: latitude, lng: longitude }),
+          }).catch(console.error);
         }
       },
       () => {},

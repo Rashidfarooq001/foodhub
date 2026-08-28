@@ -94,6 +94,52 @@ export default function DeliveryDashboardPage() {
     };
   }, [accessToken]);
 
+  // Live GPS tracking when ON DUTY
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOnDuty || !accessToken || typeof window === 'undefined') return;
+
+    if (!('geolocation' in navigator)) {
+      setLocationError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    let lastEmit = 0;
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        setLocationError(null);
+        const { latitude, longitude } = pos.coords;
+        const now = Date.now();
+        // Send heartbeat every 10 seconds to not spam the server but keep it live
+        if (now - lastEmit > 10000) {
+          lastEmit = now;
+          try {
+            await fetch(`${API_BASE}/delivery/me/heartbeat`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ lat: latitude, lng: longitude }),
+            });
+          } catch (err) {
+            console.error('GPS Heartbeat failed', err);
+          }
+        }
+      },
+      (err) => {
+        setLocationError('Location permission is required to receive live delivery tracking.');
+        console.error('Geolocation error:', err);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isOnDuty, accessToken]);
+
   const toggleDuty = async () => {
     if (!accessToken || isTogglingDuty) return;
     setIsTogglingDuty(true);
@@ -183,6 +229,25 @@ export default function DeliveryDashboardPage() {
           <span>{isTogglingDuty ? '...' : isOnDuty ? 'GO OFFLINE' : 'GO ONLINE'}</span>
         </button>
       </div>
+
+        {/* Location Error Banner */}
+        {locationError && (
+          <div className="rounded-2xl border-2 border-rose-500 bg-rose-50 p-4 shadow-md flex items-center justify-between">
+            <div className="flex items-center gap-2 text-rose-800">
+              <MapPin className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-xs font-black uppercase">GPS Disconnected</p>
+                <p className="text-[11px] font-bold opacity-90">{locationError}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-[10px] font-black uppercase text-rose-700 underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
       {/* ACTIVE DELIVERY IN PROGRESS BANNER (If job active) */}
       {currentDelivery && (

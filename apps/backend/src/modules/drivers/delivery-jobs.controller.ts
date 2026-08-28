@@ -269,9 +269,14 @@ export class DeliveryJobsController {
 
       if (lat && lng) {
         await this.prisma.$executeRawUnsafe(
-          `UPDATE drivers SET current_lat = $1, current_lng = $2 WHERE id = $3::uuid`,
+          `UPDATE drivers SET current_lat = $1, current_lng = $2, last_seen_at = NOW() WHERE id = $3::uuid`,
           lat,
           lng,
+          driver.id,
+        );
+      } else {
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE drivers SET last_seen_at = NOW() WHERE id = $1::uuid`,
           driver.id,
         );
       }
