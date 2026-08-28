@@ -72,7 +72,7 @@ export default function HotelDashboardPage() {
           fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
-          fetch(`${API_BASE}/pricing/config`)
+          fetch(`${API_BASE}/pricing/config`),
           fetch(`${API_BASE}/analytics/restaurant`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
