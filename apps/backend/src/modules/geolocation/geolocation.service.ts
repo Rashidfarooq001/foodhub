@@ -291,6 +291,8 @@ export class GeolocationService {
       
       let finalLat = lat;
       let finalLng = lng;
+      let elocDebugStatus = 0;
+      let elocDebugUrl = '';
 
       // If Geocode API only returns eLoc (common in Mappls REST Geocoding without coordinate entitlements), resolve it
       if ((isNaN(finalLat) || isNaN(finalLng)) && firstResult.eLoc) {
@@ -303,8 +305,10 @@ export class GeolocationService {
           const elocHeaders = { 'Accept': 'application/json' };
           if (isJwt) { elocHeaders['Authorization'] = `Bearer ${token}`; }
           
+          elocDebugUrl = elocUrl;
           const elocResponse = await fetch(elocUrl, { headers: elocHeaders, signal: elocController.signal });
           clearTimeout(elocTimeout);
+          elocDebugStatus = elocResponse.status;
           if (elocResponse.ok) {
             const elocData = await elocResponse.json();
             const elocLat = parseFloat(elocData?.latitude ?? elocData?.lat);
@@ -320,7 +324,11 @@ export class GeolocationService {
       }
 
       if (isNaN(finalLat) || isNaN(finalLng)) {
-        return this._fallbackGeocodeFailure('Mappls returned invalid coordinates. ' + (firstResult.eLoc ? 'Failed to resolve eLoc.' : ''));
+        return {
+          success: false,
+          debugData: { elocStatus: elocDebugStatus, elocUrl: elocDebugUrl, firstResult: firstResult },
+          reason: 'Mappls returned invalid coordinates. ' + (firstResult.eLoc ? 'Failed to resolve eLoc.' : '')
+        } as any;
       }
       
       const latResolved = finalLat;
