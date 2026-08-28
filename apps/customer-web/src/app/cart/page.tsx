@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -34,13 +34,22 @@ export default function CartPage() {
     getDeliveryFee,
     getTaxAmount,
     getGrandTotal,
+    orderQuote,
+    fetchCartQuote,
   } = useCartStore();
 
   const subtotal = getSubtotal();
-  const platformFee = 5; // To get dynamic platform fee, we need a config endpoint in cart. For now, let's leave it as a variable if we can.
-  const tax = getTaxAmount();
-  const deliveryFee = getDeliveryFee();
-  const grandTotal = getGrandTotal();
+  
+  useEffect(() => {
+    if (items.length > 0) {
+      fetchCartQuote().catch(console.error);
+    }
+  }, [items.length, fetchCartQuote]);
+
+  const platformFee = orderQuote?.platformFee ?? 5;
+  const tax = orderQuote?.totalCustomerTaxes ?? 0;
+  const deliveryFee = orderQuote?.customerDeliveryFee ?? 15;
+  const grandTotal = orderQuote?.customerTotal ?? getGrandTotal();
 
   if (items.length === 0) {
     return (
