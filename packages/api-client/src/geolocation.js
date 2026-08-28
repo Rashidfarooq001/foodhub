@@ -51,7 +51,7 @@ async function searchPlacesByName(query, signal) {
 }
 async function forwardGeocodeStructuredAddress(payload, signal) {
     try {
-        const res = await axios_client_1.apiClient.post('/geolocation/forward-geocode', payload, { signal });
+        const res = await axios_client_1.apiClient.post('/location/resolve', payload, { signal });
         const data = res.data;
         const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
         const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
