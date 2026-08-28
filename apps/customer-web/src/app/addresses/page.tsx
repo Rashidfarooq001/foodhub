@@ -68,10 +68,10 @@ export default function AddressesPage() {
     setVerificationError('');
     setMatchedAddress(null);
     try {
-      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+      const res = await fetch(`${API_BASE}/location/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: addressLine1.trim() }),
+        body: JSON.stringify({ query: addressLine1.trim() }),
       });
       const data = await res.json();
       if (data.success && data.latitude && data.longitude) {

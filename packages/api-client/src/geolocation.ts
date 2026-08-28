@@ -112,7 +112,7 @@ export async function forwardGeocodeStructuredAddress(
 ): Promise<ForwardGeocodeResponse> {
   try {
     const res = await apiClient.post<ForwardGeocodeResponse>(
-      '/geolocation/forward-geocode',
+      '/location/resolve',
       payload,
       { signal },
     );

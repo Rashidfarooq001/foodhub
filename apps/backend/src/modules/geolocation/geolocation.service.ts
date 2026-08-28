@@ -234,39 +234,91 @@ export class GeolocationService {
     if (!token) return this._fallbackGeocodeFailure('MAPPLS_ACCESS_TOKEN not configured');
 
     try {
-      const url = `https://search.mappls.com/apis/searchV3?query=${encodeURIComponent(addressStr.trim())}&region=IND&access_token=${token}`;
+      const url = `https://search.mappls.com/search/address/geocode?address=${encodeURIComponent(addressStr.trim())}&access_token=${token}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
 
-      if (!response.ok) return this._fallbackGeocodeFailure(`Mappls search HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          this.logger.error(`Mappls search HTTP 404. Endpoint: https://search.mappls.com/search/address/geocode`);
+        } else {
+          this.logger.error(`Mappls search HTTP ${response.status}`);
+        }
+        return this._fallbackGeocodeFailure(`Mappls search HTTP ${response.status}`);
+      }
 
       const data = await response.json();
-      const suggestions = data?.suggestedLocations || data?.results || [];
-      if (!suggestions.length) return this._fallbackGeocodeFailure('No results from Mappls for this address');
+      
+      this.logger.log(`[Mappls Geocode] HTTP ${response.status} | responseCode: ${data?.responseCode ?? data?.code ?? 'N/A'} | results: ${data?.copResults ? 1 : (data?.results?.length ?? 0)}`);
 
-      const best = suggestions[0];
-      const lat = parseFloat(best.latitude);
-      const lng = parseFloat(best.longitude);
-      if (isNaN(lat) || isNaN(lng)) return this._fallbackGeocodeFailure('Mappls returned invalid coordinates');
+      let firstResult: any = null;
+      if (data?.copResults) {
+        firstResult = data.copResults;
+      } else if (Array.isArray(data?.results) && data.results.length > 0) {
+        firstResult = data.results[0];
+      } else if (Array.isArray(data?.suggestedLocations) && data.suggestedLocations.length > 0) {
+        firstResult = data.suggestedLocations[0];
+      } else if (Array.isArray(data?.data) && data.data.length > 0) {
+        firstResult = data.data[0];
+      } else if (data?.latitude && data?.longitude) {
+        firstResult = data;
+      }
+
+      if (!firstResult) {
+        return {
+          success: false,
+          code: 'LOCATION_NOT_FOUND',
+          latitude: null,
+          longitude: null,
+          displayName: null,
+          geocodeLevel: null,
+          precisionLabel: 'FAILED',
+          confidenceScore: 0,
+          matchedAddress: null,
+          verificationStatus: 'FAILED',
+          queryTierUsed: 1,
+          source: 'mappls_geocoding',
+          reason: 'No results from Mappls for this address'
+        } as unknown as DetailedGeocodeResult;
+      }
+
+      this.logger.log(`[Mappls Geocode] Found result keys: ${Object.keys(firstResult).join(', ')}`);
+
+      const lat = parseFloat(firstResult.latitude);
+      const lng = parseFloat(firstResult.longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        return this._fallbackGeocodeFailure('Mappls returned invalid coordinates');
+      }
+
+      const formattedAddress = firstResult.formattedAddress || firstResult.placeName || addressStr;
+      
+      this.logger.log(`[Mappls Geocode] Resolved: ${formattedAddress} -> lat: ${lat}, lng: ${lng}`);
 
       return {
         success: true,
         latitude: lat,
         longitude: lng,
-        displayName: best.placeName || best.formattedAddress || addressStr,
-        geocodeLevel: best.type || 'locality',
-        precisionLabel: 'MAPPLS_PLACE',
-        confidenceScore: 1.0,
-        matchedAddress: best.placeAddress || best.placeName || addressStr,
+        displayName: formattedAddress,
+        geocodeLevel: firstResult.geocodeLevel || firstResult.type || 'address',
+        precisionLabel: 'EXACT',
+        confidenceScore: firstResult.confidenceScore !== undefined ? Number(firstResult.confidenceScore) : 1,
+        matchedAddress: formattedAddress,
         verificationStatus: 'VERIFIED',
         queryTierUsed: 1,
         source: 'mappls_geocoding',
-      };
+        reason: null,
+        city: firstResult.city || firstResult.district || null,
+        state: firstResult.state || null,
+        postalCode: firstResult.pincode || firstResult.postalCode || null,
+        locality: firstResult.locality || firstResult.village || null,
+        district: firstResult.district || null,
+        formattedAddress: formattedAddress
+      } as any;
     } catch (err: any) {
-      this.logger.error(`Mappls geocodeAddress error: ${err.message}`);
-      return this._fallbackGeocodeFailure('Mappls geocoding service error');
+      this.logger.error(`Geocoding network error: ${err.message}`);
+      return this._fallbackGeocodeFailure('Geocoding error: ' + err.message);
     }
   }
 

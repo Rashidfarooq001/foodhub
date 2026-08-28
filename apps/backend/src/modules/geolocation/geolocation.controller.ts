@@ -76,60 +76,14 @@ export class GeolocationController {
     }
     return { success: false, message: "Couldn't determine the location of this address." };
   }
-
-  @Post(['forward-geocode', 'geocode', 'forward'])
-  @ApiOperation({ summary: 'POST forward geocode structured address (Zomato-Style)' })
-  async postGeocodeAddress(@Body() body: {
-    house?: string;
-    houseNumber?: string;
-    street?: string;
-    area?: string;
-    areaLocality?: string;
-    landmark?: string;
-    city?: string;
-    state?: string;
-    postalCode?: string;
-    pincode?: string;
-    address?: string;
-  }) {
-    const houseNumber = body.house || body.houseNumber;
-    const areaLocality = body.area || body.areaLocality || body.address;
-    const postalCode = body.postalCode || body.pincode;
-
-    const res = await this.geo.geocodeStructuredAddress({
-      houseNumber,
-      street: body.street,
-      areaLocality,
-      landmark: body.landmark,
-      city: body.city,
-      state: body.state,
-      postalCode,
-    });
-
-    return {
-      success: res.success,
-      location: res.success && res.latitude && res.longitude ? {
-        latitude: res.latitude,
-        longitude: res.longitude,
-      } : null,
-      verification: {
-        status: res.verificationStatus,
-        provider: 'MAPPLS',
-        confidence: res.confidenceScore,
-                                      },
-      message: res.reason || (res.success ? 'Address location verified successfully' : "Couldn't determine the location of this address."),
-      formattedAddress: res.displayName,
-      latitude: res.latitude,
-      longitude: res.longitude,
-      verificationStatus: res.verificationStatus,
-    };
-  }
-
   @Post(['resolve', 'location/resolve'])
   @ApiOperation({ summary: 'Resolve customer GPS coordinates into structured Zayka Food location' })
   async postResolveLocation(
-    @Body() body: { latitude?: number; longitude?: number; lat?: number; lng?: number },
+    @Body() body: { query?: string; latitude?: number; longitude?: number; lat?: number; lng?: number },
   ) {
+    if (body.query) {
+      return this.geo.geocodeAddress(body.query);
+    }
     const lat = body.latitude ?? body.lat ?? 0;
     const lng = body.longitude ?? body.lng ?? 0;
     return this.geo.resolveLocation(Number(lat), Number(lng));

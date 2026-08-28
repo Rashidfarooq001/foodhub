@@ -267,10 +267,10 @@ export default function CheckoutPage() {
     setAddressVerificationError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/geolocation/forward-geocode`, {
+      const res = await fetch(`${API_BASE}/location/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: manualAddress.trim() })
+        body: JSON.stringify({ query: manualAddress.trim() })
       });
       const data = await res.json();
 
