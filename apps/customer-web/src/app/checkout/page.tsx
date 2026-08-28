@@ -1098,46 +1098,41 @@ setAddressVerificationError(null);
 
         {/* MANUAL ADDRESS MODAL */}
           {showCustomAddressModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                  <div>
-                    <h3 className="text-lg font-black text-gray-900 leading-tight">
-                      Change Delivery Location
-                    </h3>
-                  </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+              <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
+                  <h2 className="text-base font-black text-gray-900">Change Delivery Location</h2>
                   <button
                     onClick={() => setShowCustomAddressModal(false)}
-                    className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition"
+                    className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
   
-                {/* MANUAL TEXT ENTRY */}
-                <div className="space-y-4">
-                  <>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Delivery Address
-                        </label>
-                        <textarea
-                          value={manualAddress}
-                          onChange={(e) => setManualAddress(e.target.value)}
-                          placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
-                          rows={4}
-                          className="w-full rounded-2xl border border-gray-200 p-4 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-gray-50 resize-none box-border"
-                        />
-                        <button
-                          onClick={handleConfirmManualAddress}
-                          disabled={!manualAddress.trim() || isVerifyingAddress}
-                          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
-                        >
-                          {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
-                        </button>
-                        {addressVerificationError && (
-                          <p className="mt-2 text-xs font-bold text-red-500 text-center">{addressVerificationError}</p>
-                        )}
-                      </>
+                <div className="p-4 pt-3 space-y-4">
+                  {/* MANUAL TEXT ENTRY */}
+                  <div className="space-y-2.5">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+                      Delivery Address
+                    </label>
+                    <textarea
+                      value={manualAddress}
+                      onChange={(e) => setManualAddress(e.target.value)}
+                      placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
+                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border h-[80px]"
+                    />
+                    <button
+                      onClick={handleConfirmManualAddress}
+                      disabled={!manualAddress.trim() || isVerifyingAddress}
+                      className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
+                    >
+                      {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
+                    </button>
+                    {addressVerificationError && (
+                      <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">{addressVerificationError}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
