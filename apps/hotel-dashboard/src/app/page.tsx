@@ -45,6 +45,7 @@ export default function HotelDashboardPage() {
   const { queue, setQueue } = useKitchenStore();
   const { accessToken } = useHotelAuthStore();
 
+  const [gstRate, setGstRate] = useState(5);
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [me, setMe] = useState<any>(null);
