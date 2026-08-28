@@ -1,5 +1,0 @@
-﻿{
-  "buildCommand": "pnpm --filter=customer-web build",
-  "outputDirectory": "apps/customer-web/.next",
-  "framework": "nextjs"
-}
