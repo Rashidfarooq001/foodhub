@@ -1,6 +1,7 @@
-export * from './enums.js';
-export * from './user.js';
-export * from './restaurant.js';
-export * from './order.js';
-export * from './delivery.js';
-export * from './api.js';
+export * from './enums';
+export * from './user';
+export * from './restaurant';
+export * from './order';
+export * from './delivery';
+export * from './api';
+

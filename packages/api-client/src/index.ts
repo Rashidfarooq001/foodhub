@@ -1,8 +1,9 @@
-export * from './axios-client.js';
-export * from './interceptors.js';
-export * from './token-manager.js';
-export * from './error-handler.js';
-export * from './helpers.js';
-export * from './geolocation.js';
-export * from './pricing.js';
-export * from './tax.js';
+// TEST CACHE
+export * from './axios-client';
+export * from './interceptors';
+export * from './token-manager';
+export * from './error-handler';
+export * from './helpers';
+export * from './geolocation';
+export * from './pricing';
+export * from './tax';
