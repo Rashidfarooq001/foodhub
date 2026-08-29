@@ -1009,20 +1009,47 @@ if (!allowed.includes(dto.status as OrderStatus)) {
     const restaurantLng = Number(order.restaurant.longitude) || 0;
     const customerLat = Number(deliveryAddress?.latitude) || 0;
     const customerLng = Number(deliveryAddress?.longitude) || 0;
-    const driverLat = order.tracking?.currentLat ? Number(order.tracking.currentLat) : null;
-    const driverLng = order.tracking?.currentLng ? Number(order.tracking.currentLng) : null;
+    let driverLat = order.tracking?.currentLat ? Number(order.tracking.currentLat) : null;
+    let driverLng = order.tracking?.currentLng ? Number(order.tracking.currentLng) : null;
+
+    if (order.status === 'DELIVERED') {
+      driverLat = null;
+      driverLng = null;
+    }
 
     let routeCoordinates: [number, number][] = [];
     let roadDistanceKm: number | null = null;
     let etaMins = 15;
 
-    if (restaurantLat && restaurantLng && customerLat && customerLng) {
+    let routeStartLat = restaurantLat;
+    let routeStartLng = restaurantLng;
+    let routeEndLat = customerLat;
+    let routeEndLng = customerLng;
+
+    const hasDriverLoc = driverLat && driverLng;
+    const isPickedUp = order.status === 'PICKED_UP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED';
+    
+    if (hasDriverLoc) {
+      if (isPickedUp) {
+        // Rider to Customer
+        routeStartLat = driverLat;
+        routeStartLng = driverLng;
+      } else {
+        // Rider to Restaurant
+        routeStartLat = driverLat;
+        routeStartLng = driverLng;
+        routeEndLat = restaurantLat;
+        routeEndLng = restaurantLng;
+      }
+    }
+
+    if (routeStartLat && routeStartLng && routeEndLat && routeEndLng) {
       try {
         const routeData = await this.geolocationService.getRouteGeometry(
-          restaurantLat,
-          restaurantLng,
-          customerLat,
-          customerLng,
+          routeStartLat,
+          routeStartLng,
+          routeEndLat,
+          routeEndLng,
         );
         routeCoordinates = routeData.coordinates;
         roadDistanceKm = routeData.distanceKm;

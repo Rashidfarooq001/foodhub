@@ -26,6 +26,8 @@ export default function LiveOrderTrackingPage() {
   const [driverLoc, setDriverLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [serverEtaMins, setServerEtaMins] = useState<number | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
 
@@ -139,6 +141,22 @@ export default function LiveOrderTrackingPage() {
   const deliveryAddress = order.deliveryAddress || {};
   const restaurantLat = order.restaurant?.latitude ? Number(order.restaurant.latitude) : 0;
   const restaurantLng = order.restaurant?.longitude ? Number(order.restaurant.longitude) : 0;
+
+  const [timeAgoStr, setTimeAgoStr] = useState('LIVE');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diffSec = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
+      if (diffSec < 10) setTimeAgoStr('LIVE');
+      else if (diffSec < 60) setTimeAgoStr(`Updating location...`);
+      else setTimeAgoStr(`Last updated ${Math.floor(diffSec/60)} min ago`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastUpdate]);
+  
+  const handleRecenter = () => {
+    window.dispatchEvent(new Event('recenter-rider'));
+  };
+
   const customerLat = deliveryAddress.latitude ? Number(deliveryAddress.latitude) : 0;
   const customerLng = deliveryAddress.longitude ? Number(deliveryAddress.longitude) : 0;
 
