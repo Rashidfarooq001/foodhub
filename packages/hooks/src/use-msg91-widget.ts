@@ -35,7 +35,7 @@ export function useMsg91Widget(options: UseMsg91WidgetOptions) {
 
     const script = document.createElement('script');
     script.id = 'msg91-verify-script';
-    script.src = 'https://verify.msg91.com/otp-provider';
+    script.src = 'https://verify.msg91.com/otp-provider.js';
     script.async = true;
     script.onload = () => setIsScriptLoaded(true);
     script.onerror = (e) => console.error('[MSG91 Hook] Script load error:', e);
@@ -164,4 +164,3 @@ export function useMsg91Widget(options: UseMsg91WidgetOptions) {
     verifyOtp,
   };
 }
-
