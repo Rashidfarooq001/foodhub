@@ -77,7 +77,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex md:grid md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 items-center gap-3.5 sm:gap-4 md:gap-y-6 overflow-x-auto md:overflow-x-visible pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {allItems.map((cat) => {
           const isSelected =
             (selectedCategory === '' && cat.id === 'all') ||
