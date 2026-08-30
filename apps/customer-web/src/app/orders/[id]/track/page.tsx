@@ -112,6 +112,17 @@ export default function LiveOrderTrackingPage() {
     };
   }, [orderId, accessToken]);
 
+    const [timeAgoStr, setTimeAgoStr] = useState('LIVE');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diffSec = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
+      if (diffSec < 10) setTimeAgoStr('LIVE');
+      else if (diffSec < 60) setTimeAgoStr(`Updating location...`);
+      else setTimeAgoStr(`Last updated ${Math.floor(diffSec/60)} min ago`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastUpdate]);
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
@@ -142,16 +153,7 @@ export default function LiveOrderTrackingPage() {
   const restaurantLat = order.restaurant?.latitude ? Number(order.restaurant.latitude) : 0;
   const restaurantLng = order.restaurant?.longitude ? Number(order.restaurant.longitude) : 0;
 
-  const [timeAgoStr, setTimeAgoStr] = useState('LIVE');
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const diffSec = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
-      if (diffSec < 10) setTimeAgoStr('LIVE');
-      else if (diffSec < 60) setTimeAgoStr(`Updating location...`);
-      else setTimeAgoStr(`Last updated ${Math.floor(diffSec/60)} min ago`);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [lastUpdate]);
+
   
   const handleRecenter = () => {
     window.dispatchEvent(new Event('recenter-rider'));
