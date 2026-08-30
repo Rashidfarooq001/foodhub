@@ -1054,6 +1054,7 @@ if (!allowed.includes(dto.status as OrderStatus)) {
         routeCoordinates = routeData.coordinates;
         roadDistanceKm = routeData.distanceKm;
         etaMins = routeData.etaMinutes;
+        routeCoordinates = routeData.coordinates;
       } catch (err: any) {
         this.logger.warn(`[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`);
       }

@@ -12,6 +12,7 @@ interface Props {
   customerLat: number;
   customerLng: number;
   driverName?: string;
+  orderStatus?: string;
   routeCoordinates?: [number, number][];
 }
 
@@ -23,6 +24,7 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
   customerLat,
   customerLng,
   driverName,
+  orderStatus,
   routeCoordinates = [],
 }) => {
   const { isLoaded: sdkLoaded, error: sdkError, mapKey } = useMapplsSdk();
@@ -101,14 +103,17 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
           }
 
           // 3. Initial Driver Marker
-          const driverValid = hasValidCoords(driverLat, driverLng);
+          
+          const isPickedUp = orderStatus === 'PICKED_UP' || orderStatus === 'OUT_FOR_DELIVERY';
+          const isDelivered = orderStatus === 'DELIVERED';
+          const showDriver = !isDelivered && (orderStatus === 'DRIVER_ASSIGNED' || orderStatus === 'ARRIVED_AT_RESTAURANT' || isPickedUp);
+          const driverValid = showDriver && hasValidCoords(driverLat, driverLng);
           if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
             const dMarker = new window.mappls.Marker({
           map,
           position: { lat: driverLat, lng: driverLng },
-          icon: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
-          width: 40,
-          height: 40,
+          html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
+          offset: [0, -20],
           popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
         });
             driverMarkerRef.current = dMarker;
@@ -230,9 +235,8 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         const dMarker = new window.mappls.Marker({
           map: mapInstanceRef.current,
           position: { lat: driverLat, lng: driverLng },
-          icon: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
-          width: 40,
-          height: 40,
+          html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
+          offset: [0, -20],
           popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
         });
         driverMarkerRef.current = dMarker;
