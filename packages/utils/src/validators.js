@@ -1,10 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeIndianPhone = normalizeIndianPhone;
-exports.isValidIndianPhone = isValidIndianPhone;
-exports.isValidFssai = isValidFssai;
-exports.isValidGstin = isValidGstin;
-function normalizeIndianPhone(input) {
+export function normalizeIndianPhone(input) {
     if (!input || typeof input !== 'string') {
         throw new Error('Enter a valid 10-digit Indian mobile number.');
     }
@@ -27,7 +21,7 @@ function normalizeIndianPhone(input) {
     }
     return `+91${cleaned}`;
 }
-function isValidIndianPhone(phone) {
+export function isValidIndianPhone(phone) {
     try {
         normalizeIndianPhone(phone);
         return true;
@@ -36,11 +30,11 @@ function isValidIndianPhone(phone) {
         return false;
     }
 }
-function isValidFssai(license) {
+export function isValidFssai(license) {
     const fssaiRegex = /^\d{14}$/;
     return fssaiRegex.test(license);
 }
-function isValidGstin(gstin) {
+export function isValidGstin(gstin) {
     const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/;
     return gstinRegex.test(gstin);
 }

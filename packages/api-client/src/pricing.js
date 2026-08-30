@@ -1,10 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_PRICING_CONFIG_DATA = void 0;
-exports.fetchPricingConfig = fetchPricingConfig;
-const config_1 = require("@foodhub/config");
-const API_BASE = (0, config_1.getApiBaseUrl)();
-exports.DEFAULT_PRICING_CONFIG_DATA = {
+import { getApiBaseUrl } from '@foodhub/config';
+const API_BASE = getApiBaseUrl();
+export const DEFAULT_PRICING_CONFIG_DATA = {
     restaurantCommissionPercent: null, // UNCONFIGURED by default
     customerDeliveryPerKm: 5.0, // ₹5.00 per extra km after base 3 km
     minimumCustomerDeliveryFee: 15.0, // ₹15.00 base delivery fee up to 3 km
@@ -19,7 +15,7 @@ exports.DEFAULT_PRICING_CONFIG_DATA = {
     riderBatchBonus: 0.0,
     paymentGatewayPlanningRate: 2.0,
 };
-async function fetchPricingConfig() {
+export async function fetchPricingConfig() {
     try {
         const res = await fetch(`${API_BASE}/pricing/config`);
         if (res.ok) {
@@ -44,5 +40,5 @@ async function fetchPricingConfig() {
     catch {
         /* Fallback to default pricing parameters */
     }
-    return exports.DEFAULT_PRICING_CONFIG_DATA;
+    return DEFAULT_PRICING_CONFIG_DATA;
 }

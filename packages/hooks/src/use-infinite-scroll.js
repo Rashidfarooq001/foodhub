@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.useInfiniteScroll = useInfiniteScroll;
-const react_1 = require("react");
-function useInfiniteScroll(onLoadMore, hasMore) {
-    const observerTarget = (0, react_1.useRef)(null);
-    (0, react_1.useEffect)(() => {
+import { useEffect, useRef } from 'react';
+export function useInfiniteScroll(onLoadMore, hasMore) {
+    const observerTarget = useRef(null);
+    useEffect(() => {
         const target = observerTarget.current;
         if (!target || !hasMore)
             return;

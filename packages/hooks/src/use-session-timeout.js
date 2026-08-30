@@ -1,12 +1,9 @@
 'use client';
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.useSessionTimeout = useSessionTimeout;
-const react_1 = require("react");
+import { useEffect, useRef, useCallback } from 'react';
 const DEFAULT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
-function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, apiBaseUrl, loginPath = '/login', timeoutMs = DEFAULT_TIMEOUT_MS, isProtectedPath, }) {
-    const timerRef = (0, react_1.useRef)(null);
-    const channelRef = (0, react_1.useRef)(null);
+export function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, apiBaseUrl, loginPath = '/login', timeoutMs = DEFAULT_TIMEOUT_MS, isProtectedPath, }) {
+    const timerRef = useRef(null);
+    const channelRef = useRef(null);
     const storageKey = `foodhub_session_left_${portalName}`;
     const broadcastChannelName = `foodhub_auth_channel_${portalName}`;
     const logoutTriggerKey = `foodhub_logout_event_${portalName}`;
@@ -17,7 +14,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         return '';
     };
     // Default path protection checker
-    const checkProtected = (0, react_1.useCallback)((path) => {
+    const checkProtected = useCallback((path) => {
         if (isProtectedPath)
             return isProtectedPath(path);
         if (portalName === 'customer') {
@@ -39,7 +36,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         return true;
     }, [portalName, isProtectedPath]);
     // Perform portal logout and redirect to login page with expired flag
-    const performAutoLogout = (0, react_1.useCallback)(async () => {
+    const performAutoLogout = useCallback(async () => {
         if (timerRef.current) {
             clearTimeout(timerRef.current);
             timerRef.current = null;
@@ -77,14 +74,14 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         }
     }, [accessToken, apiBaseUrl, loginPath, logout, storageKey, logoutTriggerKey]);
     // Clean stale keys on mount when authenticated
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window !== 'undefined' && isAuthenticated) {
             localStorage.removeItem(storageKey);
             localStorage.removeItem(logoutTriggerKey);
         }
     }, [isAuthenticated, storageKey, logoutTriggerKey]);
     // Handle return to dashboard / tab focus
-    const handleReturn = (0, react_1.useCallback)(() => {
+    const handleReturn = useCallback(() => {
         if (!isAuthenticated)
             return;
         const currentPath = getCurrentPathname();
@@ -110,7 +107,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         }
     }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
     // Handle leaving dashboard
-    const handleLeave = (0, react_1.useCallback)(() => {
+    const handleLeave = useCallback(() => {
         if (!isAuthenticated)
             return;
         if (typeof window === 'undefined')
@@ -142,7 +139,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         }
     }, [isAuthenticated, checkProtected, storageKey, timeoutMs, performAutoLogout]);
     // 1. Setup BroadcastChannel and localStorage multi-tab listener
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window === 'undefined')
             return;
         if ('BroadcastChannel' in window) {
@@ -171,7 +168,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         };
     }, [broadcastChannelName, logoutTriggerKey, isAuthenticated, logout, loginPath]);
     // 2. Track Page Visibility API (hidden = left, visible = return)
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window === 'undefined' || !isAuthenticated)
             return;
         const handleVisibilityChange = () => {
@@ -190,7 +187,7 @@ function useSessionTimeout({ portalName, isAuthenticated, accessToken, logout, a
         };
     }, [isAuthenticated, handleLeave, handleReturn]);
     // 3. In-Page Inactivity Listener
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window === 'undefined' || !isAuthenticated)
             return;
         const currentPath = getCurrentPathname();

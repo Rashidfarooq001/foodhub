@@ -1,17 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchLocationAutosuggest = fetchLocationAutosuggest;
-exports.searchPlacesByName = searchPlacesByName;
-exports.forwardGeocodeStructuredAddress = forwardGeocodeStructuredAddress;
-exports.forwardGeocodeAddress = forwardGeocodeAddress;
-const axios_client_1 = require("./axios-client");
-const helpers_1 = require("./helpers");
-async function fetchLocationAutosuggest(query, signal) {
+import { apiClient } from './axios-client.js';
+import { getRequest } from './helpers.js';
+export async function fetchLocationAutosuggest(query, signal) {
     if (!query || query.trim().length < 1) {
         return [];
     }
     try {
-        const res = await (0, helpers_1.getRequest)(axios_client_1.apiClient, `/geolocation/autosuggest?q=${encodeURIComponent(query.trim())}&query=${encodeURIComponent(query.trim())}`, { signal });
+        const res = await getRequest(apiClient, `/geolocation/autosuggest?q=${encodeURIComponent(query.trim())}&query=${encodeURIComponent(query.trim())}`, { signal });
         if (Array.isArray(res)) {
             return res.map((item) => ({
                 id: item.id || item.placeId || `loc-${Math.random()}`,
@@ -34,12 +28,12 @@ async function fetchLocationAutosuggest(query, signal) {
         return [];
     }
 }
-async function searchPlacesByName(query, signal) {
+export async function searchPlacesByName(query, signal) {
     const clean = query?.trim();
     if (!clean)
         return [];
     try {
-        const res = await (0, helpers_1.getRequest)(axios_client_1.apiClient, `/geolocation/search-place?q=${encodeURIComponent(clean)}&query=${encodeURIComponent(clean)}`, { signal });
+        const res = await getRequest(apiClient, `/geolocation/search-place?q=${encodeURIComponent(clean)}&query=${encodeURIComponent(clean)}`, { signal });
         if (Array.isArray(res))
             return res;
         return res?.places || [];
@@ -49,9 +43,9 @@ async function searchPlacesByName(query, signal) {
         return [];
     }
 }
-async function forwardGeocodeStructuredAddress(payload, signal) {
+export async function forwardGeocodeStructuredAddress(payload, signal) {
     try {
-        const res = await axios_client_1.apiClient.post('/location/resolve', payload, { signal });
+        const res = await apiClient.post('/location/resolve', payload, { signal });
         const data = res.data;
         const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
         const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
@@ -80,13 +74,13 @@ async function forwardGeocodeStructuredAddress(payload, signal) {
         return forwardGeocodeAddress(query, signal);
     }
 }
-async function forwardGeocodeAddress(addressQuery, signal) {
+export async function forwardGeocodeAddress(addressQuery, signal) {
     const clean = addressQuery?.trim();
     if (!clean) {
         return { success: false, message: 'Address query is required' };
     }
     try {
-        const res = await (0, helpers_1.getRequest)(axios_client_1.apiClient, `/geolocation/geocode?address=${encodeURIComponent(clean)}`, { signal });
+        const res = await getRequest(apiClient, `/geolocation/geocode?address=${encodeURIComponent(clean)}`, { signal });
         if (res?.success && typeof res.latitude === 'number' && typeof res.longitude === 'number') {
             return {
                 success: true,

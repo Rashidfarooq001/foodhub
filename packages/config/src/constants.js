@@ -1,15 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.APP_CONSTANTS = exports.AUTH_ENABLED = void 0;
-exports.isAuthEnabled = isAuthEnabled;
-exports.AUTH_ENABLED = true;
-function isAuthEnabled() {
+export const AUTH_ENABLED = true;
+export function isAuthEnabled() {
     if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_AUTH_ENABLED !== undefined) {
         return process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true';
     }
-    return exports.AUTH_ENABLED;
+    return AUTH_ENABLED;
 }
-exports.APP_CONSTANTS = {
+export const APP_CONSTANTS = {
     APP_NAME: 'FoodHub',
     DEFAULT_CURRENCY: 'INR',
     CURRENCY_SYMBOL: '₹',

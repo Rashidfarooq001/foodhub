@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleApiError = handleApiError;
-function handleApiError(error) {
+export function handleApiError(error) {
     if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error;
         if (axiosError.response?.data) {

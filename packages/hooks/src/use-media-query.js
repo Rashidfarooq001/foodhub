@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.useMediaQuery = useMediaQuery;
-const react_1 = require("react");
-function useMediaQuery(query) {
-    const [matches, setMatches] = (0, react_1.useState)(false);
-    (0, react_1.useEffect)(() => {
+import { useState, useEffect } from 'react';
+export function useMediaQuery(query) {
+    const [matches, setMatches] = useState(false);
+    useEffect(() => {
         if (typeof window === 'undefined')
             return;
         const media = window.matchMedia(query);

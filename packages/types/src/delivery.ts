@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VehicleType } from './enums';
+import { VehicleType } from './enums.js';
 
 export const DeliveryProfileSchema = z.object({
   id: z.string().uuid(),

@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.useLocalStorage = useLocalStorage;
-const react_1 = require("react");
-function useLocalStorage(key, initialValue) {
-    const [storedValue, setStoredValue] = (0, react_1.useState)(() => {
+import { useState, useEffect } from 'react';
+export function useLocalStorage(key, initialValue) {
+    const [storedValue, setStoredValue] = useState(() => {
         if (typeof window === 'undefined')
             return initialValue;
         try {
@@ -14,7 +11,7 @@ function useLocalStorage(key, initialValue) {
             return initialValue;
         }
     });
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window !== 'undefined') {
             try {
                 window.localStorage.setItem(key, JSON.stringify(storedValue));

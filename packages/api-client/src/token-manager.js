@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TokenManager = void 0;
 const TOKEN_KEY = 'foodhub_access_token';
 const REFRESH_TOKEN_KEY = 'foodhub_refresh_token';
-exports.TokenManager = {
+export const TokenManager = {
     getAccessToken: () => {
         if (typeof window === 'undefined')
             return null;

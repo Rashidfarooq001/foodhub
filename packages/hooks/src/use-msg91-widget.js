@@ -1,24 +1,21 @@
 'use client';
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.useMsg91Widget = useMsg91Widget;
-const react_1 = require("react");
-function useMsg91Widget(options) {
-    const [isScriptLoaded, setIsScriptLoaded] = (0, react_1.useState)(false);
-    const [step, setStep] = (0, react_1.useState)('PHONE');
-    const [phone, setPhone] = (0, react_1.useState)('');
-    const [otp, setOtp] = (0, react_1.useState)(['', '', '', '']);
-    const [error, setError] = (0, react_1.useState)('');
-    const [isLoading, setIsLoading] = (0, react_1.useState)(false);
-    const [cooldown, setCooldown] = (0, react_1.useState)(0);
-    (0, react_1.useEffect)(() => {
+import { useState, useEffect } from 'react';
+export function useMsg91Widget(options) {
+    const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+    const [step, setStep] = useState('PHONE');
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState(['', '', '', '']);
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [cooldown, setCooldown] = useState(0);
+    useEffect(() => {
         let timer;
         if (cooldown > 0) {
             timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
         }
         return () => clearInterval(timer);
     }, [cooldown]);
-    (0, react_1.useEffect)(() => {
+    useEffect(() => {
         if (typeof window === 'undefined')
             return;
         if (document.getElementById('msg91-verify-script')) {

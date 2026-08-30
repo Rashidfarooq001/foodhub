@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.serializePrisma = serializePrisma;
-function serializePrisma(data) {
+export function serializePrisma(data) {
     if (data === null || data === undefined) {
         return data;
     }

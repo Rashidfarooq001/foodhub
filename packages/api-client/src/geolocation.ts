@@ -1,5 +1,5 @@
-import { apiClient } from './axios-client';
-import { getRequest } from './helpers';
+import { apiClient } from './axios-client.js';
+import { getRequest } from './helpers.js';
 
 export interface GeolocationSuggestion {
   id: string;

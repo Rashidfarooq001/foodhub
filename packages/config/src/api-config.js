@@ -1,21 +1,9 @@
-"use strict";
 /**
  * Shared API & WebSocket Configuration Module for FoodHub
  * Reads NEXT_PUBLIC_API_URL and NEXT_PUBLIC_WS_URL from environment variables.
  * Guarantees that getApiBaseUrl() includes the '/api/v1' path prefix exactly once.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.API_CONFIG = void 0;
-exports.getApiBaseUrl = getApiBaseUrl;
-exports.getWsBaseUrl = getWsBaseUrl;
-exports.getImageUrl = getImageUrl;
-exports.getHotelDashboardUrl = getHotelDashboardUrl;
-exports.getDeliveryDashboardUrl = getDeliveryDashboardUrl;
-exports.getAdminDashboardUrl = getAdminDashboardUrl;
-exports.getMapplsApiKey = getMapplsApiKey;
-exports.getMapplsClientId = getMapplsClientId;
-exports.getMapplsClientSecret = getMapplsClientSecret;
-function getApiBaseUrl() {
+export function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
     if (envUrl && envUrl.trim() && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
         let url = envUrl.trim().replace(/\/+$/, '');
@@ -27,7 +15,7 @@ function getApiBaseUrl() {
     }
     return 'https://foodhub-backend-enq2.onrender.com/api/v1';
 }
-function getWsBaseUrl() {
+export function getWsBaseUrl() {
     const envWsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.PUBLIC_WS_URL;
     if (envWsUrl) {
         return envWsUrl.trim().replace(/\/+$/, '');
@@ -40,7 +28,7 @@ function getWsBaseUrl() {
  * Handles relative paths (/uploads/file.jpg), full URLs, base64 data URLs,
  * and localhost URLs accessed from production environments.
  */
-function getImageUrl(url) {
+export function getImageUrl(url) {
     const fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
     if (!url || typeof url !== 'string' || !url.trim()) {
         return fallback;
@@ -80,7 +68,7 @@ function getImageUrl(url) {
     // Fallback relative path
     return `${serverOrigin}/${cleanUrl.replace(/^\/+/, '')}`;
 }
-function getHotelDashboardUrl() {
+export function getHotelDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
@@ -94,7 +82,7 @@ function getHotelDashboardUrl() {
     }
     return 'https://foodhub-hotel-dashboard.vercel.app';
 }
-function getDeliveryDashboardUrl() {
+export function getDeliveryDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
@@ -108,7 +96,7 @@ function getDeliveryDashboardUrl() {
     }
     return 'https://foodhub-delivery-dashboard.vercel.app';
 }
-function getAdminDashboardUrl() {
+export function getAdminDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
@@ -122,16 +110,16 @@ function getAdminDashboardUrl() {
     }
     return 'https://foodhub-admin-dashboard.vercel.app';
 }
-function getMapplsApiKey() {
+export function getMapplsApiKey() {
     return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
 }
-function getMapplsClientId() {
+export function getMapplsClientId() {
     return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
 }
-function getMapplsClientSecret() {
+export function getMapplsClientSecret() {
     return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_SECRET || process.env.MAPPLS_CLIENT_SECRET || '';
 }
-exports.API_CONFIG = {
+export const API_CONFIG = {
     get baseUrl() {
         return getApiBaseUrl();
     },

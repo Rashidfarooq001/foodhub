@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../utils';
+import { cn } from '../utils.js';
 
 export interface TypographyProps extends React.HTMLAttributes<HTMLHeadingElement> {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'small' | 'muted';

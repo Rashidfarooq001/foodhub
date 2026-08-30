@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OrderStatus, PaymentStatus, PaymentMethod } from './enums';
+import { OrderStatus, PaymentStatus, PaymentMethod } from './enums.js';
 
 export const OrderSchema = z.object({
   id: z.string().uuid(),

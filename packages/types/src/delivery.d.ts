@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VehicleType } from './enums';
+import { VehicleType } from './enums.js';
 export declare const DeliveryProfileSchema: z.ZodObject<{
     id: z.ZodString;
     userId: z.ZodString;

@@ -1,5 +1,5 @@
 import { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { TokenManager } from './token-manager';
+import { TokenManager } from './token-manager.js';
 
 export function setupInterceptors(client: AxiosInstance): void {
   client.interceptors.request.use(

@@ -33,7 +33,17 @@ export default function CustomerHomePage() {
   const [locationLabel, setLocationLabel] = useState<string>('Location');
   const [locationAddress, setLocationAddress] = useState<string>('Please enable location access');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<'idle'|'requesting'|'detected'|'resolving'|'resolved'|'permission-denied'|'unavailable'|'timeout'|'failed'>('idle');
+  const [locationStatus, setLocationStatus] = useState<
+    | 'idle'
+    | 'requesting'
+    | 'detected'
+    | 'resolving'
+    | 'resolved'
+    | 'permission-denied'
+    | 'unavailable'
+    | 'timeout'
+    | 'failed'
+  >('idle');
 
   // Filters & State
   const [isVegOnly, setIsVegOnly] = useState(false);
@@ -53,7 +63,9 @@ export default function CustomerHomePage() {
   // 0. Instant Cache Hydration on Mount
   useEffect(() => {
     try {
-      const cached = localStorage.getItem('zayka_restaurants_cache') || sessionStorage.getItem('zayka_restaurants_cache');
+      const cached =
+        localStorage.getItem('zayka_restaurants_cache') ||
+        sessionStorage.getItem('zayka_restaurants_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -77,13 +89,25 @@ export default function CustomerHomePage() {
 
     // A. If address already exists in store, use it immediately
     if (selectedAddress) {
-      const label = selectedAddress.placeName || selectedAddress.addressLine1 || selectedAddress.label || 'Current Location';
-      const detail = [selectedAddress.addressLine1, selectedAddress.city, selectedAddress.state].filter(Boolean).join(', ') || selectedAddress.city || 'Location detected';
+      const label =
+        selectedAddress.placeName ||
+        selectedAddress.addressLine1 ||
+        selectedAddress.label ||
+        'Current Location';
+      const detail =
+        [selectedAddress.addressLine1, selectedAddress.city, selectedAddress.state]
+          .filter(Boolean)
+          .join(', ') ||
+        selectedAddress.city ||
+        'Location detected';
       setLocationLabel(label);
       setLocationAddress(detail);
       setLocationStatus('resolved');
       if (selectedAddress.latitude && selectedAddress.longitude) {
-        const coords = { lat: Number(selectedAddress.latitude), lng: Number(selectedAddress.longitude) };
+        const coords = {
+          lat: Number(selectedAddress.latitude),
+          lng: Number(selectedAddress.longitude),
+        };
         setUserCoords(coords);
         fetchRestaurants(coords);
       }
@@ -99,16 +123,25 @@ export default function CustomerHomePage() {
           });
           if (res.ok) {
             const data = await res.json();
-            const list = Array.isArray(data) ? data : data.addresses ?? [];
+            const list = Array.isArray(data) ? data : (data.addresses ?? []);
             const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
 
             if (defaultAddr && isMounted) {
-              const locality = defaultAddr.placeName || defaultAddr.addressLine1 || defaultAddr.addressLabel || 'Saved Address';
-              const detail = [defaultAddr.addressLine1, defaultAddr.city, defaultAddr.state].filter(Boolean).join(', ');
+              const locality =
+                defaultAddr.placeName ||
+                defaultAddr.addressLine1 ||
+                defaultAddr.addressLabel ||
+                'Saved Address';
+              const detail = [defaultAddr.addressLine1, defaultAddr.city, defaultAddr.state]
+                .filter(Boolean)
+                .join(', ');
               setLocationLabel(locality);
               setLocationAddress(detail);
               if (defaultAddr.latitude && defaultAddr.longitude) {
-                const coords = { lat: Number(defaultAddr.latitude), lng: Number(defaultAddr.longitude) };
+                const coords = {
+                  lat: Number(defaultAddr.latitude),
+                  lng: Number(defaultAddr.longitude),
+                };
                 setUserCoords(coords);
                 setLocationStatus('resolved');
                 addAddress({
@@ -153,19 +186,31 @@ export default function CustomerHomePage() {
             setLocationStatus('resolving');
 
             try {
-              const geoRes = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
+              const geoRes = await fetch(
+                `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
+              );
               if (geoRes.ok) {
                 const geoData = await geoRes.json();
                 if (geoData && isMounted) {
-                  const locality = (geoData.locality || geoData.village || geoData.subLocality || '').trim();
+                  const locality = (
+                    geoData.locality ||
+                    geoData.village ||
+                    geoData.subLocality ||
+                    ''
+                  ).trim();
                   const subDistrict = (geoData.subDistrict || '').trim();
                   const district = (geoData.district || geoData.city || '').trim();
                   const state = (geoData.state || 'Jammu & Kashmir').trim();
                   const pincode = (geoData.pincode || geoData.postalCode || '').trim();
 
                   const specificName = locality || subDistrict || district || 'Current Location';
-                  const cleanAddress = geoData.formattedAddress || [locality, subDistrict, district, state].filter(Boolean).join(', ');
-                  const addressLine2 = [subDistrict, district].filter(Boolean).filter(d => d !== specificName).join(', ');
+                  const cleanAddress =
+                    geoData.formattedAddress ||
+                    [locality, subDistrict, district, state].filter(Boolean).join(', ');
+                  const addressLine2 = [subDistrict, district]
+                    .filter(Boolean)
+                    .filter((d) => d !== specificName)
+                    .join(', ');
 
                   setLocationLabel(specificName);
                   setLocationAddress(cleanAddress);
@@ -231,7 +276,9 @@ export default function CustomerHomePage() {
     };
 
     loadSavedOrGpsLocation();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [selectedAddressId, isAuthenticated, accessToken]);
 
   // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
@@ -248,7 +295,7 @@ export default function CustomerHomePage() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data.restaurants ?? [];
+        const list = Array.isArray(data) ? data : (data.restaurants ?? []);
         const normalized = list.map((r: any) => normalizeRestaurantData(r, coords));
         setRestaurants(normalized);
         try {
@@ -318,9 +365,13 @@ export default function CustomerHomePage() {
 
   // Voice Search / Mic Trigger
   const handleMicSearch = () => {
-    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    if (
+      typeof window !== 'undefined' &&
+      ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
+    ) {
       try {
-        const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRec =
+          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         const recognition = new SpeechRec();
         recognition.lang = 'en-IN';
         recognition.onresult = (e: any) => {
@@ -362,8 +413,7 @@ export default function CustomerHomePage() {
           r.name.toLowerCase().includes(cat) ||
           (r.foodItems || []).some(
             (f) =>
-              (f.category || '').toLowerCase().includes(cat) ||
-              f.name.toLowerCase().includes(cat),
+              (f.category || '').toLowerCase().includes(cat) || f.name.toLowerCase().includes(cat),
           ),
       );
     }
@@ -371,9 +421,7 @@ export default function CustomerHomePage() {
     // 3. Header Veg-Only Toggle
     if (isVegOnly) {
       list = list.filter((r) =>
-        r.foodItems && r.foodItems.length > 0
-          ? r.foodItems.some((f) => f.isVeg)
-          : true,
+        r.foodItems && r.foodItems.length > 0 ? r.foodItems.some((f) => f.isVeg) : true,
       );
     }
 
@@ -406,7 +454,7 @@ export default function CustomerHomePage() {
       list = list.filter((r) =>
         Boolean(
           r.discountBadge ||
-            (r.foodItems && r.foodItems.some((f) => f.originalPrice && f.originalPrice > f.price)),
+          (r.foodItems && r.foodItems.some((f) => f.originalPrice && f.originalPrice > f.price)),
         ),
       );
     }
@@ -448,9 +496,10 @@ export default function CustomerHomePage() {
   };
 
   const recommendedList = filteredRestaurants.slice(0, 6);
-  const popularList = filteredRestaurants.slice(6, 12).length > 0
-    ? filteredRestaurants.slice(6, 12)
-    : filteredRestaurants.slice(0, 4);
+  const popularList =
+    filteredRestaurants.slice(6, 12).length > 0
+      ? filteredRestaurants.slice(6, 12)
+      : filteredRestaurants.slice(0, 4);
 
   const initials = user
     ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
@@ -460,7 +509,6 @@ export default function CustomerHomePage() {
   return (
     <div className="bg-white">
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 pt-4 pb-10 md:pt-8">
-
         {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">
           {/* Logo on Left */}
@@ -496,7 +544,9 @@ export default function CustomerHomePage() {
             </div>
             <div className="min-w-0 pr-2">
               <div className="flex items-center gap-1">
-                <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight truncate">{locationLabel}</span>
+                <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight truncate">
+                  {locationLabel}
+                </span>
               </div>
               <p className="text-[11px] sm:text-xs text-gray-500 truncate font-medium mt-0.5">
                 {locationAddress}
@@ -517,10 +567,14 @@ export default function CustomerHomePage() {
               }`}
               title="Toggle Pure Veg mode"
             >
-              <div className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border ${
-                isVegOnly ? 'border-emerald-600 bg-emerald-600' : 'border-gray-400 bg-white'
-              }`}>
-                <div className={`h-1.5 w-1.5 rounded-full ${isVegOnly ? 'bg-white' : 'bg-gray-400'}`} />
+              <div
+                className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border ${
+                  isVegOnly ? 'border-emerald-600 bg-emerald-600' : 'border-gray-400 bg-white'
+                }`}
+              >
+                <div
+                  className={`h-1.5 w-1.5 rounded-full ${isVegOnly ? 'bg-white' : 'bg-gray-400'}`}
+                />
               </div>
               <span className="text-[10px] sm:text-[11px] uppercase tracking-tight hidden xs:inline-block">
                 {isVegOnly ? 'Pure Veg' : 'Veg Only'}
@@ -566,7 +620,9 @@ export default function CustomerHomePage() {
               <div className="min-w-0 text-xs">
                 <p className="font-black truncate">Live Order #{activeOrder.orderNumber}</p>
                 <p className="text-rose-100 truncate text-[11px]">
-                  {activeOrder.driverName ? `With ${activeOrder.driverName}` : 'Preparing your meal'}
+                  {activeOrder.driverName
+                    ? `With ${activeOrder.driverName}`
+                    : 'Preparing your meal'}
                   {activeOrder.etaMins ? ` · ~${activeOrder.etaMins} mins` : ''}
                 </p>
               </div>
@@ -611,14 +667,17 @@ export default function CustomerHomePage() {
 
         {/* ─── ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) ─── */}
         <div className="mt-6 md:mt-7">
-            <CategoryCarousel
-              selectedCategory={selectedCategory}
-              onSelectCategory={(cat) => setSelectedCategory(cat)}
-            />
-          </div>
+          <CategoryCarousel
+            selectedCategory={selectedCategory}
+            onSelectCategory={(cat) => setSelectedCategory(cat)}
+          />
+        </div>
 
         {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
-        <div className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 md:hidden" style={{ overscrollBehaviorX: 'contain' }}>
+        <div
+          className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 md:hidden"
+          style={{ overscrollBehaviorX: 'contain' }}
+        >
           {/* Main Filters Button (Opens Modal) */}
           <button
             type="button"
@@ -715,7 +774,7 @@ export default function CustomerHomePage() {
           )}
         </div>
 
-                {/* DESKTOP LAYOUT WRAPPER */}
+        {/* DESKTOP LAYOUT WRAPPER */}
         <div className="flex flex-col md:flex-row md:gap-8 mt-6 md:mt-10">
           {/* Desktop Sidebar Filters */}
           <aside className="hidden md:block w-[240px] shrink-0">
@@ -730,96 +789,110 @@ export default function CustomerHomePage() {
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             {/* ─── ROW 6: RECOMMENDED FOR YOU (DYNAMIC) ────────── */}
-        <section className="space-y-3 pt-2 mt-8 md:mt-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
-              RECOMMENDED FOR YOU
-            </h2>
-            {!isLoading && (
-              <span className="text-[11px] font-bold text-gray-400">
-                {recommendedList.length} kitchens
-              </span>
-            )}
-          </div>
+            <section className="space-y-3 pt-2 mt-8 md:mt-10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
+                  RECOMMENDED FOR YOU
+                </h2>
+                {!isLoading && (
+                  <span className="text-[11px] font-bold text-gray-400">
+                    {recommendedList.length} kitchens
+                  </span>
+                )}
+              </div>
 
-          {isLoading ? (
-            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
-              ))}
-            </div>
-          ) : isError ? (
-            <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-center space-y-2">
-              <p className="text-xs sm:text-sm font-bold text-rose-800">Unable to load kitchens at this time.</p>
-              <button
-                onClick={() => fetchRestaurants(userCoords)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Retry
-              </button>
-            </div>
-          ) : recommendedList.length > 0 ? (
-            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
-              {recommendedList.map((restaurant) => (
-                <div className="snap-start"><RecommendedCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  isInitiallyFavorite={favorites.includes(restaurant.id)}
-                  /></div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 text-center space-y-2">
-              <p className="text-xs sm:text-sm font-bold text-gray-700">No restaurants match your selected filters.</p>
-              <p className="text-[11px] text-gray-400">Try broadening your criteria or reset all filters.</p>
-              <button
-                type="button"
-                onClick={handleClearAllFilters}
-                className="inline-block mt-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm"
-              >
-                Clear Filters
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* ─── ROW 7: POPULAR NEAR YOU (DYNAMIC) ───────────── */}
-        <section className="space-y-3 pt-3 mt-8 md:mt-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
-              POPULAR NEAR YOU
-            </h2>
-            <Link
-              href="/restaurants"
-              className="flex items-center gap-1 text-xs font-black text-rose-600 hover:text-rose-700"
-            >
-              View all <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse" />
-              ))}
-            </div>
-          ) : popularList.length > 0 ? (
-            <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
-              {popularList.map((restaurant) => (
-                <div className="snap-start"><RecommendedCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  isInitiallyFavorite={favorites.includes(restaurant.id)}
-                  /></div>
-              ))}
-            </div>
-          ) : null}
-        </section>
-
-      </div>
-
+              {isLoading ? (
+                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse"
+                    />
+                  ))}
                 </div>
+              ) : isError ? (
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-center space-y-2">
+                  <p className="text-xs sm:text-sm font-bold text-rose-800">
+                    Unable to load kitchens at this time.
+                  </p>
+                  <button
+                    onClick={() => fetchRestaurants(userCoords)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Retry
+                  </button>
+                </div>
+              ) : recommendedList.length > 0 ? (
+                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
+                  {recommendedList.map((restaurant) => (
+                    <div className="snap-start">
+                      <RecommendedCard
+                        key={restaurant.id}
+                        restaurant={restaurant}
+                        isInitiallyFavorite={favorites.includes(restaurant.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 text-center space-y-2">
+                  <p className="text-xs sm:text-sm font-bold text-gray-700">
+                    No restaurants match your selected filters.
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    Try broadening your criteria or reset all filters.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="inline-block mt-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* ─── ROW 7: POPULAR NEAR YOU (DYNAMIC) ───────────── */}
+            <section className="space-y-3 pt-3 mt-8 md:mt-10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
+                  POPULAR NEAR YOU
+                </h2>
+                <Link
+                  href="/restaurants"
+                  className="flex items-center gap-1 text-xs font-black text-rose-600 hover:text-rose-700"
+                >
+                  View all <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              {isLoading ? (
+                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : popularList.length > 0 ? (
+                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
+                  {popularList.map((restaurant) => (
+                    <div className="snap-start">
+                      <RecommendedCard
+                        key={restaurant.id}
+                        restaurant={restaurant}
+                        isInitiallyFavorite={favorites.includes(restaurant.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </div>
         </div>
+      </div>
 
       {/* Location Selection Modal (GPS / Search / Saved) */}
       <LocationSelectorModal

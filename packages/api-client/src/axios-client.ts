@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { setupInterceptors } from './interceptors';
+import { setupInterceptors } from './interceptors.js';
 import { getApiBaseUrl } from '@foodhub/config';
 
 export function createApiClient(baseURL?: string): AxiosInstance {
