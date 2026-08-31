@@ -43,29 +43,37 @@ export class OrdersController {
     @Query('limit') limit = 20,
   ) {
     const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN';
+
+    // ADMIN ROUTE: Always use getAllOrders for admins.
+    // Admins can optionally filter by restaurantId via query param, but their JWT restaurantId
+    // must never be used to scope them — admins see ALL platform orders.
+    if (isAdmin) {
+      if (restaurantId) {
+        // Admin explicitly filtering by a specific restaurant
+        return this.ordersService.getRestaurantOrders(restaurantId, status as any, +page, +limit);
+      }
+      return this.ordersService.getAllOrders(status as any, +page, +limit);
+    }
+
+    // NON-ADMIN ROUTE: scope to the restaurant the user owns/manages
     const targetRestId = restaurantId || req.user?.restaurantId;
 
     if (targetRestId) {
-      if (!isAdmin) {
-        const userId = req.user?.id || req.user?.sub;
-        const ownsRestaurant = await this.prisma.restaurant.findFirst({
-          where: { id: targetRestId, ownerId: userId },
-          select: { id: true },
-        });
-        const isStaff = await this.prisma.restaurantStaff.findFirst({
-          where: { restaurantId: targetRestId, userId },
-          select: { id: true },
-        });
-        if (!ownsRestaurant && !isStaff) {
-          throw new ForbiddenException('Access denied. You do not own or manage this restaurant orders.');
-        }
+      const userId = req.user?.id || req.user?.sub;
+      const ownsRestaurant = await this.prisma.restaurant.findFirst({
+        where: { id: targetRestId, ownerId: userId },
+        select: { id: true },
+      });
+      const isStaff = await this.prisma.restaurantStaff.findFirst({
+        where: { restaurantId: targetRestId, userId },
+        select: { id: true },
+      });
+      if (!ownsRestaurant && !isStaff) {
+        throw new ForbiddenException('Access denied. You do not own or manage this restaurant orders.');
       }
       return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
     }
 
-    if (isAdmin) {
-      return this.ordersService.getAllOrders(status as any, +page, +limit);
-    }
     return this.ordersService.getCustomerOrders(req.user.id || req.user.sub, +page, +limit);
   }
 

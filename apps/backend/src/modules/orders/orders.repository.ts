@@ -92,10 +92,6 @@ export class OrdersRepository {
         restaurantId,
         ...(statusFilter ? { status: statusFilter } : {}),
         deletedAt: null,
-        OR: [
-          { paymentMethod: 'COD' },
-          { paymentStatus: 'COMPLETED' }
-        ],
       },
       include: {
         orderItems: { include: { foodItem: true } },

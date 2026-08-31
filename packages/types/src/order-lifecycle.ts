@@ -18,12 +18,15 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export const ADMIN_ORDER_FILTERS = {
   ALL: 'ALL',
-  PENDING: [OrderStatus.PENDING],
-  PREPARING: [OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP],
-  OUT_FOR_DELIVERY: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY],
-  DELIVERED: [OrderStatus.DELIVERED],
-  CANCELLED: [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED],
-};
+  PENDING:           [OrderStatus.PENDING],
+  ACCEPTED:          [OrderStatus.ACCEPTED],
+  PREPARING:         [OrderStatus.PREPARING],
+  READY_FOR_PICKUP:  [OrderStatus.READY_FOR_PICKUP],
+  DRIVER_ASSIGNED:   [OrderStatus.DRIVER_ASSIGNED],
+  OUT_FOR_DELIVERY:  [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY],
+  DELIVERED:         [OrderStatus.DELIVERED],
+  CANCELLED:         [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED],
+} as const;
 
 export const getCustomerOrderStage = (status: OrderStatus) => {
   if ([OrderStatus.PENDING, OrderStatus.ACCEPTED].includes(status)) return 0;

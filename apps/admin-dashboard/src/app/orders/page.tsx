@@ -9,12 +9,12 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const res = await adminFetch('/orders?page=1&limit=50');
+      const res = await adminFetch('/orders?page=1&limit=200');
       if (res.ok) {
         const data = await res.json();
         setOrders(Array.isArray(data) ? data : data.orders ?? []);
@@ -57,12 +57,16 @@ export default function AdminOrdersPage() {
 
   const filtered = orders.filter((o) => {
     let matchesStatus = false;
-    
+
     if (statusFilter === 'ALL') {
       matchesStatus = true;
     } else {
-      const allowedStatuses = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS] || [];
-      matchesStatus = allowedStatuses.includes(o.status as any);
+      const filterValue = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS];
+      if (Array.isArray(filterValue)) {
+        matchesStatus = (filterValue as readonly string[]).includes(o.status);
+      } else {
+        matchesStatus = filterValue === o.status;
+      }
     }
 
     const ordNum = o.orderNumber || o.id || '';
@@ -114,7 +118,7 @@ export default function AdminOrdersPage() {
 
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {['ALL', 'PENDING', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((st) => (
+          {(['ALL', 'PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] as const).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}

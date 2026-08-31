@@ -76,8 +76,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         );
       }
     } else if (user.restaurantStaff?.[0]?.restaurant) {
-      // For Admin / Customer roles who might have created or tested a restaurant, provide restaurantId without enforcing suspension
-      restaurantId = user.restaurantStaff[0].restaurant.id;
+      // NOTE: For non-restaurant roles (Admin, Customer, Delivery Partner), we intentionally
+      // do NOT set restaurantId even if they happen to be linked to a restaurant as staff.
+      // restaurantId must ONLY be set for restaurant-specific roles to prevent admins
+      // from being accidentally scoped to a single restaurant's orders.
+      // restaurantId = user.restaurantStaff[0].restaurant.id; // INTENTIONALLY REMOVED
     }
 
     // Check Driver status ONLY if user is acting as a courier partner
