@@ -48,7 +48,6 @@ interface RestaurantApplication {
 
 export default function AdminRestaurantApprovalPage() {
   const [applications, setApplications] = useState<RestaurantApplication[]>([]);
-  const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<RestaurantApplication | null>(null);
 
@@ -61,7 +60,7 @@ export default function AdminRestaurantApprovalPage() {
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
-      const res = await adminFetch(`/restaurants/applications?status=${activeTab}`);
+      const res = await adminFetch(`/restaurants/applications?status=PENDING`);
       if (res.ok) {
         const data = await res.json();
         setApplications(Array.isArray(data) ? data : []);
@@ -75,7 +74,7 @@ export default function AdminRestaurantApprovalPage() {
 
   useEffect(() => {
     fetchApplications();
-  }, [activeTab]);
+  }, []);
 
   const handleApprove = async (id: string) => {
     setIsSubmittingAction(true);
@@ -151,23 +150,6 @@ export default function AdminRestaurantApprovalPage() {
           <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           <span>Refresh Queue</span>
         </button>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {(['PENDING', 'APPROVED', 'REJECTED', 'ALL'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
-              activeTab === tab
-                ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {tab} Applications
-          </button>
-        ))}
       </div>
 
       {/* Application Cards (Mobile-first dual layout) */}

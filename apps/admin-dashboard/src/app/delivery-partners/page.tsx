@@ -182,9 +182,13 @@ export default function AdminDeliveryPartnersPage() {
     const isSuspended = d.status === 'SUSPENDED';
     const isApproved = d.isApproved && d.status !== 'SUSPENDED';
 
+    // If we're on the 'ALL' tab, don't show PENDING drivers
+    if (statusFilter === 'ALL' && isPending) {
+      return false;
+    }
+
     const matchesStatus =
       statusFilter === 'ALL' ||
-      (statusFilter === 'PENDING' && isPending) ||
       (statusFilter === 'APPROVED' && isApproved) ||
       (statusFilter === 'SUSPENDED' && isSuspended);
 
@@ -207,10 +211,10 @@ export default function AdminDeliveryPartnersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-            Delivery Fleet Partners
+            Delivery Partners Fleet
           </h1>
           <p className="text-[11px] sm:text-xs text-gray-500">
-            Courier onboarding verification, driver document compliance &amp; duty status
+            Lifecycle operations, dispatching &amp; compliance
           </p>
         </div>
 
@@ -219,40 +223,47 @@ export default function AdminDeliveryPartnersPage() {
             href="/delivery-partners/approval"
             className="flex items-center gap-1.5 rounded-2xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-teal-500/20 transition min-h-[44px]"
           >
-            <FileCheck className="h-4 w-4" />
-            <span>Driver Approvals</span>
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Approval Queue</span>
           </Link>
         </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="space-y-2.5">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-3 md:items-center bg-white p-3 rounded-2xl border border-gray-100">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by driver name, phone, or vehicle registration..."
+            placeholder="Search by name, phone, or vehicle..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-teal-500 focus:outline-none min-h-[44px]"
+            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none"
           />
         </div>
 
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {['ALL', 'APPROVED', 'PENDING', 'SUSPENDED'].map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
-                statusFilter === st
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+          {['ALL', 'APPROVED', 'SUSPENDED'].map((st) => {
+            let count = 0;
+            if (st === 'ALL') count = drivers.filter(d => !(!d.isApproved && d.status === 'PENDING')).length;
+            else if (st === 'APPROVED') count = drivers.filter(d => d.isApproved && d.status !== 'SUSPENDED').length;
+            else if (st === 'SUSPENDED') count = drivers.filter(d => d.status === 'SUSPENDED').length;
+
+            return (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
+                  statusFilter === st
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {st} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 

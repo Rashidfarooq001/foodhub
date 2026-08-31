@@ -216,6 +216,12 @@ export default function AdminRestaurantsPage() {
   };
 
   const filtered = restaurants.filter((r) => {
+    // If we're on the 'ALL' tab, don't show PENDING_APPROVAL restaurants
+    // as they belong in the Restaurant Approval Queue page.
+    if (statusFilter === 'ALL' && r.status === 'PENDING_APPROVAL') {
+      return false;
+    }
+
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
     const matchesSearch =
       !search ||
@@ -264,7 +270,7 @@ export default function AdminRestaurantsPage() {
 
         {/* Horizontal Status Pill Filter */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {['ALL', 'APPROVED', 'PENDING_APPROVAL', 'SUSPENDED', 'REJECTED'].map((st) => (
+          {['ALL', 'APPROVED', 'SUSPENDED', 'REJECTED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -274,7 +280,7 @@ export default function AdminRestaurantsPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {st.replace(/_/g, ' ')} ({st === 'ALL' ? restaurants.length : restaurants.filter((r) => r.status === st).length})
+              {st.replace(/_/g, ' ')} ({st === 'ALL' ? restaurants.filter((r) => r.status !== 'PENDING_APPROVAL').length : restaurants.filter((r) => r.status === st).length})
             </button>
           ))}
         </div>
