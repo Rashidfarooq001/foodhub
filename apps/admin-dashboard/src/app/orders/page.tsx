@@ -35,14 +35,19 @@ export default function AdminOrdersPage() {
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'OUT_FOR_DELIVERY':
       case 'PICKED_UP':
+      case 'DRIVER_ASSIGNED':
+      case 'ARRIVED_AT_RESTAURANT':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'PREPARING':
       case 'ACCEPTED':
+      case 'READY_FOR_PICKUP':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'PENDING':
         return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'CANCELLED':
       case 'REJECTED':
+      case 'FAILED':
+      case 'REFUNDED':
         return 'bg-rose-100 text-rose-800 border-rose-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -50,7 +55,24 @@ export default function AdminOrdersPage() {
   };
 
   const filtered = orders.filter((o) => {
-    const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
+    let matchesStatus = false;
+    
+    if (statusFilter === 'ALL') {
+      matchesStatus = true;
+    } else if (statusFilter === 'PENDING') {
+      matchesStatus = ['PENDING'].includes(o.status);
+    } else if (statusFilter === 'PREPARING') {
+      matchesStatus = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status);
+    } else if (statusFilter === 'OUT_FOR_DELIVERY') {
+      matchesStatus = ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status);
+    } else if (statusFilter === 'DELIVERED') {
+      matchesStatus = ['DELIVERED'].includes(o.status);
+    } else if (statusFilter === 'CANCELLED') {
+      matchesStatus = ['CANCELLED', 'REJECTED', 'FAILED', 'REFUNDED'].includes(o.status);
+    } else {
+      matchesStatus = o.status === statusFilter;
+    }
+
     const ordNum = o.orderNumber || o.id || '';
     const cust = o.customer?.profile?.firstName || o.customerName || '';
     const rest = o.restaurant?.name || '';
