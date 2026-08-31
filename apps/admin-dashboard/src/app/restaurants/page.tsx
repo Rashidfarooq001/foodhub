@@ -54,7 +54,6 @@ export default function AdminRestaurantsPage() {
     restaurantName: string;
   } | null>(null);
   const [modalReason, setModalReason] = useState('');
-  const [modalConfirmName, setModalConfirmName] = useState('');
   const [modalCommission, setModalCommission] = useState<number | ''>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -164,7 +163,6 @@ export default function AdminRestaurantsPage() {
       if (res && res.ok) {
         setActiveModal(null);
         setModalReason('');
-        setModalConfirmName('');
         setModalCommission('');
         await fetchRestaurants();
       } else {
@@ -501,19 +499,6 @@ export default function AdminRestaurantsPage() {
                 <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-900">
                   Are you sure you want to permanently delete this restaurant? This action cannot be undone. It will permanently remove the restaurant and its active operational data from the platform.
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Type <strong>{activeModal.restaurantName}</strong> to confirm:
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={modalConfirmName}
-                    onChange={(e) => setModalConfirmName(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-900 focus:border-rose-500 focus:bg-white focus:outline-none"
-                    placeholder={activeModal.restaurantName}
-                  />
-                </div>
               </div>
             )}
 
@@ -561,7 +546,7 @@ export default function AdminRestaurantsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isProcessing || (activeModal.type === 'DELETE' && modalConfirmName !== activeModal.restaurantName)}
+                  disabled={isProcessing}
                   className={`flex-1 rounded-2xl py-3 text-xs font-black text-white shadow-md transition min-h-[44px] ${
                     activeModal.type === 'DELETE'
                       ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20 disabled:bg-rose-300'
