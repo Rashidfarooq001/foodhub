@@ -7,16 +7,16 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
 
-const DEFAULT_ANALYTICS = {
-  todayEarnings: 850,
-  todayDeliveries: 12,
-  weeklyEarnings: 5400,
-  monthlyEarnings: 22500,
-  completionRate: 98.4,
-  acceptanceRate: 95.2,
-  avgRating: 4.8,
-  distanceCoveredKm: 142,
-  tipsEarned: 640,
+const DEFAULT_ANALYTICS: any = {
+  todayEarnings: 0,
+  todayDeliveries: 0,
+  weeklyEarnings: 0,
+  monthlyEarnings: 0,
+  completionRate: null,
+  acceptanceRate: null,
+  avgRating: null,
+  distanceCoveredKm: 0,
+  tipsEarned: 0,
 };
 
 export default function DriverAnalyticsPage() {
@@ -65,22 +65,34 @@ export default function DriverAnalyticsPage() {
           <p className="text-xs text-gray-400">Includes ₹{analytics.tipsEarned} in tips</p>
         </div>
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
-          <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
-            <span>Completion Rate</span>
-            <div className="p-2 bg-blue-50 rounded-2xl text-blue-600"><CheckCircle2 className="h-4 w-4" /></div>
+        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
+              <span>Completion Rate</span>
+              <div className="p-2 bg-blue-50 rounded-2xl text-blue-600 shrink-0"><CheckCircle2 className="h-4 w-4" /></div>
+            </div>
+            <p className="text-2xl font-black text-gray-900 mt-1">
+              {analytics.completionRate !== null && analytics.completionRate !== undefined ? `${analytics.completionRate}%` : 'N/A'}
+            </p>
           </div>
-          <p className="text-2xl font-black text-gray-900">{analytics.completionRate}%</p>
-          <p className="text-xs text-gray-400">{analytics.acceptanceRate}% acceptance rate</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {analytics.acceptanceRate !== null && analytics.acceptanceRate !== undefined ? `${analytics.acceptanceRate}% acceptance rate` : 'No deliveries yet'}
+          </p>
         </div>
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
-          <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
-            <span>Driver Rating</span>
-            <div className="p-2 bg-amber-50 rounded-2xl text-amber-500"><Star className="h-4 w-4 fill-amber-400" /></div>
+        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
+              <span>Driver Rating</span>
+              <div className="p-2 bg-amber-50 rounded-2xl text-amber-500 shrink-0"><Star className="h-4 w-4 fill-amber-400" /></div>
+            </div>
+            <p className="text-2xl font-black text-gray-900 mt-1">
+              {analytics.avgRating !== null && analytics.avgRating !== undefined ? `${Number(analytics.avgRating).toFixed(1)} / 5.0` : 'N/A'}
+            </p>
           </div>
-          <p className="text-2xl font-black text-gray-900">{analytics.avgRating} / 5.0</p>
-          <p className="text-xs text-gray-400">{analytics.distanceCoveredKm} km total distance</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {analytics.distanceCoveredKm > 0 ? `${analytics.distanceCoveredKm} km total distance` : 'No distance recorded'}
+          </p>
         </div>
       </div>
     </div>

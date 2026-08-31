@@ -60,13 +60,15 @@ export default function DeliveryRatingsPage() {
 
       {/* Overall Score Card */}
       <div className="rounded-2xl sm:rounded-3xl border border-amber-200 bg-amber-50/50 p-4 sm:p-6 shadow-sm flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">OVERALL COURIER SCORE</span>
-          <div className="text-3xl sm:text-4xl font-black text-amber-950 flex items-center gap-2 mt-1">
-            {stats?.avgRating ? stats.avgRating.toFixed(1) : '4.9'}
-            <Star className="h-7 w-7 fill-amber-400 text-amber-400" />
-          </div>
-          <p className="text-xs text-amber-800 font-bold mt-1">Top-Rated Fleet Partner on ZaykaFood</p>
+          <div>
+            <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">OVERALL COURIER SCORE</span>
+            <div className="text-3xl sm:text-4xl font-black text-amber-950 flex items-center gap-2 mt-1">
+              {stats?.avgRating !== null && stats?.avgRating !== undefined ? stats.avgRating.toFixed(1) : 'N/A'}
+              <Star className="h-7 w-7 fill-amber-400 text-amber-400" />
+            </div>
+            <p className="text-xs text-amber-800 font-bold mt-1">
+              {stats?.avgRating !== null && stats?.avgRating !== undefined ? 'Top-Rated Fleet Partner on ZaykaFood' : 'Complete deliveries to get ratings'}
+            </p>
         </div>
         <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
           <Award className="h-6 w-6" />

@@ -535,10 +535,10 @@ export class DeliveryJobsController {
         completedDeliveries: 0,
         weeklyEarnings: 0,
         monthlyEarnings: 0,
-        acceptanceRate: 100,
-        completionRate: 100,
-        avgRating: 4.9,
-        totalRatings: 18,
+        acceptanceRate: null,
+        completionRate: null,
+        avgRating: null,
+        totalRatings: 0,
         walletBalance: 0,
         dutyStatus: 'ONLINE',
       };
@@ -565,19 +565,43 @@ export class DeliveryJobsController {
     const availableForSettlement = totalEarnings;
     const settledAmount = 0;
 
+    const acceptedJobsCount = await this.prisma.deliveryJob.count({
+      where: { driverId: driver.id },
+    });
+
+    const rejectedJobsCount = await this.prisma.deliveryJobRejection.count({
+      where: { driverId: driver.id },
+    });
+
+    const totalOfferedJobs = acceptedJobsCount + rejectedJobsCount;
+    const acceptanceRate = totalOfferedJobs > 0 ? Math.round((acceptedJobsCount / totalOfferedJobs) * 100) : null;
+
+    const completionRate = acceptedJobsCount > 0 
+      ? Math.round((completedOrders.length / acceptedJobsCount) * 100) 
+      : null;
+
+    const totalRatings = await this.prisma.driverReview.count({
+      where: { driverId: driver.id },
+    });
+    
+    // avgRating should be read from driver.avgRating or calculated, but if totalRatings is 0, it should be null
+    const avgRating = totalRatings > 0 ? Number(driver.avgRating) : null;
+
     return {
       todayEarnings,
-      completedDeliveries: todayOrders.length,
+      completedDeliveries: completedOrders.length,
+      todayDeliveries: todayOrders.length,
       weeklyEarnings: totalEarnings,
       monthlyEarnings: totalEarnings,
       totalEarnings,
       pendingSettlement,
       availableForSettlement,
       settledAmount,
-      acceptanceRate: 96,
-      completionRate: 100,
-      avgRating: Number(driver.avgRating) > 0 ? Number(driver.avgRating) : 5.0,
-      totalRatings: completedOrders.length,
+      acceptanceRate,
+      completionRate,
+      avgRating,
+      totalRatings,
+      walletBalance: totalEarnings,
       dutyStatus: driver.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
     };
   }

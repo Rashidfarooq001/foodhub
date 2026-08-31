@@ -354,29 +354,33 @@ export default function DeliveryDashboardPage() {
           </span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-gray-400">ACCEPTANCE RATE</span>
-            <CheckCircle2 className="h-6 w-6 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-gray-400">ACCEPTANCE</span>
+              <CheckCircle2 className="h-6 w-6 rounded-xl bg-purple-50 p-1.5 text-purple-600 shrink-0" />
+            </div>
+            <h2 className="text-lg sm:text-2xl font-black text-gray-900 mt-1">
+              {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? `${stats.acceptanceRate}%` : 'N/A'}
+            </h2>
           </div>
-          <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-            {stats?.acceptanceRate ?? '96%'}
-          </h2>
-          <span className="text-[10px] text-emerald-600 font-bold block">
-            High Reliability
+          <span className={`text-[10px] font-bold block mt-1 ${stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? 'text-emerald-600' : 'text-gray-400'}`}>
+            {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? 'Target metrics' : 'No deliveries yet'}
           </span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-gray-400">RATING</span>
-            <Star className="h-6 w-6 rounded-xl bg-amber-50 p-1.5 text-amber-500" />
+        <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-gray-400">RATING</span>
+              <Star className="h-6 w-6 rounded-xl bg-amber-50 p-1.5 text-amber-500 shrink-0" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 mt-1">
+              {stats?.avgRating !== null && stats?.avgRating !== undefined ? `${stats.avgRating.toFixed(1)} ★` : 'No ratings yet'}
+            </h2>
           </div>
-          <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-            {stats?.rating ?? '4.9'} ★
-          </h2>
-          <span className="text-[10px] text-gray-500 font-semibold block">
-            Customer feedback
+          <span className="text-[9px] leading-tight text-gray-400 font-semibold block mt-1">
+            {stats?.avgRating !== null && stats?.avgRating !== undefined ? 'Customer feedback' : 'Customer feedback will appear after completed deliveries'}
           </span>
         </div>
       </div>
