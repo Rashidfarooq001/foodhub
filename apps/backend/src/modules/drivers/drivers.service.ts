@@ -452,17 +452,30 @@ export class DriversService {
       await tx.driver.delete({ where: { id: driverId } });
 
       // 5. Delete or Deactivate the User safely
-      if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
-        const userOrders = await tx.order.count({ where: { customerId: driver.userId } });
-        if (userOrders === 0) {
-          await tx.user.delete({ where: { id: driver.userId } }).catch(() => {
-            // ignore if still tied to something
-          });
-        } else {
-          await tx.user.update({
-            where: { id: driver.userId },
-            data: { isActive: false, deletedAt: new Date() },
-          });
+      if (driver.user) {
+        const ownedRestaurantsCount = await tx.restaurant.count({
+          where: { ownerId: driver.userId },
+        });
+
+        const staffRolesCount = await tx.restaurantStaff.count({
+          where: { userId: driver.userId },
+        });
+        
+        // Ensure to check if the user is a customer, but wait, if they have an order they are a customer.
+        const customer = await tx.customer.findUnique({ where: { userId: driver.userId } });
+
+        const hasOtherRoles = !!customer || ownedRestaurantsCount > 0 || staffRolesCount > 0;
+
+        if (!hasOtherRoles) {
+          // Delete the entire user (cascades to Profile, etc.)
+          await tx.wallet.updateMany({ where: { userId: driver.userId }, data: { userId: null } });
+          await tx.user.delete({ where: { id: driver.userId } });
+        } else if (driver.user.role === UserRole.DELIVERY_PARTNER) {
+           const nextRole = ownedRestaurantsCount > 0 ? UserRole.RESTAURANT_OWNER : (customer ? UserRole.CUSTOMER : UserRole.CUSTOMER);
+           await tx.user.update({
+             where: { id: driver.userId },
+             data: { role: nextRole },
+           });
         }
       }
 

@@ -515,12 +515,19 @@ export class UsersService {
   async permanentlyDeleteCustomer(userId: string, adminUserId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId, role: UserRole.CUSTOMER },
-      include: { profile: true, customer: true },
+      include: { profile: true, customer: true, driver: true, restaurantStaff: true },
     });
 
     if (!user || !user.customer) {
       throw new NotFoundException('Customer not found');
     }
+
+    // Check if the user owns any restaurants
+    const ownedRestaurantsCount = await this.prisma.restaurant.count({
+      where: { ownerId: userId },
+    });
+
+    const hasOtherRoles = !!user.driver || user.restaurantStaff.length > 0 || ownedRestaurantsCount > 0;
 
     const customerSnapshot = {
       id: user.customer.id,
@@ -537,24 +544,29 @@ export class UsersService {
         where: { customerId: user.customer.id },
       });
 
-      // 2. Preserve Orders by snapshotting customer info and setting customerId to null (handled via schema SetNull)
-      // Actually we must explicitly update orders to add snapshot before deletion
+      // 2. Preserve Orders by snapshotting customer info
       await tx.order.updateMany({
         where: { customerId: user.customer.id },
         data: { customerSnapshot },
       });
 
-      // We explicitly decouple the wallet so it's not cascaded just in case SetNull behaves weirdly with User
-      await tx.wallet.updateMany({
-        where: { userId },
-        data: { userId: null },
-      });
+      if (hasOtherRoles) {
+        // If the user has other roles, ONLY delete the Customer profile, DO NOT delete the User/auth record.
+        await tx.customer.delete({
+          where: { id: user.customer.id },
+        });
+      } else {
+        // We explicitly decouple the wallet so it's not cascaded just in case SetNull behaves weirdly with User
+        await tx.wallet.updateMany({
+          where: { userId },
+          data: { userId: null },
+        });
 
-      // 3. Delete the user
-      // Since User has CASCADE relation to Customer, Profile, etc., this deletes all operational data.
-      await tx.user.delete({
-        where: { id: userId },
-      });
+        // Delete the entire user (cascades to Customer, Profile, etc.)
+        await tx.user.delete({
+          where: { id: userId },
+        });
+      }
 
       try {
         await tx.auditLog.create({

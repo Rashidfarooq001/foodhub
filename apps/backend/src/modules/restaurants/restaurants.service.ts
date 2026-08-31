@@ -731,6 +731,38 @@ export class RestaurantsService {
         where: { id: restaurant.id },
       });
 
+      // Handle user deletion if the user has no other roles
+      const ownerUser = await tx.user.findUnique({
+        where: { id: restaurant.ownerId },
+        include: { driver: true, customer: true, profile: true },
+      });
+
+      if (ownerUser) {
+        const otherOwnedRestaurantsCount = await tx.restaurant.count({
+          where: { ownerId: ownerUser.id },
+        });
+
+        const staffRolesCount = await tx.restaurantStaff.count({
+          where: { userId: ownerUser.id },
+        });
+
+        const hasOtherRoles = !!ownerUser.driver || !!ownerUser.customer || otherOwnedRestaurantsCount > 0 || staffRolesCount > 0;
+
+        if (!hasOtherRoles) {
+          // Delete the entire user (cascades to Profile, etc.)
+          await tx.user.delete({
+            where: { id: ownerUser.id },
+          });
+        } else if (ownerUser.role === UserRole.RESTAURANT_OWNER && otherOwnedRestaurantsCount === 0) {
+           // Demote role to customer if they have a customer profile, or something else
+           const nextRole = ownerUser.driver ? UserRole.DELIVERY_PARTNER : (ownerUser.customer ? UserRole.CUSTOMER : UserRole.CUSTOMER);
+           await tx.user.update({
+             where: { id: ownerUser.id },
+             data: { role: nextRole },
+           });
+        }
+      }
+
       // Log deletion
       if (adminUserId) {
         await tx.auditLog.create({
