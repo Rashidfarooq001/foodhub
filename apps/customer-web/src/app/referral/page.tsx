@@ -9,7 +9,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 import { useAuthStore } from '../../stores/use-auth-store';
 
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+const getApiBase = () => getApiBaseUrl();
 
 export default function ReferralPage() {
   const [copied,    setCopied]    = useState(false);

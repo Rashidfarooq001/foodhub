@@ -8,7 +8,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 import { useAuthStore } from '../../stores/use-auth-store';
 
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+const getApiBase = () => getApiBaseUrl();
 
 const DEFAULT_REVIEWS = [
   {

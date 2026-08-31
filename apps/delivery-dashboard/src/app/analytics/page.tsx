@@ -5,7 +5,7 @@ import { DollarSign, CheckCircle2, Star, Navigation, Award } from 'lucide-react'
 
 import { getApiBaseUrl } from '@foodhub/config';
 
-const getApiBase = () => (typeof window !== 'undefined' ? getApiBaseUrl() : 'https://foodhub-backend-enq2.onrender.com/api/v1');
+const getApiBase = () => getApiBaseUrl();
 
 const DEFAULT_ANALYTICS: any = {
   todayEarnings: 0,

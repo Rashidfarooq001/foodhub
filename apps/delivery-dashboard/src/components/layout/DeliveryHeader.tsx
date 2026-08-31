@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Bell, Power, Menu, Bike } from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
-import { getImageUrl } from '@foodhub/config';
+import { getImageUrl, getApiBaseUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../common/ThemeToggle';
 
@@ -21,7 +21,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
     if (!accessToken) return;
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`${getImageUrl('') ? '' : ''}${typeof window !== 'undefined' ? (window as any).__API_BASE__ || 'https://foodhub-backend-enq2.onrender.com/api/v1' : 'https://foodhub-backend-enq2.onrender.com/api/v1'}/delivery/me/status`, {
+        const res = await fetch(`${getApiBaseUrl()}/delivery/me/status`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (res.ok) {
@@ -40,7 +40,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
     setIsToggling(true);
     const newStatus = !isOnDuty;
     try {
-      const apiBase = typeof window !== 'undefined' ? (window as any).__API_BASE__ || 'https://foodhub-backend-enq2.onrender.com/api/v1' : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+      const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}/delivery/duty/toggle`, {
         method: 'POST',
         headers: {

@@ -1,10 +1,7 @@
 import { getApiBaseUrl } from '@foodhub/config';
 import { useAdminAuthStore } from '../stores/use-admin-auth-store';
 
-const getApiBase = () =>
-  typeof window !== 'undefined'
-    ? getApiBaseUrl()
-    : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+const getApiBase = () => getApiBaseUrl();
 
 export function getAdminAccessToken(): string | null {
   const storeToken = useAdminAuthStore.getState().accessToken;

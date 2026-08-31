@@ -1,10 +1,7 @@
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
 
-const getApiBase = () =>
-  typeof window !== 'undefined'
-    ? getApiBaseUrl()
-    : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+const getApiBase = () => getApiBaseUrl();
 
 export function getHotelAccessToken(): string | null {
   const storeToken = useHotelAuthStore.getState().accessToken;

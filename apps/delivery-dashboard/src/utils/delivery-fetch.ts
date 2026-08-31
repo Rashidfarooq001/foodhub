@@ -1,10 +1,7 @@
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
 
-const getApiBase = () =>
-  typeof window !== 'undefined'
-    ? getApiBaseUrl()
-    : 'https://foodhub-backend-enq2.onrender.com/api/v1';
+const getApiBase = () => getApiBaseUrl();
 
 export function getDeliveryAccessToken(): string | null {
   const storeToken = useDeliveryAuthStore.getState().accessToken;

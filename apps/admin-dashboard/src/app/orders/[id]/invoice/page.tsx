@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAdminAuthStore } from '@/stores/use-admin-auth-store';
 import { FileText, Printer, CheckCircle, Store, User } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
 
 export default function InvoicePage() {
   const params = useParams();
   const orderId = params.id as string;
   const token = useAdminAuthStore((s: any) => s.accessToken);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  const backendUrl = getApiBaseUrl();
   
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
