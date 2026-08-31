@@ -105,7 +105,7 @@ export default function AdminRestaurantsPage() {
     } catch {
       /* noop */
     }
-  }, [fetchRestaurants]);
+  }, []);
 
   const handleExecuteAction = async (e: React.FormEvent) => {
     e.preventDefault();
