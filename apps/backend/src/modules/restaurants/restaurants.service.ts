@@ -628,24 +628,69 @@ export class RestaurantsService {
   async permanentlyDeleteRestaurant(id: string, adminUserId?: string) {
     const restaurant = await this.findRestaurantById(id);
 
-    // 1. Active Order Protection
-    const activeOrdersCount = await this.prisma.order.count({
+    // Count statistics for the audit log
+    const activeOrders = await this.prisma.order.findMany({
       where: {
         restaurantId: restaurant.id,
         status: {
-          notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+          notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
         },
       },
+      select: { id: true, status: true },
     });
-
-    if (activeOrdersCount > 0) {
-      throw new BadRequestException(
-        `Cannot delete restaurant: This restaurant has ${activeOrdersCount} active orders. Complete or resolve all active orders before permanent deletion.`
-      );
-    }
+    const activeOrdersCount = activeOrders.length;
+    
+    const historicalOrdersCount = await this.prisma.order.count({ where: { restaurantId: restaurant.id } });
+    const historicalSettlementsCount = await this.prisma.restaurantSettlement.count({ where: { restaurantId: restaurant.id } });
 
     // 2. Perform safe permanent deletion using an atomic transaction
     await this.prisma.$transaction(async (tx) => {
+      
+      // Handle active orders: Cancel them gracefully with a status history log
+      if (activeOrdersCount > 0) {
+        const orderHistories = activeOrders.map(order => ({
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: OrderStatus.CANCELLED,
+        }));
+        
+        await tx.orderStatusHistory.createMany({
+          data: orderHistories,
+        });
+
+        const orderTimelines = activeOrders.map(order => ({
+          orderId: order.id,
+          status: OrderStatus.CANCELLED,
+          message: 'Order automatically cancelled because the restaurant was permanently deleted by SuperAdmin.',
+        }));
+
+        await tx.orderTimeline.createMany({
+          data: orderTimelines,
+        });
+
+        const cancellations = activeOrders.map(order => ({
+          orderId: order.id,
+          reason: 'Restaurant permanently deleted by SuperAdmin',
+          cancelledBy: adminUserId || restaurant.id,
+        }));
+
+        await tx.orderCancellation.createMany({
+          data: cancellations,
+        });
+
+        await tx.order.updateMany({
+          where: {
+            restaurantId: restaurant.id,
+            status: {
+              notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
+            },
+          },
+          data: {
+            status: OrderStatus.CANCELLED,
+          },
+        });
+      }
+
       // Update historical orders to decouple the restaurant ID but preserve a snapshot
       await tx.order.updateMany({
         where: { restaurantId: restaurant.id },
@@ -694,7 +739,12 @@ export class RestaurantsService {
             entityName: 'Restaurant',
             entityId: restaurant.id,
             userId: adminUserId,
-            oldValue: { name: restaurant.name },
+            oldValue: { 
+              name: restaurant.name,
+              activeOrdersAffected: activeOrdersCount,
+              historicalOrdersPreserved: historicalOrdersCount,
+              historicalSettlementsPreserved: historicalSettlementsCount
+            },
           },
         });
       }
