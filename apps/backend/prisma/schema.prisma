@@ -162,6 +162,8 @@ enum SettlementStatus {
   PAID
   FAILED
   ON_HOLD
+  SETTLED
+  PAYOUT_FAILED
 }
 
 enum AuditAction {
@@ -968,7 +970,7 @@ model RestaurantSettlement {
   @@index([restaurantId])
   @@index([status])
   @@index([periodStart, periodEnd])
-  @@map("restaurant_settlements")
+  @@map("settlements")
 }
 
 model RiderSettlement {
