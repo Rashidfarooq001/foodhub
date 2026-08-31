@@ -216,6 +216,43 @@ export class ReviewsService {
     return { reviews, total, page, limit };
   }
 
+  async getMyReviews(userIdOrCustomerId: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        OR: [
+          { userId: userIdOrCustomerId },
+          { id: userIdOrCustomerId },
+        ],
+      },
+    });
+    if (!customer) return [];
+
+    const reviews = await this.prisma.restaurantReview.findMany({
+      where: { customerId: customer.id, isHidden: false },
+      include: {
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            bannerUrl: true,
+          },
+        },
+        votes: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reviews.map((r) => ({
+      id: r.id,
+      restaurantName: r.restaurant?.name || 'Restaurant',
+      rating: r.rating,
+      comment: r.comment || '',
+      date: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      helpful: r.votes?.filter((v) => v.isHelpful)?.length || 0,
+    }));
+  }
+
   // ────────────────────────────────────────────────────────────────────────────
   // SOCIAL (VOTE / REPORT / REPLY)
   // ────────────────────────────────────────────────────────────────────────────

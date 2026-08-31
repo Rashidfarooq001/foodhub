@@ -1,38 +1,111 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Star, MessageSquare, CornerDownRight, Send, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, MessageSquare, CornerDownRight, Send, X, Loader2 } from 'lucide-react';
+import { getApiBaseUrl } from '@foodhub/config';
+import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
+
+interface ReviewItem {
+  id: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  reply: string | null;
+  date: string;
+}
 
 export default function HotelReviewsPage() {
-  const [reviews, setReviews] = useState([
-    {
-      id: 'r1',
-      customerName: 'Rahul Sharma',
-      rating: 5,
-      comment: 'Super fast delivery and piping hot Paneer Butter Masala! Loved the packaging.',
-      reply: 'Thank you Rahul! Glad you enjoyed the meal!',
-      date: 'Yesterday',
-    },
-    {
-      id: 'r2',
-      customerName: 'Priya Patel',
-      rating: 4,
-      comment: 'Biryani tasted delicious, nicely seasoned and spicy as requested.',
-      reply: null,
-      date: '2 days ago',
-    },
-  ]);
+  const { user, accessToken } = useHotelAuthStore();
+  const restaurantId = user?.restaurantId;
 
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const handleSendReply = (id: string) => {
-    if (!replyText.trim()) return;
-    setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, reply: replyText.trim() } : r)),
-    );
-    setActiveReplyId(null);
-    setReplyText('');
+  const fetchReviews = async () => {
+    if (!restaurantId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const apiBase = getApiBaseUrl();
+      const res = await fetch(`${apiBase}/reviews/restaurant/${restaurantId}?limit=50`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawReviews = Array.isArray(data) ? data : data.reviews || [];
+
+        const formatted: ReviewItem[] = rawReviews.map((r: any) => {
+          const custName = r.isAnonymous
+            ? 'Anonymous Foodie'
+            : r.customer?.user?.profile?.name || r.customer?.user?.name || 'Customer';
+          const replyObj = r.replies && r.replies.length > 0 ? r.replies[0] : null;
+          const dateStr = r.createdAt
+            ? new Date(r.createdAt).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : 'Recent';
+
+          return {
+            id: r.id,
+            customerName: custName,
+            rating: r.rating || 5,
+            comment: r.comment || '',
+            reply: replyObj?.replyText || null,
+            date: dateStr,
+          };
+        });
+
+        setReviews(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to load restaurant reviews', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [restaurantId, accessToken]);
+
+  const handleSendReply = async (id: string) => {
+    if (!replyText.trim() || isSubmittingReply) return;
+    setIsSubmittingReply(true);
+
+    try {
+      const apiBase = getApiBaseUrl();
+      const res = await fetch(`${apiBase}/reviews/${id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          role: 'OWNER',
+          replyText: replyText.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setReviews((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, reply: replyText.trim() } : r)),
+        );
+        setActiveReplyId(null);
+        setReplyText('');
+      }
+    } catch (err) {
+      console.error('Failed to post reply', err);
+    } finally {
+      setIsSubmittingReply(false);
+    }
   };
 
   return (
@@ -47,8 +120,21 @@ export default function HotelReviewsPage() {
         </p>
       </div>
 
-      <div className="space-y-3">
-        {reviews.map((rev) => (
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
+          ))}
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
+          <MessageSquare className="mx-auto h-10 w-10 text-gray-300" />
+          <p className="text-base font-bold text-gray-700">No customer reviews yet</p>
+          <p className="text-xs text-gray-400">Reviews submitted by customers after order delivery will show up here.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((rev) => (
           <div
             key={rev.id}
             className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3"
@@ -118,7 +204,8 @@ export default function HotelReviewsPage() {
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

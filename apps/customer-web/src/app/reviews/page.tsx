@@ -10,25 +10,6 @@ import { useAuthStore } from '../../stores/use-auth-store';
 
 const getApiBase = () => getApiBaseUrl();
 
-const DEFAULT_REVIEWS = [
-  {
-    id: 'rv-1',
-    restaurantName: 'Spice Garden',
-    rating: 5,
-    comment: 'Amazing food! Super fast delivery and great packaging.',
-    date: '24 Jul 2026',
-    helpful: 12,
-  },
-  {
-    id: 'rv-2',
-    restaurantName: 'Pizza Paradise',
-    rating: 4,
-    comment: 'Loved the pizza, will order again.',
-    date: '18 Jul 2026',
-    helpful: 5,
-  },
-];
-
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -45,10 +26,12 @@ function StarRow({ rating }: { rating: number }) {
 export default function ReviewsPage() {
   const router = useRouter();
   const [helpedIds, setHelpedIds] = useState<string[]>([]);
-  const [reviews, setReviews] = useState(DEFAULT_REVIEWS);
+  const [reviews, setReviews] = useState<Array<{ id: string; restaurantName: string; rating: number; comment: string; date: string; helpful: number }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
     const fetchReviews = async () => {
+      setIsLoading(true);
       try {
         const token = useAuthStore.getState().accessToken;
         const res = await fetch(`${getApiBase()}/reviews/me`, {
@@ -56,11 +39,15 @@ export default function ReviewsPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
+          if (Array.isArray(data)) {
             setReviews(data);
           }
         }
-      } catch { /* fallback */ }
+      } catch {
+        setReviews([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchReviews();
   }, []);
@@ -80,7 +67,11 @@ export default function ReviewsPage() {
           </div>
         </div>
 
-        {reviews.length === 0 ? (
+        {isLoading ? (
+          <div className="py-10 text-center">
+            <p className="text-sm font-semibold text-gray-400">Loading your reviews...</p>
+          </div>
+        ) : reviews.length === 0 ? (
           <div className="py-10 text-center">
             <MessageSquare className="mx-auto mb-3 h-12 w-12 text-gray-200" />
             <p className="text-gray-400">No reviews yet. Order something delicious!</p>

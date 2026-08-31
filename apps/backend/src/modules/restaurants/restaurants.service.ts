@@ -825,6 +825,48 @@ export class RestaurantsService {
     });
   }
 
+  async updateStoreProfile(id: string, dto: { name?: string; phone?: string; licenseFssai?: string; gstin?: string; bannerUrl?: string; menuUrl?: string }) {
+    const data: any = {};
+    if (dto.name) data.name = dto.name;
+    if (dto.phone) data.phone = dto.phone;
+    if (dto.licenseFssai) data.licenseFssai = dto.licenseFssai;
+    if (dto.gstin !== undefined) data.gstin = dto.gstin;
+    if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl;
+    if (dto.menuUrl !== undefined) data.menuUrl = dto.menuUrl;
+
+    return this.prisma.restaurant.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async getRestaurantTimings(restaurantId: string) {
+    return this.prisma.restaurantTiming.findMany({
+      where: { restaurantId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+  }
+
+  async updateRestaurantTimings(restaurantId: string, timings: Array<{ dayOfWeek: number; openTime: string; closeTime: string; isClosed: boolean }>) {
+    await this.prisma.restaurantTiming.deleteMany({
+      where: { restaurantId },
+    });
+
+    if (timings && timings.length > 0) {
+      await this.prisma.restaurantTiming.createMany({
+        data: timings.map((t) => ({
+          restaurantId,
+          dayOfWeek: t.dayOfWeek,
+          openTime: t.openTime,
+          closeTime: t.closeTime,
+          isClosed: t.isClosed ?? false,
+        })),
+      });
+    }
+
+    return this.getRestaurantTimings(restaurantId);
+  }
+
   async deleteDeliveryStaff(restaurantId: string, staffId: string) {
     return this.prisma.restaurantDeliveryStaff.delete({
       where: { id: staffId },

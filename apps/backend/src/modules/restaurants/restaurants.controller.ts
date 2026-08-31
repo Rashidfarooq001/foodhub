@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -156,6 +156,38 @@ export class RestaurantsController {
     @Body('deliveryRadius') deliveryRadius: number,
   ) {
     return this.restaurantsService.updateDeliveryRadius(id, deliveryRadius);
+  }
+
+  @Patch(':id/profile')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update restaurant store profile and branding' })
+  async updateStoreProfile(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @CurrentUser() user: any,
+  ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
+    return this.restaurantsService.updateStoreProfile(id, dto);
+  }
+
+  @Get(':id/timings')
+  @ApiOperation({ summary: 'Get restaurant working hours matrix' })
+  async getRestaurantTimings(@Param('id') id: string) {
+    return this.restaurantsService.getRestaurantTimings(id);
+  }
+
+  @Put(':id/timings')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update restaurant working hours matrix' })
+  async updateRestaurantTimings(
+    @Param('id') id: string,
+    @Body() timings: any[],
+    @CurrentUser() user: any,
+  ) {
+    await this.restaurantsService.verifyRestaurantAccess(id, user);
+    return this.restaurantsService.updateRestaurantTimings(id, timings);
   }
 
   @Patch(':id')

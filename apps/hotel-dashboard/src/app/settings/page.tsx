@@ -24,11 +24,11 @@ export default function HotelSettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Store Brand State
-  const [restaurantName, setRestaurantName] = useState('Spice Garden Restaurant');
-  const [phone, setPhone] = useState('+919876543210');
-  const [fssai, setFssai] = useState('11223344556677');
-  const [gstin, setGstin] = useState('29ABCDE1234F1Z5');
-  const [logoUrl, setLogoUrl] = useState('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80');
+  const [restaurantName, setRestaurantName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [fssai, setFssai] = useState('');
+  const [gstin, setGstin] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [bannerUrl, setBannerUrl] = useState('');
   const [promoVideoUrl, setPromoVideoUrl] = useState('');
 
@@ -44,8 +44,32 @@ export default function HotelSettingsPage() {
       if (user.lastName) setLastName(user.lastName);
       else if (user.name) setLastName(user.name.split(' ').slice(1).join(' ') || '');
       if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
+      if (user.restaurantName) setRestaurantName(user.restaurantName);
     }
-  }, [user]);
+
+    const fetchStore = async () => {
+      const restId = user?.restaurantId;
+      if (!restId) return;
+      try {
+        const res = await fetch(`${API_BASE}/restaurants/${restId}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+        if (res.ok) {
+          const rest = await res.json();
+          if (rest.name) setRestaurantName(rest.name);
+          if (rest.phone) setPhone(rest.phone);
+          if (rest.licenseFssai) setFssai(rest.licenseFssai);
+          if (rest.gstin) setGstin(rest.gstin);
+          if (rest.bannerUrl) setBannerUrl(rest.bannerUrl);
+          if (rest.menuUrl) setPromoVideoUrl(rest.menuUrl);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    fetchStore();
+  }, [user, accessToken]);
 
   const showNotification = (msg: string, isError = false) => {
     if (isError) {
@@ -205,9 +229,43 @@ export default function HotelSettingsPage() {
   };
 
   // Save Store Settings
-  const handleSaveStore = (e: React.FormEvent) => {
+  const handleSaveStore = async (e: React.FormEvent) => {
     e.preventDefault();
-    showNotification('Store profile and brand media assets saved!');
+    const restId = user?.restaurantId;
+    if (!restId) {
+      showNotification('No active restaurant ID linked to this account.', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/restaurants/${restId}/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          name: restaurantName.trim(),
+          phone: phone.trim(),
+          licenseFssai: fssai.trim(),
+          gstin: gstin.trim() || null,
+          bannerUrl: bannerUrl || null,
+          menuUrl: promoVideoUrl || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to update store profile');
+      }
+
+      showNotification('Store profile and brand media assets saved successfully!');
+    } catch (err: any) {
+      showNotification(err.message || 'Failed to save store settings', true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

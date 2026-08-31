@@ -14,55 +14,121 @@ const REPORT_TYPES = [
   { id: 'coupons', label: 'Coupon Usages' },
 ];
 
-const DEFAULT_REPORTS = [
-  { id: 'REP-101', date: '2026-07-29', category: 'Sales', title: 'Daily Revenue Breakdown', records: 312, totalAmount: '₹1,32,600', status: 'Generated' },
-  { id: 'REP-102', date: '2026-07-28', category: 'Orders', title: 'Completed Orders Audit', records: 298, totalAmount: '₹1,21,400', status: 'Generated' },
-  { id: 'REP-103', date: '2026-07-27', category: 'Settlements', title: 'Weekly Restaurant Payouts', records: 45, totalAmount: '₹4,85,000', status: 'Generated' },
-  { id: 'REP-104', date: '2026-07-26', category: 'Coupons', title: 'Discount Usage Summary', records: 114, totalAmount: '₹14,250', status: 'Generated' },
-  { id: 'REP-105', date: '2026-07-25', category: 'Drivers', title: 'Weekly Driver Incentives', records: 88, totalAmount: '₹44,000', status: 'Generated' },
-];
+interface ReportItem {
+  id: string;
+  date: string;
+  category: string;
+  title: string;
+  records: number;
+  totalAmount: string;
+  status: string;
+}
 
 export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState('sales');
   const [dateRange, setDateRange] = useState('30d');
   const [searchQuery, setSearchQuery] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [reportsData] = useState(DEFAULT_REPORTS);
+  const [reportsData, setReportsData] = useState<ReportItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const rangeMap: Record<string, string> = { '7d': '7D', '30d': '30D', '90d': '90D' };
+      const rangeParam = rangeMap[dateRange] || '30D';
+      const res = await adminFetch(`/analytics/admin?range=${rangeParam}`);
+
+      if (res.ok) {
+        const data = await res.json();
+        const generatedList: ReportItem[] = [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        if (data.kpi) {
+          generatedList.push({
+            id: `REP-REV-${rangeParam}`,
+            date: todayStr,
+            category: 'Sales',
+            title: `Platform GMV & Revenue (${rangeParam})`,
+            records: data.kpi.totalOrders || 0,
+            totalAmount: `₹${(data.kpi.totalRevenue || 0).toLocaleString('en-IN')}`,
+            status: 'Live',
+          });
+
+          generatedList.push({
+            id: `REP-ORD-${rangeParam}`,
+            date: todayStr,
+            category: 'Orders',
+            title: `Order Volume & Fulfillment (${rangeParam})`,
+            records: data.kpi.totalOrders || 0,
+            totalAmount: `₹${(data.kpi.totalRevenue || 0).toLocaleString('en-IN')}`,
+            status: 'Live',
+          });
+
+          generatedList.push({
+            id: `REP-SET-${rangeParam}`,
+            date: todayStr,
+            category: 'Settlements',
+            title: `Merchant Payouts & Settlement Balance`,
+            records: data.activeRestaurantsCount || 0,
+            totalAmount: `₹${(data.kpi.netRevenue || 0).toLocaleString('en-IN')}`,
+            status: 'Live',
+          });
+
+          generatedList.push({
+            id: `REP-DRV-${rangeParam}`,
+            date: todayStr,
+            category: 'Drivers',
+            title: `Active Delivery Fleet Activity`,
+            records: data.kpi.onlineDrivers || 0,
+            totalAmount: `${data.kpi.onlineDrivers || 0} active`,
+            status: 'Live',
+          });
+        }
+
+        setReportsData(generatedList);
+      }
+    } catch (err) {
+      console.error('Failed to load reports', err);
+      setReportsData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchReports();
+  }, [dateRange]);
 
   const handleDownload = async (id: string, type: string) => {
     setDownloading(id);
     try {
-      const response = await adminFetch(`/analytics/export?type=${type}`);
-      if (!response.ok) {
-        const csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Title,Records,TotalAmount\n"
-          + `${id},2026-07-29,${type},Exported Report,300,100000`;
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `${type}_report_${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
+      const typeMap: Record<string, string> = {
+        sales: 'revenue',
+        orders: 'orders',
+        customers: 'customers',
+        restaurants: 'restaurants',
+        drivers: 'orders',
+        settlements: 'revenue',
+        coupons: 'revenue',
+      };
+      const exportType = typeMap[type.toLowerCase()] || 'orders';
+      const response = await adminFetch(`/analytics/export?type=${exportType}`);
+
+      if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${type}_report_${Date.now()}.csv`;
+        a.download = `${exportType}_export_${Date.now()}.csv`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
       }
-    } catch {
-      const csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Title,Records,TotalAmount\n"
-        + `${id},2026-07-29,${type},Exported Report,300,100000`;
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `${type}_report_${Date.now()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Export failed', err);
     } finally {
-      setTimeout(() => setDownloading(null), 500);
+      setDownloading(null);
     }
   };
 
@@ -137,7 +203,19 @@ export default function AdminReportsPage() {
           Generated Snapshots ({reportsData.length})
         </h2>
 
-        {/* Mobile View: Cards */}
+        {isLoading ? (
+          <div className="py-12 text-center">
+            <p className="text-xs font-bold text-gray-400">Compiling real-time snapshot records...</p>
+          </div>
+        ) : reportsData.length === 0 ? (
+          <div className="py-12 text-center space-y-2">
+            <FileText className="mx-auto h-10 w-10 text-gray-300" />
+            <p className="text-sm font-bold text-gray-700">No snapshot records found</p>
+            <p className="text-xs text-gray-400">Operational snapshots for this period will generate as orders process.</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
         <div className="block md:hidden space-y-3">
           {reportsData.map((item) => (
             <div
@@ -216,6 +294,8 @@ export default function AdminReportsPage() {
             </tbody>
           </table>
         </div>
+        </>
+      )}
       </div>
     </div>
   );

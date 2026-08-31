@@ -25,6 +25,13 @@ import { Public } from '../auth/decorators/public.decorator';
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user submitted reviews' })
+  async getMyReviews(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.reviewsService.getMyReviews(userId);
+  }
+
   @Post('restaurant')
   @ApiOperation({ summary: 'Submit a restaurant review (delivered orders only)' })
   async reviewRestaurant(
