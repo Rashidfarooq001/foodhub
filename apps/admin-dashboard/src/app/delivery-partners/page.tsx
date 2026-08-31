@@ -122,16 +122,14 @@ export default function AdminDeliveryPartnersPage() {
           body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
         });
       } else if (activeModal.type === 'SUSPEND') {
-        res = await adminFetch(`/drivers/${activeModal.driverId}/approval`, {
+        res = await adminFetch(`/drivers/${activeModal.driverId}/suspend`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isApproved: false, status: 'SUSPENDED', reason: modalReason }),
+          body: JSON.stringify({ reason: modalReason }),
         });
       } else if (activeModal.type === 'REACTIVATE') {
-        res = await adminFetch(`/drivers/${activeModal.driverId}/approval`, {
+        res = await adminFetch(`/drivers/${activeModal.driverId}/reactivate`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
         });
       } else if (activeModal.type === 'DELETE') {
         res = await adminFetch(`/drivers/${activeModal.driverId}`, {
@@ -450,7 +448,7 @@ export default function AdminDeliveryPartnersPage() {
               {activeModal.type === 'DELETE' && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
                   <p className="font-bold">Are you sure you want to permanently delete this delivery partner?</p>
-                  <p className="text-[11px] text-rose-600">This will remove their courier partner profile and KYC records from the platform.</p>
+                  <p className="text-[11px] text-rose-600">This action cannot be undone. The rider account and operational rider data will be permanently removed from the platform.</p>
                 </div>
               )}
 
@@ -487,7 +485,7 @@ export default function AdminDeliveryPartnersPage() {
                       : 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20'
                   }`}
                 >
-                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'Delete Driver' : 'Confirm Action'}
+                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'DELETE PERMANENTLY' : 'Confirm Action'}
                 </button>
               </div>
             </form>

@@ -85,13 +85,33 @@ export class DriversController {
     return this.driversService.updateApprovalStatus(id, isApproved, reason, adminUserId);
   }
 
+  @Patch(':id/suspend')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Suspend a delivery partner (Super Admin Only)' })
+  async suspendDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.suspendDriver(id, adminUserId);
+  }
+
+  @Patch(':id/reactivate')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Reactivate a suspended delivery partner (Super Admin Only)' })
+  async reactivateDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.reactivateDriver(id, adminUserId);
+  }
+
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Delete or remove delivery partner' })
-  async deleteDriver(@Param('id') id: string, @Request() req?: any) {
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a delivery partner (Super Admin Only)' })
+  async permanentlyDeleteDriver(@Param('id') id: string, @Request() req?: any) {
     const adminUserId = req?.user?.id || req?.user?.sub;
-    return this.driversService.deleteDriver(id, adminUserId);
+    return this.driversService.permanentlyDeleteDriver(id, adminUserId);
   }
 }

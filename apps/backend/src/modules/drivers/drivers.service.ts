@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
-import { UserRole, DriverStatus, AuditAction } from '@prisma/client';
+import { UserRole, DriverStatus, AuditAction, OrderStatus } from '@prisma/client';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
 import { OrdersGateway } from '../orders/orders.gateway';
@@ -310,91 +310,181 @@ export class DriversService {
     return updated;
   }
 
-  async deleteDriver(driverId: string, adminUserId?: string) {
+  async suspendDriver(driverId: string, adminUserId?: string) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId }, include: { user: true } });
+    if (!driver) throw new NotFoundException('Delivery partner not found');
+
+    const updated = await this.prisma.driver.update({
+      where: { id: driverId },
+      data: { status: DriverStatus.SUSPENDED, isApproved: false },
+    });
+
+    if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+      await this.prisma.user.update({ where: { id: driver.userId }, data: { isActive: false } });
+    }
+
+    if (adminUserId) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: AuditAction.RIDER_SUSPENDED,
+          entityName: 'Driver',
+          entityId: driverId,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  async reactivateDriver(driverId: string, adminUserId?: string) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId }, include: { user: true } });
+    if (!driver) throw new NotFoundException('Delivery partner not found');
+
+    const updated = await this.prisma.driver.update({
+      where: { id: driverId },
+      data: { status: DriverStatus.OFFLINE, isApproved: true },
+    });
+
+    if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+      await this.prisma.user.update({ where: { id: driver.userId }, data: { isActive: true, deletedAt: null } });
+    }
+
+    if (adminUserId) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: AuditAction.RIDER_REACTIVATED,
+          entityName: 'Driver',
+          entityId: driverId,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  async permanentlyDeleteDriver(driverId: string, adminUserId?: string) {
     const driver = await this.prisma.driver.findUnique({
       where: { id: driverId },
-      include: {
-        user: true,
-        deliveryJobs: { where: { status: { in: ['ASSIGNED', 'PICKED_UP'] } } },
-      },
+      include: { user: { include: { profile: true } } },
     });
 
     if (!driver) {
       throw new NotFoundException('Delivery partner not found');
     }
 
-    if (driver.deliveryJobs && driver.deliveryJobs.length > 0) {
-      throw new BadRequestException('Cannot delete a driver with active, in-progress delivery assignments.');
-    }
-
-    const now = new Date();
+    const driverSnapshot = {
+      id: driver.id,
+      name: driver.user?.profile ? `${driver.user.profile.firstName} ${driver.user.profile.lastName}` : 'Unknown',
+      phone: driver.user ? driver.user.phone : 'Unknown',
+      licenseNumber: driver.licenseNumber,
+      deletedAt: new Date().toISOString(),
+    };
 
     await this.prisma.$transaction(async (tx) => {
-      // Clean up relations
+      // 1. Identify active deliveries (ASSIGNED, ARRIVED, PICKED_UP)
+      const activeDeliveries = await tx.deliveryJob.findMany({
+        where: { driverId, status: { in: ['ASSIGNED', 'ARRIVED', 'PICKED_UP'] } },
+      });
+      const activeCount = activeDeliveries.length;
+
+      // Unassign active deliveries to return them to dispatch pool
+      if (activeCount > 0) {
+        await tx.deliveryJob.updateMany({
+          where: { driverId, status: { in: ['ASSIGNED', 'ARRIVED', 'PICKED_UP'] } },
+          data: {
+            driverId: null,
+            status: 'AVAILABLE',
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
+
+        // Also update corresponding active orders to reflect they are awaiting a driver
+        for (const job of activeDeliveries) {
+          await tx.order.update({
+            where: { id: job.orderId },
+            data: {
+              assignedFoodHubDriverId: null,
+              status: OrderStatus.READY_FOR_PICKUP, // safe generic state for unassigned orders
+            },
+          });
+        }
+      }
+
+      // 2. Preserve Historical Data by decoupling and snapshotting
+      const historicalDeliveriesCount = await tx.deliveryJob.count({ where: { driverId } });
+      const pendingSettlementsCount = await tx.riderSettlement.count({ where: { driverId } });
+
+      await tx.deliveryJob.updateMany({
+        where: { driverId },
+        data: { driverId: null }, // deliveryJobs don't have driverSnapshot in schema
+      });
+
+      await tx.deliveryHistory.updateMany({
+        where: { driverId },
+        data: { driverId: null, driverSnapshot },
+      });
+
+      await tx.riderSettlement.updateMany({
+        where: { driverId },
+        data: { driverId: null, driverSnapshot },
+      });
+
+      // Also nullify from Orders where completed
+      await tx.order.updateMany({
+        where: { assignedFoodHubDriverId: driverId },
+        data: { assignedFoodHubDriverId: null },
+      });
+
+      // 3. Clean up operational relations (Cascades automatically, but let's be explicit for safety)
       await tx.driverDocument.deleteMany({ where: { driverId } });
       await tx.driverVehicle.deleteMany({ where: { driverId } });
       await tx.driverLocation.deleteMany({ where: { driverId } });
       await tx.driverShift.deleteMany({ where: { driverId } });
       await tx.driverWallet.deleteMany({ where: { driverId } });
+      await tx.deliveryJobRejection.deleteMany({ where: { driverId } });
+      await tx.deliveryAssignment.deleteMany({ where: { driverId } });
 
-      const countJobs = await tx.deliveryJob.count({ where: { driverId } });
+      // 4. Delete the Driver
+      await tx.driver.delete({ where: { id: driverId } });
 
-      if (countJobs === 0) {
-        // Safe to hard-delete driver record
-        await tx.driver.delete({ where: { id: driverId } });
-
-        // If the user only has DELIVERY_PARTNER role and no orders, delete user
-        if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
-          const userOrders = await tx.order.count({ where: { customerId: driver.userId } });
-          if (userOrders === 0) {
-            await tx.user.delete({ where: { id: driver.userId } }).catch(async () => {
-              await tx.user.update({
-                where: { id: driver.userId },
-                data: { isActive: false, deletedAt: now },
-              });
-            });
-          } else {
-            await tx.user.update({
-              where: { id: driver.userId },
-              data: { isActive: false, deletedAt: now },
-            });
-          }
-        }
-      } else {
-        // Soft delete for historical referential integrity
-        await tx.driver.update({
-          where: { id: driverId },
-          data: {
-            deletedAt: now,
-            status: DriverStatus.SUSPENDED,
-            isApproved: false,
-          },
-        });
-        if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+      // 5. Delete or Deactivate the User safely
+      if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
+        const userOrders = await tx.order.count({ where: { customerId: driver.userId } });
+        if (userOrders === 0) {
+          await tx.user.delete({ where: { id: driver.userId } }).catch(() => {
+            // ignore if still tied to something
+          });
+        } else {
           await tx.user.update({
             where: { id: driver.userId },
-            data: { isActive: false, deletedAt: now },
+            data: { isActive: false, deletedAt: new Date() },
           });
         }
       }
 
-      // Record audit log
+      // 6. Record Audit Log
       if (adminUserId) {
         await tx.auditLog.create({
           data: {
             userId: adminUserId,
-            action: AuditAction.DELETE,
+            action: AuditAction.RIDER_DELETED,
             entityName: 'Driver',
             entityId: driverId,
             oldValue: {
-              licenseNumber: driver.licenseNumber,
-              driverUserId: driver.userId,
+              activeDeliveriesAffected: activeCount,
+              historicalDeliveriesPreserved: historicalDeliveriesCount,
+              historicalSettlementsPreserved: pendingSettlementsCount,
+              driverName: driverSnapshot.name,
             },
           },
-        }).catch(() => {});
+        });
       }
     });
 
-    return { success: true, message: 'Delivery partner deleted successfully' };
+    return { success: true, message: 'Driver deleted permanently.' };
   }
 }
