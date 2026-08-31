@@ -179,6 +179,9 @@ enum AuditAction {
   RIDER_SUSPENDED
   RIDER_REACTIVATED
   RIDER_DELETED
+  CUSTOMER_SUSPENDED
+  CUSTOMER_REACTIVATED
+  CUSTOMER_DELETED
 }
 
 // ==========================================
@@ -762,7 +765,8 @@ model Tax {
 model Order {
   id                         String        @id @default(uuid()) @db.Uuid
   orderNumber                String        @unique @map("order_number")
-  customerId                 String        @map("customer_id") @db.Uuid
+  customerId                 String?       @map("customer_id") @db.Uuid
+  customerSnapshot           Json?         @map("customer_snapshot")
   restaurantId               String?       @map("restaurant_id") @db.Uuid
   status                     OrderStatus   @default(PENDING)
   subtotal                   Decimal       @db.Decimal(10, 2)
@@ -790,7 +794,7 @@ model Order {
   deletedAt                  DateTime?     @map("deleted_at")
   version                    Int           @default(1)
 
-  customer                 Customer                 @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customer                 Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
   restaurant               Restaurant?              @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
   assignedRestaurantDriver RestaurantDeliveryStaff? @relation(fields: [assignedRestaurantDriverId], references: [id], onDelete: SetNull)
   orderItems               OrderItem[]
@@ -1020,12 +1024,12 @@ model Invoice {
 
 model Wallet {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @map("user_id") @db.Uuid
+  userId    String?  @unique @map("user_id") @db.Uuid
   balance   Decimal  @default(0.00) @db.Decimal(10, 2)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   transactions WalletTransaction[]
 
   @@map("wallets")

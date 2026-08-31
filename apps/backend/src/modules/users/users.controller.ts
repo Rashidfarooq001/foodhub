@@ -63,6 +63,35 @@ export class UsersController {
     return this.usersService.updateUserStatusByAdmin(userId, isActive, reason, adminUserId);
   }
 
+  // --- SUPERADMIN CUSTOMER MANAGEMENT ---
+
+  @Patch('users/customers/:id/suspend')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Suspend a customer (SuperAdmin Only)' })
+  async suspendCustomer(@Param('id') customerId: string, @Body('reason') reason?: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.suspendCustomer(customerId, reason, adminUserId);
+  }
+
+  @Patch('users/customers/:id/reactivate')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Reactivate a customer (SuperAdmin Only)' })
+  async reactivateCustomer(@Param('id') customerId: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.reactivateCustomer(customerId, adminUserId);
+  }
+
+  @Delete('users/customers/:id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a customer (SuperAdmin Only)' })
+  async permanentlyDeleteCustomer(@Param('id') customerId: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.permanentlyDeleteCustomer(customerId, adminUserId);
+  }
+
   @Get('addresses')
   @ApiOperation({ summary: 'List customer saved delivery addresses' })
   async getAddresses(@Request() req: any) {

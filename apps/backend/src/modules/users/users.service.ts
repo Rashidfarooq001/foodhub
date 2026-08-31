@@ -448,4 +448,128 @@ export class UsersService {
     });
     return { success: true, isFavorite: false };
   }
+
+  // --- SUPERADMIN CUSTOMER MANAGEMENT ---
+
+  async suspendCustomer(userId: string, reason?: string, adminUserId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId, role: UserRole.CUSTOMER } });
+    if (!user) throw new NotFoundException('Customer not found');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId || null,
+          action: AuditAction.CUSTOMER_SUSPENDED,
+          entityName: 'User',
+          entityId: userId,
+          newValue: { reason: reason || null },
+        },
+      });
+    } catch {}
+    
+    if (this.gateway) {
+      this.gateway.emitToAdmin(ORDER_EVENTS.USER_STATUS_CHANGED as any, {
+        userId,
+        isActive: false,
+      });
+    }
+
+    return updated;
+  }
+
+  async reactivateCustomer(userId: string, adminUserId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId, role: UserRole.CUSTOMER } });
+    if (!user) throw new NotFoundException('Customer not found');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: true },
+    });
+
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: adminUserId || null,
+          action: AuditAction.CUSTOMER_REACTIVATED,
+          entityName: 'User',
+          entityId: userId,
+        },
+      });
+    } catch {}
+
+    if (this.gateway) {
+      this.gateway.emitToAdmin(ORDER_EVENTS.USER_STATUS_CHANGED as any, {
+        userId,
+        isActive: true,
+      });
+    }
+
+    return updated;
+  }
+
+  async permanentlyDeleteCustomer(userId: string, adminUserId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, role: UserRole.CUSTOMER },
+      include: { profile: true, customer: true },
+    });
+
+    if (!user || !user.customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const customerSnapshot = {
+      id: user.customer.id,
+      userId: user.id,
+      name: user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'Unknown',
+      phone: user.phone,
+      email: user.email,
+      deletedAt: new Date().toISOString(),
+    };
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Identify active and historical orders
+      const orderCount = await tx.order.count({
+        where: { customerId: user.customer.id },
+      });
+
+      // 2. Preserve Orders by snapshotting customer info and setting customerId to null (handled via schema SetNull)
+      // Actually we must explicitly update orders to add snapshot before deletion
+      await tx.order.updateMany({
+        where: { customerId: user.customer.id },
+        data: { customerSnapshot },
+      });
+
+      // We explicitly decouple the wallet so it's not cascaded just in case SetNull behaves weirdly with User
+      await tx.wallet.updateMany({
+        where: { userId },
+        data: { userId: null },
+      });
+
+      // 3. Delete the user
+      // Since User has CASCADE relation to Customer, Profile, etc., this deletes all operational data.
+      await tx.user.delete({
+        where: { id: userId },
+      });
+
+      try {
+        await tx.auditLog.create({
+          data: {
+            userId: adminUserId || null,
+            action: AuditAction.CUSTOMER_DELETED,
+            entityName: 'Customer',
+            entityId: user.customer.id,
+            oldValue: customerSnapshot as any,
+            newValue: { ordersPreserved: orderCount },
+          },
+        });
+      } catch {}
+    });
+
+    return { success: true, message: 'Customer permanently deleted and financial records preserved' };
+  }
 }

@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   MapPin,
   X,
+  Trash2,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
@@ -41,7 +42,7 @@ export default function AdminCustomersPage() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
-    type: 'SUSPEND' | 'REACTIVATE';
+    type: 'SUSPEND' | 'REACTIVATE' | 'DELETE';
     userId: string;
     customerName: string;
   } | null>(null);
@@ -105,12 +106,19 @@ export default function AdminCustomersPage() {
     setActionError(null);
 
     try {
-      const newStatus = activeModal.type === 'REACTIVATE';
-      const res = await adminFetch(`/users/${activeModal.userId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: newStatus, reason: modalReason }),
-      });
+      let res;
+      if (activeModal.type === 'DELETE') {
+        res = await adminFetch(`/users/customers/${activeModal.userId}`, {
+          method: 'DELETE',
+        });
+      } else {
+        const newStatus = activeModal.type === 'REACTIVATE';
+        res = await adminFetch(`/users/customers/${activeModal.userId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: newStatus, reason: modalReason }),
+        });
+      }
 
       if (res.ok) {
         setActiveModal(null);
@@ -239,16 +247,22 @@ export default function AdminCustomersPage() {
                         onClick={() => setActiveModal({ type: 'SUSPEND', userId: c.userId, customerName: c.name })}
                         className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
                       >
-                        Suspend Account
+                        Suspend
                       </button>
                     ) : (
                       <button
                         onClick={() => setActiveModal({ type: 'REACTIVATE', userId: c.userId, customerName: c.name })}
                         className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-black text-white min-h-[40px]"
                       >
-                        Reactivate Account
+                        Reactivate
                       </button>
                     )}
+                    <button
+                      onClick={() => setActiveModal({ type: 'DELETE', userId: c.userId, customerName: c.name })}
+                      className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-2.5 text-xs font-black text-white min-h-[40px]"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -273,7 +287,7 @@ export default function AdminCustomersPage() {
                     <tr key={c.id} className="hover:bg-gray-50/50">
                       <td className="py-3 font-bold text-gray-900">{c.name || 'Customer'}</td>
                       <td className="py-3 text-gray-600">{c.phone}</td>
-                      <td className="py-3 text-gray-500">{c.email || '—'}</td>
+                      <td className="py-3 text-gray-500">{c.email || '-'}</td>
                       <td className="py-3 font-bold text-gray-800">{c.totalOrders}</td>
                       <td className="py-3 font-black text-purple-700">₹{c.totalSpent.toLocaleString()}</td>
                       <td className="py-3">
@@ -283,7 +297,7 @@ export default function AdminCustomersPage() {
                           {c.isActive ? 'Active' : 'Suspended'}
                         </span>
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 text-right space-x-1.5">
                         {c.isActive ? (
                           <button
                             onClick={() => setActiveModal({ type: 'SUSPEND', userId: c.userId, customerName: c.name })}
@@ -299,6 +313,13 @@ export default function AdminCustomersPage() {
                             Reactivate
                           </button>
                         )}
+                        <button
+                          onClick={() => setActiveModal({ type: 'DELETE', userId: c.userId, customerName: c.name })}
+                          className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white hover:bg-rose-700 inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span>Delete</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -315,7 +336,9 @@ export default function AdminCustomersPage() {
           <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h2 className="text-base font-black text-gray-900">
-                {activeModal.type === 'SUSPEND' ? `Suspend ${activeModal.customerName}` : `Reactivate ${activeModal.customerName}`}
+                {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.customerName}`}
+                {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.customerName}`}
+                {activeModal.type === 'DELETE' && `Permanently Delete ${activeModal.customerName}`}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -332,6 +355,13 @@ export default function AdminCustomersPage() {
             )}
 
             <form onSubmit={handleExecuteAction} className="space-y-4">
+              {activeModal.type === 'DELETE' && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
+                  <p className="font-bold">WARNING</p>
+                  <p className="text-[11px] text-rose-600">This action cannot be undone. The customer's account and active operational data will be permanently removed from the platform.</p>
+                </div>
+              )}
+
               {activeModal.type === 'SUSPEND' && (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -358,9 +388,13 @@ export default function AdminCustomersPage() {
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="flex-1 rounded-2xl bg-purple-600 hover:bg-purple-700 py-3 text-xs font-black text-white shadow-md shadow-purple-500/20 transition min-h-[44px]"
+                  className={`flex-1 rounded-2xl py-3 text-xs font-black text-white shadow-md transition min-h-[44px] ${
+                    activeModal.type === 'DELETE'
+                      ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20'
+                      : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                  }`}
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm Status Change'}
+                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'DELETE PERMANENTLY' : 'Confirm Status Change'}
                 </button>
               </div>
             </form>
