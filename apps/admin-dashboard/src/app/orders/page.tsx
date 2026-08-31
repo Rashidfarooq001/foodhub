@@ -118,7 +118,7 @@ export default function AdminOrdersPage() {
 
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {(['ALL', 'PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] as const).map((st) => (
+          {(['ALL', 'PENDING', 'ACCEPTED', 'PREPARING', 'DRIVER_ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] as const).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}

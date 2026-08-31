@@ -11,7 +11,7 @@ const STEPS = [
   { id: 'PENDING', label: 'Order Placed', icon: Clock },
   { id: 'ACCEPTED', label: 'Accepted', icon: Store },
   { id: 'PREPARING', label: 'Preparing', icon: Store },
-  { id: 'READY_FOR_PICKUP', label: 'Ready', icon: Store },
+
   { id: 'DRIVER_ASSIGNED', label: 'Rider Assigned', icon: Bike },
   { id: 'ARRIVED_AT_RESTAURANT', label: 'Rider Arrived', icon: MapPin },
   { id: 'PICKED_UP', label: 'Picked Up', icon: Bike },
@@ -28,18 +28,16 @@ export const OrderTimeline: React.FC<Props> = ({ currentStatus }) => {
         return 1;
       case 'PREPARING':
         return 2;
-      case 'READY_FOR_PICKUP':
-        return 3;
       case 'DRIVER_ASSIGNED':
-        return 4;
+        return 3;
       case 'ARRIVED_AT_RESTAURANT':
-        return 5;
+        return 4;
       case 'PICKED_UP':
-        return 6;
+        return 5;
       case 'OUT_FOR_DELIVERY':
-        return 7;
+        return 6;
       case 'DELIVERED':
-        return 8;
+        return 7;
       default:
         return 0;
     }

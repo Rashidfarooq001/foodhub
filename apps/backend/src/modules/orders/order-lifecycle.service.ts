@@ -40,7 +40,7 @@ export class OrderLifecycleService {
     }
 
     // Specific business rules
-    if (newStatus === OrderStatus.OUT_FOR_DELIVERY && currentStatus === OrderStatus.READY_FOR_PICKUP) {
+    if (newStatus === OrderStatus.OUT_FOR_DELIVERY && currentStatus === OrderStatus.PREPARING) {
       if (order.restaurant.deliveryMode !== 'RESTAURANT_SELF_DELIVERY') {
          throw new BadRequestException(
            'Platform delivery orders must be assigned to a rider and picked up before moving to OUT_FOR_DELIVERY.'

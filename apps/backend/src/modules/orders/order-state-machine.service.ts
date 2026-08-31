@@ -100,7 +100,7 @@ export class OrderStateMachineService {
       throw new ForbiddenException('Access denied. You do not own or manage this restaurant order.');
     }
 
-    if (!['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(order.status)) {
+    if (!['PENDING', 'ACCEPTED', 'PREPARING', 'DRIVER_ASSIGNED'].includes(order.status)) {
       throw new BadRequestException(`Cannot assign rider to order in current state "${order.status}".`);
     }
 
@@ -657,7 +657,7 @@ export class OrderStateMachineService {
       let updatedJob: any = null;
       const now = new Date();
 
-      if (targetStatus === OrderStatus.READY_FOR_PICKUP) {
+      if (targetStatus === OrderStatus.PREPARING) {
         const restLat = Number(order.restaurant.latitude || 0);
         const restLng = Number(order.restaurant.longitude || 74.5221);
         const delAddr = order.deliveryAddress as any;
@@ -906,8 +906,8 @@ export class OrderStateMachineService {
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
       ACCEPTED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-      PREPARING: [OrderStatus.READY_FOR_PICKUP, OrderStatus.CANCELLED],
-      READY_FOR_PICKUP: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
+      PREPARING: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+      READY_FOR_PICKUP: [], // Deprecated
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
       ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
@@ -935,7 +935,7 @@ export class OrderStateMachineService {
       (
         [
           OrderStatus.PREPARING,
-          OrderStatus.READY_FOR_PICKUP,
+          OrderStatus.PREPARING,
         ] as OrderStatus[]
       ).includes(targetStatus)
     ) {
@@ -998,7 +998,7 @@ export class OrderStateMachineService {
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
       // 2. We keep the job broadcast for available drivers when it hits READY_FOR_PICKUP
-      if (toStatus === OrderStatus.READY_FOR_PICKUP && !activeDriverId) {
+      if (toStatus === OrderStatus.PREPARING && !activeDriverId) {
         this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -1021,7 +1021,7 @@ export class OrderStateMachineService {
         return `Restaurant rejected order. Reason: ${reason || 'Not specified'}.`;
       case OrderStatus.PREPARING:
         return 'Chef started preparing items in kitchen queue.';
-      case OrderStatus.READY_FOR_PICKUP:
+      case OrderStatus.PREPARING:
         return 'Order is packed and ready for delivery partner pickup.';
       case OrderStatus.DRIVER_ASSIGNED:
         return 'FoodHub delivery partner assigned to order.';

@@ -5,10 +5,9 @@ export declare const ADMIN_ORDER_FILTERS: {
     readonly PENDING: readonly [OrderStatus.PENDING];
     readonly ACCEPTED: readonly [OrderStatus.ACCEPTED];
     readonly PREPARING: readonly [OrderStatus.PREPARING];
-    readonly READY_FOR_PICKUP: readonly [OrderStatus.READY_FOR_PICKUP];
     readonly DRIVER_ASSIGNED: readonly [OrderStatus.DRIVER_ASSIGNED];
     readonly OUT_FOR_DELIVERY: readonly [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY];
     readonly DELIVERED: readonly [OrderStatus.DELIVERED];
     readonly CANCELLED: readonly [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED];
 };
-export declare const getCustomerOrderStage: (status: OrderStatus) => 1 | 2 | 4 | 0 | 3 | 5 | -1;
+export declare const getCustomerOrderStage: (status: OrderStatus) => 1 | 2 | 4 | 0 | 3 | -1;

@@ -34,7 +34,7 @@ type FilterTab =
   | 'NEW_ORDERS'
   | 'ACCEPTED'
   | 'PREPARING'
-  | 'READY_FOR_PICKUP'
+  
   | 'OUT_FOR_DELIVERY'
   | 'COMPLETED'
   | 'REJECTED_CANCELLED'
@@ -398,7 +398,7 @@ export default function HotelOrdersPage() {
       }
       if (filter === 'ACCEPTED' && o.status !== 'ACCEPTED') return false;
       if (filter === 'PREPARING' && o.status !== 'PREPARING') return false;
-      if (filter === 'READY_FOR_PICKUP' && o.status !== 'READY_FOR_PICKUP') return false;
+      
       if (filter === 'OUT_FOR_DELIVERY' && !['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status)) return false;
       if (filter === 'COMPLETED' && o.status !== 'DELIVERED') return false;
       if (filter === 'REJECTED_CANCELLED' && !['REJECTED', 'CANCELLED'].includes(o.status)) return false;
@@ -425,7 +425,7 @@ export default function HotelOrdersPage() {
       if (tab === 'NEW_ORDERS') return o.status === 'PENDING';
       if (tab === 'ACCEPTED') return o.status === 'ACCEPTED';
       if (tab === 'PREPARING') return o.status === 'PREPARING';
-      if (tab === 'READY_FOR_PICKUP') return o.status === 'READY_FOR_PICKUP';
+      
       if (tab === 'OUT_FOR_DELIVERY') return ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status);
       if (tab === 'COMPLETED') return o.status === 'DELIVERED';
       if (tab === 'REJECTED_CANCELLED') return ['REJECTED', 'CANCELLED'].includes(o.status);
@@ -441,8 +441,6 @@ export default function HotelOrdersPage() {
         return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">ACCEPTED</span>;
       case 'PREPARING':
         return <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">PREPARING</span>;
-      case 'READY_FOR_PICKUP':
-        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">READY FOR PICKUP</span>;
       case 'DRIVER_ASSIGNED':
         return <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-black text-purple-800">RIDER ASSIGNED</span>;
       case 'ARRIVED_AT_RESTAURANT':
@@ -507,7 +505,7 @@ export default function HotelOrdersPage() {
           { id: 'NEW_ORDERS', label: 'NEW ORDERS' },
           { id: 'ACCEPTED', label: 'ACCEPTED' },
           { id: 'PREPARING', label: 'PREPARING' },
-          { id: 'READY_FOR_PICKUP', label: 'READY FOR PICKUP' },
+          
           { id: 'OUT_FOR_DELIVERY', label: 'OUT FOR DELIVERY' },
           { id: 'COMPLETED', label: 'COMPLETED' },
           { id: 'REJECTED_CANCELLED', label: 'REJECTED/CANCELLED' },
@@ -621,7 +619,7 @@ export default function HotelOrdersPage() {
                   </button>
                 )}
 
-                {['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status) && (
+                {['ACCEPTED', 'PREPARING'].includes(o.status) && (
                   <button
                     onClick={() => handleOpenAssignRiderModal(o)}
                     className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
@@ -729,7 +727,7 @@ export default function HotelOrdersPage() {
                         )}
 
                         {/* SELECT & ASSIGN RIDER ACTION */}
-                        {['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status) && (
+                        {['ACCEPTED', 'PREPARING'].includes(o.status) && (
                           <button
                             onClick={() => handleOpenAssignRiderModal(o)}
                             className="rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700 flex items-center gap-1 shrink-0"
