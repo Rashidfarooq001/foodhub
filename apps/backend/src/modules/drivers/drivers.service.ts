@@ -311,57 +311,14 @@ export class DriversService {
   }
 
   async suspendDriver(driverId: string, adminUserId?: string) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId }, include: { user: true } });
-    if (!driver) throw new NotFoundException('Delivery partner not found');
-
-    const updated = await this.prisma.driver.update({
-      where: { id: driverId },
-      data: { status: DriverStatus.SUSPENDED, isApproved: false },
-    });
-
-    if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
-      await this.prisma.user.update({ where: { id: driver.userId }, data: { isActive: false } });
-    }
-
-    if (adminUserId) {
-      await this.prisma.auditLog.create({
-        data: {
-          userId: adminUserId,
-          action: AuditAction.RIDER_SUSPENDED,
-          entityName: 'Driver',
-          entityId: driverId,
-        },
-      });
-    }
-
-    return updated;
+    // Delegate to authoritative lifecycle method for sockets and user synchronization
+    return this.updateApprovalStatus(driverId, false, 'Suspended by Admin', adminUserId);
   }
 
   async reactivateDriver(driverId: string, adminUserId?: string) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId }, include: { user: true } });
-    if (!driver) throw new NotFoundException('Delivery partner not found');
-
-    const updated = await this.prisma.driver.update({
-      where: { id: driverId },
-      data: { status: DriverStatus.OFFLINE, isApproved: true },
-    });
-
-    if (driver.user && driver.user.role === UserRole.DELIVERY_PARTNER) {
-      await this.prisma.user.update({ where: { id: driver.userId }, data: { isActive: true, deletedAt: null } });
-    }
-
-    if (adminUserId) {
-      await this.prisma.auditLog.create({
-        data: {
-          userId: adminUserId,
-          action: AuditAction.RIDER_REACTIVATED,
-          entityName: 'Driver',
-          entityId: driverId,
-        },
-      });
-    }
-
-    return updated;
+    // Delegate to authoritative lifecycle method for sockets and user synchronization
+    // Wait, updateApprovalStatus sets DriverStatus.OFFLINE when isApproved is true, which is correct for active drivers
+    return this.updateApprovalStatus(driverId, true, 'Reactivated by Admin', adminUserId);
   }
 
   async permanentlyDeleteDriver(driverId: string, adminUserId?: string) {

@@ -570,58 +570,14 @@ export class RestaurantsService {
   }
 
   async suspendRestaurant(id: string, reason: string, adminUserId?: string) {
-    const restaurant = await this.findRestaurantById(id);
-
-    await this.prisma.restaurant.update({
-      where: { id: restaurant.id },
-      data: {
-        isOpen: false,
-        status: RestaurantStatus.SUSPENDED,
-      },
-    });
-
-    if (adminUserId) {
-      await this.prisma.auditLog.create({
-        data: {
-          action: 'RESTAURANT_SUSPENDED',
-          entityName: 'Restaurant',
-          entityId: restaurant.id,
-          userId: adminUserId,
-          newValue: { reason },
-        },
-      });
-    }
-    
-    // Attempt to notify active users or invalidate caches via sockets if necessary
-    try {
-      // In a real app we'd emit to a room here
-    } catch {}
-
+    // Delegate to the authoritative lifecycle method to ensure realtime events & user status stay synchronized
+    await this.updateVerificationStatus(id, 'SUSPENDED', reason, adminUserId);
     return { success: true, message: 'Restaurant suspended successfully.' };
   }
 
   async reactivateRestaurant(id: string, adminUserId?: string) {
-    const restaurant = await this.findRestaurantById(id);
-
-    await this.prisma.restaurant.update({
-      where: { id: restaurant.id },
-      data: {
-        isOpen: true,
-        status: RestaurantStatus.APPROVED,
-      },
-    });
-
-    if (adminUserId) {
-      await this.prisma.auditLog.create({
-        data: {
-          action: 'RESTAURANT_REACTIVATED',
-          entityName: 'Restaurant',
-          entityId: restaurant.id,
-          userId: adminUserId,
-        },
-      });
-    }
-
+    // Delegate to the authoritative lifecycle method to ensure realtime events & user status stay synchronized
+    await this.updateVerificationStatus(id, 'APPROVED', undefined, adminUserId);
     return { success: true, message: 'Restaurant reactivated successfully.' };
   }
 
