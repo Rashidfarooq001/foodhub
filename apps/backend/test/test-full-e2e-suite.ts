@@ -1,6 +1,7 @@
 import { PrismaService } from '../src/modules/database/prisma.service';
 import { OrdersService } from '../src/modules/orders/orders.service';
 import { OrderStateMachineService } from '../src/modules/orders/order-state-machine.service';
+import { OrderLifecycleService } from '../src/modules/orders/order-lifecycle.service';
 import { TaxEngineService } from '../src/modules/tax/tax-engine.service';
 import { PricingService } from '../src/modules/pricing/pricing.service';
 import { DistanceService } from '../src/modules/geolocation/distance.service';
@@ -236,7 +237,8 @@ async function runEndToEndVerification() {
   const distanceService = new DistanceService(prisma as any, null as any);
   const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
   const gateway = new OrdersGateway({} as any, {} as any, prisma as any);
-  const stateMachine = new OrderStateMachineService(prisma as any, gateway);
+  const lifecycle = new OrderLifecycleService(prisma as any, gateway);
+  const stateMachine = new OrderStateMachineService(prisma as any, gateway, lifecycle);
   const ordersRepo = new OrdersRepository(prisma as any);
   const ordersValidation = new OrdersValidationService(prisma as any, null as any);
   const ordersService = new OrdersService(prisma as any, ordersRepo, ordersValidation, {} as any, gateway, quoteService, {} as any);

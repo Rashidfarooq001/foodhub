@@ -5,12 +5,15 @@ import {
   ForbiddenException,
   ConflictException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { OrdersGateway } from './orders.gateway';
 import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { OrderLifecycleService } from './order-lifecycle.service';
 
 export interface AuthenticatedActor {
   userId?: string;
@@ -59,7 +62,9 @@ export class OrderStateMachineService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gateway?: OrdersGateway,
+    private readonly gateway: OrdersGateway,
+    @Inject(forwardRef(() => OrderLifecycleService))
+    private readonly orderLifecycleService: OrderLifecycleService,
   ) {}
 
   
@@ -139,115 +144,69 @@ export class OrderStateMachineService {
     const pickupOtpHash = hashOtp(rawPickupOtp);
     const pickupOtpExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      const restLat = Number(order.restaurant.latitude || 0);
-      const restLng = Number(order.restaurant.longitude || 74.5221);
-      const delAddr: any = order.deliveryAddress || {};
-      const custLat = Number(delAddr.latitude || 0);
-      const custLng = Number(delAddr.longitude || 74.5228);
+    const restLat = Number(order.restaurant.latitude || 0);
+    const restLng = Number(order.restaurant.longitude || 74.5221);
+    const delAddr: any = order.deliveryAddress || {};
+    const custLat = Number(delAddr.latitude || 0);
+    const custLng = Number(delAddr.longitude || 74.5228);
 
-      const distanceKm = (delAddr?.distanceKm || 0);
+    const distanceKm = (delAddr?.distanceKm || 0);
 
-      const pickupAddress = {
-        restaurantName: order.restaurant.name,
-        addressLine: order.restaurant.addressLine,
-        latitude: restLat,
-        longitude: restLng,
-        phone: order.restaurant.phone,
-        rawPickupOtp, // Stored safely for restaurant lookup only
-      };
+    const pickupAddress = {
+      restaurantName: order.restaurant.name,
+      addressLine: order.restaurant.addressLine,
+      latitude: restLat,
+      longitude: restLng,
+      phone: order.restaurant.phone,
+      rawPickupOtp, // Stored safely for restaurant lookup only
+    };
 
-      const dropAddress = {
-        street: delAddr.street || delAddr.addressLine1 || 'Delivery Address',
-        addressLine2: delAddr.addressLine2 || '',
-        city: delAddr.city || '',
-        state: delAddr.state || 'Jammu & Kashmir',
-        postalCode: delAddr.postalCode || '193502',
-        latitude: custLat,
-        longitude: custLng,
-        contactName: delAddr.name || 'Customer',
-      };
+    const dropAddress = {
+      street: delAddr.street || delAddr.addressLine1 || 'Delivery Address',
+      addressLine2: delAddr.addressLine2 || '',
+      city: delAddr.city || '',
+      state: delAddr.state || 'Jammu & Kashmir',
+      postalCode: delAddr.postalCode || '193502',
+      latitude: custLat,
+      longitude: custLng,
+      contactName: delAddr.name || 'Customer',
+    };
 
-      const riderPayout = Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+    const riderPayout = Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
 
-      await tx.deliveryJob.upsert({
-        where: { orderId: order.id },
-        create: {
-          orderId: order.id,
-          driverId: driver.id,
-          status: DeliveryJobStatus.ASSIGNED,
-          pickupAddressJson: pickupAddress,
-          dropAddressJson: dropAddress,
-          distanceKm,
-          deliveryFee: order.deliveryFee,
-          riderPayout,
-          pickupOtpHash,
-          pickupOtpExpiresAt,
-          pickupOtpAttempts: 0,
-        },
-        update: {
-          driverId: driver.id,
-          status: DeliveryJobStatus.ASSIGNED,
-          pickupAddressJson: pickupAddress,
-          pickupOtpHash,
-          pickupOtpExpiresAt,
-          pickupOtpAttempts: 0,
-        },
-        select: { id: true, status: true },
-      });
+    const deliveryJobPayload = {
+      create: {
+        orderId: order.id,
+        driverId: driver.id,
+        status: DeliveryJobStatus.ASSIGNED,
+        pickupAddressJson: pickupAddress,
+        dropAddressJson: dropAddress,
+        distanceKm,
+        deliveryFee: order.deliveryFee,
+        riderPayout,
+        pickupOtpHash,
+        pickupOtpExpiresAt,
+        pickupOtpAttempts: 0,
+      },
+      update: {
+        driverId: driver.id,
+        status: DeliveryJobStatus.ASSIGNED,
+        pickupAddressJson: pickupAddress,
+        pickupOtpHash,
+        pickupOtpExpiresAt,
+        pickupOtpAttempts: 0,
+      },
+    };
 
-      const updated = await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: OrderStatus.DRIVER_ASSIGNED,
-        },
-        include: {
-          restaurant: true,
-          deliveryJob: {
-            select: {
-              id: true,
-              status: true,
-              driverId: true,
-              driver: {
-                select: {
-                  id: true,
-                  status: true,
-                  isApproved: true,
-                  user: { select: { id: true, profile: true } },
-                },
-              },
-            },
-          },
-          orderItems: true,
-        },
-      });
-
-      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          fromStatus: order.status,
-          toStatus: OrderStatus.DRIVER_ASSIGNED,
-          changedBy: validActorUserId,
-        },
-      });
-
-      const driverName = driver.user?.profile
-        ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}`.trim()
-        : 'Partner';
-
-      await tx.orderTimeline.create({
-        data: {
-          orderId: order.id,
-          status: OrderStatus.DRIVER_ASSIGNED,
-          message: `Restaurant assigned FoodHub delivery partner: ${driverName}.`,
-        },
-      });
-
-      return updated;
-    });
-
-    this.emitRealtimeEvents(updatedOrder, order.status, OrderStatus.DRIVER_ASSIGNED, driver.id);
+    const updatedOrder = await this.orderLifecycleService.updateOrderStatus(
+      order.id,
+      OrderStatus.DRIVER_ASSIGNED,
+      actor.userId,
+      {
+        riderId: driver.id,
+        deliveryJobPayload,
+      }
+    );
 
     return updatedOrder;
   }

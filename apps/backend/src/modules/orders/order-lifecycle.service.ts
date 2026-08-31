@@ -18,7 +18,7 @@ export class OrderLifecycleService {
     orderId: string,
     newStatus: OrderStatus,
     actorId?: string,
-    additionalData?: { riderId?: string }
+    additionalData?: { riderId?: string; deliveryJobPayload?: any }
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -60,8 +60,16 @@ export class OrderLifecycleService {
     }
 
     // Perform DB update inside a transaction to ensure History is saved
-    const updatedOrder = await this.prisma.$transaction(async (prisma) => {
-      const updated = await prisma.order.update({
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      if (additionalData?.deliveryJobPayload) {
+        await tx.deliveryJob.upsert({
+          where: { orderId: orderId },
+          create: additionalData.deliveryJobPayload.create,
+          update: additionalData.deliveryJobPayload.update,
+        });
+      }
+
+      const updated = await tx.order.update({
         where: { id: orderId },
         data: updateData,
         include: {
@@ -71,7 +79,7 @@ export class OrderLifecycleService {
       });
 
       // Save history
-      await prisma.orderStatusHistory.create({
+      await tx.orderStatusHistory.create({
         data: {
           orderId,
           fromStatus: currentStatus,
@@ -81,7 +89,7 @@ export class OrderLifecycleService {
       });
 
       // Optionally save timeline
-      await prisma.orderTimeline.create({
+      await tx.orderTimeline.create({
         data: {
           orderId,
           status: newStatus,

@@ -460,17 +460,15 @@ export class DeliveryJobsController {
 
     const jobs = await this.prisma.deliveryJob.findMany({
       where: {
-        driverId: driver.id,
-        status: {
-          in: [
-            DeliveryJobStatus.ASSIGNED,
-            DeliveryJobStatus.ARRIVED,
-            DeliveryJobStatus.PICKED_UP,
-          ],
-        },
         order: {
+          assignedFoodHubDriverId: driver.id,
           status: {
-            notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
+            in: [
+              OrderStatus.DRIVER_ASSIGNED,
+              OrderStatus.ARRIVED_AT_RESTAURANT,
+              OrderStatus.PICKED_UP,
+              OrderStatus.OUT_FOR_DELIVERY,
+            ],
           },
         },
       },
@@ -499,17 +497,15 @@ export class DeliveryJobsController {
 
     const job = await this.prisma.deliveryJob.findFirst({
       where: {
-        driverId: driver.id,
-        status: {
-          in: [
-            DeliveryJobStatus.ASSIGNED,
-            DeliveryJobStatus.ARRIVED,
-            DeliveryJobStatus.PICKED_UP,
-          ],
-        },
         order: {
+          assignedFoodHubDriverId: driver.id,
           status: {
-            notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
+            in: [
+              OrderStatus.DRIVER_ASSIGNED,
+              OrderStatus.ARRIVED_AT_RESTAURANT,
+              OrderStatus.PICKED_UP,
+              OrderStatus.OUT_FOR_DELIVERY,
+            ],
           },
         },
       },
