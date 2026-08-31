@@ -20,5 +20,6 @@
     "paths": {
       "@/*": ["src/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "scripts", "test-db.ts", "test-driver.js"]
 }
