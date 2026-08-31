@@ -162,7 +162,7 @@ export default function AdminRestaurantApprovalPage() {
           <div className="py-12 text-center text-xs font-bold text-gray-400">Loading applications...</div>
         ) : applications.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-            No restaurant applications found under {activeTab}.
+            No restaurant applications found.
           </div>
         ) : (
           <>
