@@ -6,13 +6,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const dbUrl = process.env.DATABASE_URL;
+    let dbUrl = process.env.DATABASE_URL;
 
     if (!dbUrl || dbUrl.trim() === '') {
       throw new Error(
         'CRITICAL CONFIGURATION ERROR: DATABASE_URL environment variable is missing. ' +
         'Specify a valid DATABASE_URL in environment configuration.',
       );
+    }
+
+    // Ensure connection timeout is generous for serverless databases (Neon / Supabase)
+    if (dbUrl.includes('neon.tech') && !dbUrl.includes('connect_timeout=')) {
+      const separator = dbUrl.includes('?') ? '&' : '?';
+      dbUrl = `${dbUrl}${separator}connect_timeout=30&pool_timeout=30`;
     }
 
     super({
@@ -26,12 +32,39 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    try {
-      await this.$connect();
-      this.logger.log('Database connection initialized successfully.');
+    const maxRetries = 10;
+    const retryDelayMs = 3000;
+    let connected = false;
 
-      // Safely ensure new schema columns exist in production PostgreSQL
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        this.logger.log(`Connecting to database (attempt ${attempt}/${maxRetries})...`);
+        await this.$connect();
+        connected = true;
+        this.logger.log('Database connection initialized successfully.');
+        break;
+      } catch (err: any) {
+        this.logger.warn(
+          `Database connection attempt ${attempt}/${maxRetries} failed: ${err?.message || err}. ` +
+          `Retrying in ${retryDelayMs / 1000}s (serverless DB may be waking up)...`,
+        );
+
+        if (attempt === maxRetries) {
+          this.logger.error(
+            'CRITICAL: Unable to reach PostgreSQL database after multiple retries. ' +
+            'Please verify in your Neon Console (https://console.neon.tech) that your project is active and copy the latest DATABASE_URL into Render Environment Variables.',
+          );
+          throw err;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    if (!connected) return;
+
+    // Safely ensure new schema columns exist in production PostgreSQL
+    try {
         await this.$executeRawUnsafe(`
           DO $$
           BEGIN
@@ -244,10 +277,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       } catch (migrationErr: any) {
         this.logger.warn(`Schema self-heal warning: ${migrationErr?.message || migrationErr}`);
       }
-    } catch (err: any) {
-      this.logger.error(`Database connection init failed: ${err?.message || err}`);
-      throw err;
-    }
   }
 
   async onModuleDestroy() {
