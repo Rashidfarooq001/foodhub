@@ -80,6 +80,7 @@ export default function LiveOrderTrackingPage() {
     socket.on('connect', () => {
       setIsSocketConnected(true);
       socket.emit('joinOrder', { orderId });
+      fetchOrderAndTracking();
     });
 
     socket.on('disconnect', () => {
@@ -99,14 +100,7 @@ export default function LiveOrderTrackingPage() {
       fetchOrderAndTracking();
     };
 
-    socket.on('status.updated', handleStatusUpdate);
-    socket.on('order.accepted', handleStatusUpdate);
-    socket.on('order.preparing', handleStatusUpdate);
-    socket.on('order.ready', handleStatusUpdate);
-    socket.on('driver.assigned', handleStatusUpdate);
-    socket.on('order.picked_up', handleStatusUpdate);
-    socket.on('order.delivered', handleStatusUpdate);
-    socket.on('order.cancelled', handleStatusUpdate);
+    socket.on('order.status_updated', handleStatusUpdate);
 
     // Fallback polling interval (5 seconds)
     const interval = setInterval(fetchOrderAndTracking, 5000);

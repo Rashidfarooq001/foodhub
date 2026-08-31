@@ -88,11 +88,11 @@ export default function DeliveryDashboardPage() {
     socket.on('connect', () => {
       socket.emit('joinDriver', { token: accessToken });
       socket.emit('joinAvailableDrivers');
+      fetchDashboardData();
     });
 
     socket.on('job.available', () => fetchDashboardData());
-    socket.on('driver.assigned', () => fetchDashboardData());
-    socket.on('status.updated', () => fetchDashboardData());
+    socket.on('order.status_updated', () => fetchDashboardData());
 
     return () => {
       socket.disconnect();
@@ -334,7 +334,7 @@ export default function DeliveryDashboardPage() {
             <DollarSign className="h-6 w-6 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
           </div>
           <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-            ₹{stats?.todayEarnings ?? stats?.totalEarnings ?? 420}
+            ₹{stats?.todayEarnings ?? 0}
           </h2>
           <span className="text-[10px] text-emerald-600 font-bold block">
             Settled to Bank Cycle
@@ -347,7 +347,7 @@ export default function DeliveryDashboardPage() {
             <Bike className="h-6 w-6 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
           </div>
           <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-            {stats?.completedDeliveries ?? stats?.totalTrips ?? 8}
+            {stats?.completedDeliveries ?? 0}
           </h2>
           <span className="text-[10px] text-gray-500 font-semibold block">
             Deliveries completed

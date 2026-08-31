@@ -209,6 +209,7 @@ export default function HotelOrdersPage() {
       if (restaurantId) {
         socket.emit('joinRestaurant', { restaurantId });
       }
+      fetchOrders();
     });
 
     const handleRealtimeUpdate = () => {
@@ -216,10 +217,7 @@ export default function HotelOrdersPage() {
     };
 
     socket.on('order.created', handleRealtimeUpdate);
-    socket.on('order.status-changed', handleRealtimeUpdate);
-    socket.on('status.updated', handleRealtimeUpdate);
-    socket.on('delivery.assigned', handleRealtimeUpdate);
-    socket.on('delivery.job-available', handleRealtimeUpdate);
+    socket.on('order.status_updated', handleRealtimeUpdate);
 
     return () => {
       socket.disconnect();

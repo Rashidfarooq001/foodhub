@@ -77,9 +77,7 @@ export default function HotelDeliveryManagementPage() {
       fetchActiveDeliveries();
     };
 
-    socket.on('order.status_changed', handleUpdate);
-    socket.on('order.driver_assigned', handleUpdate);
-    socket.on('ORDER_STATUS_CHANGED', handleUpdate);
+    socket.on('order.status_updated', handleUpdate);
 
     socket.on('driver.location_updated', (payload: { orderId: string; lat: number; lng: number }) => {
       setActiveDeliveries((prev) =>

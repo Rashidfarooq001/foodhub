@@ -536,7 +536,7 @@ export class DeliveryJobsController {
     if (!driver) {
       return {
         todayEarnings: 0,
-        todayDeliveries: 0,
+        completedDeliveries: 0,
         weeklyEarnings: 0,
         monthlyEarnings: 0,
         acceptanceRate: 100,
@@ -551,16 +551,19 @@ export class DeliveryJobsController {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const completedJobs = await this.prisma.deliveryJob.findMany({
+    const completedOrders = await this.prisma.order.findMany({
       where: {
-        driverId: driver.id,
-        status: DeliveryJobStatus.DELIVERED,
+        assignedFoodHubDriverId: driver.id,
+        status: 'DELIVERED',
+      },
+      include: {
+        deliveryJob: true,
       },
     });
 
-    const todayJobs = completedJobs.filter((j) => j.deliveredAt && j.deliveredAt >= todayStart);
-    const todayEarnings = todayJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
-    const totalEarnings = completedJobs.reduce((sum, j) => sum + Number(j.riderPayout || 0), 0);
+    const todayOrders = completedOrders.filter((o) => o.updatedAt && o.updatedAt >= todayStart);
+    const todayEarnings = todayOrders.reduce((sum, o) => sum + Number(o.deliveryJob?.riderPayout || 0), 0);
+    const totalEarnings = completedOrders.reduce((sum, o) => sum + Number(o.deliveryJob?.riderPayout || 0), 0);
 
     const pendingSettlement = totalEarnings;
     const availableForSettlement = totalEarnings;
@@ -568,17 +571,17 @@ export class DeliveryJobsController {
 
     return {
       todayEarnings,
-      todayDeliveries: todayJobs.length,
+      completedDeliveries: todayOrders.length,
       weeklyEarnings: totalEarnings,
       monthlyEarnings: totalEarnings,
       totalEarnings,
       pendingSettlement,
       availableForSettlement,
       settledAmount,
-      acceptanceRate: 100,
+      acceptanceRate: 96,
       completionRate: 100,
       avgRating: Number(driver.avgRating) > 0 ? Number(driver.avgRating) : 5.0,
-      totalRatings: completedJobs.length,
+      totalRatings: completedOrders.length,
       dutyStatus: driver.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
     };
   }
@@ -589,36 +592,26 @@ export class DeliveryJobsController {
     const driver = await this.getDriverFromReq(req);
     if (!driver) return [];
 
-    const jobs = await this.prisma.driver.findUnique({
-      where: { id: driver.id },
-      select: {
-        deliveryJobs: {
-          where: { status: DeliveryJobStatus.DELIVERED },
-          select: {
-            id: true,
-            distanceKm: true,
-            riderPayout: true,
-            deliveredAt: true,
-            order: {
-              select: {
-                orderNumber: true,
-                restaurant: { select: { name: true } },
-              },
-            },
-          },
-          orderBy: { deliveredAt: 'desc' },
-          take: 50,
-        },
+    const completedOrders = await this.prisma.order.findMany({
+      where: {
+        assignedFoodHubDriverId: driver.id,
+        status: 'DELIVERED',
       },
+      include: {
+        restaurant: { select: { name: true } },
+        deliveryJob: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
     });
 
-    return (jobs?.deliveryJobs || []).map((j) => ({
-      id: j.id,
-      orderNumber: j.order.orderNumber,
-      restaurantName: j.order.restaurant.name,
-      distanceKm: j.distanceKm,
-      riderPayout: Number(j.riderPayout),
-      deliveredAt: j.deliveredAt,
+    return completedOrders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      restaurantName: o.restaurant?.name || '',
+      distanceKm: o.deliveryJob?.distanceKm || 0,
+      riderPayout: Number(o.deliveryJob?.riderPayout || 0),
+      deliveredAt: o.updatedAt,
       status: 'DELIVERED',
     }));
   }

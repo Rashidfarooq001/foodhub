@@ -5,6 +5,7 @@ import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrdersGateway } from './orders.gateway';
 import { OrderStateMachineService } from './order-state-machine.service';
+import { OrderLifecycleService } from './order-lifecycle.service';
 import { TaxModule } from '../tax/tax.module';
 import { PricingModule } from '../pricing/pricing.module';
 
@@ -21,7 +22,8 @@ import { GeolocationModule } from '../geolocation/geolocation.module';
     OrdersValidationService,
     OrdersGateway,
     OrderStateMachineService,
+    OrderLifecycleService,
   ],
-  exports:     [OrdersService, OrdersGateway, OrderStateMachineService],
+  exports:     [OrdersService, OrdersGateway, OrderStateMachineService, OrderLifecycleService],
 })
 export class OrdersModule {}

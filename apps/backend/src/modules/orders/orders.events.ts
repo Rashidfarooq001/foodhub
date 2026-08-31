@@ -17,7 +17,7 @@ export const ORDER_EVENTS = {
   ORDER_DELIVERED:          'order.delivered',
   ORDER_CANCELLED:          'order.cancelled',
   ORDER_REJECTED:           'order.rejected',
-  STATUS_UPDATED:           'status.updated',
+  STATUS_UPDATED:           'order.status_updated',
   REFUND_INITIATED:         'refund.initiated',
   DELIVERY_LOCATION_UPDATED:'order:delivery-location-updated',
   DRIVER_STATUS_CHANGED:    'driver.status_changed',

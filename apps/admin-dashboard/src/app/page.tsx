@@ -46,6 +46,7 @@ export default function AdminDashboardPage() {
 
     socket.on('connect', () => {
       socket.emit('joinAdmin');
+      fetchStats();
     });
 
     const handleAdminUpdate = () => {
@@ -53,7 +54,7 @@ export default function AdminDashboardPage() {
     };
 
     socket.on('order.created', handleAdminUpdate);
-    socket.on('status.updated', handleAdminUpdate);
+    socket.on('order.status_updated', handleAdminUpdate);
 
     return () => {
       socket.disconnect();

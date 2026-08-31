@@ -1033,92 +1033,23 @@ export class OrderStateMachineService {
       if (order.restaurantId) {
         this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       }
-      if (activeDriverId) {
-        this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
-      }
+      if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
-      // 3. Specific semantic event dispatch
-      switch (toStatus) {
-        case OrderStatus.ACCEPTED:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_ACCEPTED, sanitizedPayload);
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CONFIRMED, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_CONFIRMED, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_ACCEPTED, sanitizedPayload);
-          break;
-
-        case OrderStatus.PREPARING:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_PREPARING, sanitizedPayload);
-          break;
-
-        case OrderStatus.READY_FOR_PICKUP:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_READY, sanitizedPayload);
-
-          // Broadcast job opportunity to available driver fleet if not yet claimed
-          if (!activeDriverId) {
-            this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
-              orderId: order.id,
-              orderNumber: order.orderNumber,
-              jobId: order.deliveryJob?.id,
-              restaurantName: order.restaurant?.name || 'Restaurant Partner',
-              restaurantAddress: order.restaurant?.addressLine || 'Restaurant Location',
-              deliveryFee: order.deliveryFee || 40,
-              estimatedPayout: order.deliveryJob?.riderPayout || 35,
-              timestamp: new Date().toISOString(),
-            });
-          }
-          break;
-
-        case OrderStatus.DRIVER_ASSIGNED:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.DRIVER_ASSIGNED, sanitizedPayload);
-          break;
-
-        case OrderStatus.ARRIVED_AT_RESTAURANT:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_ARRIVED_RESTAURANT, sanitizedPayload);
-          break;
-
-        case OrderStatus.PICKED_UP:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_PICKED_UP, sanitizedPayload);
-          break;
-
-        case OrderStatus.OUT_FOR_DELIVERY:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_OUT_FOR_DELIVERY, sanitizedPayload);
-          break;
-
-        case OrderStatus.DELIVERED:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_DELIVERED, sanitizedPayload);
-          break;
-
-        case OrderStatus.CANCELLED:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
-          if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.ORDER_CANCELLED, sanitizedPayload);
-          break;
-
-        case OrderStatus.REJECTED:
-          this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
-          if (customerUserId) this.gateway.emitToUser(customerUserId, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
-          if (order.restaurantId) this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_REJECTED, sanitizedPayload);
-          break;
+      // 2. We keep the job broadcast for available drivers when it hits READY_FOR_PICKUP
+      if (toStatus === OrderStatus.READY_FOR_PICKUP && !activeDriverId) {
+        this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          jobId: order.deliveryJob?.id,
+          restaurantName: order.restaurant?.name || 'Restaurant Partner',
+          restaurantAddress: order.restaurant?.addressLine || 'Restaurant Location',
+          deliveryFee: order.deliveryFee || 40,
+          estimatedPayout: order.deliveryJob?.riderPayout || 35,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
   }

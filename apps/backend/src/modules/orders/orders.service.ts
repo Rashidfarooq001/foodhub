@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
+import { OrderLifecycleService } from './order-lifecycle.service';
 import { OrdersGateway } from './orders.gateway';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { serializePrisma } from '../../common/utils/serializer.util';
@@ -39,6 +40,7 @@ export class OrdersService {
     private readonly prisma:      PrismaService,
     private readonly repo:        OrdersRepository,
     private readonly validation:  OrdersValidationService,
+    private readonly lifecycle:   OrderLifecycleService,
     private readonly gateway:     OrdersGateway,
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
@@ -386,88 +388,47 @@ export class OrdersService {
     return order;
   }
 
- async updateStatus(
-  orderId: string,
-  dto: UpdateOrderStatusDto,
-  changedBy?: string,
-  userRole?: string,
-) {
+  async updateStatus(
+    orderId: string,
+    dto: UpdateOrderStatusDto,
+    changedBy?: string,
+    userRole?: string,
+  ) {
     const order = await this.repo.findById(orderId);
-    // Restaurant permissions
-if (
-  userRole === 'RESTAURANT_OWNER' ||
-  userRole === 'RESTAURANT_MANAGER' ||
-  userRole === 'RESTAURANT_STAFF'
-) {
- const allowed: OrderStatus[] = [
-  OrderStatus.PREPARING,
-  OrderStatus.CANCELLED,
-  OrderStatus.READY_FOR_PICKUP,
-];
-
-if (!allowed.includes(dto.status as OrderStatus)) {
-  throw new ForbiddenException(
-    'Restaurant cannot change order to this status',
-  );
-}
-
-  if (!allowed.includes(dto.status)) {
-    throw new ForbiddenException(
-      'Restaurant cannot change order to this status',
-    );
-  }
-}
-
-// Driver permissions
-if (userRole === 'DRIVER') {
- const allowed: OrderStatus[] = [
-  OrderStatus.OUT_FOR_DELIVERY,
-  OrderStatus.DELIVERED,
-];
-
-if (!allowed.includes(dto.status as OrderStatus)) {
-  throw new ForbiddenException(
-    'Driver cannot change order to this status',
-  );
-}
-
-  if (!allowed.includes(dto.status)) {
-    throw new ForbiddenException(
-      'Driver cannot change order to this status',
-    );
-  }
-}
-
-    this.validation.validateStatusTransition(order.status, dto.status);
-
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data:  { status: dto.status },
-    });
-
-    await this.repo.appendTimeline(orderId, dto.status, dto.message);
-    await this.repo.appendStatusHistory(orderId, order.status, dto.status, changedBy);
-
-    const eventMap: Partial<Record<OrderStatus, string>> = {
-      ACCEPTED:         ORDER_EVENTS.ORDER_ACCEPTED,
-      PREPARING:        ORDER_EVENTS.ORDER_PREPARING,
-      READY_FOR_PICKUP: ORDER_EVENTS.ORDER_READY,
-      DRIVER_ASSIGNED:  ORDER_EVENTS.DRIVER_ASSIGNED,
-      OUT_FOR_DELIVERY: ORDER_EVENTS.ORDER_PICKED_UP,
-      DELIVERED:        ORDER_EVENTS.ORDER_DELIVERED,
-      CANCELLED:        ORDER_EVENTS.ORDER_CANCELLED,
-    };
-
-    const event = eventMap[dto.status];
-    if (event) {
-      this.gateway.emitToOrder(orderId, event as any, {
-        orderId,
-        status:  dto.status,
-        message: dto.message,
-      });
+    
+    if (
+      userRole === 'RESTAURANT_OWNER' ||
+      userRole === 'RESTAURANT_MANAGER' ||
+      userRole === 'RESTAURANT_STAFF'
+    ) {
+      const allowed: OrderStatus[] = [
+        OrderStatus.PREPARING,
+        OrderStatus.CANCELLED,
+        OrderStatus.READY_FOR_PICKUP,
+      ];
+      
+      if (!allowed.includes(dto.status as OrderStatus)) {
+        throw new ForbiddenException(
+          'Restaurant cannot change order to this status',
+        );
+      }
+    }
+  
+    // Driver permissions
+    if (userRole === 'DRIVER') {
+      const allowed: OrderStatus[] = [
+        OrderStatus.OUT_FOR_DELIVERY,
+        OrderStatus.DELIVERED,
+      ];
+      
+      if (!allowed.includes(dto.status as OrderStatus)) {
+        throw new ForbiddenException(
+          'Driver cannot change order to this status',
+        );
+      }
     }
 
-    return updated;
+    return this.lifecycle.updateOrderStatus(orderId, dto.status as OrderStatus, changedBy);
   }
 
   async cancelOrder(

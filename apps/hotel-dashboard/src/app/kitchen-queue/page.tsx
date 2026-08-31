@@ -67,7 +67,7 @@ export default function KitchenQueuePage() {
     };
 
     socket.on('order.created', handleUpdate);
-    socket.on('status.updated', handleUpdate);
+    socket.on('order.status_updated', handleUpdate);
 
     return () => {
       socket.disconnect();

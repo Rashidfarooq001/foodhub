@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ADMIN_ORDER_FILTERS } from '@foodhub/types';
 import { Search, ShoppingBag, RefreshCw, Eye, Store, User, MapPin } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 
@@ -59,18 +60,9 @@ export default function AdminOrdersPage() {
     
     if (statusFilter === 'ALL') {
       matchesStatus = true;
-    } else if (statusFilter === 'PENDING') {
-      matchesStatus = ['PENDING'].includes(o.status);
-    } else if (statusFilter === 'PREPARING') {
-      matchesStatus = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status);
-    } else if (statusFilter === 'OUT_FOR_DELIVERY') {
-      matchesStatus = ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status);
-    } else if (statusFilter === 'DELIVERED') {
-      matchesStatus = ['DELIVERED'].includes(o.status);
-    } else if (statusFilter === 'CANCELLED') {
-      matchesStatus = ['CANCELLED', 'REJECTED', 'FAILED', 'REFUNDED'].includes(o.status);
     } else {
-      matchesStatus = o.status === statusFilter;
+      const allowedStatuses = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS] || [];
+      matchesStatus = allowedStatuses.includes(o.status as any);
     }
 
     const ordNum = o.orderNumber || o.id || '';
