@@ -311,6 +311,16 @@ export class DeliveryJobsController {
       throw new ForbiddenException('Only delivery partners can view available delivery jobs.');
     }
 
+    const driver = await this.getDriverFromReq(req);
+    let rejectedJobIds: string[] = [];
+    if (driver) {
+      const rejections = await this.prisma.deliveryJobRejection.findMany({
+        where: { driverId: driver.id },
+        select: { deliveryJobId: true }
+      });
+      rejectedJobIds = rejections.map(r => r.deliveryJobId);
+    }
+
     const jobs = await this.prisma.deliveryJob.findMany({
       where: {
         status: DeliveryJobStatus.AVAILABLE,
@@ -318,6 +328,9 @@ export class DeliveryJobsController {
         order: {
           status: OrderStatus.READY_FOR_PICKUP,
         },
+        id: {
+          notIn: rejectedJobIds
+        }
       },
       include: {
         order: {
@@ -370,6 +383,8 @@ export class DeliveryJobsController {
         orderNumber: job.order.orderNumber,
         restaurantName: job.order.restaurant.name,
         restaurantAddress: job.order.restaurant.addressLine,
+        restaurantLat: job.order.restaurant.latitude !== null ? Number(job.order.restaurant.latitude) : null,
+        restaurantLng: job.order.restaurant.longitude !== null ? Number(job.order.restaurant.longitude) : null,
         customerName,
         customerAddress: dropAddressText,
         distanceKm: job.distanceKm,
@@ -630,6 +645,60 @@ export class DeliveryJobsController {
       return this.goOnline(req);
     } else {
       return this.goOffline(req);
+    }
+  }
+
+  @Post('jobs/:id/decline')
+  @ApiOperation({ summary: 'Rider declines an available delivery job' })
+  async declineJob(@Param('id') id: string, @Body('reason') reason: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: {
+          OR: [{ id }, { orderId: id }],
+        },
+      });
+
+      if (!job) {
+        throw new NotFoundException('Delivery job not found.');
+      }
+
+      if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
+        throw new ConflictException('This delivery job is no longer available.');
+      }
+
+      await this.prisma.deliveryJobRejection.upsert({
+        where: {
+          deliveryJobId_driverId: {
+            deliveryJobId: job.id,
+            driverId: driver.id,
+          },
+        },
+        create: {
+          deliveryJobId: job.id,
+          driverId: driver.id,
+          rejectionReason: reason || null,
+        },
+        update: {
+          rejectionReason: reason || null,
+          rejectedAt: new Date(),
+        },
+      });
+
+      return { success: true, message: 'Job declined successfully.' };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException || err instanceof NotFoundException || err instanceof ConflictException) {
+        throw err;
+      }
+      this.logger.error(`declineJob failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to decline delivery job',
+        details: err?.stack || String(err),
+      });
     }
   }
 

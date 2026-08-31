@@ -25,7 +25,7 @@ markPickedUp: () => {
     currentJob: state.currentJob
       ? {
           ...state.currentJob,
-          status: 'DELIVERED',
+          status: 'OUT_FOR_DELIVERY',
         }
       : null,
   }));

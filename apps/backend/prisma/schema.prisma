@@ -171,6 +171,9 @@ enum AuditAction {
   LOGIN
   LOGOUT
   STATUS_CHANGE
+  RESTAURANT_SUSPENDED
+  RESTAURANT_REACTIVATED
+  RESTAURANT_DELETED
 }
 
 // ==========================================
@@ -460,20 +463,20 @@ model Restaurant {
   updatedBy       String?          @map("updated_by") @db.Uuid
   version         Int              @default(1)
 
-  branches         RestaurantBranch[]
-  timings          RestaurantTiming[]
-  galleries        RestaurantGallery[]
-  documents        RestaurantDocument[]
-  staff            RestaurantStaff[]
-  deliveryStaff    RestaurantDeliveryStaff[]
-  bankAccount      RestaurantBankAccount?
-  settings         RestaurantSetting?
-  categories       Category[]
-  foodItems        FoodItem[]
-  orders           Order[]
+  branches              RestaurantBranch[]
+  timings               RestaurantTiming[]
+  galleries             RestaurantGallery[]
+  documents             RestaurantDocument[]
+  staff                 RestaurantStaff[]
+  deliveryStaff         RestaurantDeliveryStaff[]
+  bankAccount           RestaurantBankAccount?
+  settings              RestaurantSetting?
+  categories            Category[]
+  foodItems             FoodItem[]
+  orders                Order[]
   restaurantSettlements RestaurantSettlement[]
-  reviews          RestaurantReview[]
-  savedByCustomers SavedRestaurant[]
+  reviews               RestaurantReview[]
+  savedByCustomers      SavedRestaurant[]
 
   @@index([slug])
   @@index([status])
@@ -755,7 +758,7 @@ model Order {
   id                         String        @id @default(uuid()) @db.Uuid
   orderNumber                String        @unique @map("order_number")
   customerId                 String        @map("customer_id") @db.Uuid
-  restaurantId               String        @map("restaurant_id") @db.Uuid
+  restaurantId               String?       @map("restaurant_id") @db.Uuid
   status                     OrderStatus   @default(PENDING)
   subtotal                   Decimal       @db.Decimal(10, 2)
   packagingFee               Decimal       @default(0.00) @map("packaging_fee") @db.Decimal(10, 2)
@@ -768,6 +771,7 @@ model Order {
   deliveryAddress            Json          @map("delivery_address")
   taxSnapshot                Json?         @map("tax_snapshot")
   pricingSnapshot            Json?         @map("pricing_snapshot")
+  restaurantSnapshot         Json?         @map("restaurant_snapshot")
   deliveryOtp                String?       @map("delivery_otp") // Legacy 4-digit OTP
   deliveryOtpHash            String?       @map("delivery_otp_hash")
   deliveryOtpExpiresAt       DateTime?     @map("delivery_otp_expires_at")
@@ -782,7 +786,7 @@ model Order {
   version                    Int           @default(1)
 
   customer                 Customer                 @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  restaurant               Restaurant               @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  restaurant               Restaurant?              @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
   assignedRestaurantDriver RestaurantDeliveryStaff? @relation(fields: [assignedRestaurantDriverId], references: [id], onDelete: SetNull)
   orderItems               OrderItem[]
   orderTimelines           OrderTimeline[]
@@ -810,7 +814,7 @@ model Order {
 model OrderItem {
   id           String  @id @default(uuid()) @db.Uuid
   orderId      String  @map("order_id") @db.Uuid
-  foodItemId   String  @map("food_item_id") @db.Uuid
+  foodItemId   String? @map("food_item_id") @db.Uuid
   variantId    String? @map("variant_id") @db.Uuid
   variantName  String? @map("variant_name")
   quantity     Int
@@ -819,8 +823,8 @@ model OrderItem {
   addonsJson   Json?   @map("addons_json")
   itemSnapshot Json?   @map("item_snapshot")
 
-  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  foodItem FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
 
   @@map("order_items")
 }
@@ -936,29 +940,30 @@ model PaymentRefund {
 }
 
 model RestaurantSettlement {
-  id               String           @id @default(uuid()) @db.Uuid
-  restaurantId     String           @map("restaurant_id") @db.Uuid
-  orderId          String           @unique @map("order_id") @db.Uuid
-  periodStart      DateTime         @map("period_start")
-  periodEnd        DateTime         @map("period_end")
-  grossAmount      Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
-  commissionRate   Decimal          @default(13.00) @map("commission_rate") @db.Decimal(5, 2)
-  commissionAmount Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
-  deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
-  netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
-  status           SettlementStatus @default(PENDING)
-  payoutId         String?          @map("payout_id")
-  utrNumber        String?          @map("utr_number")
-  failureReason    String?          @map("failure_reason")
-  initiatedAt      DateTime?        @map("initiated_at")
-  settledAt        DateTime?        @map("settled_at")
-  adminId          String?          @map("admin_id") @db.Uuid
-  notes            String?
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  id                 String           @id @default(uuid()) @db.Uuid
+  restaurantId       String?          @map("restaurant_id") @db.Uuid
+  restaurantSnapshot Json?            @map("restaurant_snapshot")
+  orderId            String           @unique @map("order_id") @db.Uuid
+  periodStart        DateTime         @map("period_start")
+  periodEnd          DateTime         @map("period_end")
+  grossAmount        Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
+  commissionRate     Decimal          @default(13.00) @map("commission_rate") @db.Decimal(5, 2)
+  commissionAmount   Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
+  deductions         Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
+  netPayable         Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
+  status             SettlementStatus @default(PENDING)
+  payoutId           String?          @map("payout_id")
+  utrNumber          String?          @map("utr_number")
+  failureReason      String?          @map("failure_reason")
+  initiatedAt        DateTime?        @map("initiated_at")
+  settledAt          DateTime?        @map("settled_at")
+  adminId            String?          @map("admin_id") @db.Uuid
+  notes              String?
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
-  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([restaurantId])
   @@index([status])
@@ -1054,17 +1059,18 @@ model Driver {
   updatedAt     DateTime     @updatedAt @map("updated_at")
   deletedAt     DateTime?    @map("deleted_at")
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents    DriverDocument[]
-  vehicles     DriverVehicle[]
-  locations    DriverLocation[]
-  shifts       DriverShift[]
-  assignments  DeliveryAssignment[]
-  deliveryJobs DeliveryJob[]
-  histories    DeliveryHistory[]
-  driverWallet DriverWallet?
-  reviews      DriverReview[]
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents        DriverDocument[]
+  vehicles         DriverVehicle[]
+  locations        DriverLocation[]
+  shifts           DriverShift[]
+  assignments      DeliveryAssignment[]
+  deliveryJobs     DeliveryJob[]
+  histories        DeliveryHistory[]
+  driverWallet     DriverWallet?
+  reviews          DriverReview[]
   riderSettlements RiderSettlement[]
+  jobRejections    DeliveryJobRejection[]
 
   @@index([status])
   @@index([currentLat, currentLng])
@@ -1162,12 +1168,28 @@ model DeliveryJob {
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
 
-  order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  order      Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver     Driver?                @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  rejections DeliveryJobRejection[]
 
   @@index([status])
   @@index([driverId])
   @@map("delivery_jobs")
+}
+
+model DeliveryJobRejection {
+  id              String   @id @default(uuid()) @db.Uuid
+  deliveryJobId   String   @map("delivery_job_id") @db.Uuid
+  driverId        String   @map("driver_id") @db.Uuid
+  rejectedAt      DateTime @default(now()) @map("rejected_at")
+  rejectionReason String?  @map("rejection_reason")
+
+  deliveryJob DeliveryJob @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  driver      Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryJobId, driverId])
+  @@index([driverId])
+  @@map("delivery_job_rejections")
 }
 
 model DeliveryHistory {
@@ -1826,4 +1848,3 @@ enum TicketPriority {
   HIGH
   URGENT
 }
-

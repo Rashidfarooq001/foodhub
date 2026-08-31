@@ -49,11 +49,12 @@ export default function AdminRestaurantsPage() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
-    type: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE' | 'COMMISSION';
+    type: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE' | 'COMMISSION' | 'DELETE';
     restaurantId: string;
     restaurantName: string;
   } | null>(null);
   const [modalReason, setModalReason] = useState('');
+  const [modalConfirmName, setModalConfirmName] = useState('');
   const [modalCommission, setModalCommission] = useState<number | ''>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -104,7 +105,7 @@ export default function AdminRestaurantsPage() {
     } catch {
       /* noop */
     }
-  }, []);
+  }, [fetchRestaurants]);
 
   const handleExecuteAction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,16 +139,19 @@ export default function AdminRestaurantsPage() {
           setIsProcessing(false);
           return;
         }
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/suspend`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'SUSPENDED', rejectionReason: modalReason.trim() }),
+          body: JSON.stringify({ reason: modalReason.trim() }),
         });
       } else if (activeModal.type === 'REACTIVATE') {
-        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/approval`, {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}/reactivate`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'APPROVED' }),
+        });
+      } else if (activeModal.type === 'DELETE') {
+        res = await adminFetch(`/restaurants/${activeModal.restaurantId}`, {
+          method: 'DELETE',
         });
       } else if (activeModal.type === 'COMMISSION') {
         res = await adminFetch(`/restaurants/${activeModal.restaurantId}/commission`, {
@@ -160,6 +164,7 @@ export default function AdminRestaurantsPage() {
       if (res && res.ok) {
         setActiveModal(null);
         setModalReason('');
+        setModalConfirmName('');
         setModalCommission('');
         await fetchRestaurants();
       } else {
@@ -349,12 +354,20 @@ export default function AdminRestaurantsPage() {
                     )}
 
                     {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
-                      <button
-                        onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
-                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-black text-white min-h-[40px]"
-                      >
-                        Reactivate Store
-                      </button>
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                          className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-black text-white min-h-[40px]"
+                        >
+                          Reactivate
+                        </button>
+                        <button
+                          onClick={() => setActiveModal({ type: 'DELETE', restaurantId: r.id, restaurantName: r.name })}
+                          className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-2 text-xs font-black text-white min-h-[40px]"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
 
                     <button
@@ -420,12 +433,20 @@ export default function AdminRestaurantsPage() {
                           </button>
                         )}
                         {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
-                          <button
-                            onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
-                            className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
-                          >
-                            Reactivate
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                              className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
+                            >
+                              Reactivate
+                            </button>
+                            <button
+                              onClick={() => setActiveModal({ type: 'DELETE', restaurantId: r.id, restaurantName: r.name })}
+                              className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white hover:bg-rose-700"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => {
@@ -458,6 +479,7 @@ export default function AdminRestaurantsPage() {
                 {activeModal.type === 'REJECT' && `Reject ${activeModal.restaurantName}`}
                 {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.restaurantName}`}
                 {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.restaurantName}`}
+                {activeModal.type === 'DELETE' && `Permanently Delete ${activeModal.restaurantName}`}
                 {activeModal.type === 'COMMISSION' && `Set Commission % for ${activeModal.restaurantName}`}
               </h2>
               <button
@@ -471,6 +493,27 @@ export default function AdminRestaurantsPage() {
             {actionError && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
                 {actionError}
+              </div>
+            )}
+
+            {activeModal.type === 'DELETE' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-900">
+                  Are you sure you want to permanently delete this restaurant? This action cannot be undone. It will permanently remove the restaurant and its active operational data from the platform.
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Type <strong>{activeModal.restaurantName}</strong> to confirm:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={modalConfirmName}
+                    onChange={(e) => setModalConfirmName(e.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-900 focus:border-rose-500 focus:bg-white focus:outline-none"
+                    placeholder={activeModal.restaurantName}
+                  />
+                </div>
               </div>
             )}
 
@@ -518,10 +561,20 @@ export default function AdminRestaurantsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isProcessing}
-                  className="flex-1 rounded-2xl bg-purple-600 hover:bg-purple-700 py-3 text-xs font-black text-white shadow-md shadow-purple-500/20 transition min-h-[44px]"
+                  disabled={isProcessing || (activeModal.type === 'DELETE' && modalConfirmName !== activeModal.restaurantName)}
+                  className={`flex-1 rounded-2xl py-3 text-xs font-black text-white shadow-md transition min-h-[44px] ${
+                    activeModal.type === 'DELETE'
+                      ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20 disabled:bg-rose-300'
+                      : activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND'
+                      ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20 disabled:bg-red-300'
+                      : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 disabled:bg-emerald-300'
+                  }`}
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm Action'}
+                  {isProcessing
+                    ? 'Processing...'
+                    : activeModal.type === 'DELETE'
+                    ? 'DELETE PERMANENTLY'
+                    : 'Confirm Action'}
                 </button>
               </div>
             </form>

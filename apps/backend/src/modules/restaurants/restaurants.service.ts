@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException, 
 import { PrismaService } from '../database/prisma.service';
 import { GeolocationService } from '../geolocation/geolocation.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
-import { RestaurantStatus, UserRole, DeliveryMode, AuditAction } from '@prisma/client';
+import { RestaurantStatus, UserRole, DeliveryMode, AuditAction, OrderStatus } from '@prisma/client';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
@@ -567,6 +567,140 @@ export class RestaurantsService {
       avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
       commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
     });
+  }
+
+  async suspendRestaurant(id: string, reason: string, adminUserId?: string) {
+    const restaurant = await this.findRestaurantById(id);
+
+    await this.prisma.restaurant.update({
+      where: { id: restaurant.id },
+      data: {
+        isOpen: false,
+        status: RestaurantStatus.SUSPENDED,
+      },
+    });
+
+    if (adminUserId) {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'RESTAURANT_SUSPENDED',
+          entityName: 'Restaurant',
+          entityId: restaurant.id,
+          userId: adminUserId,
+          newValue: { reason },
+        },
+      });
+    }
+    
+    // Attempt to notify active users or invalidate caches via sockets if necessary
+    try {
+      // In a real app we'd emit to a room here
+    } catch {}
+
+    return { success: true, message: 'Restaurant suspended successfully.' };
+  }
+
+  async reactivateRestaurant(id: string, adminUserId?: string) {
+    const restaurant = await this.findRestaurantById(id);
+
+    await this.prisma.restaurant.update({
+      where: { id: restaurant.id },
+      data: {
+        isOpen: true,
+        status: RestaurantStatus.APPROVED,
+      },
+    });
+
+    if (adminUserId) {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'RESTAURANT_REACTIVATED',
+          entityName: 'Restaurant',
+          entityId: restaurant.id,
+          userId: adminUserId,
+        },
+      });
+    }
+
+    return { success: true, message: 'Restaurant reactivated successfully.' };
+  }
+
+  async permanentlyDeleteRestaurant(id: string, adminUserId?: string) {
+    const restaurant = await this.findRestaurantById(id);
+
+    // 1. Active Order Protection
+    const activeOrdersCount = await this.prisma.order.count({
+      where: {
+        restaurantId: restaurant.id,
+        status: {
+          notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+        },
+      },
+    });
+
+    if (activeOrdersCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete restaurant: This restaurant has ${activeOrdersCount} active orders. Complete or resolve all active orders before permanent deletion.`
+      );
+    }
+
+    // 2. Perform safe permanent deletion using an atomic transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Update historical orders to decouple the restaurant ID but preserve a snapshot
+      await tx.order.updateMany({
+        where: { restaurantId: restaurant.id },
+        data: {
+          restaurantId: null,
+          restaurantSnapshot: {
+            id: restaurant.id,
+            name: restaurant.name,
+            addressLine: restaurant.addressLine,
+            phone: restaurant.phone,
+            deletedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      // Update historical settlements
+      await tx.restaurantSettlement.updateMany({
+        where: { restaurantId: restaurant.id },
+        data: {
+          restaurantId: null,
+          restaurantSnapshot: {
+            id: restaurant.id,
+            name: restaurant.name,
+          },
+        },
+      });
+
+      // The rest are Cascade deleted by Prisma because of onDelete: Cascade:
+      // RestaurantBranch, RestaurantTiming, RestaurantGallery, RestaurantDocument,
+      // RestaurantStaff, RestaurantDeliveryStaff, RestaurantBankAccount, RestaurantSetting,
+      // Category, FoodItem (and FoodItem cascades to OrderItem because we changed OrderItem to SetNull - wait, if FoodItem is deleted, OrderItem.foodItemId is set to null).
+
+      // Let's manually decouple OrderItem to prevent Prisma schema mismatch if it cascades poorly:
+      // Actually, since FoodItem -> OrderItem is SetNull, Prisma handles it automatically!
+
+      // Finally, delete the restaurant entity
+      await tx.restaurant.delete({
+        where: { id: restaurant.id },
+      });
+
+      // Log deletion
+      if (adminUserId) {
+        await tx.auditLog.create({
+          data: {
+            action: 'RESTAURANT_DELETED',
+            entityName: 'Restaurant',
+            entityId: restaurant.id,
+            userId: adminUserId,
+            oldValue: { name: restaurant.name },
+          },
+        });
+      }
+    });
+
+    return { success: true, message: 'Restaurant deleted permanently.' };
   }
 
   async updateDeliveryMode(id: string, deliveryMode: DeliveryMode) {

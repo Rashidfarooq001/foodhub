@@ -83,6 +83,43 @@ export class RestaurantsController {
     return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
   }
 
+  @Patch(':id/suspend')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Suspend a restaurant (Admin Only)' })
+  async suspendRestaurant(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() currentUser?: any,
+  ) {
+    return this.restaurantsService.suspendRestaurant(id, reason, currentUser?.id);
+  }
+
+  @Patch(':id/reactivate')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Reactivate a suspended restaurant (Admin Only)' })
+  async reactivateRestaurant(
+    @Param('id') id: string,
+    @CurrentUser() currentUser?: any,
+  ) {
+    return this.restaurantsService.reactivateRestaurant(id, currentUser?.id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a restaurant (Admin Only)' })
+  async deleteRestaurant(
+    @Param('id') id: string,
+    @CurrentUser() currentUser?: any,
+  ) {
+    return this.restaurantsService.permanentlyDeleteRestaurant(id, currentUser?.id);
+  }
+
   @Patch(':id/delivery-mode')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -2,15 +2,25 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../database/prisma.service';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class StorageService {
   private readonly uploadDir = path.join(process.cwd(), 'uploads');
   private readonly logger = new Logger(StorageService.name);
+  private readonly s3Client?: S3Client;
+  private readonly s3BucketName?: string;
+  private readonly s3Region?: string;
 
   constructor(private readonly prisma: PrismaService) {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
+    }
+
+    if (process.env.AWS_S3_BUCKET_NAME) {
+      this.s3BucketName = process.env.AWS_S3_BUCKET_NAME;
+      this.s3Region = process.env.AWS_REGION || 'ap-south-1';
+      this.s3Client = new S3Client({ region: this.s3Region });
     }
   }
 
@@ -68,20 +78,59 @@ export class StorageService {
   async saveUploadedFile(file: any) {
     const ext = path.extname(file.originalname || '.jpg');
     const uniqueFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    const filePath = path.join(this.uploadDir, uniqueFilename);
-
+    
     let fileBuffer: Buffer | null = null;
-
     if (file.buffer) {
       fileBuffer = file.buffer;
-      fs.writeFileSync(filePath, file.buffer);
     } else if (file.path && fs.existsSync(file.path)) {
       fileBuffer = fs.readFileSync(file.path);
-      fs.copyFileSync(file.path, filePath);
     }
 
-    // Persist file binary in PostgreSQL database to survive ephemeral container restarts
-    if (fileBuffer && this.prisma) {
+    if (!fileBuffer) {
+      throw new BadRequestException('File buffer is empty');
+    }
+
+    // 1. Check if S3 is configured
+    if (this.s3Client && this.s3BucketName) {
+      try {
+        await this.s3Client.send(new PutObjectCommand({
+          Bucket: this.s3BucketName,
+          Key: `uploads/${uniqueFilename}`,
+          Body: fileBuffer,
+          ContentType: file.mimetype || 'image/jpeg',
+        }));
+
+        const s3Url = `https://${this.s3BucketName}.s3.${this.s3Region}.amazonaws.com/uploads/${uniqueFilename}`;
+        
+        // Write the S3 metadata to Postgres SystemSettings instead of Base64 blob
+        await (this.prisma as any).systemSetting.upsert({
+          where: { key: `media_file_${uniqueFilename}` },
+          update: { value: JSON.stringify({ mimeType: file.mimetype, s3Url }) },
+          create: {
+            key: `media_file_${uniqueFilename}`,
+            value: JSON.stringify({ mimeType: file.mimetype, s3Url }),
+          },
+        });
+
+        this.logger.log(`[Media Storage] Uploaded to S3: ${uniqueFilename}`);
+        
+        return {
+          url: s3Url,
+          filename: uniqueFilename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+        };
+      } catch (err: any) {
+        this.logger.error(`[S3 Upload Failed] Falling back to disk/db... ${err?.message}`);
+      }
+    }
+
+    // 2. Fallback to Local Disk and Base64 Postgres Blob (Legacy Render Behavior)
+    const filePath = path.join(this.uploadDir, uniqueFilename);
+    fs.writeFileSync(filePath, fileBuffer);
+
+    if (this.prisma) {
       try {
         const base64Data = fileBuffer.toString('base64');
         const mediaRecordValue = JSON.stringify({

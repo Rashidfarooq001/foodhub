@@ -247,7 +247,7 @@ export class OrderStateMachineService {
       return updated;
     });
 
-    this.emitRealtimeEvents(updatedOrder, order.status, OrderStatus.DRIVER_ASSIGNED);
+    this.emitRealtimeEvents(updatedOrder, order.status, OrderStatus.DRIVER_ASSIGNED, driver.id);
 
     return updatedOrder;
   }
@@ -1001,9 +1001,10 @@ export class OrderStateMachineService {
     }
   }
 
-  private emitRealtimeEvents(order: any, fromStatus: OrderStatus, toStatus: OrderStatus) {
+  private emitRealtimeEvents(order: any, fromStatus: OrderStatus, toStatus: OrderStatus, overrideDriverId?: string) {
     this.logger.log(`[STATE MACHINE EVENT] Order #${order.orderNumber} transitioned from ${fromStatus} to ${toStatus}`);
     if (this.gateway) {
+      const activeDriverId = overrideDriverId || order.deliveryJob?.driverId || order.assignedRestaurantDriverId;
       const sanitizedPayload = {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -1013,7 +1014,7 @@ export class OrderStateMachineService {
         version: order.version,
         restaurantId: order.restaurantId,
         customerId: order.customerId,
-        driverId: order.deliveryJob?.driverId || order.assignedRestaurantDriverId,
+        driverId: activeDriverId,
         driverName: order.deliveryJob?.driver?.user?.profile
           ? `${order.deliveryJob.driver.user.profile.firstName || ''} ${order.deliveryJob.driver.user.profile.lastName || ''}`.trim()
           : undefined,
@@ -1032,7 +1033,6 @@ export class OrderStateMachineService {
       if (order.restaurantId) {
         this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       }
-      const activeDriverId = order.deliveryJob?.driverId || order.assignedRestaurantDriverId;
       if (activeDriverId) {
         this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       }

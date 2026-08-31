@@ -66,6 +66,11 @@ async function bootstrap() {
 
       if (setting && setting.value) {
         const parsed = JSON.parse(setting.value);
+
+        if (parsed.s3Url) {
+          return res.redirect(301, parsed.s3Url);
+        }
+
         if (parsed.base64) {
           const buffer = Buffer.from(parsed.base64, 'base64');
           fs.writeFileSync(diskFilePath, buffer);

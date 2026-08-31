@@ -129,6 +129,8 @@ export default function HotelDashboardPage() {
   };
 
   const isPendingApproval = me?.restaurant?.status === 'PENDING_APPROVAL';
+  const isSuspended = me?.restaurant?.status === 'SUSPENDED';
+  const isRejected = me?.restaurant?.status === 'REJECTED';
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8 w-full max-w-full overflow-x-hidden">
@@ -140,6 +142,30 @@ export default function HotelDashboardPage() {
           </div>
           <span className="rounded-xl bg-amber-200 px-3 py-1 text-[10px] font-black text-amber-900 self-start sm:self-auto">
             PENDING APPROVAL
+          </span>
+        </div>
+      )}
+
+      {isSuspended && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 sm:p-4 text-xs font-bold text-rose-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="font-black text-rose-800 uppercase tracking-wider text-[10px] block">Account Status</span>
+            <span>Your restaurant has been suspended. You cannot accept new orders. Please contact support.</span>
+          </div>
+          <span className="rounded-xl bg-rose-200 px-3 py-1 text-[10px] font-black text-rose-900 self-start sm:self-auto">
+            SUSPENDED
+          </span>
+        </div>
+      )}
+
+      {isRejected && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3.5 sm:p-4 text-xs font-bold text-red-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="font-black text-red-800 uppercase tracking-wider text-[10px] block">Application Status</span>
+            <span>Your application has been rejected by administration.</span>
+          </div>
+          <span className="rounded-xl bg-red-200 px-3 py-1 text-[10px] font-black text-red-900 self-start sm:self-auto">
+            REJECTED
           </span>
         </div>
       )}
