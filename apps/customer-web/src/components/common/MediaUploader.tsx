@@ -199,12 +199,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         >
           {isUploading ? (
             <div className="py-3 space-y-2 text-orange-600">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+              <Loader2 className="mx-auto h-6 w-6 animate-spin" />
               <span className="block text-xs font-bold">Uploading media to server...</span>
             </div>
           ) : (
             <>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600 group-hover:scale-110 transition">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-600 group-hover:scale-110 transition">
                 {isVideo ? <Video className="h-5 w-5" /> : <UploadCloud className="h-5 w-5" />}
               </div>
               <p className="text-xs font-bold text-gray-800">

@@ -506,7 +506,7 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="pt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-7 py-2 text-xs font-bold text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700"
             >
               <span>Merchant Portal Login</span>
               <ArrowRight className="h-4 w-4" />
@@ -519,7 +519,7 @@ export default function RestaurantPartnerRegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 px-4 py-12 text-gray-900">
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         {/* Header */}
         <div className="text-center space-y-2 text-white">
           <div className="mx-auto flex justify-center mb-4">
@@ -539,14 +539,14 @@ export default function RestaurantPartnerRegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xl space-y-6">
           {/* SECTION 1: OWNER & RESTAURANT PROFILE */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex items-center gap-2 text-base font-black text-gray-900 border-b border-gray-100 pb-4">
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <Store className="h-5 w-5 text-orange-600" /> 1. Owner &amp; Restaurant Basic Info
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Restaurant Name <span className="text-rose-600 font-bold">*</span>
@@ -558,7 +558,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.name}
                   onChange={handleChange}
                   placeholder="e.g. Royal Biryani House"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -573,7 +573,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.ownerName}
                   onChange={handleChange}
                   placeholder="Full legal owner name"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -593,7 +593,7 @@ export default function RestaurantPartnerRegisterPage() {
                       onChange={handleChange}
                       placeholder="10-digit mobile number"
                       disabled={isPhoneVerified}
-                      className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none disabled:bg-gray-100"
+                      className="w-full rounded-2xl border border-gray-200 py-2 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none disabled:bg-gray-100"
                     />
                   </div>
                   {!isPhoneVerified ? (
@@ -601,7 +601,7 @@ export default function RestaurantPartnerRegisterPage() {
                       type="button"
                       onClick={handleVerifyPhoneWithWidget}
                       disabled={isVerifyingPhone}
-                      className="rounded-2xl bg-orange-600 px-4 py-3.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 shrink-0"
+                      className="rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 shrink-0"
                     >
                       {isVerifyingPhone ? 'Verifying...' : 'Verify Phone Number'}
                     </button>
@@ -708,7 +708,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.email}
                     onChange={handleChange}
                     placeholder="Enter email"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-2xl border border-gray-200 py-2 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -726,7 +726,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.password}
                     onChange={handleChange}
                     placeholder="Min 6 characters"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-2xl border border-gray-200 py-2 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -744,7 +744,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.confirmPassword}
                     onChange={handleChange}
                     placeholder="Re-enter password"
-                    className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-full rounded-2xl border border-gray-200 py-2 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -752,12 +752,12 @@ export default function RestaurantPartnerRegisterPage() {
           </div>
 
           {/* SECTION 2: MANDATORY DOCUMENTS & VISUALS */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex items-center gap-2 text-base font-black text-gray-900 border-b border-gray-100 pb-4">
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <FileText className="h-5 w-5 text-orange-600" /> 2. Mandatory Documents &amp; Visuals
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   FSSAI License Number <span className="text-rose-600 font-bold">*</span>
@@ -769,7 +769,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.fssaiLicense}
                   onChange={handleChange}
                   placeholder="14-digit FSSAI License No."
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -783,7 +783,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.panNumber}
                   onChange={handleChange}
                   placeholder="10-character PAN No."
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -827,9 +827,9 @@ export default function RestaurantPartnerRegisterPage() {
           </div>
 
           {/* SECTION 3: STORE ADDRESS & LOCATION */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-2 text-base font-black text-gray-900">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+              <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider">
                 <MapPin className="h-5 w-5 text-orange-600" /> 3. Store Physical Location &amp; GPS
                 Coordinates
               </div>
@@ -857,7 +857,7 @@ export default function RestaurantPartnerRegisterPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Full Street Address *
@@ -869,7 +869,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.address}
                   onChange={handleChange}
                   placeholder="Door No, Street Name, Area / Locality"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -884,7 +884,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.city}
                   onChange={handleChange}
                   placeholder="Sopore / Srinagar / City Name"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -899,7 +899,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.state}
                     onChange={handleChange}
                     placeholder="State"
-                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                   <input
                     type="text"
@@ -907,7 +907,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.pin}
                     onChange={handleChange}
                     placeholder="PIN Code"
-                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -924,7 +924,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.cuisines}
                   onChange={handleChange}
                   placeholder="North Indian, Chinese, Fast Food"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -939,7 +939,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.openingHours}
                     onChange={handleChange}
                     placeholder="09:00"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none text-center"
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none text-center"
                   />
                   <span className="text-xs font-bold text-gray-400">to</span>
                   <input
@@ -948,7 +948,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.closingHours}
                     onChange={handleChange}
                     placeholder="23:00"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none text-center"
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none text-center"
                   />
                 </div>
               </div>
@@ -956,12 +956,12 @@ export default function RestaurantPartnerRegisterPage() {
           </div>
 
           {/* SECTION 4: BANK & SETTLEMENT DETAILS */}
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="flex items-center gap-2 text-base font-black text-gray-900 border-b border-gray-100 pb-4">
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <CreditCard className="h-5 w-5 text-orange-600" /> 4. Bank &amp; Settlement Details
             </div>
             
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Account Holder Name *
@@ -973,7 +973,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.accountHolder}
                   onChange={handleChange}
                   placeholder="Rahul Sharma"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -988,7 +988,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.bankName}
                   onChange={handleChange}
                   placeholder="HDFC Bank"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -1003,7 +1003,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.accountNumber}
                   onChange={handleChange}
                   placeholder="123456789012"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
 
@@ -1018,7 +1018,7 @@ export default function RestaurantPartnerRegisterPage() {
                   value={form.ifsc}
                   onChange={handleChange}
                   placeholder="HDFC0001234"
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
             </div>

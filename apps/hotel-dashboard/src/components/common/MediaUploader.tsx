@@ -185,7 +185,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
+          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-3 py-4 text-center transition ${
             isDragging
               ? 'border-orange-500 bg-orange-50/50'
               : 'border-gray-200 bg-gray-50/50 hover:border-orange-400 hover:bg-white'
@@ -193,12 +193,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         >
           {isUploading ? (
             <div className="py-4 space-y-2 text-orange-600">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+              <Loader2 className="mx-auto h-6 w-6 animate-spin" />
               <span className="block text-xs font-bold">Uploading media to server...</span>
             </div>
           ) : (
             <>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600 group-hover:scale-110 transition">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-600 group-hover:scale-110 transition">
                 {isVideo ? <Video className="h-5 w-5" /> : <UploadCloud className="h-5 w-5" />}
               </div>
               <p className="text-xs font-bold text-gray-800">

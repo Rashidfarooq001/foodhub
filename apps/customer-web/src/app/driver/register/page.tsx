@@ -9,32 +9,6 @@ import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function DriverRegisterPage() {
-  if (!isAuthEnabled()) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md text-center space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
-            <Bike className="h-8 w-8" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">Registration Temporarily Disabled</h1>
-            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
-              Courier partner registration screens are temporarily hidden during active development.
-            </p>
-          </div>
-          <div className="pt-2">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-gray-800"
-            >
-              <span>Return to ZaykaFood Home</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -135,7 +109,7 @@ export default function DriverRegisterPage() {
         )}
 
         {/* Step 1: Personal Information */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <User className="h-5 w-5 text-emerald-600" /> 1. Personal Details
           </div>
@@ -205,7 +179,7 @@ export default function DriverRegisterPage() {
         </div>
 
         {/* Step 2: Vehicle & Driving License Documents */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Verification
             Documents
@@ -287,7 +261,7 @@ export default function DriverRegisterPage() {
         </div>
 
         {/* Step 3: Bank Details */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
             <CreditCard className="h-5 w-5 text-emerald-600" /> 3. Payout Bank Account Details
           </div>
