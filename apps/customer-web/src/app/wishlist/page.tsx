@@ -18,9 +18,11 @@ export default function WishlistPage() {
         const res = await fetch(`${API_BASE}/wishlist`);
         if (res.ok) {
           const data = await res.json();
-          setWishlistedItems(Array.isArray(data) ? data : data.items ?? []);
+          setWishlistedItems(Array.isArray(data) ? data : (data.items ?? []));
         }
-      } catch { /* offline */ } finally {
+      } catch {
+        /* offline */
+      } finally {
         setIsLoading(false);
       }
     };

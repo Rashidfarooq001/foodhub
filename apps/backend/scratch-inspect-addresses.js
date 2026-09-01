@@ -21,7 +21,9 @@ async function main() {
     console.log(`Label: "${a.addressLabel}"`);
     console.log(`Address: "${a.addressLine1}, ${a.addressLine2 || ''}, ${a.city}, ${a.state}"`);
     console.log(`Coordinates: (${a.latitude}, ${a.longitude})`);
-    console.log(`Associated User: ID ${a.customer?.user?.id} | Phone: "${a.customer?.user?.phone}" | Role: ${a.customer?.user?.role}`);
+    console.log(
+      `Associated User: ID ${a.customer?.user?.id} | Phone: "${a.customer?.user?.phone}" | Role: ${a.customer?.user?.role}`,
+    );
   });
 }
 

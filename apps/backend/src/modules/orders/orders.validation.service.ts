@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { DistanceService } from '../geolocation/distance.service';
 import { OrderStatus, PaymentMethod } from '@prisma/client';
@@ -47,28 +43,51 @@ export class OrdersValidationService {
     const restLng = Number(restaurant.longitude);
     const radiusKm = Number(restaurant.deliveryRadius ?? 15.0);
 
-    if (!restLat || !restLng || (restLat === 0 && restLng === 0) || isNaN(restLat) || isNaN(restLng)) {
+    if (
+      !restLat ||
+      !restLng ||
+      (restLat === 0 && restLng === 0) ||
+      isNaN(restLat) ||
+      isNaN(restLng)
+    ) {
       throw new BadRequestException('Restaurant location unavailable for delivery calculation.');
     }
 
     const custLat = deliveryAddress?.latitude ? Number(deliveryAddress.latitude) : null;
     const custLng = deliveryAddress?.longitude ? Number(deliveryAddress.longitude) : null;
 
-    if (custLat === null || custLng === null || (custLat === 0 && custLng === 0) || isNaN(custLat) || isNaN(custLng)) {
+    if (
+      custLat === null ||
+      custLng === null ||
+      (custLat === 0 && custLng === 0) ||
+      isNaN(custLat) ||
+      isNaN(custLng)
+    ) {
       if (deliveryAddress?.locationSource === 'MANUAL_ADDRESS') {
         return 0; // Manual address bypassed routing
       }
-      throw new BadRequestException('Delivery coordinates are missing. Please provide a valid verified address.');
+      throw new BadRequestException(
+        'Delivery coordinates are missing. Please provide a valid verified address.',
+      );
     }
 
-    const distResult = await this.distanceService.getDeliveryDistance(restaurantId, custLat, custLng);
+    const distResult = await this.distanceService.getDeliveryDistance(
+      restaurantId,
+      custLat,
+      custLng,
+    );
     const distanceKm = distResult.distanceKm;
 
     if (!distResult.valid) {
       if (distResult.reason === 'ROUTE_CALCULATION_FAILED') {
-        throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
+        throw new BadRequestException(
+          'Delivery route could not be calculated. The delivery service may be temporarily unavailable.',
+        );
       }
-      if (distResult.reason === 'INVALID_RESTAURANT_COORDINATES' || distResult.reason === 'INVALID_CUSTOMER_COORDINATES') {
+      if (
+        distResult.reason === 'INVALID_RESTAURANT_COORDINATES' ||
+        distResult.reason === 'INVALID_CUSTOMER_COORDINATES'
+      ) {
         throw new BadRequestException('Invalid coordinates provided for delivery calculation.');
       }
       throw new BadRequestException(
@@ -94,7 +113,9 @@ export class OrdersValidationService {
       }
 
       if (restaurantId && foodItem.restaurantId !== restaurantId) {
-        throw new BadRequestException(`Food item ${foodItem.name} does not belong to the specified restaurant.`);
+        throw new BadRequestException(
+          `Food item ${foodItem.name} does not belong to the specified restaurant.`,
+        );
       }
 
       if (!foodItem.isAvailable) {
@@ -107,10 +128,14 @@ export class OrdersValidationService {
       if (item.variantId) {
         const variant = (foodItem.variants || []).find((v) => v.id === item.variantId);
         if (!variant) {
-          throw new BadRequestException(`Variant ${item.variantId} not found for item "${foodItem.name}"`);
+          throw new BadRequestException(
+            `Variant ${item.variantId} not found for item "${foodItem.name}"`,
+          );
         }
         if (!variant.isAvailable) {
-          throw new BadRequestException(`Variant "${variant.variantName}" of "${foodItem.name}" is currently unavailable.`);
+          throw new BadRequestException(
+            `Variant "${variant.variantName}" of "${foodItem.name}" is currently unavailable.`,
+          );
         }
       } else if (foodItem.variants && foodItem.variants.length > 0) {
         // If foodItem has multiple variants, require a variant selection
@@ -122,18 +147,13 @@ export class OrdersValidationService {
     }
   }
 
-  async validateMinimumOrder(
-    restaurantId: string,
-    subtotal: number,
-  ): Promise<void> {
+  async validateMinimumOrder(restaurantId: string, subtotal: number): Promise<void> {
     const setting = await this.prisma.restaurantSetting.findUnique({
       where: { restaurantId },
     });
     const minOrder = 50; // Platform default ₹50
     if (subtotal < minOrder) {
-      throw new BadRequestException(
-        `Minimum order value is ₹${minOrder}`,
-      );
+      throw new BadRequestException(`Minimum order value is ₹${minOrder}`);
     }
   }
 
@@ -179,30 +199,25 @@ export class OrdersValidationService {
   }
 
   /** Validate order status transitions through the state machine */
-  validateStatusTransition(
-    currentStatus: OrderStatus,
-    newStatus: OrderStatus,
-  ): void {
+  validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus): void {
     const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      PENDING:              ['ACCEPTED', 'REJECTED', 'CANCELLED'],
-      ACCEPTED:             ['PREPARING', 'CANCELLED'],
-      PREPARING:            ['DRIVER_ASSIGNED', 'CANCELLED'],
-      DRIVER_ASSIGNED:      ['ARRIVED_AT_RESTAURANT', 'CANCELLED'],
-      ARRIVED_AT_RESTAURANT:['PICKED_UP', 'CANCELLED'],
-      PICKED_UP:            ['OUT_FOR_DELIVERY', 'CANCELLED'],
-      OUT_FOR_DELIVERY:     ['DELIVERED', 'CANCELLED'],
-      DELIVERED:            ['REFUNDED'],
-      REJECTED:             [],
-      CANCELLED:            [],
-      FAILED:               [],
-      REFUNDED:             [],
+      PENDING: ['ACCEPTED', 'REJECTED', 'CANCELLED'],
+      ACCEPTED: ['PREPARING', 'CANCELLED'],
+      PREPARING: ['DRIVER_ASSIGNED', 'CANCELLED'],
+      DRIVER_ASSIGNED: ['ARRIVED_AT_RESTAURANT', 'CANCELLED'],
+      ARRIVED_AT_RESTAURANT: ['PICKED_UP', 'CANCELLED'],
+      PICKED_UP: ['OUT_FOR_DELIVERY', 'CANCELLED'],
+      OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
+      DELIVERED: ['REFUNDED'],
+      REJECTED: [],
+      CANCELLED: [],
+      FAILED: [],
+      REFUNDED: [],
     };
 
     const allowed = allowedTransitions[currentStatus] ?? [];
     if (!allowed.includes(newStatus)) {
-      throw new BadRequestException(
-        `Cannot transition from ${currentStatus} to ${newStatus}`,
-      );
+      throw new BadRequestException(`Cannot transition from ${currentStatus} to ${newStatus}`);
     }
   }
 }

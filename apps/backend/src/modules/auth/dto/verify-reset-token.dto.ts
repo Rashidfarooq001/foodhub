@@ -12,7 +12,10 @@ export class VerifyResetTokenDto {
   @IsString()
   phone!: string;
 
-  @ApiPropertyOptional({ example: '4819', description: '4-digit SMS OTP code if manual verification used' })
+  @ApiPropertyOptional({
+    example: '4819',
+    description: '4-digit SMS OTP code if manual verification used',
+  })
   @IsOptional()
   @IsString()
   otp?: string;

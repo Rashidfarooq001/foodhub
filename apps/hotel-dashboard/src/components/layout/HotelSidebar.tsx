@@ -30,9 +30,7 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   {
     groupName: 'MAIN',
-    items: [
-      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    ],
+    items: [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }],
   },
   {
     groupName: 'ORDERS',
@@ -44,9 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     groupName: 'CATALOG',
-    items: [
-      { name: 'Menu Catalog', href: '/menu', icon: MenuSquare },
-    ],
+    items: [{ name: 'Menu Catalog', href: '/menu', icon: MenuSquare }],
   },
   {
     groupName: 'BUSINESS',

@@ -73,7 +73,10 @@ export const useCartStore = create<CartState>()(
           });
         }
 
-        const addonKey = newItem.addons.map((a) => a.id).sort().join('-');
+        const addonKey = newItem.addons
+          .map((a) => a.id)
+          .sort()
+          .join('-');
         const variantKey = newItem.variantId || newItem.variantName || 'default';
         const itemKey = `${newItem.foodItemId}-${variantKey}-${addonKey}`;
 
@@ -87,10 +90,7 @@ export const useCartStore = create<CartState>()(
           set({ items: updated, orderQuote: null });
         } else {
           set({
-            items: [
-              ...currentItems,
-              { ...newItem, id: itemKey, quantity: qty },
-            ],
+            items: [...currentItems, { ...newItem, id: itemKey, quantity: qty }],
             restaurantId: newItem.restaurantId,
             restaurantName: newItem.restaurantName,
             orderQuote: null,
@@ -144,10 +144,15 @@ export const useCartStore = create<CartState>()(
 
         const restaurantId = get().restaurantId || get().items[0]?.restaurantId || undefined;
 
-        const hasCoords = address?.latitude !== null && address?.latitude !== undefined &&
-          address?.longitude !== null && address?.longitude !== undefined;
+        const hasCoords =
+          address?.latitude !== null &&
+          address?.latitude !== undefined &&
+          address?.longitude !== null &&
+          address?.longitude !== undefined;
 
-        const locationSource = (address as any)?.locationSource || (address?.id === 'current-location' ? 'CURRENT_GPS' : 'PLACE_SEARCH');
+        const locationSource =
+          (address as any)?.locationSource ||
+          (address?.id === 'current-location' ? 'CURRENT_GPS' : 'PLACE_SEARCH');
 
         const quote = await fetchOrderQuote({
           foodSubtotal: subtotal,
@@ -192,10 +197,7 @@ export const useCartStore = create<CartState>()(
         const { orderQuote } = get();
         if (orderQuote) return orderQuote.customerTotal;
 
-        const total =
-          subtotal +
-          get().getDeliveryFee() +
-          3; // Fixed Platform Fee ₹3
+        const total = subtotal + get().getDeliveryFee() + 3; // Fixed Platform Fee ₹3
         return Math.max(0, total);
       },
 
@@ -207,11 +209,16 @@ export const useCartStore = create<CartState>()(
       version: 3,
       migrate: (persistedState: any, version: number) => {
         if (version < 3) {
-          return { items: [], restaurantId: null, restaurantName: null, appliedCoupon: null, orderQuote: null };
+          return {
+            items: [],
+            restaurantId: null,
+            restaurantName: null,
+            appliedCoupon: null,
+            orderQuote: null,
+          };
         }
         return persistedState as CartState;
       },
     },
   ),
 );
-

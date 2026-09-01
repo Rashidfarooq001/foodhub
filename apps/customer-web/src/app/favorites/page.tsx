@@ -34,14 +34,14 @@ export default function FavoritesPage() {
 
         if (res.ok) {
           const favData = await res.json();
-          const ids: string[] = Array.isArray(favData) ? favData : favData.restaurantIds ?? [];
+          const ids: string[] = Array.isArray(favData) ? favData : (favData.restaurantIds ?? []);
           setFavoriteRestaurantIds(ids);
 
           // 2. Fetch Restaurants to match details
           const restRes = await fetch(`${API_BASE}/restaurants`);
           if (restRes.ok) {
             const allRest = await restRes.json();
-            const list = Array.isArray(allRest) ? allRest : allRest.restaurants ?? [];
+            const list = Array.isArray(allRest) ? allRest : (allRest.restaurants ?? []);
             const normalizedList = list.map(normalizeRestaurantData);
             const favRestList = normalizedList.filter((r: RestaurantData) => ids.includes(r.id));
             setFavoriteRestaurants(favRestList);
@@ -53,7 +53,7 @@ export default function FavoritesPage() {
           const dishRes = await fetch(`${API_BASE}/wishlist`);
           if (dishRes.ok) {
             const dishData = await dishRes.json();
-            setFavoriteDishes(Array.isArray(dishData) ? dishData : dishData.items ?? []);
+            setFavoriteDishes(Array.isArray(dishData) ? dishData : (dishData.items ?? []));
           }
         } catch {
           // offline
@@ -75,7 +75,9 @@ export default function FavoritesPage() {
           <Heart className="h-8 w-8" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">Sign in to view favorites</h2>
-        <p className="text-xs text-gray-500">Save your favorite restaurants and dishes to easily reorder them anytime.</p>
+        <p className="text-xs text-gray-500">
+          Save your favorite restaurants and dishes to easily reorder them anytime.
+        </p>
         <Link
           href="/login?redirect=/favorites"
           className="inline-block rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/20 hover:bg-rose-700 transition"
@@ -135,7 +137,9 @@ export default function FavoritesPage() {
           <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
             <Store className="mx-auto h-10 w-10 text-gray-300" />
             <p className="text-base font-bold text-gray-700">No favorite restaurants yet</p>
-            <p className="text-xs text-gray-400">Tap the heart icon on any restaurant to save it here for fast ordering.</p>
+            <p className="text-xs text-gray-400">
+              Tap the heart icon on any restaurant to save it here for fast ordering.
+            </p>
             <Link
               href="/restaurants"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:underline"
@@ -158,7 +162,9 @@ export default function FavoritesPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <UtensilsCrossed className="mx-auto h-10 w-10 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No favorite dishes yet</p>
-          <p className="text-xs text-gray-400">Save dishes you love to reorder them with one tap.</p>
+          <p className="text-xs text-gray-400">
+            Save dishes you love to reorder them with one tap.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

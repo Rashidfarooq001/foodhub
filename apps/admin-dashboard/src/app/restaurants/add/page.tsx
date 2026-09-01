@@ -25,8 +25,9 @@ export default function AddRestaurantPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-black text-gray-900">Manual Admin Onboarding Deprecated</h1>
           <p className="text-xs text-gray-600 leading-relaxed max-w-md mx-auto">
-            Direct manual creation of restaurant accounts by administrators is disabled.
-            All new restaurant partners must self-register using the <span className="font-bold text-gray-900">"Become a Partner"</span> onboarding form.
+            Direct manual creation of restaurant accounts by administrators is disabled. All new
+            restaurant partners must self-register using the{' '}
+            <span className="font-bold text-gray-900">"Become a Partner"</span> onboarding form.
           </p>
         </div>
 

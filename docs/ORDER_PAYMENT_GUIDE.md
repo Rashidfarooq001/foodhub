@@ -25,17 +25,17 @@ Invalid transitions are rejected with `400 Bad Request` by `OrdersValidationServ
 
 ## 2. ORDER MODULE — API ENDPOINTS
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/orders` | Place a new order | JWT |
-| `GET` | `/api/v1/orders/:id` | Get order detail + full timeline | JWT |
-| `GET` | `/api/v1/orders/:id/invoice` | Generate invoice JSON (GST, fees, total) | JWT |
-| `POST` | `/api/v1/orders/:id/repeat` | Repeat a past order (returns cart payload) | JWT |
-| `PATCH` | `/api/v1/orders/:id/status` | Update order status | JWT |
-| `POST` | `/api/v1/orders/:id/cancel` | Cancel order (PENDING/ACCEPTED only) | JWT |
-| `GET` | `/api/v1/orders/customer/:id` | Customer order history | JWT |
-| `GET` | `/api/v1/orders/restaurant/:id` | Restaurant orders (filterable by status) | JWT |
-| `GET` | `/api/v1/orders/driver/:id` | Driver delivery history | JWT |
+| Method  | Endpoint                        | Description                                | Auth |
+| ------- | ------------------------------- | ------------------------------------------ | ---- |
+| `POST`  | `/api/v1/orders`                | Place a new order                          | JWT  |
+| `GET`   | `/api/v1/orders/:id`            | Get order detail + full timeline           | JWT  |
+| `GET`   | `/api/v1/orders/:id/invoice`    | Generate invoice JSON (GST, fees, total)   | JWT  |
+| `POST`  | `/api/v1/orders/:id/repeat`     | Repeat a past order (returns cart payload) | JWT  |
+| `PATCH` | `/api/v1/orders/:id/status`     | Update order status                        | JWT  |
+| `POST`  | `/api/v1/orders/:id/cancel`     | Cancel order (PENDING/ACCEPTED only)       | JWT  |
+| `GET`   | `/api/v1/orders/customer/:id`   | Customer order history                     | JWT  |
+| `GET`   | `/api/v1/orders/restaurant/:id` | Restaurant orders (filterable by status)   | JWT  |
+| `GET`   | `/api/v1/orders/driver/:id`     | Driver delivery history                    | JWT  |
 
 ---
 
@@ -43,13 +43,13 @@ Invalid transitions are rejected with `400 Bad Request` by `OrdersValidationServ
 
 Redis-backed cart. Key: `cart:{userId}`, TTL: 7 days.
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/cart` | Get cart | JWT |
-| `POST` | `/api/v1/cart/items` | Add item | JWT |
-| `PATCH` | `/api/v1/cart/items/:foodItemId` | Update item quantity | JWT |
-| `DELETE` | `/api/v1/cart/items/:foodItemId` | Remove item | JWT |
-| `DELETE` | `/api/v1/cart` | Clear cart | JWT |
+| Method   | Endpoint                         | Description          | Auth |
+| -------- | -------------------------------- | -------------------- | ---- |
+| `GET`    | `/api/v1/cart`                   | Get cart             | JWT  |
+| `POST`   | `/api/v1/cart/items`             | Add item             | JWT  |
+| `PATCH`  | `/api/v1/cart/items/:foodItemId` | Update item quantity | JWT  |
+| `DELETE` | `/api/v1/cart/items/:foodItemId` | Remove item          | JWT  |
+| `DELETE` | `/api/v1/cart`                   | Clear cart           | JWT  |
 
 **Cross-restaurant guard:** Adding an item from a different restaurant automatically clears the existing cart.
 
@@ -72,12 +72,12 @@ Redis-backed cart. Key: `cart:{userId}`, TTL: 7 days.
 **Idempotency:** `createPaymentOrder` returns existing `PENDING` payment if order already initiated.  
 **Duplicate refund guard:** `initiateRefund` checks `PaymentRefund` table before calling Razorpay.
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/payments/create` | Create Razorpay order | JWT |
-| `POST` | `/api/v1/payments/verify` | Verify payment signature | JWT |
-| `POST` | `/api/v1/payments/webhook` | Razorpay webhook receiver | None (sig-verified) |
-| `POST` | `/api/v1/payments/refund/:orderId` | Initiate refund | JWT |
+| Method | Endpoint                           | Description               | Auth                |
+| ------ | ---------------------------------- | ------------------------- | ------------------- |
+| `POST` | `/api/v1/payments/create`          | Create Razorpay order     | JWT                 |
+| `POST` | `/api/v1/payments/verify`          | Verify payment signature  | JWT                 |
+| `POST` | `/api/v1/payments/webhook`         | Razorpay webhook receiver | None (sig-verified) |
+| `POST` | `/api/v1/payments/refund/:orderId` | Initiate refund           | JWT                 |
 
 ---
 
@@ -102,21 +102,21 @@ Driver Wallet Credit
       → Credits DriverWallet.balance atomically
 ```
 
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/api/v1/settlements/pending` | All pending payouts | Admin / Finance |
-| `POST` | `/api/v1/settlements/restaurant/:id` | Process restaurant payout | Admin / Finance |
-| `GET` | `/api/v1/settlements/restaurant/:id/history` | Settlement history | Admin / Finance / Owner |
-| `POST` | `/api/v1/settlements/driver/:id` | Credit driver wallet | Admin / Finance |
+| Method | Endpoint                                     | Description               | Roles                   |
+| ------ | -------------------------------------------- | ------------------------- | ----------------------- |
+| `GET`  | `/api/v1/settlements/pending`                | All pending payouts       | Admin / Finance         |
+| `POST` | `/api/v1/settlements/restaurant/:id`         | Process restaurant payout | Admin / Finance         |
+| `GET`  | `/api/v1/settlements/restaurant/:id/history` | Settlement history        | Admin / Finance / Owner |
+| `POST` | `/api/v1/settlements/driver/:id`             | Credit driver wallet      | Admin / Finance         |
 
 ---
 
 ## 6. WALLET MODULE
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/wallet` | Get balance | JWT |
-| `GET` | `/api/v1/wallet/transactions` | Paginated transaction history | JWT |
+| Method | Endpoint                      | Description                   | Auth |
+| ------ | ----------------------------- | ----------------------------- | ---- |
+| `GET`  | `/api/v1/wallet`              | Get balance                   | JWT  |
+| `GET`  | `/api/v1/wallet/transactions` | Paginated transaction history | JWT  |
 
 `WalletService.debit()` validates balance atomically before decrementing — prevents negative balance.
 
@@ -126,25 +126,25 @@ Driver Wallet Credit
 
 Gateway namespace: `/orders`
 
-| Event | Direction | Payload | Room |
-|---|---|---|---|
-| `order.created` | Server → Restaurant | `{ orderId, orderNumber, totalAmount }` | `restaurant:{id}` |
-| `order.accepted` | Server → Customer | `{ orderId, status, message }` | `order:{id}` |
-| `order.preparing` | Server → Customer | `{ orderId, status }` | `order:{id}` |
-| `order.ready` | Server → Customer | `{ orderId, status }` | `order:{id}` |
-| `driver.assigned` | Server → Customer | `{ orderId, status }` | `order:{id}` |
-| `order.picked_up` | Server → Customer | `{ orderId, status }` | `order:{id}` |
-| `order.delivered` | Server → Customer | `{ orderId, status }` | `order:{id}` |
-| `order.cancelled` | Server → Customer | `{ orderId, reason }` | `order:{id}` |
-| `refund.initiated` | Server → Customer | `{ orderId, amount }` | `order:{id}` |
+| Event              | Direction           | Payload                                 | Room              |
+| ------------------ | ------------------- | --------------------------------------- | ----------------- |
+| `order.created`    | Server → Restaurant | `{ orderId, orderNumber, totalAmount }` | `restaurant:{id}` |
+| `order.accepted`   | Server → Customer   | `{ orderId, status, message }`          | `order:{id}`      |
+| `order.preparing`  | Server → Customer   | `{ orderId, status }`                   | `order:{id}`      |
+| `order.ready`      | Server → Customer   | `{ orderId, status }`                   | `order:{id}`      |
+| `driver.assigned`  | Server → Customer   | `{ orderId, status }`                   | `order:{id}`      |
+| `order.picked_up`  | Server → Customer   | `{ orderId, status }`                   | `order:{id}`      |
+| `order.delivered`  | Server → Customer   | `{ orderId, status }`                   | `order:{id}`      |
+| `order.cancelled`  | Server → Customer   | `{ orderId, reason }`                   | `order:{id}`      |
+| `refund.initiated` | Server → Customer   | `{ orderId, amount }`                   | `order:{id}`      |
 
 ---
 
 ## 8. NEW DEPENDENCIES
 
-| Package | Purpose |
-|---|---|
-| `razorpay` | Razorpay Node.js SDK for order creation & refunds |
-| `@nestjs/websockets` | NestJS WebSocket decorators |
-| `@nestjs/platform-socket.io` | Socket.IO adapter for NestJS |
-| `socket.io` | WebSocket server library |
+| Package                      | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `razorpay`                   | Razorpay Node.js SDK for order creation & refunds |
+| `@nestjs/websockets`         | NestJS WebSocket decorators                       |
+| `@nestjs/platform-socket.io` | Socket.IO adapter for NestJS                      |
+| `socket.io`                  | WebSocket server library                          |

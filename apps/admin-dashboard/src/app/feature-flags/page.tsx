@@ -23,8 +23,12 @@ export default function AdminFeatureFlagsPage() {
         {/* Maintenance Mode Toggle */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 gap-3">
           <div>
-            <h4 className="text-xs sm:text-sm font-black text-gray-900">Platform Maintenance Mode</h4>
-            <p className="text-[11px] text-gray-500">Temporarily pause new order placements across Customer Web &amp; Mobile apps</p>
+            <h4 className="text-xs sm:text-sm font-black text-gray-900">
+              Platform Maintenance Mode
+            </h4>
+            <p className="text-[11px] text-gray-500">
+              Temporarily pause new order placements across Customer Web &amp; Mobile apps
+            </p>
           </div>
           <button
             onClick={toggleMaintenanceMode}
@@ -40,8 +44,12 @@ export default function AdminFeatureFlagsPage() {
         {/* Auto Dispatch Flag */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h4 className="text-xs sm:text-sm font-black text-gray-900">Automated Courier Dispatch Engine</h4>
-            <p className="text-[11px] text-gray-500">Automatically broadcast orders to nearest online delivery partners</p>
+            <h4 className="text-xs sm:text-sm font-black text-gray-900">
+              Automated Courier Dispatch Engine
+            </h4>
+            <p className="text-[11px] text-gray-500">
+              Automatically broadcast orders to nearest online delivery partners
+            </p>
           </div>
           <span className="flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800 uppercase shrink-0">
             <CheckCircle2 className="h-3 w-3" />

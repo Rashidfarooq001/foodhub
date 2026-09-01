@@ -176,7 +176,9 @@ export default function AdminDriverApprovalPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading driver applications...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading driver applications...
+          </div>
         ) : applications.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-6">
             <Bike className="h-8 w-8 mx-auto text-gray-300 mb-1" />
@@ -185,7 +187,9 @@ export default function AdminDriverApprovalPage() {
         ) : (
           <div className="space-y-3">
             {applications.map((app) => {
-              const name = `${app.user?.profile?.firstName || ''} ${app.user?.profile?.lastName || ''}`.trim() || 'Courier Applicant';
+              const name =
+                `${app.user?.profile?.firstName || ''} ${app.user?.profile?.lastName || ''}`.trim() ||
+                'Courier Applicant';
               const isItemProcessing = processingId === app.id;
 
               return (
@@ -198,7 +202,9 @@ export default function AdminDriverApprovalPage() {
                   <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
                     <div>
                       <h3 className="font-black text-sm text-gray-900">{name}</h3>
-                      <p className="text-[11px] text-gray-500 font-medium">{app.user?.phone || 'No phone'}</p>
+                      <p className="text-[11px] text-gray-500 font-medium">
+                        {app.user?.phone || 'No phone'}
+                      </p>
                     </div>
 
                     <span className="rounded-xl bg-amber-100 text-amber-800 px-2.5 py-0.5 text-[10px] font-black uppercase">
@@ -207,20 +213,31 @@ export default function AdminDriverApprovalPage() {
                   </div>
 
                   <div className="text-xs space-y-1">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Driving License</span>
-                    <span className="font-mono font-bold text-gray-900">{app.licenseNumber || 'DL-2024-XXXX'}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                      Driving License
+                    </span>
+                    <span className="font-mono font-bold text-gray-900">
+                      {app.licenseNumber || 'DL-2024-XXXX'}
+                    </span>
                   </div>
 
                   {/* Document Links */}
                   {app.documents && app.documents.length > 0 && (
                     <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-1.5 text-xs">
-                      <span className="text-[10px] font-black uppercase text-gray-400 block">SUBMITTED KYC DOCUMENTS</span>
+                      <span className="text-[10px] font-black uppercase text-gray-400 block">
+                        SUBMITTED KYC DOCUMENTS
+                      </span>
                       <div className="flex flex-wrap gap-2">
                         {app.documents.map((doc, dIdx) => (
                           <button
                             key={dIdx}
                             type="button"
-                            onClick={() => setPreviewDoc({ url: getImageUrl(doc.documentUrl), title: doc.documentType })}
+                            onClick={() =>
+                              setPreviewDoc({
+                                url: getImageUrl(doc.documentUrl),
+                                title: doc.documentType,
+                              })
+                            }
                             className="inline-flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-bold text-teal-800 hover:bg-teal-50 min-h-[32px]"
                           >
                             <FileText className="h-3 w-3 text-teal-600" />

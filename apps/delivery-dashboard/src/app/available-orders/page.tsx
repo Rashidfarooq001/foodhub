@@ -42,7 +42,7 @@ export default function AvailableOrdersPage() {
       }
       if (res.ok) {
         const data = await res.json();
-        setAvailableJobs(Array.isArray(data) ? data : data.jobs ?? []);
+        setAvailableJobs(Array.isArray(data) ? data : (data.jobs ?? []));
       }
     } catch {
       /* offline */
@@ -88,8 +88,13 @@ export default function AvailableOrdersPage() {
 
   const handleDecline = async (jobId: string) => {
     if (!accessToken) return;
-    if (!confirm('Decline this delivery? This job will be removed from your list, but will remain available for other riders.')) return;
-    
+    if (
+      !confirm(
+        'Decline this delivery? This job will be removed from your list, but will remain available for other riders.',
+      )
+    )
+      return;
+
     setDecliningId(jobId);
     try {
       const res = await fetch(`${API_BASE}/delivery/jobs/${jobId}/decline`, {
@@ -102,7 +107,7 @@ export default function AvailableOrdersPage() {
       });
 
       if (res.ok) {
-        setAvailableJobs(prev => prev.filter(j => j.id !== jobId));
+        setAvailableJobs((prev) => prev.filter((j) => j.id !== jobId));
       } else {
         alert('Failed to decline delivery.');
       }
@@ -143,12 +148,16 @@ export default function AvailableOrdersPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Searching for orders nearby...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Searching for orders nearby...
+          </div>
         ) : availableJobs.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-6 space-y-2">
             <Bike className="h-8 w-8 mx-auto text-gray-300 mb-1" />
             <p className="font-bold text-gray-700">No active delivery jobs available right now.</p>
-            <p className="text-[10px] text-gray-400">Keep your app on duty and stay in popular restaurant zones.</p>
+            <p className="text-[10px] text-gray-400">
+              Keep your app on duty and stay in popular restaurant zones.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -173,18 +182,30 @@ export default function AvailableOrdersPage() {
                       <div className="flex items-start gap-2">
                         <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0 mt-0.5" />
                         <div>
-                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Pickup Restaurant</span>
-                          <span className="font-bold text-gray-900">{job.restaurantName || 'Restaurant Kitchen'}</span>
-                          <span className="text-[11px] text-gray-500 block truncate">{job.restaurantAddress}</span>
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">
+                            Pickup Restaurant
+                          </span>
+                          <span className="font-bold text-gray-900">
+                            {job.restaurantName || 'Restaurant Kitchen'}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block truncate">
+                            {job.restaurantAddress}
+                          </span>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-2">
                         <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <div>
-                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Customer Drop</span>
-                          <span className="font-bold text-gray-900">{job.customerName || 'Customer'}</span>
-                          <span className="text-[11px] text-gray-500 block truncate">{job.customerAddress}</span>
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">
+                            Customer Drop
+                          </span>
+                          <span className="font-bold text-gray-900">
+                            {job.customerName || 'Customer'}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block truncate">
+                            {job.customerAddress}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -193,11 +214,14 @@ export default function AvailableOrdersPage() {
                   <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2">
                     <div className="flex flex-col">
                       <span className="text-[11px] font-bold text-gray-500">
-                        Distance: {job.distanceKm != null ? `${job.distanceKm} km` : 'Distance unavailable'}
+                        Distance:{' '}
+                        {job.distanceKm != null ? `${job.distanceKm} km` : 'Distance unavailable'}
                       </span>
                       {job.offeredAt && (
                         <span className="text-[10px] text-gray-400">
-                          Offered {Math.floor((Date.now() - new Date(job.offeredAt).getTime()) / 60000)} mins ago
+                          Offered{' '}
+                          {Math.floor((Date.now() - new Date(job.offeredAt).getTime()) / 60000)}{' '}
+                          mins ago
                         </span>
                       )}
                     </div>

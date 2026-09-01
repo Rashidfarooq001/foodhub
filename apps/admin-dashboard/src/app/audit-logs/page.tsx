@@ -48,7 +48,10 @@ export default function AdminAuditLogsPage() {
         <ShieldCheck className="h-8 w-8 text-purple-600 shrink-0" />
         <div className="text-xs">
           <h3 className="font-black text-purple-950">Security Audit Logging Active</h3>
-          <p className="text-purple-800 text-[11px]">All administrative configuration changes, status overrides, and payouts are cryptographically recorded.</p>
+          <p className="text-purple-800 text-[11px]">
+            All administrative configuration changes, status overrides, and payouts are
+            cryptographically recorded.
+          </p>
         </div>
       </div>
 
@@ -73,8 +76,12 @@ export default function AdminAuditLogsPage() {
               <p className="font-bold text-purple-900">{l.action}</p>
 
               <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
-                <span className="font-mono bg-white px-2 py-0.5 rounded-lg border border-gray-200">{l.ip}</span>
-                <span className="font-bold uppercase tracking-wider text-purple-700">{l.category}</span>
+                <span className="font-mono bg-white px-2 py-0.5 rounded-lg border border-gray-200">
+                  {l.ip}
+                </span>
+                <span className="font-bold uppercase tracking-wider text-purple-700">
+                  {l.category}
+                </span>
               </div>
             </div>
           ))}

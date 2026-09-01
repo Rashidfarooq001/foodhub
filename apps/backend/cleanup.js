@@ -2,11 +2,12 @@ const { PrismaClient } = require('@prisma/client');
 
 async function bootstrap() {
   const prisma = new PrismaClient({
-    datasourceUrl: 'postgresql://neondb_owner:npg_iK4pyqYjFOb0@ep-empty-block-ayeiv0ux.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require'
+    datasourceUrl:
+      'postgresql://neondb_owner:npg_iK4pyqYjFOb0@ep-empty-block-ayeiv0ux.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require',
   });
 
   console.log('Finding potential orphans...');
-  
+
   // Find users who are NOT admins
   const potentialOrphans = await prisma.user.findMany({
     where: {
@@ -62,7 +63,7 @@ async function bootstrap() {
         console.error(`Failed to delete orphaned user ${orphan.id}:`, err.message);
       }
     }
-    
+
     console.log(`Cleanup complete. Deleted ${deletedCount} orphans.`);
   }
 

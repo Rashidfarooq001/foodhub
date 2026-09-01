@@ -21,7 +21,14 @@ export interface DeliveryJob {
   estimatedTimeMins: number;
   paymentMethod?: 'COD' | 'ONLINE';
   codAmountToCollect?: number;
-  status: 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP' | 'DRIVER_ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  status:
+    | 'PENDING'
+    | 'ACCEPTED'
+    | 'PREPARING'
+    | 'READY_FOR_PICKUP'
+    | 'DRIVER_ASSIGNED'
+    | 'OUT_FOR_DELIVERY'
+    | 'DELIVERED';
   items: { name: string; quantity: number }[];
 }
 

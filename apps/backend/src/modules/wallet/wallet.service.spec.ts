@@ -6,7 +6,13 @@ import { BadRequestException } from '@nestjs/common';
 describe('WalletService', () => {
   let service: WalletService;
 
-  const mockWallet = { id: 'wallet-1', userId: 'user-1', balance: 500, createdAt: new Date(), updatedAt: new Date() };
+  const mockWallet = {
+    id: 'wallet-1',
+    userId: 'user-1',
+    balance: 500,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const mockPrisma = {
     wallet: {
@@ -26,10 +32,7 @@ describe('WalletService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WalletService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [WalletService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<WalletService>(WalletService);
@@ -50,14 +53,10 @@ describe('WalletService', () => {
       balance: 100,
     });
 
-    await expect(service.debit('user-1', 500, 'Test debit')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(service.debit('user-1', 500, 'Test debit')).rejects.toThrow(BadRequestException);
   });
 
   it('should throw BadRequestException for zero credit amount', async () => {
-    await expect(service.credit('user-1', 0, 'Test')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(service.credit('user-1', 0, 'Test')).rejects.toThrow(BadRequestException);
   });
 });

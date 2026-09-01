@@ -64,18 +64,36 @@ export class PrivacyService {
       {
         categoryName: 'Customer Account & Identity',
         userType: 'CUSTOMER',
-        fields: ['Full Name', 'Phone Number', 'Email Address', 'Bcrypt Password Hash', 'Profile Avatar URL'],
+        fields: [
+          'Full Name',
+          'Phone Number',
+          'Email Address',
+          'Bcrypt Password Hash',
+          'Profile Avatar URL',
+        ],
         purpose: 'Authentication, session authorization, communication, customer identification',
         legalBasis: 'Performance of Contract / User Consent (DPDP Act 2023)',
         retentionPeriod: 'Duration of active account + 180 days post-deletion grace period',
         accessRoles: ['CUSTOMER (Self)', 'ADMIN', 'SUPER_ADMIN'],
-        sharingRecipients: ['Assigned Delivery Rider (Name only)', 'Selected Restaurant (Name only)'],
+        sharingRecipients: [
+          'Assigned Delivery Rider (Name only)',
+          'Selected Restaurant (Name only)',
+        ],
         requiresExplicitConsent: true,
       },
       {
         categoryName: 'Saved Delivery Addresses & Locality Data',
         userType: 'CUSTOMER',
-        fields: ['Address Line 1', 'Address Line 2', 'Landmark', 'City', 'State', 'Postal Code', 'Latitude', 'Longitude'],
+        fields: [
+          'Address Line 1',
+          'Address Line 2',
+          'Landmark',
+          'City',
+          'State',
+          'Postal Code',
+          'Latitude',
+          'Longitude',
+        ],
         purpose: 'Hyper-local distance calculation, delivery fee quote, courier routing',
         legalBasis: 'Performance of Contract',
         retentionPeriod: 'Duration of active account or until deleted by user',
@@ -86,32 +104,72 @@ export class PrivacyService {
       {
         categoryName: 'Orders & Financial Transactions',
         userType: 'CUSTOMER',
-        fields: ['Order Number', 'Ordered Items & Variants', 'Item Prices', 'Delivery Fee', 'Taxes (GST)', 'Total Amount', 'Payment Method', 'Payment Gateway ID', 'Status History'],
-        purpose: 'Order fulfillment, statutory taxation (GST), accounting reconciliation, dispute management',
+        fields: [
+          'Order Number',
+          'Ordered Items & Variants',
+          'Item Prices',
+          'Delivery Fee',
+          'Taxes (GST)',
+          'Total Amount',
+          'Payment Method',
+          'Payment Gateway ID',
+          'Status History',
+        ],
+        purpose:
+          'Order fulfillment, statutory taxation (GST), accounting reconciliation, dispute management',
         legalBasis: 'Legal Obligation (Income Tax Act 1961, GST Act 2017) & Contract',
         retentionPeriod: '8 Years (Mandatory statutory financial retention)',
         accessRoles: ['CUSTOMER (Self)', 'RESTAURANT_OWNER (Own orders)', 'ADMIN', 'FINANCE'],
-        sharingRecipients: ['Payment Gateway (Razorpay)', 'Selected Merchant', 'Tax Authorities on lawful demand'],
+        sharingRecipients: [
+          'Payment Gateway (Razorpay)',
+          'Selected Merchant',
+          'Tax Authorities on lawful demand',
+        ],
         requiresExplicitConsent: false,
       },
       {
         categoryName: 'Restaurant Merchant KYC & Commercial Data',
         userType: 'RESTAURANT_OWNER',
-        fields: ['Owner Legal Name', 'Phone', 'Email', 'Restaurant Name', 'Address', 'GPS Coordinates', 'FSSAI License', 'GSTIN', 'PAN', 'Bank Account / IFSC / UPI'],
+        fields: [
+          'Owner Legal Name',
+          'Phone',
+          'Email',
+          'Restaurant Name',
+          'Address',
+          'GPS Coordinates',
+          'FSSAI License',
+          'GSTIN',
+          'PAN',
+          'Bank Account / IFSC / UPI',
+        ],
         purpose: 'FSSAI food safety compliance, merchant verification, settlement bank payouts',
         legalBasis: 'FSSAI Act 2006, GST Act 2017 & Commercial Contract',
         retentionPeriod: 'Duration of merchant agreement + 8 Years financial records',
         accessRoles: ['RESTAURANT_OWNER (Self)', 'ADMIN', 'FINANCE'],
-        sharingRecipients: ['Bank / Settlement Payout Provider', 'Customers (Public Menu & FSSAI on listing)'],
+        sharingRecipients: [
+          'Bank / Settlement Payout Provider',
+          'Customers (Public Menu & FSSAI on listing)',
+        ],
         requiresExplicitConsent: true,
       },
       {
         categoryName: 'Delivery Courier Partner KYC & Realtime Telematics',
         userType: 'DELIVERY_PARTNER',
-        fields: ['Driver Legal Name', 'Phone', 'Email', 'Driving License (DL)', 'Vehicle Registration (RC)', 'Vehicle Type', 'Bank Details / UPI', 'Realtime Duty GPS Coordinates'],
-        purpose: 'Courier verification, motor vehicle compliance, live delivery dispatch, rider payouts',
+        fields: [
+          'Driver Legal Name',
+          'Phone',
+          'Email',
+          'Driving License (DL)',
+          'Vehicle Registration (RC)',
+          'Vehicle Type',
+          'Bank Details / UPI',
+          'Realtime Duty GPS Coordinates',
+        ],
+        purpose:
+          'Courier verification, motor vehicle compliance, live delivery dispatch, rider payouts',
         legalBasis: 'Motor Vehicles Act 1988 & Logistics Agreement',
-        retentionPeriod: 'KYC: Contract duration + 3 Years; Live GPS tracks: Purged within 30 days of delivery completion',
+        retentionPeriod:
+          'KYC: Contract duration + 3 Years; Live GPS tracks: Purged within 30 days of delivery completion',
         accessRoles: ['DELIVERY_PARTNER (Self)', 'ADMIN'],
         sharingRecipients: ['Customers (Live GPS while order is OUT_FOR_DELIVERY)'],
         requiresExplicitConsent: true,
@@ -119,8 +177,16 @@ export class PrivacyService {
       {
         categoryName: 'Session Tokens & Security Audit Logs',
         userType: 'ALL',
-        fields: ['IP Address', 'User Agent', 'Device Category', 'Login Timestamps', 'JWT Session Hashes', 'Audit Action Records'],
-        purpose: 'Cybersecurity, rate-limiting, prevention of unauthorized account access, tamper-evident audit trails',
+        fields: [
+          'IP Address',
+          'User Agent',
+          'Device Category',
+          'Login Timestamps',
+          'JWT Session Hashes',
+          'Audit Action Records',
+        ],
+        purpose:
+          'Cybersecurity, rate-limiting, prevention of unauthorized account access, tamper-evident audit trails',
         legalBasis: 'Legitimate Use / Information Technology Act 2000',
         retentionPeriod: '1 Year active retention',
         accessRoles: ['ADMIN', 'SUPER_ADMIN'],
@@ -135,7 +201,8 @@ export class PrivacyService {
       {
         name: 'Razorpay Software Private Limited',
         serviceCategory: 'Payment Gateway & Escrow Processing',
-        purpose: 'Processing online card, UPI, net-banking transactions and issuing automated refunds',
+        purpose:
+          'Processing online card, UPI, net-banking transactions and issuing automated refunds',
         dataProcessed: ['Order ID', 'Billing Amount', 'Customer Contact Details', 'Payment Tokens'],
         countryOfProcessing: 'India (RBI Compliant)',
         contractStatus: 'ACTIVE',
@@ -145,7 +212,8 @@ export class PrivacyService {
       {
         name: 'Render Services Inc. / Cloud Hosting',
         serviceCategory: 'Application Infrastructure & Compute',
-        purpose: 'Containerized execution of backend NestJS APIs, WebSocket gateways, and worker nodes',
+        purpose:
+          'Containerized execution of backend NestJS APIs, WebSocket gateways, and worker nodes',
         dataProcessed: ['Encrypted API Payloads', 'Server Telemetry', 'Request Logs'],
         countryOfProcessing: 'Global Cloud / India Region',
         contractStatus: 'ACTIVE',
@@ -155,7 +223,8 @@ export class PrivacyService {
       {
         name: 'PostgreSQL Database Provider (Supabase/Neon/Self-Hosted)',
         serviceCategory: 'Primary Relational Database',
-        purpose: 'Encrypted relational database storage for platform users, orders, menus, and financial records',
+        purpose:
+          'Encrypted relational database storage for platform users, orders, menus, and financial records',
         dataProcessed: ['All Application Relational Records (At-Rest Encrypted)'],
         countryOfProcessing: 'India / Regional Cloud Zone',
         contractStatus: 'ACTIVE',
@@ -165,7 +234,8 @@ export class PrivacyService {
       {
         name: 'Vercel Inc.',
         serviceCategory: 'Edge Delivery & Frontend Hosting',
-        purpose: 'Hosting and serving Next.js customer web and admin portals with SSL/TLS encryption',
+        purpose:
+          'Hosting and serving Next.js customer web and admin portals with SSL/TLS encryption',
         dataProcessed: ['Static Assets', 'Edge Request Routing Data', 'CDN Caches'],
         countryOfProcessing: 'Global Edge Network / India Points of Presence',
         contractStatus: 'ACTIVE',
@@ -175,7 +245,8 @@ export class PrivacyService {
       {
         name: 'OpenStreetMap / Nominatim Community Service',
         serviceCategory: 'Reverse Geocoding & Place Validation',
-        purpose: 'Resolving GPS coordinates to town/village names in Jammu & Kashmir without storing personal profiles',
+        purpose:
+          'Resolving GPS coordinates to town/village names in Jammu & Kashmir without storing personal profiles',
         dataProcessed: ['Raw Latitude & Longitude Query Parameters'],
         countryOfProcessing: 'Open Geospatial Network',
         contractStatus: 'STANDARD_CONTRACTUAL_CLAUSES',
@@ -191,7 +262,8 @@ export class PrivacyService {
         category: 'CUSTOMER_PROFILE',
         description: 'Customer account information, contact numbers, and preferences',
         retentionDays: 180,
-        legalBasis: 'User Consent / DPDP Act 2023 (Purged 180 days after confirmed deletion request)',
+        legalBasis:
+          'User Consent / DPDP Act 2023 (Purged 180 days after confirmed deletion request)',
       },
       {
         category: 'ORDER_FINANCIAL_RECORDS',
@@ -213,7 +285,8 @@ export class PrivacyService {
       },
       {
         category: 'SUPPORT_AND_GRIEVANCES',
-        description: 'Customer grievance redressal tickets, complaint evidence, and resolution notes',
+        description:
+          'Customer grievance redressal tickets, complaint evidence, and resolution notes',
         retentionDays: 1095, // 3 Years
         legalBasis: 'Consumer Protection (E-Commerce) Rules 2020 Statutory Redressal Records',
       },
@@ -347,7 +420,9 @@ export class PrivacyService {
         granted: false,
         withdrawnAt: new Date(),
         metadata: {
-          ...(typeof existing.metadata === 'object' && existing.metadata ? (existing.metadata as object) : {}),
+          ...(typeof existing.metadata === 'object' && existing.metadata
+            ? (existing.metadata as object)
+            : {}),
           withdrawalReason: dto.reason || 'User opted out via Privacy Center',
         },
       },
@@ -547,7 +622,12 @@ export class PrivacyService {
   // -----------------------------------------------------------------------
   // 5. PRIVACY REQUEST LIFECYCLE (ACCESS, CORRECTION, DELETION)
   // -----------------------------------------------------------------------
-  async createPrivacyRequest(userId: string, dto: CreatePrivacyRequestDto, ip?: string, ua?: string) {
+  async createPrivacyRequest(
+    userId: string,
+    dto: CreatePrivacyRequestDto,
+    ip?: string,
+    ua?: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -586,7 +666,12 @@ export class PrivacyService {
   // -----------------------------------------------------------------------
   // 6. COMPLAINTS & GRIEVANCE REDRESSAL
   // -----------------------------------------------------------------------
-  async createPrivacyComplaint(dto: CreatePrivacyComplaintDto, userId?: string, ip?: string, ua?: string) {
+  async createPrivacyComplaint(
+    dto: CreatePrivacyComplaintDto,
+    userId?: string,
+    ip?: string,
+    ua?: string,
+  ) {
     const complaint = await this.prisma.privacyComplaint.create({
       data: {
         userId: userId || null,
@@ -712,7 +797,9 @@ export class PrivacyService {
 
     // Disallow deleting admin accounts via this flow
     if (targetUser.role === UserRole.ADMIN || targetUser.role === UserRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Admin accounts cannot be deleted through customer privacy flow');
+      throw new ForbiddenException(
+        'Admin accounts cannot be deleted through customer privacy flow',
+      );
     }
 
     // Execute atomic deletion & ledger preservation transaction
@@ -760,7 +847,8 @@ export class PrivacyService {
           status: PrivacyRequestStatus.COMPLETED,
           completedAt: new Date(),
           responsePayload: {
-            message: 'User account and personal delivery addresses permanently purged and anonymized. Financial orders preserved in accordance with Section 36 of GST Act 2017.',
+            message:
+              'User account and personal delivery addresses permanently purged and anonymized. Financial orders preserved in accordance with Section 36 of GST Act 2017.',
             anonymizedAt: new Date().toISOString(),
           },
         },
@@ -838,7 +926,12 @@ export class PrivacyService {
   // -----------------------------------------------------------------------
   // 9. DATA BREACH & SECURITY INCIDENT MANAGEMENT
   // -----------------------------------------------------------------------
-  async adminCreateBreachIncident(dto: CreateBreachIncidentDto, adminId: string, ip?: string, ua?: string) {
+  async adminCreateBreachIncident(
+    dto: CreateBreachIncidentDto,
+    adminId: string,
+    ip?: string,
+    ua?: string,
+  ) {
     const incident = await this.prisma.dataBreachIncident.create({
       data: {
         incidentTitle: dto.incidentTitle,
@@ -887,7 +980,8 @@ export class PrivacyService {
     const updateData: any = {};
     if (dto.status) updateData.status = dto.status;
     if (dto.mitigationSteps) updateData.mitigationSteps = dto.mitigationSteps;
-    if (dto.notificationRequired !== undefined) updateData.notificationRequired = dto.notificationRequired;
+    if (dto.notificationRequired !== undefined)
+      updateData.notificationRequired = dto.notificationRequired;
     if (dto.dpbiNotified !== undefined) {
       updateData.dpbiNotified = dto.dpbiNotified;
       updateData.notifiedAt = new Date();
@@ -1131,7 +1225,8 @@ export class PrivacyService {
         policyName: 'Zayka Food Terms & Conditions',
         version: '1.0',
         status: 'ACTIVE',
-        summary: 'General terms of service, customer ordering rules, restaurant delivery conditions, and liability policies for Zayka Food.',
+        summary:
+          'General terms of service, customer ordering rules, restaurant delivery conditions, and liability policies for Zayka Food.',
         publishedAt: new Date('2026-08-21T00:00:00.000Z'),
       },
       {
@@ -1140,7 +1235,8 @@ export class PrivacyService {
         policyName: 'Zayka Food Privacy Policy',
         version: '1.0',
         status: 'ACTIVE',
-        summary: 'Digital Personal Data Protection Act (DPDP Act 2023) compliant notice on personal data processing, purpose limitation, data retention, and user privacy rights.',
+        summary:
+          'Digital Personal Data Protection Act (DPDP Act 2023) compliant notice on personal data processing, purpose limitation, data retention, and user privacy rights.',
         publishedAt: new Date('2026-08-21T00:00:00.000Z'),
       },
     ];
@@ -1170,7 +1266,9 @@ export class PrivacyService {
   }
 
   async triggerRetentionCleanup(adminId: string, categories?: string[]) {
-    this.logger.log(`Running automated privacy data retention cleanup triggered by admin: ${adminId}`);
+    this.logger.log(
+      `Running automated privacy data retention cleanup triggered by admin: ${adminId}`,
+    );
 
     // Clean expired unverified OTPs (> 24 hours old)
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -1204,7 +1302,8 @@ export class PrivacyService {
       summary: {
         expiredOtpsPurged: deletedOtps.count,
         revokedTokensPurged: deletedTokens.count,
-        financialRecordsPreserved: 'All financial ledgers preserved for statutory 8-year tax compliance.',
+        financialRecordsPreserved:
+          'All financial ledgers preserved for statutory 8-year tax compliance.',
       },
     };
   }

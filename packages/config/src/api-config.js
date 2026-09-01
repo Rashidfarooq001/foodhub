@@ -5,7 +5,7 @@
  */
 export function getApiBaseUrl() {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
-    if (envUrl && envUrl.trim() && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    if (envUrl && envUrl.trim()) {
         let url = envUrl.trim().replace(/\/+$/, '');
         url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
         if (!url.endsWith('/api/v1')) {
@@ -13,7 +13,13 @@ export function getApiBaseUrl() {
         }
         return url;
     }
-    return 'https://foodhub-backend-enq2.onrender.com/api/v1';
+    // In local development, fall back to localhost backend
+    if (typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:4000/api/v1';
+    }
+    // Server-side (SSR): use PORT-based fallback
+    return `http://localhost:${process.env.PORT || 4000}/api/v1`;
 }
 export function getWsBaseUrl() {
     const envWsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.PUBLIC_WS_URL;
@@ -72,7 +78,8 @@ export function getHotelDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
-        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
+        (process.env.NODE_ENV !== 'production' ||
+            (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
     }
     if (process.env.NODE_ENV !== 'production' &&
@@ -86,7 +93,8 @@ export function getDeliveryDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_DELIVERY_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
-        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
+        (process.env.NODE_ENV !== 'production' ||
+            (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
     }
     if (process.env.NODE_ENV !== 'production' &&
@@ -100,7 +108,8 @@ export function getAdminDashboardUrl() {
     const envUrl = process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL;
     if (envUrl &&
         envUrl.trim() &&
-        (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
+        (process.env.NODE_ENV !== 'production' ||
+            (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))) {
         return envUrl.trim().replace(/\/+$/, '');
     }
     if (process.env.NODE_ENV !== 'production' &&
@@ -111,7 +120,9 @@ export function getAdminDashboardUrl() {
     return 'https://foodhub-admin-dashboard.vercel.app';
 }
 export function getMapplsApiKey() {
-    return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
+    return (process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
+        process.env.MAPPLS_API_KEY ||
+        'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi');
 }
 export function getMapplsClientId() {
     return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';

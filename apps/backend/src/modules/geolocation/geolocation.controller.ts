@@ -1,6 +1,4 @@
-import {
-  Controller, Get, Post, Query, Body, UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { GeolocationService } from './geolocation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,8 +7,8 @@ import { Type } from 'class-transformer';
 
 class ValidateRadiusDto {
   @IsNumber() @Type(() => Number) restaurantId!: string;
-  @IsNumber() @Type(() => Number) deliveryLat!:  number;
-  @IsNumber() @Type(() => Number) deliveryLng!:  number;
+  @IsNumber() @Type(() => Number) deliveryLat!: number;
+  @IsNumber() @Type(() => Number) deliveryLng!: number;
 }
 
 @ApiTags('Geolocation (Phase 14)')
@@ -22,10 +20,7 @@ export class GeolocationController {
   @ApiOperation({ summary: 'Place-Name location search (e.g. Kehnusa, Aloosa, Sopore, Bandipora)' })
   @ApiQuery({ name: 'q', required: false, description: 'Place search query' })
   @ApiQuery({ name: 'query', required: false, description: 'Place search query' })
-  async searchPlace(
-    @Query('q') q?: string,
-    @Query('query') query?: string,
-  ) {
+  async searchPlace(@Query('q') q?: string, @Query('query') query?: string) {
     const searchTerm = query || q || '';
     if (!searchTerm.trim()) return { places: [] };
     const places = await this.geo.searchPlaceByName(searchTerm.trim());
@@ -36,10 +31,7 @@ export class GeolocationController {
   @ApiOperation({ summary: 'Mappls Location Autosuggest & Search API' })
   @ApiQuery({ name: 'q', required: false, description: 'Address search query' })
   @ApiQuery({ name: 'query', required: false, description: 'Address search query' })
-  async searchAddress(
-    @Query('q') q?: string,
-    @Query('query') query?: string,
-  ) {
+  async searchAddress(@Query('q') q?: string, @Query('query') query?: string) {
     const searchTerm = query || q || '';
     if (!searchTerm.trim()) return { suggestions: [] };
     return this.geo.getAutosuggest(searchTerm.trim());
@@ -79,7 +71,14 @@ export class GeolocationController {
   @Post('resolve')
   @ApiOperation({ summary: 'Resolve customer GPS coordinates into structured Zayka Food location' })
   async postResolveLocation(
-    @Body() body: { query?: string; latitude?: number; longitude?: number; lat?: number; lng?: number },
+    @Body()
+    body: {
+      query?: string;
+      latitude?: number;
+      longitude?: number;
+      lat?: number;
+      lng?: number;
+    },
   ) {
     if (body.query) {
       return this.geo.geocodeAddress(body.query);
@@ -90,13 +89,12 @@ export class GeolocationController {
   }
 
   @Get('resolve')
-  @ApiOperation({ summary: 'GET Resolve customer GPS coordinates into structured Zayka Food location' })
+  @ApiOperation({
+    summary: 'GET Resolve customer GPS coordinates into structured Zayka Food location',
+  })
   @ApiQuery({ name: 'lat', required: true })
   @ApiQuery({ name: 'lng', required: true })
-  async getResolveLocation(
-    @Query('lat') lat: string,
-    @Query('lng') lng: string,
-  ) {
+  async getResolveLocation(@Query('lat') lat: string, @Query('lng') lng: string) {
     return this.geo.resolveLocation(parseFloat(lat || '0'), parseFloat(lng || '0'));
   }
 
@@ -104,27 +102,28 @@ export class GeolocationController {
   @ApiOperation({ summary: 'Reverse geocode coordinates to address' })
   @ApiQuery({ name: 'lat' })
   @ApiQuery({ name: 'lng' })
-  async reverseGeocode(
-    @Query('lat') lat: string,
-    @Query('lng') lng: string,
-  ) {
+  async reverseGeocode(@Query('lat') lat: string, @Query('lng') lng: string) {
     const result = await this.geo.resolveLocation(parseFloat(lat || '0'), parseFloat(lng || '0'));
     return result;
   }
 
   @Get('distance')
   @ApiOperation({ summary: 'Calculate distance and ETA between two coordinates' })
-  @ApiQuery({ name: 'fromLat' }) @ApiQuery({ name: 'fromLng' })
-  @ApiQuery({ name: 'toLat' })  @ApiQuery({ name: 'toLng' })
+  @ApiQuery({ name: 'fromLat' })
+  @ApiQuery({ name: 'fromLng' })
+  @ApiQuery({ name: 'toLat' })
+  @ApiQuery({ name: 'toLng' })
   distance(
     @Query('fromLat') fromLat: string,
     @Query('fromLng') fromLng: string,
-    @Query('toLat')   toLat:   string,
-    @Query('toLng')   toLng:   string,
+    @Query('toLat') toLat: string,
+    @Query('toLng') toLng: string,
   ) {
     return this.geo.calculateDistanceAndEta(
-      parseFloat(fromLat), parseFloat(fromLng),
-      parseFloat(toLat),   parseFloat(toLng),
+      parseFloat(fromLat),
+      parseFloat(fromLng),
+      parseFloat(toLat),
+      parseFloat(toLng),
     );
   }
 
@@ -134,13 +133,11 @@ export class GeolocationController {
   @ApiQuery({ name: 'lng' })
   @ApiQuery({ name: 'radius', required: false, description: 'km (default 5)' })
   async nearbyRestaurants(
-    @Query('lat')    lat:    string,
-    @Query('lng')    lng:    string,
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
     @Query('radius') radius: string = '5',
   ) {
-    return this.geo.getNearbyRestaurants(
-      parseFloat(lat), parseFloat(lng), parseFloat(radius),
-    );
+    return this.geo.getNearbyRestaurants(parseFloat(lat), parseFloat(lng), parseFloat(radius));
   }
 
   @Get('nearby-drivers')
@@ -149,10 +146,7 @@ export class GeolocationController {
   @ApiOperation({ summary: 'Find available drivers near a location (admin/internal)' })
   @ApiQuery({ name: 'lat' })
   @ApiQuery({ name: 'lng' })
-  async nearbyDrivers(
-    @Query('lat') lat: string,
-    @Query('lng') lng: string,
-  ) {
+  async nearbyDrivers(@Query('lat') lat: string, @Query('lng') lng: string) {
     return this.geo.getNearbyDrivers(parseFloat(lat), parseFloat(lng));
   }
 
@@ -161,8 +155,6 @@ export class GeolocationController {
   async validateRadius(
     @Body() body: { restaurantId: string; deliveryLat: number; deliveryLng: number },
   ) {
-    return this.geo.validateDeliveryRadius(
-      body.restaurantId, body.deliveryLat, body.deliveryLng,
-    );
+    return this.geo.validateDeliveryRadius(body.restaurantId, body.deliveryLat, body.deliveryLng);
   }
 }

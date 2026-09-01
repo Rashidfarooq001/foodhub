@@ -53,7 +53,9 @@ export const DesktopSidebar: React.FC<Props> = ({
               onChange={() => toggleFilter('under30Mins')}
               className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
-            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">Under 30 mins</span>
+            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+              Under 30 mins
+            </span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
@@ -62,7 +64,9 @@ export const DesktopSidebar: React.FC<Props> = ({
               onChange={() => toggleFilter('rating4Plus')}
               className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
-            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">Ratings 4.0+</span>
+            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+              Ratings 4.0+
+            </span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
@@ -71,7 +75,9 @@ export const DesktopSidebar: React.FC<Props> = ({
               onChange={() => toggleFilter('pureVeg')}
               className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
-            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">Pure Veg</span>
+            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+              Pure Veg
+            </span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
@@ -80,7 +86,9 @@ export const DesktopSidebar: React.FC<Props> = ({
               onChange={() => toggleFilter('nearMe')}
               className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
-            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">Near Me</span>
+            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+              Near Me
+            </span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
@@ -89,7 +97,9 @@ export const DesktopSidebar: React.FC<Props> = ({
               onChange={() => toggleFilter('hasOffers')}
               className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
-            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">Offers</span>
+            <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+              Offers
+            </span>
           </label>
         </div>
       </div>

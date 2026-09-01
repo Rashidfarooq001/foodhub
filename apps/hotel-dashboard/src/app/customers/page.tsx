@@ -5,16 +5,41 @@ import { Users, Heart } from 'lucide-react';
 
 export default function HotelCustomersPage() {
   const customers = [
-    { id: 'c1', name: 'Rahul Sharma', phone: '+919876543210', totalOrders: 14, totalSpent: 4850, favorite: 'Paneer Butter Masala' },
-    { id: 'c2', name: 'Priya Patel', phone: '+919876543211', totalOrders: 8, totalSpent: 2720, favorite: 'Hyderabadi Biryani' },
-    { id: 'c3', name: 'Anish Verma', phone: '+919876543212', totalOrders: 5, totalSpent: 1980, favorite: 'Garlic Naan' },
+    {
+      id: 'c1',
+      name: 'Rahul Sharma',
+      phone: '+919876543210',
+      totalOrders: 14,
+      totalSpent: 4850,
+      favorite: 'Paneer Butter Masala',
+    },
+    {
+      id: 'c2',
+      name: 'Priya Patel',
+      phone: '+919876543211',
+      totalOrders: 8,
+      totalSpent: 2720,
+      favorite: 'Hyderabadi Biryani',
+    },
+    {
+      id: 'c3',
+      name: 'Anish Verma',
+      phone: '+919876543212',
+      totalOrders: 5,
+      totalSpent: 1980,
+      favorite: 'Garlic Naan',
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-100 pb-4">
-        <h1 className="text-3xl font-black text-gray-900">Customer Directory ({customers.length})</h1>
-        <p className="text-xs text-gray-500">Repeat customers, lifetime spending & favorite dishes</p>
+        <h1 className="text-3xl font-black text-gray-900">
+          Customer Directory ({customers.length})
+        </h1>
+        <p className="text-xs text-gray-500">
+          Repeat customers, lifetime spending & favorite dishes
+        </p>
       </div>
 
       <div className="overflow-hidden overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm">

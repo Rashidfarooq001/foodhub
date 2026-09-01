@@ -41,9 +41,8 @@ export class DriversService {
 
     // 2. Validate Indian phone format: exactly 10 digits starting with 6-9
     const rawDigits = dto.phone.replace(/\D/g, '');
-    const cleanDigits = rawDigits.startsWith('91') && rawDigits.length === 12
-      ? rawDigits.substring(2)
-      : rawDigits;
+    const cleanDigits =
+      rawDigits.startsWith('91') && rawDigits.length === 12 ? rawDigits.substring(2) : rawDigits;
 
     if (cleanDigits.length !== 10 || !/^[6-9]\d{9}$/.test(cleanDigits)) {
       throw new BadRequestException(
@@ -76,7 +75,9 @@ export class DriversService {
       where: { licenseNumber: dto.licenseNumber.trim().toUpperCase() },
     });
     if (licenseConflict) {
-      throw new ConflictException('This driving license number is already registered with another account.');
+      throw new ConflictException(
+        'This driving license number is already registered with another account.',
+      );
     }
 
     // 6. Pre-check for duplicate vehicle registration number
@@ -85,7 +86,9 @@ export class DriversService {
         where: { vehicleNumber: dto.vehicleNumber.trim().toUpperCase() },
       });
       if (vehicleConflict) {
-        throw new ConflictException('This vehicle registration number is already registered with another account.');
+        throw new ConflictException(
+          'This vehicle registration number is already registered with another account.',
+        );
       }
     }
 
@@ -245,7 +248,12 @@ export class DriversService {
     });
   }
 
-  async updateApprovalStatus(driverId: string, isApproved: boolean, reason?: string, adminUserId?: string) {
+  async updateApprovalStatus(
+    driverId: string,
+    isApproved: boolean,
+    reason?: string,
+    adminUserId?: string,
+  ) {
     const driver = await this.prisma.driver.findUnique({
       where: { id: driverId },
       include: { user: true },
@@ -333,7 +341,9 @@ export class DriversService {
 
     const driverSnapshot = {
       id: driver.id,
-      name: driver.user?.profile ? `${driver.user.profile.firstName} ${driver.user.profile.lastName}` : 'Unknown',
+      name: driver.user?.profile
+        ? `${driver.user.profile.firstName} ${driver.user.profile.lastName}`
+        : 'Unknown',
       phone: driver.user ? driver.user.phone : 'Unknown',
       licenseNumber: driver.licenseNumber,
       deletedAt: new Date().toISOString(),
@@ -417,7 +427,7 @@ export class DriversService {
         const staffRolesCount = await tx.restaurantStaff.count({
           where: { userId: driver.userId },
         });
-        
+
         // Ensure to check if the user is a customer, but wait, if they have an order they are a customer.
         const customer = await tx.customer.findUnique({ where: { userId: driver.userId } });
 
@@ -428,11 +438,16 @@ export class DriversService {
           await tx.wallet.updateMany({ where: { userId: driver.userId }, data: { userId: null } });
           await tx.user.delete({ where: { id: driver.userId } });
         } else if (driver.user.role === UserRole.DELIVERY_PARTNER) {
-           const nextRole = ownedRestaurantsCount > 0 ? UserRole.RESTAURANT_OWNER : (customer ? UserRole.CUSTOMER : UserRole.CUSTOMER);
-           await tx.user.update({
-             where: { id: driver.userId },
-             data: { role: nextRole },
-           });
+          const nextRole =
+            ownedRestaurantsCount > 0
+              ? UserRole.RESTAURANT_OWNER
+              : customer
+                ? UserRole.CUSTOMER
+                : UserRole.CUSTOMER;
+          await tx.user.update({
+            where: { id: driver.userId },
+            data: { role: nextRole },
+          });
         }
       }
 

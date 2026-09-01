@@ -10,10 +10,7 @@ import { ZaykaFoodSplash } from './ZaykaFoodSplash';
 
 const API_BASE = getApiBaseUrl();
 
-const PUBLIC_ROUTES = [
-  '/login',
-  '/forgot-password',
-];
+const PUBLIC_ROUTES = ['/login', '/forgot-password'];
 
 export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -26,9 +23,7 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
 
   const isPublicRoute =
     Boolean(pathname) &&
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(route),
-    );
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route));
 
   useSessionTimeout({
     portalName: 'admin',
@@ -65,7 +60,10 @@ export function AdminAuthWrapper({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (isMounted && data?.profile) {
-            const fullName = `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() || data.name || 'Super Admin';
+            const fullName =
+              `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() ||
+              data.name ||
+              'Super Admin';
             updateUser({
               firstName: data.profile.firstName,
               lastName: data.profile.lastName,

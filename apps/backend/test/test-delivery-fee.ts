@@ -31,7 +31,8 @@ class MockDistancePrisma {
   orders: Map<string, any> = new Map();
 
   restaurant = {
-    findUnique: async ({ where }: { where: { id: string } }) => this.restaurants.get(where.id) || null,
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.restaurants.get(where.id) || null,
   };
 
   pricingConfig = {
@@ -57,7 +58,12 @@ async function runDistanceDeliveryFeeTests() {
   const taxEngine = new TaxEngineService(prisma as any);
   const pricingService = new PricingService(prisma as any);
   const distanceService = new DistanceService(prisma as any, null as any);
-  const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
+  const quoteService = new OrderQuoteService(
+    prisma as any,
+    taxEngine,
+    pricingService,
+    distanceService,
+  );
 
   // Setup Standard PostgreSQL Pricing Configuration
   prisma.pricingConfigs.push({
@@ -86,15 +92,15 @@ async function runDistanceDeliveryFeeTests() {
 
   // 1. TEST ALL 9 MANDATORY DISTANCE POINTS
   const testMatrix = [
-    { distanceKm: 0, expectedFee: 15.00 },
-    { distanceKm: 1, expectedFee: 15.00 },
-    { distanceKm: 2, expectedFee: 15.00 },
-    { distanceKm: 3, expectedFee: 15.00 },
-    { distanceKm: 3.1, expectedFee: 15.50 },
-    { distanceKm: 4, expectedFee: 20.00 },
-    { distanceKm: 5, expectedFee: 25.00 },
-    { distanceKm: 6, expectedFee: 30.00 },
-    { distanceKm: 10, expectedFee: 50.00 },
+    { distanceKm: 0, expectedFee: 15.0 },
+    { distanceKm: 1, expectedFee: 15.0 },
+    { distanceKm: 2, expectedFee: 15.0 },
+    { distanceKm: 3, expectedFee: 15.0 },
+    { distanceKm: 3.1, expectedFee: 15.5 },
+    { distanceKm: 4, expectedFee: 20.0 },
+    { distanceKm: 5, expectedFee: 25.0 },
+    { distanceKm: 6, expectedFee: 30.0 },
+    { distanceKm: 10, expectedFee: 50.0 },
   ];
 
   console.log('STEP 1: Testing 9 Specific Distance Test Points against the formula:');
@@ -107,20 +113,26 @@ async function runDistanceDeliveryFeeTests() {
       distanceKm: test.distanceKm,
     });
 
-    console.log(`- Distance ${test.distanceKm.toString().padEnd(4)} km: Expected Fee = ₹${test.expectedFee.toFixed(2)}, Actual Quote Fee = ₹${quote.customerDeliveryFee.toFixed(2)} -> ${quote.customerDeliveryFee === test.expectedFee ? '✓ PASS' : '❌ FAIL'}`);
+    console.log(
+      `- Distance ${test.distanceKm.toString().padEnd(4)} km: Expected Fee = ₹${test.expectedFee.toFixed(2)}, Actual Quote Fee = ₹${quote.customerDeliveryFee.toFixed(2)} -> ${quote.customerDeliveryFee === test.expectedFee ? '✓ PASS' : '❌ FAIL'}`,
+    );
 
     if (quote.customerDeliveryFee !== test.expectedFee) {
-      throw new Error(`Distance Fee Mismatch at ${test.distanceKm} km: Expected ₹${test.expectedFee}, got ₹${quote.customerDeliveryFee}`);
+      throw new Error(
+        `Distance Fee Mismatch at ${test.distanceKm} km: Expected ₹${test.expectedFee}, got ₹${quote.customerDeliveryFee}`,
+      );
     }
 
     if (quote.deliveryDistanceKm !== test.distanceKm) {
-      throw new Error(`deliveryDistanceKm mismatch: Expected ${test.distanceKm}, got ${quote.deliveryDistanceKm}`);
+      throw new Error(
+        `deliveryDistanceKm mismatch: Expected ${test.distanceKm}, got ${quote.deliveryDistanceKm}`,
+      );
     }
   }
 
   // 2. TEST USER PRICING EXAMPLES
   console.log('\nSTEP 2: Testing User Pricing Examples:');
-  
+
   // Example A: ₹500 food subtotal + 2 km delivery
   console.log('\n  [Example A: ₹500 Food Subtotal + 2 km Delivery]');
   const quoteExampleA = await quoteService.calculateQuote({
@@ -192,10 +204,18 @@ async function runDistanceDeliveryFeeTests() {
   const snap = fetchedOrder.pricingSnapshot;
   console.log('  Persisted Snapshot:', snap);
 
-  if (snap.customerDeliveryFee !== 25 || snap.deliveryDistanceKm !== 5 || snap.deliveryFeeBaseKm !== 3 || snap.deliveryFeeBaseAmount !== 15 || snap.deliveryFeePerExtraKm !== 5) {
+  if (
+    snap.customerDeliveryFee !== 25 ||
+    snap.deliveryDistanceKm !== 5 ||
+    snap.deliveryFeeBaseKm !== 3 ||
+    snap.deliveryFeeBaseAmount !== 15 ||
+    snap.deliveryFeePerExtraKm !== 5
+  ) {
     throw new Error('Snapshot verification failed for distance-based delivery fee metadata!');
   }
-  console.log('  ✓ Order Financial Snapshot contains exact delivery distance and breakdown metadata.');
+  console.log(
+    '  ✓ Order Financial Snapshot contains exact delivery distance and breakdown metadata.',
+  );
 
   console.log('\n========================================================================');
   console.log('ALL DISTANCE-BASED DELIVERY FEE VERIFICATION TESTS: 100% PASSED!');

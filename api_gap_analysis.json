@@ -1,0 +1,915 @@
+{
+  "backendOrphans": [
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/admin",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/admin/revenue",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/restaurant",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/driver/:id",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/customer",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/sales",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/analytics/export",
+      "file": "\\apps\\backend\\src\\modules\\analytics\\analytics.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/check-phone",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/check-hotel-phone",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/register",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/register/restaurant-owner",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/register/delivery-partner",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/auth/me",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/send-otp",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/verify-registration-widget",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/verify-otp",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/verify-widget",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/admin/login",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/admin/verify-security-questions",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/admin/reset-password",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/auth/admin/change-passwords",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/auth/admin/change-security-questions",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/login",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/logout",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/logout-all",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/refresh",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/forgot-password",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/verify-reset-token",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/reset-password",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/change-password",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/auth/profile",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/auth/profile",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/change-email",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/change-phone/request-otp",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/auth/change-phone/verify-otp",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/auth/sessions",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/auth/session/:id",
+      "file": "\\apps\\backend\\src\\modules\\auth\\auth.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/cart/items",
+      "file": "\\apps\\backend\\src\\modules\\cart\\cart.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/cart/items/:foodItemId",
+      "file": "\\apps\\backend\\src\\modules\\cart\\cart.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/cart/items/:foodItemId",
+      "file": "\\apps\\backend\\src\\modules\\cart\\cart.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/coupons/validate",
+      "file": "\\apps\\backend\\src\\modules\\coupons\\coupons.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/coupons/suggest",
+      "file": "\\apps\\backend\\src\\modules\\coupons\\coupons.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/coupons/:id",
+      "file": "\\apps\\backend\\src\\modules\\coupons\\coupons.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/me/status",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/me/go-online",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/me/go-offline",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/me/heartbeat",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/delivery/me/status",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/jobs/available",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/active-jobs",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/current",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/stats",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/history",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/delivery/available",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/delivery/duty-status",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/duty/toggle",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/decline",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/accept",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/arrived",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/picked-up",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/start-delivery",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/delivered",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/verify-pickup",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/verify-pickup-qr",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/arrived-at-customer",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/orders/:orderId/arrived",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/complete-delivery",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/orders/:id/complete-delivery",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/:id/unassign",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/jobs/reset-my-active",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/delivery/admin/unassign-all",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\delivery-jobs.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/drivers/vehicle-types",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/drivers/apply",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/drivers/applications",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/drivers/:id/approval",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/drivers/:id/suspend",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/drivers/:id/reactivate",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/drivers/:id",
+      "file": "\\apps\\backend\\src\\modules\\drivers\\drivers.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/health/db",
+      "file": "\\apps\\backend\\src\\modules\\health\\health.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/health/redis",
+      "file": "\\apps\\backend\\src\\modules\\health\\health.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/health/ready",
+      "file": "\\apps\\backend\\src\\modules\\health\\health.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/active",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/history",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/my",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/my-orders",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/confirm-delivery",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/verify-delivery",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/:id",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/:id/tracking",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/:id/invoice",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/:id/eligible-riders",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/assign-rider",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/accept",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/reject",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/prepare",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/ready",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/orders/:id/status",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/cancel",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/orders/:id/pickup-otp",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/reviews",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/review",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/orders/:id/repeat",
+      "file": "\\apps\\backend\\src\\modules\\orders\\orders.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/payments/create",
+      "file": "\\apps\\backend\\src\\modules\\payments\\payments.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/payments/verify",
+      "file": "\\apps\\backend\\src\\modules\\payments\\payments.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/payments/webhook",
+      "file": "\\apps\\backend\\src\\modules\\payments\\payments.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/payments/admin",
+      "file": "\\apps\\backend\\src\\modules\\payments\\payments.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/payments/refund/:orderId",
+      "file": "\\apps\\backend\\src\\modules\\payments\\payments.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/pricing/config",
+      "file": "\\apps\\backend\\src\\modules\\pricing\\pricing.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/pricing/config",
+      "file": "\\apps\\backend\\src\\modules\\pricing\\pricing.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/pricing/calculate",
+      "file": "\\apps\\backend\\src\\modules\\pricing\\pricing.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/requests",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/admin/privacy/requests/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/admin/privacy/requests/:id/execute-deletion",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/complaints",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/admin/privacy/complaints/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/admin/privacy/incidents",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/incidents",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/admin/privacy/incidents/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/consents",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/consents/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/policies",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/policies/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/audit-logs",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/admin/privacy/audit-logs/:id",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/admin/privacy/retention/cleanup",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\admin-privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/inventory",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/vendor-inventory",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/retention-policies",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/me",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/consents",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/privacy/consent",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/privacy/consent/withdraw",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/export",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/privacy/requests",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/requests",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/privacy/complaints",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/privacy/complaints",
+      "file": "\\apps\\backend\\src\\modules\\privacy\\privacy.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/referrals/my-code",
+      "file": "\\apps\\backend\\src\\modules\\referrals\\referrals.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/referrals/apply",
+      "file": "\\apps\\backend\\src\\modules\\referrals\\referrals.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/referrals/stats",
+      "file": "\\apps\\backend\\src\\modules\\referrals\\referrals.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/approval",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/applications",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/:id",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/approval",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/verify",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/suspend",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/reactivate",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/restaurants/:id",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/delivery-mode",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/commission",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/delivery-radius",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/profile",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/:id/timings",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PUT",
+      "fullRoute": "/restaurants/:id/timings",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/:id/delivery-staff",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/restaurants/:id/delivery-staff",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/restaurants/:id/delivery-staff/:staffId",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/restaurants/:id/delivery-staff/:staffId",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/restaurants/:id/delivery-analytics",
+      "file": "\\apps\\backend\\src\\modules\\restaurants\\restaurants.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/reviews/me",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/restaurant",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/food",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/driver",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/reviews/restaurant/:restaurantId",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/:id/vote",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/:id/report",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/reviews/:id/reply",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "PATCH",
+      "fullRoute": "/reviews/:id/moderate",
+      "file": "\\apps\\backend\\src\\modules\\reviews\\reviews.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/overview",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/restaurant/:restaurantId/detail",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/restaurant/:restaurantId/history",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/riders",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/rider/:driverId/detail",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/settlements/rider/:driverId/record-payment",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/transactions",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/audit-logs",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/settlements/reconciliation",
+      "file": "\\apps\\backend\\src\\modules\\settlements\\settlements.controller.ts"
+    },
+    {
+      "method": "POST",
+      "fullRoute": "/storage/upload",
+      "file": "\\apps\\backend\\src\\modules\\storage\\storage.controller.ts"
+    },
+    {
+      "method": "DELETE",
+      "fullRoute": "/storage/file/:filename",
+      "file": "\\apps\\backend\\src\\modules\\storage\\storage.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/wallet/overview",
+      "file": "\\apps\\backend\\src\\modules\\wallet\\wallet.controller.ts"
+    },
+    {
+      "method": "GET",
+      "fullRoute": "/wallet/transactions",
+      "file": "\\apps\\backend\\src\\modules\\wallet\\wallet.controller.ts"
+    }
+  ],
+  "frontendPhantoms": []
+}

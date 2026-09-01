@@ -11,7 +11,9 @@ export const DeliverySidebar = () => {
       </div>
       <nav className="space-y-1 text-sm font-medium text-slate-300">
         <div className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Active Duty Feed</div>
-        <div className="px-3 py-2 rounded-xl hover:bg-slate-800 cursor-pointer">Live Navigation</div>
+        <div className="px-3 py-2 rounded-xl hover:bg-slate-800 cursor-pointer">
+          Live Navigation
+        </div>
         <div className="px-3 py-2 rounded-xl hover:bg-slate-800 cursor-pointer">Daily Earnings</div>
         <div className="px-3 py-2 rounded-xl hover:bg-slate-800 cursor-pointer">Trip History</div>
         <div className="px-3 py-2 rounded-xl hover:bg-slate-800 cursor-pointer">Profile & KYC</div>

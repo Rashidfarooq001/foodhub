@@ -5,10 +5,30 @@ import { Bike, FileCheck, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export default function DeliveryVehiclePage() {
   const docs = [
-    { title: 'Commercial Driving License', status: 'VERIFIED', expiry: '12 Oct 2030', number: 'DL-2024-KA-8921' },
-    { title: 'Vehicle RC Certificate', status: 'VERIFIED', expiry: '15 Aug 2032', number: 'KA-01-HA-9821 (TVS NTORQ)' },
-    { title: 'Motor Vehicle Insurance', status: 'VERIFIED', expiry: '20 Dec 2026', number: 'POL-ICICI-881920' },
-    { title: 'Pollution Certificate (PUC)', status: 'VERIFIED', expiry: '10 Nov 2026', number: 'PUC-KA-772910' },
+    {
+      title: 'Commercial Driving License',
+      status: 'VERIFIED',
+      expiry: '12 Oct 2030',
+      number: 'DL-2024-KA-8921',
+    },
+    {
+      title: 'Vehicle RC Certificate',
+      status: 'VERIFIED',
+      expiry: '15 Aug 2032',
+      number: 'KA-01-HA-9821 (TVS NTORQ)',
+    },
+    {
+      title: 'Motor Vehicle Insurance',
+      status: 'VERIFIED',
+      expiry: '20 Dec 2026',
+      number: 'POL-ICICI-881920',
+    },
+    {
+      title: 'Pollution Certificate (PUC)',
+      status: 'VERIFIED',
+      expiry: '10 Nov 2026',
+      number: 'PUC-KA-772910',
+    },
   ];
 
   return (
@@ -18,7 +38,8 @@ export default function DeliveryVehiclePage() {
           Vehicle &amp; License KYC
         </h1>
         <p className="text-[11px] sm:text-xs text-gray-500">
-          Verified courier vehicle registration, RC, commercial driving license &amp; active insurance records
+          Verified courier vehicle registration, RC, commercial driving license &amp; active
+          insurance records
         </p>
       </div>
 
@@ -26,7 +47,10 @@ export default function DeliveryVehiclePage() {
         <ShieldCheck className="h-8 w-8 text-emerald-600 shrink-0" />
         <div className="text-xs">
           <h3 className="font-black text-emerald-950">Active Fleet Verification Status</h3>
-          <p className="text-emerald-800 text-[11px]">All submitted transportation documents are approved and verified for delivery operations.</p>
+          <p className="text-emerald-800 text-[11px]">
+            All submitted transportation documents are approved and verified for delivery
+            operations.
+          </p>
         </div>
       </div>
 

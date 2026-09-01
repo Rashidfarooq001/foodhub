@@ -45,9 +45,11 @@ export const OrderTimeline: React.FC<Props> = ({ currentStatus }) => {
 
   const currentIndex = getStepIndex(currentStatus);
 
-    return (
+  return (
     <div className="space-y-4">
-      <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">Live Delivery Progress</h3>
+      <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">
+        Live Delivery Progress
+      </h3>
 
       <div className="relative flex flex-col gap-4 py-2">
         {/* Vertical Progress Bar Background */}
@@ -64,7 +66,10 @@ export const OrderTimeline: React.FC<Props> = ({ currentStatus }) => {
           const Icon = step.icon;
 
           return (
-            <div key={step.id} className={`relative z-10 flex items-center gap-4 transition-opacity ${idx > currentIndex + 1 ? 'opacity-30' : 'opacity-100'}`}>
+            <div
+              key={step.id}
+              className={`relative z-10 flex items-center gap-4 transition-opacity ${idx > currentIndex + 1 ? 'opacity-30' : 'opacity-100'}`}
+            >
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
                   isDone

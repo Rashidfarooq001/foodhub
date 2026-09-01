@@ -20,7 +20,7 @@ import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, Prisma } from '@prisma/client';
 
 import { OrderQuoteService } from '../tax/order-quote.service';
-import { hashOtp } from './order-state-machine.service';
+import { hashOtp } from './order-lifecycle.service';
 import * as crypto from 'crypto';
 
 /** Generates a unique order number like FH-948210 */
@@ -29,34 +29,31 @@ function generateOrderNumber(): string {
   return `FH-${num}`;
 }
 
-
-
-
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
   constructor(
-    private readonly prisma:      PrismaService,
-    private readonly repo:        OrdersRepository,
-    private readonly validation:  OrdersValidationService,
-    private readonly lifecycle:   OrderLifecycleService,
-    private readonly gateway:     OrdersGateway,
+    private readonly prisma: PrismaService,
+    private readonly repo: OrdersRepository,
+    private readonly validation: OrdersValidationService,
+    private readonly lifecycle: OrderLifecycleService,
+    private readonly gateway: OrdersGateway,
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
   ) {}
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
-    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerIdOrUserId);
+    const isUuid =
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        customerIdOrUserId,
+      );
 
     // Look up customer by userId OR customer id in PostgreSQL
     let existingCustomer = isUuid
       ? await this.prisma.customer.findFirst({
           where: {
-            OR: [
-              { userId: customerIdOrUserId },
-              { id: customerIdOrUserId },
-            ],
+            OR: [{ userId: customerIdOrUserId }, { id: customerIdOrUserId }],
           },
         })
       : null;
@@ -79,12 +76,14 @@ export class OrdersService {
       throw new UnauthorizedException('Authenticated customer profile required to place an order.');
     }
 
-
     // 1. Validate restaurant open & status
     await this.validation.validateRestaurantOpen(dto.restaurantId);
 
     // 1.1 Validate delivery radius (server-side security check)
-    const calculatedDistanceKm = await this.validation.validateDeliveryRadius(dto.restaurantId, dto.deliveryAddress);
+    const calculatedDistanceKm = await this.validation.validateDeliveryRadius(
+      dto.restaurantId,
+      dto.deliveryAddress,
+    );
 
     // 2. Validate items & inventory
     await this.validation.validateItemsAvailable(dto.items, dto.restaurantId);
@@ -92,14 +91,14 @@ export class OrdersService {
     // 3. Calculate subtotal with authoritative server-side price resolution
     let subtotal = 0;
     const itemsWithPrices: Array<{
-      foodItemId:    string;
-      variantId:     string | null;
-      variantName:   string | null;
-      quantity:      number;
-      unitPrice:     number;
-      totalPrice:    number;
-      addonsJson:    Prisma.InputJsonValue | typeof Prisma.JsonNull;
-      itemSnapshot:  Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      foodItemId: string;
+      variantId: string | null;
+      variantName: string | null;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      addonsJson: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      itemSnapshot: Prisma.InputJsonValue | typeof Prisma.JsonNull;
     }> = [];
 
     for (const item of dto.items) {
@@ -112,7 +111,9 @@ export class OrdersService {
       }
 
       if (food.restaurantId !== dto.restaurantId) {
-        throw new BadRequestException(`Food item "${food.name}" does not belong to restaurant ${dto.restaurantId}.`);
+        throw new BadRequestException(
+          `Food item "${food.name}" does not belong to restaurant ${dto.restaurantId}.`,
+        );
       }
 
       let resolvedUnitPrice = Number(food.price);
@@ -125,7 +126,9 @@ export class OrdersService {
           throw new BadRequestException(`Variant ${item.variantId} not found for "${food.name}".`);
         }
         if (!variant.isAvailable) {
-          throw new BadRequestException(`Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`);
+          throw new BadRequestException(
+            `Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`,
+          );
         }
         resolvedUnitPrice = Number(variant.price);
         selectedVariantId = variant.id;
@@ -136,7 +139,9 @@ export class OrdersService {
         );
         if (variant) {
           if (!variant.isAvailable) {
-            throw new BadRequestException(`Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`);
+            throw new BadRequestException(
+              `Variant "${variant.variantName}" of "${food.name}" is currently unavailable.`,
+            );
           }
           resolvedUnitPrice = Number(variant.price);
           selectedVariantId = variant.id;
@@ -145,13 +150,11 @@ export class OrdersService {
       }
 
       const addonTotal = item.addonsJson
-        ? (item.addonsJson as Array<{ price: number }>).reduce(
-            (sum, a) => sum + (a.price || 0), 0,
-          )
+        ? (item.addonsJson as Array<{ price: number }>).reduce((sum, a) => sum + (a.price || 0), 0)
         : 0;
-      const unitPrice  = resolvedUnitPrice + addonTotal;
+      const unitPrice = resolvedUnitPrice + addonTotal;
       const totalPrice = unitPrice * item.quantity;
-      subtotal        += totalPrice;
+      subtotal += totalPrice;
 
       const itemSnapshot = {
         foodItemId: food.id,
@@ -166,15 +169,13 @@ export class OrdersService {
       };
 
       itemsWithPrices.push({
-        foodItemId:   item.foodItemId,
-        variantId:    selectedVariantId,
-        variantName:  selectedVariantName,
-        quantity:     item.quantity,
+        foodItemId: item.foodItemId,
+        variantId: selectedVariantId,
+        variantName: selectedVariantName,
+        quantity: item.quantity,
         unitPrice,
         totalPrice,
-        addonsJson: item.addonsJson
-          ? (item.addonsJson as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+        addonsJson: item.addonsJson ? (item.addonsJson as Prisma.InputJsonValue) : Prisma.JsonNull,
         itemSnapshot: itemSnapshot as unknown as Prisma.InputJsonValue,
       });
     }
@@ -199,29 +200,37 @@ export class OrdersService {
         rawAddress.addressLine2,
         rawAddress.landmark ? `Landmark: ${rawAddress.landmark}` : null,
         rawAddress.city,
-        rawAddress.state ? `${rawAddress.state}${rawAddress.postalCode ? ` - ${rawAddress.postalCode}` : ''}` : null,
-      ].filter(Boolean).join(', ');
+        rawAddress.state
+          ? `${rawAddress.state}${rawAddress.postalCode ? ` - ${rawAddress.postalCode}` : ''}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(', ');
     } else if (rawAddress.placeName) {
       formattedAddressText = rawAddress.placeName;
     } else {
       formattedAddressText = 'Location address not provided';
     }
 
-    const placeNameText = typeof rawAddress === 'object' && rawAddress.placeName
-      ? rawAddress.placeName
-      : (formattedAddressText.split(',')[0] || 'Delivery Address');
+    const placeNameText =
+      typeof rawAddress === 'object' && rawAddress.placeName
+        ? rawAddress.placeName
+        : formattedAddressText.split(',')[0] || 'Delivery Address';
 
-    const latitudeNum = typeof rawAddress === 'object' && typeof rawAddress.latitude === 'number'
-      ? rawAddress.latitude
-      : ((dto as any).latitude || (dto as any).lat);
+    const latitudeNum =
+      typeof rawAddress === 'object' && typeof rawAddress.latitude === 'number'
+        ? rawAddress.latitude
+        : (dto as any).latitude || (dto as any).lat;
 
-    const longitudeNum = typeof rawAddress === 'object' && typeof rawAddress.longitude === 'number'
-      ? rawAddress.longitude
-      : ((dto as any).longitude || (dto as any).lng);
+    const longitudeNum =
+      typeof rawAddress === 'object' && typeof rawAddress.longitude === 'number'
+        ? rawAddress.longitude
+        : (dto as any).longitude || (dto as any).lng;
 
-    const locationSourceText = typeof rawAddress === 'object' && rawAddress.locationSource
-      ? rawAddress.locationSource
-      : ((dto as any).locationSource || 'CURRENT_GPS');
+    const locationSourceText =
+      typeof rawAddress === 'object' && rawAddress.locationSource
+        ? rawAddress.locationSource
+        : (dto as any).locationSource || 'CURRENT_GPS';
 
     // Fetch restaurant coordinates for authoritative server-side distance calculation
     const restaurant = await this.prisma.restaurant.findUnique({
@@ -241,14 +250,14 @@ export class OrdersService {
 
     // Authoritative Quote Calculation (Customer Packaging Fee = ₹0)
     const quote = await this.quoteService.calculateQuote({
-        foodSubtotal: subtotal,
-        distanceKm: calculatedDistanceKm,
-        restaurantId: dto.restaurantId,
-        locationSource: locationSourceText as any,
-        discountAmount,
-        packagingFee: 0,
-        tipAmount: (dto as any).tipAmount || 0,
-      });
+      foodSubtotal: subtotal,
+      distanceKm: calculatedDistanceKm,
+      restaurantId: dto.restaurantId,
+      locationSource: locationSourceText as any,
+      discountAmount,
+      packagingFee: 0,
+      tipAmount: (dto as any).tipAmount || 0,
+    });
 
     this.logger.log({
       msg: 'Order quote calculated',
@@ -258,11 +267,10 @@ export class OrdersService {
       calculatedCustomerTotal: quote.customerTotal,
     });
 
-    
     if (quote.customerDeliveryFee === null || quote.customerTotal === null) {
       throw new BadRequestException('Delivery route is unavailable for the selected location.');
     }
-    
+
     const deliveryFee = quote.customerDeliveryFee;
     const taxAmount = quote.totalCustomerTaxes;
     const totalAmount = quote.customerTotal;
@@ -300,12 +308,16 @@ export class OrdersService {
     const deliveryAddressSnapshot = {
       placeName: placeNameText,
       formattedAddress: formattedAddressText,
-      addressLine1: typeof rawAddress === 'object' ? (rawAddress.addressLine1 || placeNameText) : formattedAddressText,
-      addressLine2: typeof rawAddress === 'object' ? (rawAddress.addressLine2 || '') : '',
-      landmark: typeof rawAddress === 'object' ? (rawAddress.landmark || '') : '',
-      city: typeof rawAddress === 'object' ? (rawAddress.city || '') : '',
-      state: typeof rawAddress === 'object' ? (rawAddress.state || 'Jammu & Kashmir') : 'Jammu & Kashmir',
-      postalCode: typeof rawAddress === 'object' ? (rawAddress.postalCode || '193502') : '193502',
+      addressLine1:
+        typeof rawAddress === 'object'
+          ? rawAddress.addressLine1 || placeNameText
+          : formattedAddressText,
+      addressLine2: typeof rawAddress === 'object' ? rawAddress.addressLine2 || '' : '',
+      landmark: typeof rawAddress === 'object' ? rawAddress.landmark || '' : '',
+      city: typeof rawAddress === 'object' ? rawAddress.city || '' : '',
+      state:
+        typeof rawAddress === 'object' ? rawAddress.state || 'Jammu & Kashmir' : 'Jammu & Kashmir',
+      postalCode: typeof rawAddress === 'object' ? rawAddress.postalCode || '193502' : '193502',
       latitude: latitudeNum,
       longitude: longitudeNum,
       locationSource: locationSourceText,
@@ -318,20 +330,20 @@ export class OrdersService {
     const order = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
-          orderNumber:        generateOrderNumber(),
-          customerId:         targetCustomerId,
-          restaurantId:       dto.restaurantId,
-          status:             OrderStatus.PENDING,
+          orderNumber: generateOrderNumber(),
+          customerId: targetCustomerId,
+          restaurantId: dto.restaurantId,
+          status: OrderStatus.PENDING,
           subtotal,
-          packagingFee:       0,
+          packagingFee: 0,
           deliveryFee,
           taxAmount,
           discountAmount,
           totalAmount,
-          paymentMethod:      dto.paymentMethod,
-          deliveryAddress:    deliveryAddressSnapshot as Prisma.InputJsonValue,
-          taxSnapshot:        quote.taxItems as unknown as Prisma.InputJsonValue,
-          pricingSnapshot:    pricingSnapshot as unknown as Prisma.InputJsonValue,
+          paymentMethod: dto.paymentMethod,
+          deliveryAddress: deliveryAddressSnapshot as Prisma.InputJsonValue,
+          taxSnapshot: quote.taxItems as unknown as Prisma.InputJsonValue,
+          pricingSnapshot: pricingSnapshot as unknown as Prisma.InputJsonValue,
           specialInstruction: dto.specialInstruction,
         },
       });
@@ -339,14 +351,14 @@ export class OrdersService {
       // Create order items via createMany with complete variant & snapshot fields
       await tx.orderItem.createMany({
         data: itemsWithPrices.map((item) => ({
-          orderId:      newOrder.id,
-          foodItemId:   item.foodItemId,
-          variantId:    item.variantId,
-          variantName:  item.variantName,
-          quantity:     item.quantity,
-          unitPrice:    item.unitPrice,
-          totalPrice:   item.totalPrice,
-          addonsJson:   item.addonsJson,
+          orderId: newOrder.id,
+          foodItemId: item.foodItemId,
+          variantId: item.variantId,
+          variantName: item.variantName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          addonsJson: item.addonsJson,
           itemSnapshot: item.itemSnapshot,
         })),
       });
@@ -355,7 +367,7 @@ export class OrdersService {
       await tx.orderTimeline.create({
         data: {
           orderId: newOrder.id,
-          status:  OrderStatus.PENDING,
+          status: OrderStatus.PENDING,
           message: 'Order placed successfully',
         },
       });
@@ -369,7 +381,7 @@ export class OrdersService {
     // The PaymentsService emits ORDER_CREATED after verifyPayment() or the Razorpay webhook fires.
     if (dto.paymentMethod === 'COD') {
       this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
-        orderId:     order.id,
+        orderId: order.id,
         orderNumber: order.orderNumber,
         totalAmount: order.totalAmount,
         deliveryAddress: deliveryAddressSnapshot,
@@ -395,62 +407,43 @@ export class OrdersService {
     userRole?: string,
   ) {
     const order = await this.repo.findById(orderId);
-    
+
     if (
       userRole === 'RESTAURANT_OWNER' ||
       userRole === 'RESTAURANT_MANAGER' ||
       userRole === 'RESTAURANT_STAFF'
     ) {
-      const allowed: OrderStatus[] = [
-        OrderStatus.PREPARING,
-        OrderStatus.CANCELLED,
-      ];
-      
+      const allowed: OrderStatus[] = [OrderStatus.PREPARING, OrderStatus.CANCELLED];
+
       if (!allowed.includes(dto.status as OrderStatus)) {
-        throw new ForbiddenException(
-          'Restaurant cannot change order to this status',
-        );
+        throw new ForbiddenException('Restaurant cannot change order to this status');
       }
     }
-  
+
     // Driver permissions
     if (userRole === 'DRIVER') {
-      const allowed: OrderStatus[] = [
-        OrderStatus.OUT_FOR_DELIVERY,
-        OrderStatus.DELIVERED,
-      ];
-      
+      const allowed: OrderStatus[] = [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED];
+
       if (!allowed.includes(dto.status as OrderStatus)) {
-        throw new ForbiddenException(
-          'Driver cannot change order to this status',
-        );
+        throw new ForbiddenException('Driver cannot change order to this status');
       }
     }
 
     return this.lifecycle.updateOrderStatus(orderId, dto.status as OrderStatus, changedBy);
   }
 
-  async cancelOrder(
-    orderId:     string,
-    dto:         CancelOrderDto,
-    cancelledBy: string,
-  ) {
+  async cancelOrder(orderId: string, dto: CancelOrderDto, cancelledBy: string) {
     const order = await this.repo.findById(orderId);
 
-    const cancellableStatuses: OrderStatus[] = [
-      OrderStatus.PENDING,
-      OrderStatus.ACCEPTED,
-    ];
+    const cancellableStatuses: OrderStatus[] = [OrderStatus.PENDING, OrderStatus.ACCEPTED];
     if (!cancellableStatuses.includes(order.status)) {
-      throw new ForbiddenException(
-        `Order cannot be cancelled once ${order.status}`,
-      );
+      throw new ForbiddenException(`Order cannot be cancelled once ${order.status}`);
     }
 
     await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
-        data:  { status: OrderStatus.CANCELLED },
+        data: { status: OrderStatus.CANCELLED },
       }),
       this.prisma.orderCancellation.create({
         data: { orderId, reason: dto.reason, cancelledBy },
@@ -480,9 +473,9 @@ export class OrdersService {
 
   async getRestaurantOrders(
     restaurantId: string,
-    status?:      OrderStatus,
-    page?:        number,
-    limit?:       number,
+    status?: OrderStatus,
+    page?: number,
+    limit?: number,
   ) {
     const res = await this.repo.findByRestaurant(restaurantId, status, page, limit);
     return serializePrisma(res);
@@ -502,24 +495,24 @@ export class OrdersService {
     const order = await this.repo.findById(orderId);
 
     return {
-      invoiceNumber:   `INV-${order.orderNumber}`,
-      orderId:         order.id,
-      orderNumber:     order.orderNumber,
-      placedAt:        order.createdAt,
-      items:           order.orderItems.map((i) => ({
-        name:       (i as any).foodItem?.name ?? 'Item',
-        quantity:   i.quantity,
-        unitPrice:  Number(i.unitPrice),
+      invoiceNumber: `INV-${order.orderNumber}`,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      placedAt: order.createdAt,
+      items: order.orderItems.map((i) => ({
+        name: (i as any).foodItem?.name ?? 'Item',
+        quantity: i.quantity,
+        unitPrice: Number(i.unitPrice),
         totalPrice: Number(i.totalPrice),
       })),
-      subtotal:        Number(order.subtotal),
-      discountAmount:  Number(order.discountAmount),
-      packagingFee:    Number(order.packagingFee),
-      deliveryFee:     Number(order.deliveryFee),
-      taxAmount:       Number(order.taxAmount),
-      grandTotal:      Number(order.totalAmount),
-      paymentStatus:   order.paymentStatus,
-      paymentMethod:   order.paymentMethod,
+      subtotal: Number(order.subtotal),
+      discountAmount: Number(order.discountAmount),
+      packagingFee: Number(order.packagingFee),
+      deliveryFee: Number(order.deliveryFee),
+      taxAmount: Number(order.taxAmount),
+      grandTotal: Number(order.totalAmount),
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
       deliveryAddress: order.deliveryAddress,
     };
   }
@@ -685,35 +678,47 @@ export class OrdersService {
       if (!activeOrder) return null;
 
       const deliveryAddress: any = activeOrder.deliveryAddress || {};
-      const restaurantLat = activeOrder.restaurant ? Number(activeOrder.restaurant.latitude || 0) : 0;
-      const restaurantLng = activeOrder.restaurant ? Number(activeOrder.restaurant.longitude || 74.5221) : 74.5221;
-      const customerLat = typeof deliveryAddress?.latitude === 'number' ? deliveryAddress.latitude : restaurantLat;
-      const customerLng = typeof deliveryAddress?.longitude === 'number' ? deliveryAddress.longitude : restaurantLng;
+      const restaurantLat = activeOrder.restaurant
+        ? Number(activeOrder.restaurant.latitude || 0)
+        : 0;
+      const restaurantLng = activeOrder.restaurant
+        ? Number(activeOrder.restaurant.longitude || 74.5221)
+        : 74.5221;
+      const customerLat =
+        typeof deliveryAddress?.latitude === 'number' ? deliveryAddress.latitude : restaurantLat;
+      const customerLng =
+        typeof deliveryAddress?.longitude === 'number' ? deliveryAddress.longitude : restaurantLng;
       const driverLat = activeOrder.tracking?.currentLat || restaurantLat + 0.003;
       const driverLng = activeOrder.tracking?.currentLng || restaurantLng + 0.003;
 
       const distKm = Math.sqrt(
-        Math.pow((customerLat - driverLat) * 111, 2) +
-        Math.pow((customerLng - driverLng) * 111, 2),
+        Math.pow((customerLat - driverLat) * 111, 2) + Math.pow((customerLng - driverLng) * 111, 2),
       );
       const etaMins = isNaN(distKm) ? 15 : Math.max(10, Math.ceil((distKm / 25) * 60) + 10);
 
-      const customerAddressText = typeof deliveryAddress === 'string'
-        ? deliveryAddress
-        : deliveryAddress.formattedAddress ||
-          [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') ||
-          'Delivery Address';
+      const customerAddressText =
+        typeof deliveryAddress === 'string'
+          ? deliveryAddress
+          : deliveryAddress.formattedAddress ||
+            [deliveryAddress.addressLine1, deliveryAddress.city].filter(Boolean).join(', ') ||
+            'Delivery Address';
 
       const foodHubDriver = activeOrder.deliveryJob?.driver;
       const driverProfile = foodHubDriver?.user?.profile;
       const driverName = driverProfile
         ? `${driverProfile.firstName} ${driverProfile.lastName || ''}`.trim()
         : activeOrder.assignedRestaurantDriver
-        ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
-        : 'Assigned Partner';
+          ? `${activeOrder.assignedRestaurantDriver.firstName} ${activeOrder.assignedRestaurantDriver.lastName || ''}`.trim()
+          : 'Assigned Partner';
 
-      const driverPhone = foodHubDriver?.user?.phone || activeOrder.assignedRestaurantDriver?.phone || '+919876543210';
-      const vehicleNumber = foodHubDriver?.vehicles?.[0]?.vehicleNumber || activeOrder.assignedRestaurantDriver?.vehicleNumber || 'JK-15-A-1001';
+      const driverPhone =
+        foodHubDriver?.user?.phone ||
+        activeOrder.assignedRestaurantDriver?.phone ||
+        '+919876543210';
+      const vehicleNumber =
+        foodHubDriver?.vehicles?.[0]?.vehicleNumber ||
+        activeOrder.assignedRestaurantDriver?.vehicleNumber ||
+        'JK-15-A-1001';
 
       return serializePrisma({
         orderId: activeOrder.id,
@@ -770,11 +775,7 @@ export class OrdersService {
         whereClause.status = OrderStatus.DELIVERED;
       } else if (statusFilter === 'CANCELLED') {
         whereClause.status = {
-          in: [
-            OrderStatus.CANCELLED,
-            OrderStatus.REJECTED,
-            OrderStatus.FAILED,
-          ],
+          in: [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED],
         };
       } else {
         whereClause.status = statusFilter as any;
@@ -809,12 +810,17 @@ export class OrdersService {
         orderNumber: ord.orderNumber,
         restaurantName: ord.restaurant?.name || 'Restaurant',
         restaurantBanner: ord.restaurant?.bannerUrl,
-        date: ord.createdAt.toLocaleDateString() + ' ' + ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date:
+          ord.createdAt.toLocaleDateString() +
+          ' ' +
+          ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         createdAt: ord.createdAt,
         deliveredAt: ord.deliveryJob?.deliveredAt || ord.updatedAt,
         totalAmount: Number(ord.totalAmount),
         itemCount: ord.orderItems.reduce((acc, i) => acc + i.quantity, 0),
-        itemsSummary: ord.orderItems.map((i) => `${i.quantity}x ${i.foodItem?.name || 'Item'}`).join(', '),
+        itemsSummary: ord.orderItems
+          .map((i) => `${i.quantity}x ${i.foodItem?.name || 'Item'}`)
+          .join(', '),
         items: ord.orderItems.map((i) => ({
           id: i.id,
           name: i.foodItem?.name || 'Item',
@@ -862,7 +868,10 @@ export class OrdersService {
 
     let isAuthorized = isCustomerOwner || isAdmin;
 
-    if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
+    if (
+      !isAuthorized &&
+      (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')
+    ) {
       const isOwner = order.restaurant.ownerId === userId;
       const isStaff = await this.prisma.restaurantStaff.findFirst({
         where: { restaurantId: order.restaurantId, userId },
@@ -930,7 +939,10 @@ export class OrdersService {
 
     let isAuthorized = isCustomerOwner || isAdmin;
 
-    if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
+    if (
+      !isAuthorized &&
+      (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')
+    ) {
       const isOwner = order.restaurant.ownerId === userId;
       const isStaff = await this.prisma.restaurantStaff.findFirst({
         where: { restaurantId: order.restaurantId, userId },
@@ -959,7 +971,9 @@ export class OrdersService {
     }
 
     if (!isAuthorized) {
-      throw new ForbiddenException('You do not have permission to view delivery tracking for this order.');
+      throw new ForbiddenException(
+        'You do not have permission to view delivery tracking for this order.',
+      );
     }
 
     const deliveryAddress: any = order.deliveryAddress || {};
@@ -985,8 +999,11 @@ export class OrdersService {
     let routeEndLng = customerLng;
 
     const hasDriverLoc = driverLat && driverLng;
-    const isPickedUp = order.status === 'PICKED_UP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED';
-    
+    const isPickedUp =
+      order.status === 'PICKED_UP' ||
+      order.status === 'OUT_FOR_DELIVERY' ||
+      order.status === 'DELIVERED';
+
     if (hasDriverLoc) {
       if (isPickedUp) {
         // Rider to Customer
@@ -1014,7 +1031,9 @@ export class OrdersService {
         etaMins = routeData.etaMinutes;
         routeCoordinates = routeData.coordinates;
       } catch (err: any) {
-        this.logger.warn(`[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`);
+        this.logger.warn(
+          `[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`,
+        );
       }
     }
 
@@ -1126,7 +1145,9 @@ export class OrdersService {
     const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
 
     if (!isCustomer && !isRestaurantOwner && !isAdmin) {
-      throw new BadRequestException('Access denied. You do not have permission to view this invoice.');
+      throw new BadRequestException(
+        'Access denied. You do not have permission to view this invoice.',
+      );
     }
 
     let invoice = await this.prisma.invoice.findUnique({
@@ -1146,23 +1167,35 @@ export class OrdersService {
 
     const snap: any = order.pricingSnapshot || {};
 
-    const foodSubtotal = snap.restaurantGross !== undefined ? Number(snap.restaurantGross) : Number(order.subtotal || 0);
+    const foodSubtotal =
+      snap.restaurantGross !== undefined
+        ? Number(snap.restaurantGross)
+        : Number(order.subtotal || 0);
     const platformFee = snap.platformFee !== undefined ? Number(snap.platformFee) : 3.0;
-    const totalCustomerTaxes = snap.totalCustomerTaxes !== undefined ? Number(snap.totalCustomerTaxes) : 0;
+    const totalCustomerTaxes =
+      snap.totalCustomerTaxes !== undefined ? Number(snap.totalCustomerTaxes) : 0;
     const discountAmount = snap.discountAmount !== undefined ? Number(snap.discountAmount) : 0;
     const customerTotal = Number(order.totalAmount);
 
     const commissionRate = snap.commissionRate !== undefined ? Number(snap.commissionRate) : 13.0;
-    const commissionAmount = snap.commissionAmount !== undefined ? Number(snap.commissionAmount) : Math.round((foodSubtotal * commissionRate) / 100 * 100) / 100;
-    
-    const commissionGstAmount = snap.commissionGstAmount !== undefined 
-      ? Number(snap.commissionGstAmount) 
-      : snap.restaurantCommissionGst !== undefined 
-      ? Number(snap.restaurantCommissionGst)
-      : Math.round(commissionAmount * 0.18 * 100) / 100;
+    const commissionAmount =
+      snap.commissionAmount !== undefined
+        ? Number(snap.commissionAmount)
+        : Math.round(((foodSubtotal * commissionRate) / 100) * 100) / 100;
 
-    const restaurantNet = snap.restaurantNet !== undefined ? Number(snap.restaurantNet) : Math.round((foodSubtotal - commissionAmount - commissionGstAmount) * 100) / 100;
-    const deliveryFee = snap.customerDeliveryFee !== undefined ? Number(snap.customerDeliveryFee) : 0;
+    const commissionGstAmount =
+      snap.commissionGstAmount !== undefined
+        ? Number(snap.commissionGstAmount)
+        : snap.restaurantCommissionGst !== undefined
+          ? Number(snap.restaurantCommissionGst)
+          : Math.round(commissionAmount * 0.18 * 100) / 100;
+
+    const restaurantNet =
+      snap.restaurantNet !== undefined
+        ? Number(snap.restaurantNet)
+        : Math.round((foodSubtotal - commissionAmount - commissionGstAmount) * 100) / 100;
+    const deliveryFee =
+      snap.customerDeliveryFee !== undefined ? Number(snap.customerDeliveryFee) : 0;
     const packagingFee = snap.packagingFee !== undefined ? Number(snap.packagingFee) : 0;
 
     return serializePrisma({
@@ -1209,11 +1242,11 @@ export class OrdersService {
           address: (order.restaurant as any).addressLine || 'Registered Address',
         },
         customer: {
-          name: order.customer?.user?.profile 
-            ? `${order.customer.user.profile.firstName} ${order.customer.user.profile.lastName || ''}`.trim() 
+          name: order.customer?.user?.profile
+            ? `${order.customer.user.profile.firstName} ${order.customer.user.profile.lastName || ''}`.trim()
             : 'Customer',
-        }
-      }
+        },
+      },
     });
   }
 }

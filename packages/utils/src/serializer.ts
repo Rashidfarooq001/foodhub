@@ -6,10 +6,10 @@ export function serializePrisma<T>(data: T): T {
   if (
     typeof data === 'object' &&
     data !== null &&
-    (
-      ((data as any).s !== undefined && (data as any).e !== undefined && Array.isArray((data as any).d)) ||
-      typeof (data as any).toNumber === 'function'
-    )
+    (((data as any).s !== undefined &&
+      (data as any).e !== undefined &&
+      Array.isArray((data as any).d)) ||
+      typeof (data as any).toNumber === 'function')
   ) {
     return Number(data) as unknown as T;
   }

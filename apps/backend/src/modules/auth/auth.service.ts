@@ -1,4 +1,12 @@
-import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, ForbiddenException, ConflictException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { normalizeIndianPhone } from '@foodhub/utils';
 import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
@@ -86,7 +94,9 @@ export class AuthService {
 
     let verifiedMobile = String(rawMobile || '').trim();
     if (!verifiedMobile) {
-      this.logger.error(`[Restaurant Registration Widget] Mobile number missing in MSG91 payload response.`);
+      this.logger.error(
+        `[Restaurant Registration Widget] Mobile number missing in MSG91 payload response.`,
+      );
       throw new BadRequestException('Mobile number not returned from MSG91 widget verification');
     }
 
@@ -97,18 +107,25 @@ export class AuthService {
       throw new BadRequestException('Invalid mobile number format for verification');
     }
 
-    const verifiedFormatted = cleanVerified.length === 10 ? `+91${cleanVerified}` : `+${cleanVerified}`;
-    const submittedFormatted = cleanSubmitted.length === 10 ? `+91${cleanSubmitted}` : `+${cleanSubmitted}`;
+    const verifiedFormatted =
+      cleanVerified.length === 10 ? `+91${cleanVerified}` : `+${cleanVerified}`;
+    const submittedFormatted =
+      cleanSubmitted.length === 10 ? `+91${cleanSubmitted}` : `+${cleanSubmitted}`;
 
     if (verifiedFormatted !== submittedFormatted) {
-      this.logger.error(`[Restaurant Registration Widget] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${verifiedFormatted}`);
-      throw new BadRequestException('Verified phone number does not match the registration phone number.');
+      this.logger.error(
+        `[Restaurant Registration Widget] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${verifiedFormatted}`,
+      );
+      throw new BadRequestException(
+        'Verified phone number does not match the registration phone number.',
+      );
     }
 
-    this.logger.log(`[Restaurant Registration Widget] Phone verification succeeded for ${submittedFormatted}`);
+    this.logger.log(
+      `[Restaurant Registration Widget] Phone verification succeeded for ${submittedFormatted}`,
+    );
     return { verified: true, message: 'Phone number verified successfully' };
   }
-
 
   async checkPhoneAvailability(rawPhone: string) {
     if (!rawPhone) {
@@ -148,9 +165,7 @@ export class AuthService {
       // Check if a rejected record exists
       const rejected = await (this.usersService as any).prisma.rejectedRestaurantRecord.findFirst({
         where: {
-          OR: [
-            { restaurantName: { contains: cleanDigits } },
-          ],
+          OR: [{ restaurantName: { contains: cleanDigits } }],
         },
       });
       if (rejected) {
@@ -174,7 +189,9 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Your merchant account has been disabled. Please contact support.');
+      throw new UnauthorizedException(
+        'Your merchant account has been disabled. Please contact support.',
+      );
     }
 
     // Check restaurant approval status
@@ -195,9 +212,7 @@ export class AuthService {
     }
 
     if (restaurantStatus === 'REJECTED') {
-      throw new UnauthorizedException(
-        'Your restaurant registration has not been approved.',
-      );
+      throw new UnauthorizedException('Your restaurant registration has not been approved.');
     }
 
     if (restaurantStatus === 'SUSPENDED') {
@@ -207,20 +222,20 @@ export class AuthService {
     }
 
     if (!restaurantStatus) {
-      this.logger.warn(`[checkHotelPhone] No restaurant found for RESTAURANT_OWNER user=${user.id}`);
-      throw new UnauthorizedException(
-        'Your restaurant registration has not been approved.',
+      this.logger.warn(
+        `[checkHotelPhone] No restaurant found for RESTAURANT_OWNER user=${user.id}`,
       );
+      throw new UnauthorizedException('Your restaurant registration has not been approved.');
     }
 
-    this.logger.log(`[checkHotelPhone] Authorized: user=${user.id}, role=${user.role}, restaurantStatus=${restaurantStatus}`);
+    this.logger.log(
+      `[checkHotelPhone] Authorized: user=${user.id}, role=${user.role}, restaurantStatus=${restaurantStatus}`,
+    );
     return {
       authorized: true,
       message: 'Hotel account verified. Proceeding with OTP.',
     };
   }
-
-
 
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
     if (dto.termsAccepted !== true) {
@@ -249,7 +264,9 @@ export class AuthService {
     if (cleanEmail) {
       const existingEmail = await this.usersService.findUserByPhone(cleanEmail);
       if (existingEmail) {
-        throw new ConflictException('An account with this email address already exists. Please login.');
+        throw new ConflictException(
+          'An account with this email address already exists. Please login.',
+        );
       }
     }
 
@@ -354,7 +371,9 @@ export class AuthService {
       return createdUser;
     });
 
-    this.logger.log(`[Customer Register] Registered new Customer ID=${user.id}, phone=${user.phone}`);
+    this.logger.log(
+      `[Customer Register] Registered new Customer ID=${user.id}, phone=${user.phone}`,
+    );
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(user, session.id);
 
@@ -370,7 +389,11 @@ export class AuthService {
     };
   }
 
-  async registerRestaurantOwner(dto: RegisterRestaurantOwnerDto, ipAddress?: string, userAgent?: string) {
+  async registerRestaurantOwner(
+    dto: RegisterRestaurantOwnerDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -386,11 +409,15 @@ export class AuthService {
       where: { OR: [{ phone: formattedPhone }, { email: cleanEmail }] },
     });
     if (existingUser) {
-      throw new BadRequestException('An account with this phone number or email already exists. Please login.');
+      throw new BadRequestException(
+        'An account with this phone number or email already exists. Please login.',
+      );
     }
 
     if (!dto.fssaiNumber || !dto.fssaiNumber.trim()) {
-      throw new BadRequestException('FSSAI license number is required for restaurant registration.');
+      throw new BadRequestException(
+        'FSSAI license number is required for restaurant registration.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -401,8 +428,16 @@ export class AuthService {
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    const slug = dto.restaurantName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
-    const fullAddress = [dto.addressLine, dto.city, dto.state, dto.postalCode].filter(Boolean).join(', ');
+    const slug =
+      dto.restaurantName
+        .toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '') +
+      '-' +
+      Math.floor(1000 + Math.random() * 9000);
+    const fullAddress = [dto.addressLine, dto.city, dto.state, dto.postalCode]
+      .filter(Boolean)
+      .join(', ');
 
     const result = await (this.usersService as any).prisma.$transaction(async (tx: any) => {
       const user = await tx.user.create({
@@ -462,7 +497,9 @@ export class AuthService {
       session.id,
     );
 
-    this.logger.log(`[Restaurant Registration] Registered owner user=${result.user.id}, restaurant=${result.restaurant.id}`);
+    this.logger.log(
+      `[Restaurant Registration] Registered owner user=${result.user.id}, restaurant=${result.restaurant.id}`,
+    );
 
     return {
       user: {
@@ -480,11 +517,16 @@ export class AuthService {
         restaurantId: result.restaurant.id,
       },
       tokens,
-      message: 'Restaurant owner account created successfully. Application is pending admin approval.',
+      message:
+        'Restaurant owner account created successfully. Application is pending admin approval.',
     };
   }
 
-  async registerDeliveryPartner(dto: RegisterDeliveryPartnerDto, ipAddress?: string, userAgent?: string) {
+  async registerDeliveryPartner(
+    dto: RegisterDeliveryPartnerDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -500,7 +542,9 @@ export class AuthService {
       where: { OR: [{ phone: formattedPhone }, { email: cleanEmail }] },
     });
     if (existingUser) {
-      throw new BadRequestException('An account with this phone number or email already exists. Please login.');
+      throw new BadRequestException(
+        'An account with this phone number or email already exists. Please login.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -551,7 +595,9 @@ export class AuthService {
     const session = await this.sessionService.createSession(result.user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(result.user, session.id);
 
-    this.logger.log(`[Delivery Partner Registration] Registered driver user=${result.user.id}, driver=${result.driver.id}`);
+    this.logger.log(
+      `[Delivery Partner Registration] Registered driver user=${result.user.id}, driver=${result.driver.id}`,
+    );
 
     return {
       user: {
@@ -767,8 +813,12 @@ export class AuthService {
       if (cleanSub.length >= 10) {
         const submittedFormatted = cleanSub.length === 10 ? `+91${cleanSub}` : `+${cleanSub}`;
         if (submittedFormatted !== phoneToVerify) {
-          this.logger.error(`[Backend MSG91] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${phoneToVerify}`);
-          throw new BadRequestException('Submitted phone number does not match MSG91 verified phone number.');
+          this.logger.error(
+            `[Backend MSG91] Phone mismatch! Submitted: ${submittedFormatted}, Verified by MSG91: ${phoneToVerify}`,
+          );
+          throw new BadRequestException(
+            'Submitted phone number does not match MSG91 verified phone number.',
+          );
         }
       }
     }
@@ -778,17 +828,21 @@ export class AuthService {
 
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
-        this.logger.log(`[Backend MSG91] Creating CUSTOMER account for verified phone ${phoneToVerify} AFTER OTP...`);
+        this.logger.log(
+          `[Backend MSG91] Creating CUSTOMER account for verified phone ${phoneToVerify} AFTER OTP...`,
+        );
         if (dto?.termsAccepted !== true) {
           throw new BadRequestException(
             'You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.',
           );
         }
         if (!dto?.password || dto.password.length < 6) {
-          throw new BadRequestException('A valid password (minimum 6 characters) is required to complete customer registration.');
+          throw new BadRequestException(
+            'A valid password (minimum 6 characters) is required to complete customer registration.',
+          );
         }
         const passwordHash = await bcrypt.hash(dto.password, 12);
-        
+
         const nameParts = (dto?.name || 'Customer').trim().split(' ');
         const firstName = nameParts[0] || 'Customer';
         const lastName = nameParts.slice(1).join(' ') || '';
@@ -886,8 +940,12 @@ export class AuthService {
           return createdUser;
         });
       } else {
-        this.logger.warn(`[Backend MSG91] Rejected: No user found for phone ${phoneToVerify} targeting ${normalizedTarget}`);
-        throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+        this.logger.warn(
+          `[Backend MSG91] Rejected: No user found for phone ${phoneToVerify} targeting ${normalizedTarget}`,
+        );
+        throw new UnauthorizedException(
+          `No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`,
+        );
       }
     } else {
       // Existing account: reject CUSTOMER signup for any already-registered phone regardless of role
@@ -903,7 +961,9 @@ export class AuthService {
 
     const restaurant = await this.enforceUserRoleAndStatus(user, targetRole);
 
-    this.logger.log(`[Backend MSG91] User authenticated with ID=${user.id}, role=${user.role}. Creating session & tokens...`);
+    this.logger.log(
+      `[Backend MSG91] User authenticated with ID=${user.id}, role=${user.role}. Creating session & tokens...`,
+    );
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(
       {
@@ -952,10 +1012,12 @@ export class AuthService {
     if (!user) {
       if (normalizedTarget === 'CUSTOMER') {
         if (!dto?.password || dto.password.length < 6) {
-          throw new BadRequestException('A valid password (minimum 6 characters) is required to complete customer registration.');
+          throw new BadRequestException(
+            'A valid password (minimum 6 characters) is required to complete customer registration.',
+          );
         }
         const passwordHash = await bcrypt.hash(dto.password, 12);
-        
+
         const nameParts = (dto?.name || 'Customer').trim().split(' ');
         const firstName = nameParts[0] || 'Customer';
         const lastName = nameParts.slice(1).join(' ') || '';
@@ -980,7 +1042,9 @@ export class AuthService {
           include: { profile: true, customer: true },
         });
       } else {
-        throw new UnauthorizedException(`No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`);
+        throw new UnauthorizedException(
+          `No authorized ${normalizedTarget.toLowerCase()} account found for this phone number.`,
+        );
       }
     } else {
       // Existing account: reject any CUSTOMER signup attempt regardless of role or password presence
@@ -1080,10 +1144,14 @@ export class AuthService {
       if (rObj) {
         if (rObj.status === 'REJECTED') {
           const reason = rObj.rejectionReason ? `: ${rObj.rejectionReason}` : '';
-          throw new UnauthorizedException(`Your restaurant application was rejected${reason}. Please contact support.`);
+          throw new UnauthorizedException(
+            `Your restaurant application was rejected${reason}. Please contact support.`,
+          );
         }
         if (rObj.status === 'SUSPENDED') {
-          throw new UnauthorizedException('Your restaurant account has been suspended. Please contact support.');
+          throw new UnauthorizedException(
+            'Your restaurant account has been suspended. Please contact support.',
+          );
         }
         if (rObj.status === 'REJECTED') {
           throw new UnauthorizedException('Your restaurant registration has not been approved.');
@@ -1156,11 +1224,15 @@ export class AuthService {
           UserRole.RESTAURANT_STAFF,
         ];
         if (!allowedHotelRoles.includes(user.role)) {
-          throw new UnauthorizedException('No authorized restaurant account found for this phone number.');
+          throw new UnauthorizedException(
+            'No authorized restaurant account found for this phone number.',
+          );
         }
       } else if (normalizedTarget === 'DELIVERY') {
         if (user.role !== UserRole.DELIVERY_PARTNER) {
-          throw new UnauthorizedException('No authorized delivery partner account found for this phone number.');
+          throw new UnauthorizedException(
+            'No authorized delivery partner account found for this phone number.',
+          );
         }
       }
     }
@@ -1188,11 +1260,14 @@ export class AuthService {
 
       const extractMobileFromMsg91 = (res: any): string | null => {
         if (!res) return null;
-        if (typeof res?.message === 'string' && res.message.trim().length >= 10) return res.message.trim();
-        if (res?.data && typeof res.data === 'object' && res.data.mobile) return String(res.data.mobile).trim();
+        if (typeof res?.message === 'string' && res.message.trim().length >= 10)
+          return res.message.trim();
+        if (res?.data && typeof res.data === 'object' && res.data.mobile)
+          return String(res.data.mobile).trim();
         if (res?.mobile) return String(res.mobile).trim();
         if (typeof res?.data === 'string' && res.data.trim().length >= 10) return res.data.trim();
-        if (res?.message && typeof res.message === 'object' && res.message.mobile) return String(res.message.mobile).trim();
+        if (res?.message && typeof res.message === 'object' && res.message.mobile)
+          return String(res.message.mobile).trim();
         if (res?.phone) return String(res.phone).trim();
         return null;
       };
@@ -1205,8 +1280,12 @@ export class AuthService {
       phoneToVerify = normalizeIndianPhone(rawMobile);
 
       if (phoneToVerify !== canonicalPhone) {
-        this.logger.error(`[Backend ForgotPassword] Phone mismatch! Requested: ${canonicalPhone}, Verified by MSG91: ${phoneToVerify}`);
-        throw new BadRequestException('MSG91 verified phone does not match requested password reset phone.');
+        this.logger.error(
+          `[Backend ForgotPassword] Phone mismatch! Requested: ${canonicalPhone}, Verified by MSG91: ${phoneToVerify}`,
+        );
+        throw new BadRequestException(
+          'MSG91 verified phone does not match requested password reset phone.',
+        );
       }
     } else if (dto.otp) {
       await this.otpService.verifyOtp(canonicalPhone, dto.otp);
@@ -1227,7 +1306,9 @@ export class AuthService {
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
-    this.logger.log(`[Backend ForgotPassword] Issued reset token for user ID=${user.id}, phone=${user.phone}`);
+    this.logger.log(
+      `[Backend ForgotPassword] Issued reset token for user ID=${user.id}, phone=${user.phone}`,
+    );
 
     return {
       resetToken,
@@ -1242,11 +1323,15 @@ export class AuthService {
     if (dto.resetToken) {
       const payload = this.resetTokenMap.get(dto.resetToken);
       if (!payload) {
-        throw new BadRequestException('Invalid or expired password reset token. Please request a new OTP.');
+        throw new BadRequestException(
+          'Invalid or expired password reset token. Please request a new OTP.',
+        );
       }
       if (Date.now() > payload.expiresAt) {
         this.resetTokenMap.delete(dto.resetToken);
-        throw new BadRequestException('Password reset token has expired. Please request a new OTP.');
+        throw new BadRequestException(
+          'Password reset token has expired. Please request a new OTP.',
+        );
       }
       // Single-use token: invalidate immediately!
       this.resetTokenMap.delete(dto.resetToken);
@@ -1284,7 +1369,9 @@ export class AuthService {
     const session = await this.sessionService.createSession(user.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(user, session.id);
 
-    this.logger.log(`[Backend ResetPassword] Password updated successfully for user ID=${user.id}. Logged in.`);
+    this.logger.log(
+      `[Backend ResetPassword] Password updated successfully for user ID=${user.id}. Logged in.`,
+    );
 
     return {
       user: {
@@ -1342,7 +1429,9 @@ export class AuthService {
     const cleanEmail = dto.newEmail.trim().toLowerCase();
     const existing = await this.usersService.findUserByPhoneOrEmail(cleanEmail);
     if (existing && existing.id !== userId) {
-      throw new BadRequestException('An account with this email address already exists. Please use a different email.');
+      throw new BadRequestException(
+        'An account with this email address already exists. Please use a different email.',
+      );
     }
 
     const updated = await (this.usersService as any).prisma.user.update({
@@ -1379,7 +1468,9 @@ export class AuthService {
     const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
     const existing = await this.usersService.findUserByPhone(formattedPhone);
     if (existing && existing.id !== userId) {
-      throw new BadRequestException('An account with this phone number already exists. Please use a different phone number.');
+      throw new BadRequestException(
+        'An account with this phone number already exists. Please use a different phone number.',
+      );
     }
 
     await this.otpService.sendOtp(formattedPhone);
@@ -1412,7 +1503,9 @@ export class AuthService {
     // Safety re-check against race conditions
     const existing = await this.usersService.findUserByPhone(formattedPhone);
     if (existing && existing.id !== userId) {
-      throw new BadRequestException('An account with this phone number already exists. Please use a different phone number.');
+      throw new BadRequestException(
+        'An account with this phone number already exists. Please use a different phone number.',
+      );
     }
 
     const updated = await (this.usersService as any).prisma.user.update({
@@ -1472,8 +1565,12 @@ export class AuthService {
     let authenticatedAdmin: any = null;
 
     for (const adminUser of adminUsers) {
-      const isP1Valid = adminUser.password1Hash ? await bcrypt.compare(p1, adminUser.password1Hash) : false;
-      const isP2Valid = adminUser.password2Hash ? await bcrypt.compare(p2, adminUser.password2Hash) : false;
+      const isP1Valid = adminUser.password1Hash
+        ? await bcrypt.compare(p1, adminUser.password1Hash)
+        : false;
+      const isP2Valid = adminUser.password2Hash
+        ? await bcrypt.compare(p2, adminUser.password2Hash)
+        : false;
 
       if (isP1Valid && isP2Valid) {
         authenticatedAdmin = adminUser;
@@ -1483,7 +1580,9 @@ export class AuthService {
 
     // Default bootstrap fallback if using master default credentials
     if (!authenticatedAdmin && p1 === '9999888877776666' && p2 === '88887777') {
-      let targetUser = adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) || adminUsers[0];
+      let targetUser =
+        adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) ||
+        adminUsers[0];
       if (!targetUser) {
         const fallbackP1Hash = await bcrypt.hash('9999888877776666', 10);
         const fallbackP2Hash = await bcrypt.hash('88887777', 10);
@@ -1534,12 +1633,17 @@ export class AuthService {
     }
 
     if (!authenticatedAdmin) {
-      this.logger.warn(`[Admin Two-Password Auth] Credentials verification failed for provided 16-digit/8-digit pair.`);
+      this.logger.warn(
+        `[Admin Two-Password Auth] Credentials verification failed for provided 16-digit/8-digit pair.`,
+      );
       throw new UnauthorizedException('Invalid admin credentials.');
     }
 
     // Always ensure the authenticated admin has SUPER_ADMIN role
-    if (authenticatedAdmin.role !== UserRole.SUPER_ADMIN && authenticatedAdmin.role !== UserRole.ADMIN) {
+    if (
+      authenticatedAdmin.role !== UserRole.SUPER_ADMIN &&
+      authenticatedAdmin.role !== UserRole.ADMIN
+    ) {
       authenticatedAdmin = await (this.usersService as any).prisma.user.update({
         where: { id: authenticatedAdmin.id },
         data: {
@@ -1554,7 +1658,9 @@ export class AuthService {
     const adminUser = authenticatedAdmin;
 
     // 5. Authenticate Admin session & issue JWT token pair
-    this.logger.log(`[Admin Two-Password Auth] Successful login for Admin ID=${adminUser.id}, role=${adminUser.role}`);
+    this.logger.log(
+      `[Admin Two-Password Auth] Successful login for Admin ID=${adminUser.id}, role=${adminUser.role}`,
+    );
     const session = await this.sessionService.createSession(adminUser.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(
       {
@@ -1577,7 +1683,10 @@ export class AuthService {
     };
   }
 
-  async changeAdminPasswords(userId: string, dto: { newPassword1?: string; newPassword2?: string }) {
+  async changeAdminPasswords(
+    userId: string,
+    dto: { newPassword1?: string; newPassword2?: string },
+  ) {
     const user = await this.usersService.findUserById(userId);
 
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
@@ -1626,7 +1735,9 @@ export class AuthService {
     if (attemptInfo && now < attemptInfo.resetTime) {
       if (attemptInfo.count >= 5) {
         this.logger.warn(`[Admin Security Questions] Rate limit exceeded for IP=${ipKey}`);
-        throw new BadRequestException('Too many failed recovery attempts. Please try again in 15 minutes.');
+        throw new BadRequestException(
+          'Too many failed recovery attempts. Please try again in 15 minutes.',
+        );
       }
     } else {
       this.recoveryAttemptsMap.set(ipKey, { count: 0, resetTime: now + 15 * 60 * 1000 });
@@ -1651,7 +1762,9 @@ export class AuthService {
       },
     });
 
-    let adminUser = adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) || adminUsers[0];
+    let adminUser =
+      adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) ||
+      adminUsers[0];
 
     if (!adminUser) {
       throw new UnauthorizedException('Unable to verify the recovery information.');
@@ -1676,10 +1789,14 @@ export class AuthService {
 
     // Also support default recovery values fallback
     if (!isDobValid && cleanDob === '2005-01-01') isDobValid = true;
-    if (!isPersonValid && (cleanPerson === 'zaykafood' || cleanPerson === 'reshi')) isPersonValid = true;
+    if (!isPersonValid && (cleanPerson === 'zaykafood' || cleanPerson === 'reshi'))
+      isPersonValid = true;
 
     if (!isDobValid || !isPersonValid) {
-      const current = this.recoveryAttemptsMap.get(ipKey) || { count: 0, resetTime: now + 15 * 60 * 1000 };
+      const current = this.recoveryAttemptsMap.get(ipKey) || {
+        count: 0,
+        resetTime: now + 15 * 60 * 1000,
+      };
       this.recoveryAttemptsMap.set(ipKey, { ...current, count: current.count + 1 });
       this.logger.warn(
         `[Admin Security Questions] Recovery verification failed: dobValid=${isDobValid}, personValid=${isPersonValid}`,
@@ -1702,7 +1819,9 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`[Admin Security Questions] Verification passed for Admin ID=${adminUser.id}. Issued resetToken.`);
+    this.logger.log(
+      `[Admin Security Questions] Verification passed for Admin ID=${adminUser.id}. Issued resetToken.`,
+    );
     return {
       success: true,
       resetToken,
@@ -1758,7 +1877,9 @@ export class AuthService {
     await this.tokenService.revokeAllUserTokens(adminUser.id);
     await this.sessionService.terminateAllUserSessions(adminUser.id);
 
-    this.logger.log(`[Admin Password Reset] Password updated and active sessions revoked for Admin ID=${adminUser.id}.`);
+    this.logger.log(
+      `[Admin Password Reset] Password updated and active sessions revoked for Admin ID=${adminUser.id}.`,
+    );
     return {
       success: true,
       message: 'Admin password reset successfully. Please log in with your new credentials.',
@@ -1772,12 +1893,16 @@ export class AuthService {
     const user = await this.usersService.findUserById(userId);
 
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Only Admin / Super Admin can change security recovery questions.');
+      throw new ForbiddenException(
+        'Only Admin / Super Admin can change security recovery questions.',
+      );
     }
 
     const currentP1 = (dto.currentPassword1 || '').trim();
     if (!currentP1) {
-      throw new BadRequestException('Current Admin Password 1 is required to authorize this change.');
+      throw new BadRequestException(
+        'Current Admin Password 1 is required to authorize this change.',
+      );
     }
 
     const isP1Valid = await bcrypt.compare(currentP1, user.password1Hash || user.passwordHash);
@@ -1803,7 +1928,9 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`[Admin Security Settings] Recovery questions updated successfully for Admin ID=${user.id}.`);
+    this.logger.log(
+      `[Admin Security Settings] Recovery questions updated successfully for Admin ID=${user.id}.`,
+    );
     return {
       success: true,
       message: 'Admin password recovery security questions updated successfully.',

@@ -62,7 +62,9 @@ async function main() {
 
   // 6. Test Both Wrong
   console.log('\n5. Testing Both Wrong...');
-  console.log(`   DOB Result: ${isWrongDobOk}, Person Result: ${isWrongPersonOk} (Expected: both false) ✅`);
+  console.log(
+    `   DOB Result: ${isWrongDobOk}, Person Result: ${isWrongPersonOk} (Expected: both false) ✅`,
+  );
 
   // 7. Test Reset Token Generation & Single-Use Consumption
   console.log('\n6. Testing Short-Lived Single-Use Reset Token...');

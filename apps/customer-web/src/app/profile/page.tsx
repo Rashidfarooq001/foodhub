@@ -2,7 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, Phone, Mail, Camera, Save, CheckCircle2, AlertCircle, Trash2, KeyRound, Lock, ShieldCheck } from 'lucide-react';
+import {
+  User,
+  Phone,
+  Mail,
+  Camera,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+  KeyRound,
+  Lock,
+  ShieldCheck,
+} from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -247,13 +259,17 @@ export default function ProfilePage() {
           href="/privacy"
           className="flex flex-col items-center justify-center gap-1 sm:gap-2 sm:flex-row rounded-2xl px-1 sm:px-4 text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition h-[72px] sm:h-12 text-center leading-tight"
         >
-          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" /> <span>Privacy & Data Center</span>
+          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />{' '}
+          <span>Privacy & Data Center</span>
         </Link>
       </div>
 
       {/* TAB 1: PROFILE */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm w-full box-border">
+        <form
+          onSubmit={handleSaveProfile}
+          className="rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm w-full box-border"
+        >
           {/* Avatar Upload */}
           <div className="flex items-center gap-4 border-b border-gray-100 pb-[18px] mb-[18px]">
             <div className="relative shrink-0">
@@ -269,7 +285,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex-1">
               <p className="text-sm font-bold text-gray-900 mb-1">Profile Photo</p>
               <p className="text-[11px] text-gray-500 mb-2.5">JPG, PNG up to 5MB</p>
@@ -333,7 +349,9 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-[7px]">Registered Phone (Verified)</label>
+            <label className="block text-xs font-bold text-gray-700 mb-[7px]">
+              Registered Phone (Verified)
+            </label>
             <input
               type="text"
               disabled
@@ -355,14 +373,19 @@ export default function ProfilePage() {
 
       {/* TAB 2: SECURITY & PASSWORD CHANGE */}
       {activeTab === 'security' && (
-        <form onSubmit={handleChangePassword} className="rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm w-full box-border">
+        <form
+          onSubmit={handleChangePassword}
+          className="rounded-2xl border border-gray-100 bg-white px-6 py-5 shadow-sm w-full box-border"
+        >
           <div>
             <h2 className="text-xl font-bold text-gray-900">Change Account Password</h2>
             <p className="text-xs text-gray-500">Update your login password credentials</p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-[7px]">Current Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-[7px]">
+              Current Password
+            </label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -392,7 +415,9 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-[7px]">Confirm New Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-[7px]">
+              Confirm New Password
+            </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input

@@ -10,10 +10,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RegistrationRouteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RegistrationRouteLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

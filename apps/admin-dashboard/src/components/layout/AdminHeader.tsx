@@ -34,14 +34,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) =>
 
         {/* Mobile Brand Logo */}
         <div className="flex lg:hidden items-center shrink-0">
-          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-[24px] w-auto object-contain" />
+          <img
+            src="/zaykafood-logo.png"
+            alt="ZaykaFood"
+            className="h-[24px] w-auto object-contain"
+          />
         </div>
       </div>
 
       {/* Right Controls */}
       <div className="flex flex-1 items-center justify-end gap-[6px] overflow-x-auto min-w-0 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="flex items-center gap-[6px] shrink-0 px-1">
-
           <ThemeToggle />
 
           {/* Notification Bell */}

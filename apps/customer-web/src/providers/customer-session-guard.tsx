@@ -40,7 +40,9 @@ export function CustomerSessionGuard({ children }: { children: React.ReactNode }
         }
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [isAuthenticated, accessToken, updateUser]);
 
   return <>{children}</>;

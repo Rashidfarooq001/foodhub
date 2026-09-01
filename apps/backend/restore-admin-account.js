@@ -37,7 +37,9 @@ async function main() {
 
   console.log('\n✓ ADMIN ACCOUNT RESTORED SUCCESSFULLY:');
   console.log(`  User ID:       ${restoredAdmin.id}`);
-  console.log(`  Name:          ${restoredAdmin.profile ? `${restoredAdmin.profile.firstName} ${restoredAdmin.profile.lastName}` : 'Super Admin'}`);
+  console.log(
+    `  Name:          ${restoredAdmin.profile ? `${restoredAdmin.profile.firstName} ${restoredAdmin.profile.lastName}` : 'Super Admin'}`,
+  );
   console.log(`  Phone:         ${restoredAdmin.phone}`);
   console.log(`  Email:         ${restoredAdmin.email}`);
   console.log(`  Role:          ${restoredAdmin.role} ✅`);

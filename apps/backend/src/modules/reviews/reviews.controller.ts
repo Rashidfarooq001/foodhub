@@ -1,6 +1,13 @@
 import {
-  Controller, Get, Post, Patch, Param, Body,
-  UseGuards, Request, Query,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
@@ -34,30 +41,21 @@ export class ReviewsController {
 
   @Post('restaurant')
   @ApiOperation({ summary: 'Submit a restaurant review (delivered orders only)' })
-  async reviewRestaurant(
-    @Request() req: any,
-    @Body() dto: CreateRestaurantReviewDto,
-  ) {
+  async reviewRestaurant(@Request() req: any, @Body() dto: CreateRestaurantReviewDto) {
     const userId = req.user?.id || req.user?.sub;
     return this.reviewsService.createRestaurantReview(userId, dto);
   }
 
   @Post('food')
   @ApiOperation({ summary: 'Submit a food item review (delivered orders only)' })
-  async reviewFood(
-    @Request() req: any,
-    @Body() dto: CreateFoodReviewDto,
-  ) {
+  async reviewFood(@Request() req: any, @Body() dto: CreateFoodReviewDto) {
     const userId = req.user?.id || req.user?.sub;
     return this.reviewsService.createFoodReview(userId, dto);
   }
 
   @Post('driver')
   @ApiOperation({ summary: 'Submit a driver review (delivered orders only)' })
-  async reviewDriver(
-    @Request() req: any,
-    @Body() dto: CreateDriverReviewDto,
-  ) {
+  async reviewDriver(@Request() req: any, @Body() dto: CreateDriverReviewDto) {
     const userId = req.user?.id || req.user?.sub;
     return this.reviewsService.createDriverReview(userId, dto);
   }
@@ -69,7 +67,7 @@ export class ReviewsController {
   @ApiQuery({ name: 'limit', required: false })
   async getRestaurantReviews(
     @Param('restaurantId') restaurantId: string,
-    @Query('page')  page  = 1,
+    @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
     return this.reviewsService.getRestaurantReviews(restaurantId, +page, +limit);
@@ -77,33 +75,21 @@ export class ReviewsController {
 
   @Post(':id/vote')
   @ApiOperation({ summary: 'Vote a review as helpful or not helpful' })
-  async vote(
-    @Param('id') id: string,
-    @Request() req: any,
-    @Body('isHelpful') isHelpful: boolean,
-  ) {
+  async vote(@Param('id') id: string, @Request() req: any, @Body('isHelpful') isHelpful: boolean) {
     const userId = req.user?.id;
     return this.reviewsService.voteReview(id, userId, isHelpful);
   }
 
   @Post(':id/report')
   @ApiOperation({ summary: 'Report a review for moderation' })
-  async report(
-    @Param('id') id: string,
-    @Request() req: any,
-    @Body() dto: ReportReviewDto,
-  ) {
+  async report(@Param('id') id: string, @Request() req: any, @Body() dto: ReportReviewDto) {
     const userId = req.user?.id;
     return this.reviewsService.reportReview(id, userId, dto);
   }
 
   @Post(':id/reply')
   @ApiOperation({ summary: 'Reply to a review (restaurant owner or admin)' })
-  async reply(
-    @Param('id') id: string,
-    @Request() req: any,
-    @Body() dto: ReplyReviewDto,
-  ) {
+  async reply(@Param('id') id: string, @Request() req: any, @Body() dto: ReplyReviewDto) {
     const userId = req.user?.id;
     return this.reviewsService.replyToReview(id, userId, dto);
   }
@@ -112,10 +98,7 @@ export class ReviewsController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Admin: hide or delete a review' })
-  async moderate(
-    @Param('id') id: string,
-    @Body() dto: ModerateReviewDto,
-  ) {
+  async moderate(@Param('id') id: string, @Body() dto: ModerateReviewDto) {
     return this.reviewsService.moderateReview(id, dto);
   }
 }

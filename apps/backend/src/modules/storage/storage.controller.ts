@@ -34,10 +34,7 @@ export class StorageController {
     },
   })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }))
-  async uploadFile(
-    @UploadedFile() file: any,
-    @Query('type') type?: 'image' | 'video' | 'any',
-  ) {
+  async uploadFile(@UploadedFile() file: any, @Query('type') type?: 'image' | 'video' | 'any') {
     if (!file) {
       throw new BadRequestException('No file provided in form-data field "file"');
     }

@@ -31,7 +31,11 @@ async function runTrace() {
       console.log('❌ Order not found!');
       return;
     }
-    console.log('✅ Order found:', { id: order.id, status: order.status, restaurantId: order.restaurantId });
+    console.log('✅ Order found:', {
+      id: order.id,
+      status: order.status,
+      restaurantId: order.restaurantId,
+    });
 
     console.log('2. Running $transaction status update to ACCEPTED...');
     const updated = await prisma.$transaction(async (tx) => {

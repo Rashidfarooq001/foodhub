@@ -10,7 +10,8 @@ export interface OrderQuoteRequest {
   restaurantId?: string;
   latitude?: number;
   longitude?: number;
-  locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MAPPLS_GEOCODE';
+  locationSource?:
+    'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MAPPLS_GEOCODE';
   tipAmount?: number;
   discountAmount?: number;
   packagingFee?: number;
@@ -117,14 +118,20 @@ export class OrderQuoteService {
         req.latitude,
         req.longitude,
       );
-      
+
       if (!distRes.valid && distRes.reason === 'ROUTE_CALCULATION_FAILED') {
-        throw new BadRequestException('Delivery route could not be calculated. The delivery service may be temporarily unavailable.');
+        throw new BadRequestException(
+          'Delivery route could not be calculated. The delivery service may be temporarily unavailable.',
+        );
       }
-      if (!distRes.valid && (distRes.reason === 'INVALID_RESTAURANT_COORDINATES' || distRes.reason === 'INVALID_CUSTOMER_COORDINATES')) {
+      if (
+        !distRes.valid &&
+        (distRes.reason === 'INVALID_RESTAURANT_COORDINATES' ||
+          distRes.reason === 'INVALID_CUSTOMER_COORDINATES')
+      ) {
         throw new BadRequestException('Invalid coordinates provided for delivery calculation.');
       }
-      
+
       distanceKm = distRes.distanceKm;
       etaMinutes = distRes.etaMinutes;
       routeAvailable = distRes.routeAvailable;
@@ -138,8 +145,8 @@ export class OrderQuoteService {
     // After 3 km: Additional charge = ₹5.00 per additional KM
     // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
     const deliveryFeeBaseKm = 3.0; // Wait, I'll keep this hardcoded as it's not in DB
-      const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee || 15.0;
-      const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
+    const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee || 15.0;
+    const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
@@ -147,13 +154,19 @@ export class OrderQuoteService {
         customerDeliveryFee = deliveryFeeBaseAmount;
       } else {
         const extraKm = distanceKm - deliveryFeeBaseKm;
-        customerDeliveryFee = Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
+        customerDeliveryFee =
+          Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
       }
     } else {
       customerDeliveryFee = null; // Unresolved / null when route calculation is unavailable
     }
 
-    if (!deliveryEligible || distanceKm === null || distanceKm > deliveryRadiusKm || !routeAvailable) {
+    if (
+      !deliveryEligible ||
+      distanceKm === null ||
+      distanceKm > deliveryRadiusKm ||
+      !routeAvailable
+    ) {
       deliveryEligible = false;
       serviceable = false;
     }
@@ -198,21 +211,37 @@ export class OrderQuoteService {
       recipientState: customerState,
     });
 
-    const taxItems: TaxComponentOutput[] = [foodTax, platformTax, smallOrderTax, deliveryTax, tipTax];
+    const taxItems: TaxComponentOutput[] = [
+      foodTax,
+      platformTax,
+      smallOrderTax,
+      deliveryTax,
+      tipTax,
+    ];
 
     const restaurantFoodGst = 0.0;
     const platformFeeGst = 0.0;
     const smallOrderFeeGst = 0.0;
     const deliveryFeeGst = 0.0;
-    const totalCustomerTaxes = Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
+    const totalCustomerTaxes =
+      Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
 
     // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
-    const customerTotal = customerDeliveryFee !== null ? Math.max(
-        0,
-        Math.round(
-          (foodSubtotal + customerDeliveryFee + platformFee + totalCustomerTaxes + tipAmount - discountAmount) * 100,
-        ) / 100,
-      ) : null;
+    const customerTotal =
+      customerDeliveryFee !== null
+        ? Math.max(
+            0,
+            Math.round(
+              (foodSubtotal +
+                customerDeliveryFee +
+                platformFee +
+                totalCustomerTaxes +
+                tipAmount -
+                discountAmount) *
+                100,
+            ) / 100,
+          )
+        : null;
 
     // ==========================================
     // 6. AUTHORITATIVE COMMISSION RESOLUTION (13% on every individual order)
@@ -223,10 +252,17 @@ export class OrderQuoteService {
     let resolvedCommissionRate: number = 13.0;
     let commissionStatus: 'CONFIGURED' | 'UNCONFIGURED' = 'CONFIGURED';
 
-    if (restaurantRecord && restaurantRecord.commissionRate !== null && restaurantRecord.commissionRate !== undefined) {
+    if (
+      restaurantRecord &&
+      restaurantRecord.commissionRate !== null &&
+      restaurantRecord.commissionRate !== undefined
+    ) {
       resolvedCommissionRate = Number(restaurantRecord.commissionRate);
       commissionStatus = 'CONFIGURED';
-    } else if (config.restaurantCommissionPercent !== null && config.restaurantCommissionPercent !== undefined) {
+    } else if (
+      config.restaurantCommissionPercent !== null &&
+      config.restaurantCommissionPercent !== undefined
+    ) {
       resolvedCommissionRate = Number(config.restaurantCommissionPercent);
       commissionStatus = 'CONFIGURED';
     } else {
@@ -241,29 +277,39 @@ export class OrderQuoteService {
 
     // Under Sec 9(5) ECO, Restaurant receives:
     // Food Subtotal - Commission - GST on Commission
-    const restaurantSettlement = Math.round(
-      (foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100,
-    ) / 100;
+    const restaurantSettlement =
+      Math.round((foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100) / 100;
 
     // 7. Rider Payout (₹25 base + ₹6/km)
     const riderBasePay = config.riderBasePay;
     const riderDistancePay = Math.round((distanceKm || 0) * config.riderPerKmPay * 100) / 100;
     const riderTip = tipAmount; // 100% pass-through
-    const totalRiderPayout = Math.round(
-      (riderBasePay + riderDistancePay + config.riderWaitingPay + config.riderPeakBonus + config.riderLongDistanceBonus + config.riderBatchBonus + riderTip) * 100,
-    ) / 100;
+    const totalRiderPayout =
+      Math.round(
+        (riderBasePay +
+          riderDistancePay +
+          config.riderWaitingPay +
+          config.riderPeakBonus +
+          config.riderLongDistanceBonus +
+          config.riderBatchBonus +
+          riderTip) *
+          100,
+      ) / 100;
 
     // 8. Payment Gateway Internal Cost (Default 2% planning rate)
-    const paymentGatewayCost = customerTotal !== null ? Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100 : 0;
+    const paymentGatewayCost =
+      customerTotal !== null
+        ? Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100
+        : 0;
 
     // 9. Core Accounting Isolation
     const statutoryGstLiability = 0.0;
-    const platformOperatingRevenue = Math.round(
-        (restaurantCommission + platformFee + (customerDeliveryFee || 0)) * 100,
-      ) / 100;
+    const platformOperatingRevenue =
+      Math.round((restaurantCommission + platformFee + (customerDeliveryFee || 0)) * 100) / 100;
 
     const riderDirectCost = totalRiderPayout - riderTip;
-    const platformContributionMargin = Math.round((platformOperatingRevenue - riderDirectCost - paymentGatewayCost) * 100) / 100;
+    const platformContributionMargin =
+      Math.round((platformOperatingRevenue - riderDirectCost - paymentGatewayCost) * 100) / 100;
 
     return {
       foodSubtotal,
@@ -318,6 +364,3 @@ export class OrderQuoteService {
     };
   }
 }
-
-
-

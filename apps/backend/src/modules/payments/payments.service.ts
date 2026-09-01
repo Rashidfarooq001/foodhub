@@ -13,7 +13,7 @@ import * as crypto from 'crypto';
 import { OrdersGateway } from '../orders/orders.gateway';
 import { ORDER_EVENTS } from '../orders/orders.events';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Razorpay = require('razorpay');
 
 @Injectable()
@@ -29,9 +29,7 @@ export class PaymentsService {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
-      throw new Error(
-        'RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing.',
-      );
+      throw new Error('RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing.');
     }
 
     this.razorpay = new Razorpay({
@@ -75,35 +73,31 @@ export class PaymentsService {
     }
 
     const amountPaise = Math.round(paymentAmount * 100);
-// Always create a fresh Razorpay Order.
-// Razorpay Orders cannot be reused once paid or closed.
+    // Always create a fresh Razorpay Order.
+    // Razorpay Orders cannot be reused once paid or closed.
 
-await this.prisma.payment.updateMany({
-  where: {
-    orderId: dto.orderId,
-    status: PaymentStatus.PENDING,
-  },
-  data: {
-    status: PaymentStatus.FAILED,
-  },
-});
+    await this.prisma.payment.updateMany({
+      where: {
+        orderId: dto.orderId,
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+      },
+    });
 
     let razorpayOrder: any;
 
     try {
-      this.logger.log(
-        `Creating Razorpay order for Order ${dto.orderId}`,
-      );
+      this.logger.log(`Creating Razorpay order for Order ${dto.orderId}`);
 
       razorpayOrder = await this.razorpay.orders.create({
         amount: amountPaise,
         currency: 'INR',
-       receipt: `${order.orderNumber}-${Date.now()}`
+        receipt: `${order.orderNumber}-${Date.now()}`,
       });
 
-      this.logger.log(
-        `Razorpay Order Created: ${razorpayOrder.id}`,
-      );
+      this.logger.log(`Razorpay Order Created: ${razorpayOrder.id}`);
     } catch (error: any) {
       console.error('========== RAZORPAY ERROR ==========');
       console.error(error);
@@ -112,26 +106,22 @@ await this.prisma.payment.updateMany({
       console.error(error?.error);
 
       throw new BadRequestException(
-        error?.error?.description ??
-          error?.message ??
-          'Unable to create Razorpay order',
+        error?.error?.description ?? error?.message ?? 'Unable to create Razorpay order',
       );
     }
-const payment = await this.prisma.payment.create({
-  data: {
-    orderId: dto.orderId,
-    razorpayOrderId: razorpayOrder.id,
-    amount: paymentAmount,
-    status: PaymentStatus.PENDING,
-    method: dto.method,
-    razorpayPaymentId: null,
-    razorpaySignature: null,
-  },
-});
+    const payment = await this.prisma.payment.create({
+      data: {
+        orderId: dto.orderId,
+        razorpayOrderId: razorpayOrder.id,
+        amount: paymentAmount,
+        status: PaymentStatus.PENDING,
+        method: dto.method,
+        razorpayPaymentId: null,
+        razorpaySignature: null,
+      },
+    });
 
-    this.logger.log(
-      `Payment record created: ${payment.id}`,
-    );
+    this.logger.log(`Payment record created: ${payment.id}`);
 
     return {
       dbOrderId: dto.orderId,
@@ -140,36 +130,25 @@ const payment = await this.prisma.payment.create({
       currency: 'INR',
       paymentId: payment.id,
     };
-  }  /**
+  } /**
    * Verify Razorpay payment signature
    */
   async verifyPayment(dto: VerifyPaymentDto, userId?: string) {
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!secret) {
-      throw new BadRequestException(
-        'RAZORPAY_KEY_SECRET is missing',
-      );
+      throw new BadRequestException('RAZORPAY_KEY_SECRET is missing');
     }
 
     const generatedSignature = crypto
       .createHmac('sha256', secret)
-      .update(
-        `${dto.razorpayOrderId}|${dto.razorpayPaymentId}`,
-      )
+      .update(`${dto.razorpayOrderId}|${dto.razorpayPaymentId}`)
       .digest('hex');
 
-    const isDev =
-      process.env.NODE_ENV !== 'production' ||
-      process.env.GUEST_CHECKOUT === 'true';
+    const isDev = process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true';
 
-    if (
-      generatedSignature !== dto.razorpaySignature &&
-      !isDev
-    ) {
-      throw new BadRequestException(
-        'Payment signature verification failed',
-      );
+    if (generatedSignature !== dto.razorpaySignature && !isDev) {
+      throw new BadRequestException('Payment signature verification failed');
     }
 
     const payment = await this.prisma.payment.findUnique({
@@ -186,14 +165,13 @@ const payment = await this.prisma.payment.create({
     });
 
     if (!payment) {
-      throw new NotFoundException(
-        'Payment record not found',
-      );
+      throw new NotFoundException('Payment record not found');
     }
 
     // Verify order ownership if userId is provided
     if (userId && payment.order) {
-      const isOwner = payment.order.customer?.userId === userId || payment.order.customerId === userId;
+      const isOwner =
+        payment.order.customer?.userId === userId || payment.order.customerId === userId;
       if (!isOwner) {
         throw new ForbiddenException('You do not have permission to verify payment for this order');
       }
@@ -228,9 +206,7 @@ const payment = await this.prisma.payment.create({
       }),
     ]);
 
-    this.logger.log(
-      `Payment verified: ${dto.razorpayPaymentId}`,
-    );
+    this.logger.log(`Payment verified: ${dto.razorpayPaymentId}`);
 
     // NOW notify the restaurant — payment is confirmed, order is actionable.
     // This is the authoritative trigger for merchant visibility for online payments.
@@ -240,18 +216,14 @@ const payment = await this.prisma.payment.create({
         include: { restaurant: true },
       });
       if (verifiedOrder) {
-        this.gateway.emitToRestaurant(
-          verifiedOrder.restaurantId,
-          ORDER_EVENTS.ORDER_CREATED,
-          {
-            orderId:      verifiedOrder.id,
-            orderNumber:  verifiedOrder.orderNumber,
-            totalAmount:  verifiedOrder.totalAmount,
-            paymentMethod: verifiedOrder.paymentMethod,
-            paymentVerified: true,
-            paymentStatus: 'COMPLETED',
-          },
-        );
+        this.gateway.emitToRestaurant(verifiedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
+          orderId: verifiedOrder.id,
+          orderNumber: verifiedOrder.orderNumber,
+          totalAmount: verifiedOrder.totalAmount,
+          paymentMethod: verifiedOrder.paymentMethod,
+          paymentVerified: true,
+          paymentStatus: 'COMPLETED',
+        });
         this.logger.log(
           `ORDER_CREATED emitted to restaurant ${verifiedOrder.restaurantId} after payment verification`,
         );
@@ -270,31 +242,17 @@ const payment = await this.prisma.payment.create({
   /**
    * Razorpay Webhook
    */
-  async handleWebhook(
-    body: Record<string, unknown>,
-    signature: string,
-    rawBody: string,
-  ) {
-    const secret =
-      process.env.RAZORPAY_WEBHOOK_SECRET ??
-      'webhook_secret';
+  async handleWebhook(body: Record<string, unknown>, signature: string, rawBody: string) {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? 'webhook_secret';
 
-    const generatedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody)
-      .digest('hex');
+    const generatedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
     if (generatedSignature !== signature) {
-      throw new BadRequestException(
-        'Invalid webhook signature',
-      );
+      throw new BadRequestException('Invalid webhook signature');
     }
 
     const event = body['event'] as string;
-    const payload = body['payload'] as Record<
-      string,
-      unknown
-    >;
+    const payload = body['payload'] as Record<string, unknown>;
 
     this.logger.log(`Webhook received: ${event}`);
 
@@ -312,9 +270,7 @@ const payment = await this.prisma.payment.create({
         break;
 
       default:
-        this.logger.warn(
-          `Unhandled webhook event: ${event}`,
-        );
+        this.logger.warn(`Unhandled webhook event: ${event}`);
     }
 
     return {
@@ -325,45 +281,31 @@ const payment = await this.prisma.payment.create({
   /**
    * Initiate Refund
    */
-  async initiateRefund(
-    orderId: string,
-    reason: string,
-  ) {
-    const payment =
-      await this.prisma.payment.findFirst({
-        where: {
-          orderId,
-          status: PaymentStatus.COMPLETED,
-        },
-        include: {
-          refunds: true,
-        },
-      });
+  async initiateRefund(orderId: string, reason: string) {
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        orderId,
+        status: PaymentStatus.COMPLETED,
+      },
+      include: {
+        refunds: true,
+      },
+    });
 
     if (!payment) {
-      throw new NotFoundException(
-        'No completed payment found',
-      );
+      throw new NotFoundException('No completed payment found');
     }
 
     if (payment.refunds.length > 0) {
-      throw new BadRequestException(
-        'Refund already initiated',
-      );
+      throw new BadRequestException('Refund already initiated');
     }
 
-    const refund =
-      await this.razorpay.payments.refund(
-        payment.razorpayPaymentId,
-        {
-          amount: Math.round(
-            Number(payment.amount) * 100,
-          ),
-          notes: {
-            reason,
-          },
-        },
-      );
+    const refund = await this.razorpay.payments.refund(payment.razorpayPaymentId, {
+      amount: Math.round(Number(payment.amount) * 100),
+      notes: {
+        reason,
+      },
+    });
 
     await this.prisma.paymentRefund.create({
       data: {
@@ -382,9 +324,7 @@ const payment = await this.prisma.payment.create({
       },
     });
 
-    this.logger.log(
-      `Refund initiated: ${refund.id}`,
-    );
+    this.logger.log(`Refund initiated: ${refund.id}`);
 
     return {
       message: 'Refund initiated',
@@ -395,52 +335,61 @@ const payment = await this.prisma.payment.create({
   async getPaymentsForAdmin(page = 1, limit = 50) {
     const skip = (page - 1) * limit;
 
-    const [payments, total, allOrders, completedPaymentsAgg, settlements, refundTotalAgg] = await Promise.all([
-      this.prisma.payment.findMany({
-        include: {
-          order: {
-            include: {
-              restaurant: { select: { id: true, name: true } },
-              customer: {
-                include: {
-                  user: {
-                    include: {
-                      profile: true,
+    const [payments, total, allOrders, completedPaymentsAgg, settlements, refundTotalAgg] =
+      await Promise.all([
+        this.prisma.payment.findMany({
+          include: {
+            order: {
+              include: {
+                restaurant: { select: { id: true, name: true } },
+                customer: {
+                  include: {
+                    user: {
+                      include: {
+                        profile: true,
+                      },
                     },
                   },
                 },
+                deliveryJob: true,
               },
-              deliveryJob: true,
             },
+            refunds: true,
           },
-          refunds: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.payment.count(),
-      this.prisma.order.findMany({
-        where: { paymentStatus: PaymentStatus.COMPLETED },
-        select: {
-          id: true,
-          totalAmount: true,
-          subtotal: true,
-          deliveryFee: true,
-          packagingFee: true,
-          taxAmount: true,
-          pricingSnapshot: true,
-          restaurantId: true,
-          deliveryJob: { select: { riderPayout: true } },
-        },
-      }),
-      this.prisma.payment.aggregate({
-        where: { status: PaymentStatus.COMPLETED },
-        _sum: { amount: true },
-      }),
-      this.prisma.restaurantSettlement.findMany({ select: { restaurantId: true, status: true, netPayable: true, utrNumber: true, settledAt: true } }),
-      this.prisma.paymentRefund.aggregate({ _sum: { amount: true } }),
-    ]);
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.payment.count(),
+        this.prisma.order.findMany({
+          where: { paymentStatus: PaymentStatus.COMPLETED },
+          select: {
+            id: true,
+            totalAmount: true,
+            subtotal: true,
+            deliveryFee: true,
+            packagingFee: true,
+            taxAmount: true,
+            pricingSnapshot: true,
+            restaurantId: true,
+            deliveryJob: { select: { riderPayout: true } },
+          },
+        }),
+        this.prisma.payment.aggregate({
+          where: { status: PaymentStatus.COMPLETED },
+          _sum: { amount: true },
+        }),
+        this.prisma.restaurantSettlement.findMany({
+          select: {
+            restaurantId: true,
+            status: true,
+            netPayable: true,
+            utrNumber: true,
+            settledAt: true,
+          },
+        }),
+        this.prisma.paymentRefund.aggregate({ _sum: { amount: true } }),
+      ]);
 
     // Authoritative platform aggregates
     let totalCustomerCollections = 0;
@@ -472,10 +421,14 @@ const payment = await this.prisma.payment.create({
       totalStatutoryGst += tax;
     }
 
-    const totalRestaurantSettled = settlements.reduce((sum, s) => sum + (s.status === 'PAID' ? Number(s.netPayable || 0) : 0), 0);
+    const totalRestaurantSettled = settlements.reduce(
+      (sum, s) => sum + (s.status === 'PAID' ? Number(s.netPayable || 0) : 0),
+      0,
+    );
     const totalRestaurantPending = Math.max(0, totalRestaurantNetPayable - totalRestaurantSettled);
     const totalPlatformOperatingRevenue = totalRestaurantCommission + totalPlatformFees;
-    const totalPlatformNetContribution = (totalPlatformOperatingRevenue + totalDeliveryFees) - totalRiderEarnings;
+    const totalPlatformNetContribution =
+      totalPlatformOperatingRevenue + totalDeliveryFees - totalRiderEarnings;
 
     const mappedPayments = payments.map((p) => {
       const ord = p.order;
@@ -487,7 +440,8 @@ const payment = await this.prisma.payment.create({
       const customerPaid = Number(p.amount);
 
       const commissionRate = snap.commissionRate !== undefined ? snap.commissionRate : null;
-      const commissionStatus = snap.commissionStatus || (commissionRate !== null ? 'CONFIGURED' : 'UNCONFIGURED');
+      const commissionStatus =
+        snap.commissionStatus || (commissionRate !== null ? 'CONFIGURED' : 'UNCONFIGURED');
       const commissionAmount = Number(snap.commissionAmount || 0);
       const restaurantNetPayable = Math.max(0, foodSubtotal - commissionAmount);
 
@@ -500,7 +454,8 @@ const payment = await this.prisma.payment.create({
       const restaurantSettlement = settlements.find((s) => s.restaurantId === ord?.restaurantId);
 
       // Reconciliation verification: Customer Paid vs (Restaurant Net + Commission + Platform Fee + Delivery Fee + GST)
-      const reconstructedTotal = restaurantNetPayable + commissionAmount + platformFee + deliveryFee + gst;
+      const reconstructedTotal =
+        restaurantNetPayable + commissionAmount + platformFee + deliveryFee + gst;
       const isBalanced = Math.abs(customerPaid - reconstructedTotal) < 0.01;
 
       return {
@@ -586,9 +541,7 @@ const payment = await this.prisma.payment.create({
     };
   }
 
-  private async handlePaymentCaptured(
-    payload: Record<string, unknown>,
-  ) {
+  private async handlePaymentCaptured(payload: Record<string, unknown>) {
     const paymentEntity = (payload['payment'] as any)?.entity;
 
     if (!paymentEntity?.order_id) return;
@@ -635,19 +588,15 @@ const payment = await this.prisma.payment.create({
         where: { id: existingPayment.orderId },
       });
       if (capturedOrder) {
-        this.gateway.emitToRestaurant(
-          capturedOrder.restaurantId,
-          ORDER_EVENTS.ORDER_CREATED,
-          {
-            orderId:     capturedOrder.id,
-            orderNumber: capturedOrder.orderNumber,
-            totalAmount: capturedOrder.totalAmount,
-            paymentMethod: capturedOrder.paymentMethod,
-            paymentVerified: true,
-            paymentStatus: 'COMPLETED',
-            source: 'webhook',
-          },
-        );
+        this.gateway.emitToRestaurant(capturedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
+          orderId: capturedOrder.id,
+          orderNumber: capturedOrder.orderNumber,
+          totalAmount: capturedOrder.totalAmount,
+          paymentMethod: capturedOrder.paymentMethod,
+          paymentVerified: true,
+          paymentStatus: 'COMPLETED',
+          source: 'webhook',
+        });
         this.logger.log(
           `ORDER_CREATED emitted via webhook for restaurant ${capturedOrder.restaurantId}`,
         );
@@ -657,9 +606,7 @@ const payment = await this.prisma.payment.create({
     }
   }
 
-  private async handlePaymentFailed(
-    payload: Record<string, unknown>,
-  ) {
+  private async handlePaymentFailed(payload: Record<string, unknown>) {
     const paymentEntity = (payload['payment'] as any)?.entity;
 
     if (!paymentEntity?.order_id) return;
@@ -693,13 +640,9 @@ const payment = await this.prisma.payment.create({
     ]);
   }
 
-  private async handleRefundProcessed(
-    payload: Record<string, unknown>,
-  ) {
+  private async handleRefundProcessed(payload: Record<string, unknown>) {
     const refund = (payload['refund'] as any)?.entity;
 
-    this.logger.log(
-      `Refund processed: ${refund?.id}`,
-    );
+    this.logger.log(`Refund processed: ${refund?.id}`);
   }
 }

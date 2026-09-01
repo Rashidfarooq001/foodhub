@@ -30,9 +30,7 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
 
   const isPublicRoute =
     Boolean(pathname) &&
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(route),
-    );
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route));
 
   useSessionTimeout({
     portalName: 'hotel',
@@ -74,7 +72,10 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (alive && data?.profile) {
-          const fullName = `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() || data.name || 'Restaurant Owner';
+          const fullName =
+            `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() ||
+            data.name ||
+            'Restaurant Owner';
           updateUser({
             firstName: data.profile.firstName,
             lastName: data.profile.lastName,
@@ -84,7 +85,9 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [isAuthenticated, accessToken, mounted, updateUser]);
 
   // Fetch latest restaurant approval status when user is authenticated on protected route
@@ -143,19 +146,26 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-black text-gray-900">Application Pending Admin Approval</h1>
+              <h1 className="text-2xl font-black text-gray-900">
+                Application Pending Admin Approval
+              </h1>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                Your restaurant registration application has been received and is currently under review by ZaykaFood Operations.
+                Your restaurant registration application has been received and is currently under
+                review by ZaykaFood Operations.
               </p>
             </div>
 
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 space-y-2">
               <div className="flex items-center justify-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                <span className="uppercase tracking-wider text-[10px] text-amber-700">Status: PENDING APPROVAL</span>
+                <span className="uppercase tracking-wider text-[10px] text-amber-700">
+                  Status: PENDING APPROVAL
+                </span>
               </div>
               <p className="text-[11px] text-amber-800 font-normal">
-                Full operational features (Kitchen Queue, Menu Management, Orders &amp; Settings) will unlock automatically once an administrator approves your FSSAI &amp; legal documents.
+                Full operational features (Kitchen Queue, Menu Management, Orders &amp; Settings)
+                will unlock automatically once an administrator approves your FSSAI &amp; legal
+                documents.
               </p>
             </div>
 
@@ -184,12 +194,15 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
             <div className="space-y-2">
               <h1 className="text-2xl font-black text-gray-900">Application Rejected</h1>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                Your restaurant registration application was reviewed and rejected by ZaykaFood Operations.
+                Your restaurant registration application was reviewed and rejected by ZaykaFood
+                Operations.
               </p>
             </div>
 
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-900 space-y-2 text-left">
-              <span className="uppercase tracking-wider text-[10px] text-rose-700 block font-black">Rejection Reason</span>
+              <span className="uppercase tracking-wider text-[10px] text-rose-700 block font-black">
+                Rejection Reason
+              </span>
               <p className="text-xs font-semibold text-rose-800 bg-white p-3 rounded-xl border border-rose-200">
                 {rejectionReason || 'FSSAI License / PAN Card document verification failed.'}
               </p>

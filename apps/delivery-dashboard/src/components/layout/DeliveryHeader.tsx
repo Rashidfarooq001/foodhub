@@ -98,11 +98,13 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
           }`}
           title="Toggle On/Off Duty Status"
         >
-          <Power className={`h-4 w-4 shrink-0 ${isOnDuty ? 'text-emerald-600' : 'text-gray-500'}`} />
-          <span>
-            {isToggling ? '...' : isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
-          </span>
-          <span className={`h-2 w-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+          <Power
+            className={`h-4 w-4 shrink-0 ${isOnDuty ? 'text-emerald-600' : 'text-gray-500'}`}
+          />
+          <span>{isToggling ? '...' : isOnDuty ? 'ON DUTY' : 'OFF DUTY'}</span>
+          <span
+            className={`h-2 w-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}
+          />
         </button>
 
         <ThemeToggle />

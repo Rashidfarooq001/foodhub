@@ -75,8 +75,10 @@ export class GeolocationService {
               const data = await res.json();
               if (data.access_token) {
                 this.cachedOAuthToken = data.access_token;
-                this.oauthTokenExpiry = Date.now() + ((data.expires_in || 86400) * 1000);
-                this.logger.log(`Successfully obtained Mappls OAuth2 access token (expires in ${data.expires_in || 86400}s)`);
+                this.oauthTokenExpiry = Date.now() + (data.expires_in || 86400) * 1000;
+                this.logger.log(
+                  `Successfully obtained Mappls OAuth2 access token (expires in ${data.expires_in || 86400}s)`,
+                );
                 return data.access_token;
               }
             }
@@ -118,15 +120,14 @@ export class GeolocationService {
   }
 
   private isValidCoordinates(lat: number, lng: number): boolean {
-    return (
-      lat >= -90 && lat <= 90 &&
-      lng >= -180 && lng <= 180 &&
-      (lat !== 0 || lng !== 0)
-    );
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && (lat !== 0 || lng !== 0);
   }
 
   // 1. REVERSE GEOCODING
-  async resolveLocation(lat: number, lng: number): Promise<{
+  async resolveLocation(
+    lat: number,
+    lng: number,
+  ): Promise<{
     latitude: number;
     longitude: number;
     locality: string;
@@ -165,7 +166,7 @@ export class GeolocationService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: 'application/json' },
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -180,27 +181,36 @@ export class GeolocationService {
       const result = Array.isArray(data?.results) ? data.results[0] : (data?.results ?? data);
       if (!result) return fallback;
 
-      const houseNumber   = (result.houseNumber || result.houseName || '').trim();
-      const street        = (result.street || '').trim();
-      const village       = (result.village || '').trim();
-      const locality      = (result.locality || '').trim();
-      const subLocality   = (result.subLocality || '').trim();
-      const poi           = (result.poi || '').trim();
+      const houseNumber = (result.houseNumber || result.houseName || '').trim();
+      const street = (result.street || '').trim();
+      const village = (result.village || '').trim();
+      const locality = (result.locality || '').trim();
+      const subLocality = (result.subLocality || '').trim();
+      const poi = (result.poi || '').trim();
       const finalLocality = (village || locality || subLocality || poi || street || '').trim();
-      const cleanDistrict = (result.district || result.city || '').replace(/\s+District$/i, '').trim();
-      const subDistrict   = (result.subDistrict || '').trim();
-      const state         = (result.state || 'Jammu & Kashmir').trim();
-      const country       = (result.country || 'India').trim();
-      const pincode       = (result.pincode || result.pin || '').trim();
-      const mapplsPin     = (result.mapplsPin || result.placeId || result.eLoc || '').trim();
+      const cleanDistrict = (result.district || result.city || '')
+        .replace(/\s+District$/i, '')
+        .trim();
+      const subDistrict = (result.subDistrict || '').trim();
+      const state = (result.state || 'Jammu & Kashmir').trim();
+      const country = (result.country || 'India').trim();
+      const pincode = (result.pincode || result.pin || '').trim();
+      const mapplsPin = (result.mapplsPin || result.placeId || result.eLoc || '').trim();
 
-      const parts = [houseNumber, street, finalLocality, subDistrict, cleanDistrict, state].filter(Boolean);
-      const uniqueParts = Array.from(new Set(parts.map(p => p.trim()))).filter(Boolean);
+      const parts = [houseNumber, street, finalLocality, subDistrict, cleanDistrict, state].filter(
+        Boolean,
+      );
+      const uniqueParts = Array.from(new Set(parts.map((p) => p.trim()))).filter(Boolean);
 
-      const builtAddress = pincode ? `${uniqueParts.join(', ')} - ${pincode}` : uniqueParts.join(', ');
-      const formattedAddress = builtAddress || result.formatted_address || result.formattedAddress || 'Location detected';
+      const builtAddress = pincode
+        ? `${uniqueParts.join(', ')} - ${pincode}`
+        : uniqueParts.join(', ');
+      const formattedAddress =
+        builtAddress || result.formatted_address || result.formattedAddress || 'Location detected';
 
-      this.logger.log(`[Mappls Rev-Geocode] HTTP status: ${response.status} | formattedAddress: ${Boolean(formattedAddress && formattedAddress !== 'Location detected')} | locality: ${Boolean(locality)} | village: ${Boolean(village)} | district: ${Boolean(cleanDistrict)} | state: ${Boolean(state)} | pincode: ${Boolean(pincode)} | placeId: ${Boolean(mapplsPin)}`);
+      this.logger.log(
+        `[Mappls Rev-Geocode] HTTP status: ${response.status} | formattedAddress: ${Boolean(formattedAddress && formattedAddress !== 'Location detected')} | locality: ${Boolean(locality)} | village: ${Boolean(village)} | district: ${Boolean(cleanDistrict)} | state: ${Boolean(state)} | pincode: ${Boolean(pincode)} | placeId: ${Boolean(mapplsPin)}`,
+      );
 
       return {
         latitude: lat,
@@ -242,7 +252,9 @@ export class GeolocationService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          this.logger.error(`Mappls search HTTP 404. Endpoint: https://search.mappls.com/search/address/geocode`);
+          this.logger.error(
+            `Mappls search HTTP 404. Endpoint: https://search.mappls.com/search/address/geocode`,
+          );
         } else {
           this.logger.error(`Mappls search HTTP ${response.status}`);
         }
@@ -250,8 +262,10 @@ export class GeolocationService {
       }
 
       const data = await response.json();
-      
-      this.logger.log(`[Mappls Geocode] HTTP ${response.status} | responseCode: ${data?.responseCode ?? data?.code ?? 'N/A'} | results: ${data?.copResults ? 1 : (data?.results?.length ?? 0)}`);
+
+      this.logger.log(
+        `[Mappls Geocode] HTTP ${response.status} | responseCode: ${data?.responseCode ?? data?.code ?? 'N/A'} | results: ${data?.copResults ? 1 : (data?.results?.length ?? 0)}`,
+      );
 
       let firstResult: any = null;
       if (data?.copResults) {
@@ -280,7 +294,7 @@ export class GeolocationService {
           verificationStatus: 'FAILED',
           queryTierUsed: 1,
           source: 'mappls_geocoding',
-          reason: 'No results from Mappls for this address'
+          reason: 'No results from Mappls for this address',
         } as unknown as DetailedGeocodeResult;
       }
 
@@ -288,7 +302,7 @@ export class GeolocationService {
 
       const lat = parseFloat(firstResult.latitude);
       const lng = parseFloat(firstResult.longitude);
-      
+
       let finalLat = lat;
       let finalLng = lng;
       let elocDebugStatus = 0;
@@ -301,11 +315,16 @@ export class GeolocationService {
           const routeExtractUrl = `https://route.mappls.com/route/direction/route_adv/driving/${firstResult.eLoc};${firstResult.eLoc}?access_token=${encodeURIComponent(token)}`;
           const elocController = new AbortController();
           const elocTimeout = setTimeout(() => elocController.abort(), 8000);
-          
-          const elocHeaders = { 'Accept': 'application/json' };
-          if (token.startsWith('ey')) { elocHeaders['Authorization'] = `Bearer ${token}`; }
-          
-          const routeResponse = await fetch(routeExtractUrl, { headers: elocHeaders, signal: elocController.signal });
+
+          const elocHeaders = { Accept: 'application/json' };
+          if (token.startsWith('ey')) {
+            elocHeaders['Authorization'] = `Bearer ${token}`;
+          }
+
+          const routeResponse = await fetch(routeExtractUrl, {
+            headers: elocHeaders,
+            signal: elocController.signal,
+          });
           clearTimeout(elocTimeout);
           elocDebugStatus = routeResponse.status;
           elocDebugUrl = routeExtractUrl;
@@ -328,17 +347,22 @@ export class GeolocationService {
       if (isNaN(finalLat) || isNaN(finalLng)) {
         return {
           success: false,
-          debugData: { elocStatus: elocDebugStatus, elocUrl: elocDebugUrl, firstResult: firstResult },
-          reason: 'Mappls returned invalid coordinates. ' + (firstResult.eLoc ? 'Failed to resolve eLoc.' : '')
+          debugData: {
+            elocStatus: elocDebugStatus,
+            elocUrl: elocDebugUrl,
+            firstResult: firstResult,
+          },
+          reason:
+            'Mappls returned invalid coordinates. ' +
+            (firstResult.eLoc ? 'Failed to resolve eLoc.' : ''),
         } as any;
       }
-      
+
       const latResolved = finalLat;
       const lngResolved = finalLng;
 
-
       const formattedAddress = firstResult.formattedAddress || firstResult.placeName || addressStr;
-      
+
       this.logger.log(`[Mappls Geocode] Resolved: ${formattedAddress} -> lat: ${lat}, lng: ${lng}`);
 
       return {
@@ -348,7 +372,8 @@ export class GeolocationService {
         displayName: formattedAddress,
         geocodeLevel: firstResult.geocodeLevel || firstResult.type || 'address',
         precisionLabel: 'EXACT',
-        confidenceScore: firstResult.confidenceScore !== undefined ? Number(firstResult.confidenceScore) : 1,
+        confidenceScore:
+          firstResult.confidenceScore !== undefined ? Number(firstResult.confidenceScore) : 1,
         matchedAddress: formattedAddress,
         verificationStatus: 'VERIFIED',
         queryTierUsed: 1,
@@ -359,7 +384,7 @@ export class GeolocationService {
         postalCode: firstResult.pincode || firstResult.postalCode || null,
         locality: firstResult.locality || firstResult.village || null,
         district: firstResult.district || null,
-        formattedAddress: formattedAddress
+        formattedAddress: formattedAddress,
       } as any;
     } catch (err: any) {
       this.logger.error(`Geocoding network error: ${err.message}`);
@@ -378,9 +403,14 @@ export class GeolocationService {
     country?: string;
   }): Promise<DetailedGeocodeResult> {
     const parts = [
-      params.houseNumber, params.street, params.landmark,
-      params.areaLocality, params.city, params.state,
-      params.postalCode, params.country || 'India',
+      params.houseNumber,
+      params.street,
+      params.landmark,
+      params.areaLocality,
+      params.city,
+      params.state,
+      params.postalCode,
+      params.country || 'India',
     ].filter(Boolean);
     return this.geocodeAddress(parts.join(', '));
   }
@@ -415,12 +445,12 @@ export class GeolocationService {
       const items = data?.suggestedLocations || data?.results || [];
 
       return items.map((item: any) => ({
-        placeName:    item.placeName    || item.name        || '',
+        placeName: item.placeName || item.name || '',
         placeAddress: item.placeAddress || item.description || '',
-        eLoc:         item.eLoc         || item.mapplsPin   || '',
-        latitude:     parseFloat(item.latitude)  || null,
-        longitude:    parseFloat(item.longitude) || null,
-        type:         item.type || 'locality',
+        eLoc: item.eLoc || item.mapplsPin || '',
+        latitude: parseFloat(item.latitude) || null,
+        longitude: parseFloat(item.longitude) || null,
+        type: item.type || 'locality',
       }));
     } catch (err: any) {
       this.logger.error(`Mappls autosuggest error: ${err.message}`);
@@ -430,8 +460,10 @@ export class GeolocationService {
 
   // 4. ROUTING — Mappls route_adv
   async calculateDistanceAndEta(
-    fromLat: number, fromLng: number,
-    toLat:   number, toLng:   number,
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number,
   ): Promise<DistanceResult> {
     const token = await this.getValidToken();
     if (!token) {
@@ -446,7 +478,7 @@ export class GeolocationService {
 
     const isJwt = token.startsWith('ey');
     const headers: Record<string, string> = {
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
     if (isJwt) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -464,7 +496,9 @@ export class GeolocationService {
       if (!response.ok) {
         const body = await response.text();
         if (response.status === 401) {
-          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized from route.mappls.com. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`);
+          this.logger.warn(
+            `[Mappls Auth] HTTP 401 Unauthorized from route.mappls.com. Ensure MAPPLS_ACCESS_TOKEN in Render backend is an active REST Static Key with Routing API enabled.`,
+          );
         }
         throw new Error(`Mappls Routing HTTP ${response.status}: ${body.substring(0, 200)}`);
       }
@@ -472,19 +506,38 @@ export class GeolocationService {
       const data = await response.json();
       const route = data?.routes?.[0] || data?.results?.routes?.[0] || data?.results?.trips?.[0];
 
-      const rawDist = route?.distance ?? route?.legs?.[0]?.distance ?? data?.results?.distances?.[0]?.[1] ?? data?.distance;
-      const rawDur = route?.duration ?? route?.legs?.[0]?.duration ?? data?.results?.durations?.[0]?.[1] ?? data?.duration;
+      const rawDist =
+        route?.distance ??
+        route?.legs?.[0]?.distance ??
+        data?.results?.distances?.[0]?.[1] ??
+        data?.distance;
+      const rawDur =
+        route?.duration ??
+        route?.legs?.[0]?.duration ??
+        data?.results?.durations?.[0]?.[1] ??
+        data?.duration;
 
-      const distNum = typeof rawDist === 'number' ? rawDist : (typeof rawDist === 'string' ? parseFloat(rawDist) : NaN);
-      const durNum = typeof rawDur === 'number' ? rawDur : (typeof rawDur === 'string' ? parseFloat(rawDur) : NaN);
+      const distNum =
+        typeof rawDist === 'number'
+          ? rawDist
+          : typeof rawDist === 'string'
+            ? parseFloat(rawDist)
+            : NaN;
+      const durNum =
+        typeof rawDur === 'number' ? rawDur : typeof rawDur === 'string' ? parseFloat(rawDur) : NaN;
 
-      this.logger.log(`[Mappls Route Debug] HTTP status: ${response.status} | response received: ${Boolean(data)} | route found: ${Boolean(route || !isNaN(distNum))} | distance field found: ${!isNaN(distNum)} | duration field found: ${!isNaN(durNum)}`);
+      this.logger.log(
+        `[Mappls Route Debug] HTTP status: ${response.status} | response received: ${Boolean(data)} | route found: ${Boolean(route || !isNaN(distNum))} | distance field found: ${!isNaN(distNum)} | duration field found: ${!isNaN(durNum)}`,
+      );
 
       if (isNaN(distNum) || distNum < 0) {
-        throw new Error('Mappls Routing returned no valid road routes or distance between the specified coordinates.');
+        throw new Error(
+          'Mappls Routing returned no valid road routes or distance between the specified coordinates.',
+        );
       }
 
-      const calculatedDuration = !isNaN(durNum) && durNum >= 0 ? durNum : (distNum / 1000 / 30) * 3600; // fallback 30 km/h in seconds if duration missing
+      const calculatedDuration =
+        !isNaN(durNum) && durNum >= 0 ? durNum : (distNum / 1000 / 30) * 3600; // fallback 30 km/h in seconds if duration missing
 
       return {
         distanceKm: Math.round((distNum / 1000) * 100) / 100,
@@ -492,15 +545,19 @@ export class GeolocationService {
       };
     } catch (err: any) {
       clearTimeout(timeout);
-      this.logger.error(`Mappls Routing error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`);
+      this.logger.error(
+        `Mappls Routing error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`,
+      );
       throw err;
     }
   }
 
   // 4b. ROUTE GEOMETRY — Authoritative Mappls Road Geometry (GeoJSON)
   async getRouteGeometry(
-    fromLat: number, fromLng: number,
-    toLat:   number, toLng:   number,
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number,
   ): Promise<{ coordinates: [number, number][]; distanceKm: number; etaMinutes: number }> {
     const token = await this.getValidToken();
     if (!token) {
@@ -516,7 +573,7 @@ export class GeolocationService {
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: 'application/json' },
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -545,7 +602,9 @@ export class GeolocationService {
       };
     } catch (err: any) {
       clearTimeout(timeout);
-      this.logger.error(`Mappls Route Geometry error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`);
+      this.logger.error(
+        `Mappls Route Geometry error (${fromLat},${fromLng} -> ${toLat},${toLng}): ${err?.message || err}`,
+      );
       throw err;
     }
   }
@@ -571,7 +630,7 @@ export class GeolocationService {
 
     const isJwt = token.startsWith('ey');
     const headers: Record<string, string> = {
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
     if (isJwt) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -588,7 +647,9 @@ export class GeolocationService {
       if (!response.ok) {
         const body = await response.text();
         if (response.status === 401) {
-          this.logger.warn(`[Mappls Auth] HTTP 401 Unauthorized for Distance Matrix on apis.mappls.com.`);
+          this.logger.warn(
+            `[Mappls Auth] HTTP 401 Unauthorized for Distance Matrix on apis.mappls.com.`,
+          );
         }
         return batch.map(() => ({ distanceKm: null, etaMinutes: null }));
       }
@@ -598,12 +659,14 @@ export class GeolocationService {
       const durations: number[] = data?.results?.durations?.[0] || [];
 
       return batch.map((_, i) => ({
-        distanceKm: distances[i + 1] !== undefined && distances[i + 1] !== null && distances[i + 1] >= 0
-          ? Math.round((distances[i + 1] / 1000) * 100) / 100
-          : null,
-        etaMinutes: durations[i + 1] !== undefined && durations[i + 1] !== null && durations[i + 1] >= 0
-          ? Math.ceil(durations[i + 1] / 60)
-          : null,
+        distanceKm:
+          distances[i + 1] !== undefined && distances[i + 1] !== null && distances[i + 1] >= 0
+            ? Math.round((distances[i + 1] / 1000) * 100) / 100
+            : null,
+        etaMinutes:
+          durations[i + 1] !== undefined && durations[i + 1] !== null && durations[i + 1] >= 0
+            ? Math.ceil(durations[i + 1] / 60)
+            : null,
       }));
     } catch (err: any) {
       clearTimeout(timeout);
@@ -622,7 +685,7 @@ export class GeolocationService {
         status: 'APPROVED',
         isOpen: true,
         deletedAt: null,
-        latitude:  { gte: lat - delta, lte: lat + delta },
+        latitude: { gte: lat - delta, lte: lat + delta },
         longitude: { gte: lng - delta, lte: lng + delta },
       },
       take: 25,
@@ -631,21 +694,23 @@ export class GeolocationService {
     if (candidates.length === 0) return [];
     if (!this.MapplsToken) return [];
 
-    const dests = candidates.map(c => [Number(c.latitude), Number(c.longitude)] as [number, number]);
+    const dests = candidates.map(
+      (c) => [Number(c.latitude), Number(c.longitude)] as [number, number],
+    );
     const results = await this.computeDistanceMatrix([lat, lng], dests);
 
     return candidates
       .map((rest, i) => ({
-        id:        rest.id,
-        name:      rest.name,
-        slug:      rest.slug,
+        id: rest.id,
+        name: rest.name,
+        slug: rest.slug,
         avgRating: rest.avgRating ? Number(rest.avgRating) : 0,
-        distanceKm:  results[i].distanceKm,
-        etaMinutes:  results[i].etaMinutes,
+        distanceKm: results[i].distanceKm,
+        etaMinutes: results[i].etaMinutes,
         lat: Number(rest.latitude),
         lng: Number(rest.longitude),
       }))
-      .filter(r => r.distanceKm <= radiusKm)
+      .filter((r) => r.distanceKm <= radiusKm)
       .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
@@ -665,12 +730,16 @@ export class GeolocationService {
 
     if (drivers.length === 0 || !this.MapplsToken) return [];
 
-    const dests = drivers.map(d => [d.currentLat!, d.currentLng!] as [number, number]);
+    const dests = drivers.map((d) => [d.currentLat!, d.currentLng!] as [number, number]);
     const results = await this.computeDistanceMatrix([lat, lng], dests);
 
     return drivers
-      .map((d, i) => ({ ...d, distanceKm: results[i].distanceKm, etaMinutes: results[i].etaMinutes }))
-      .filter(d => d.distanceKm <= 10)
+      .map((d, i) => ({
+        ...d,
+        distanceKm: results[i].distanceKm,
+        etaMinutes: results[i].etaMinutes,
+      }))
+      .filter((d) => d.distanceKm <= 10)
       .sort((a, b) => a.distanceKm - b.distanceKm);
   }
 
@@ -685,12 +754,18 @@ export class GeolocationService {
 
     const restLat = Number(restaurant.latitude);
     const restLng = Number(restaurant.longitude);
-    if (!this.isValidCoordinates(restLat, restLng)) return { valid: false, distanceKm: 999, radiusKm: 0 };
+    if (!this.isValidCoordinates(restLat, restLng))
+      return { valid: false, distanceKm: 999, radiusKm: 0 };
 
     const radiusKm = Number(restaurant.deliveryRadius || 15);
 
     try {
-      const { distanceKm } = await this.calculateDistanceAndEta(restLat, restLng, deliveryLat, deliveryLng);
+      const { distanceKm } = await this.calculateDistanceAndEta(
+        restLat,
+        restLng,
+        deliveryLat,
+        deliveryLng,
+      );
       return { valid: distanceKm <= radiusKm, distanceKm, radiusKm };
     } catch {
       return { valid: false, distanceKm: 999, radiusKm };
@@ -699,13 +774,18 @@ export class GeolocationService {
 
   private _fallbackGeocodeFailure(reason: string): DetailedGeocodeResult {
     return {
-      success: false, latitude: null, longitude: null, displayName: null,
-      geocodeLevel: null, precisionLabel: 'FAILED', confidenceScore: 0,
-      matchedAddress: null, verificationStatus: 'FAILED',
-      queryTierUsed: 0, source: 'mappls_geocoding', reason,
+      success: false,
+      latitude: null,
+      longitude: null,
+      displayName: null,
+      geocodeLevel: null,
+      precisionLabel: 'FAILED',
+      confidenceScore: 0,
+      matchedAddress: null,
+      verificationStatus: 'FAILED',
+      queryTierUsed: 0,
+      source: 'mappls_geocoding',
+      reason,
     };
   }
 }
-
-
-

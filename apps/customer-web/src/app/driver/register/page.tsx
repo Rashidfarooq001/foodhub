@@ -94,9 +94,15 @@ export default function DriverRegisterPage() {
         </div>
         <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-sm text-emerald-900 space-y-2">
-          <p className="font-bold">Application Status: <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">PENDING ADMIN APPROVAL</span></p>
+          <p className="font-bold">
+            Application Status:{' '}
+            <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-900">
+              PENDING ADMIN APPROVAL
+            </span>
+          </p>
           <p className="text-xs text-emerald-700">
-            Thank you for registering with ZaykaFood. Our team will review your application and reach you within 24 hours.
+            Thank you for registering with ZaykaFood. Our team will review your application and
+            reach you within 24 hours.
           </p>
         </div>
         <Link
@@ -147,9 +153,13 @@ export default function DriverRegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Phone Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Mobile Phone Number *
+              </label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">
+                  +91
+                </span>
                 <input
                   type="tel"
                   name="phone"
@@ -160,7 +170,7 @@ export default function DriverRegisterPage() {
                     const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
                     setForm((prev) => ({ ...prev, phone: clean }));
                   }}
-                  placeholder="7006298759"
+                  placeholder="Enter phone number"
                   className="w-full rounded-2xl border border-gray-200 py-2.5 pl-14 pr-4 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
                 />
               </div>
@@ -173,12 +183,14 @@ export default function DriverRegisterPage() {
                 required
                 value={form.email}
                 onChange={handleChange}
-                placeholder="driver@example.com"
+                placeholder="Enter email"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Create Password *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Create Password *
+              </label>
               <input
                 type="password"
                 name="password"
@@ -195,11 +207,14 @@ export default function DriverRegisterPage() {
         {/* Step 2: Vehicle & Driving License Documents */}
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 border-b border-gray-100 pb-3">
-            <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Verification Documents
+            <FileText className="h-5 w-5 text-emerald-600" /> 2. Vehicle &amp; Verification
+            Documents
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Driving License Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Driving License Number *
+              </label>
               <input
                 type="text"
                 name="licenseNumber"
@@ -225,7 +240,9 @@ export default function DriverRegisterPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Vehicle Registration Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Vehicle Registration Number
+              </label>
               <input
                 type="text"
                 name="vehicleNumber"
@@ -293,7 +310,7 @@ export default function DriverRegisterPage() {
                 name="accountNumber"
                 value={form.accountNumber}
                 onChange={handleChange}
-                placeholder="98765432101"
+                placeholder="Enter ID number"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
               />
             </div>
@@ -324,20 +341,36 @@ export default function DriverRegisterPage() {
 
         {/* Courier Statutory & Legal Acknowledgment */}
         <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-2">
-          <p className="font-bold text-gray-900">Courier Fleet Terms &amp; Road Safety Declaration:</p>
+          <p className="font-bold text-gray-900">
+            Courier Fleet Terms &amp; Road Safety Declaration:
+          </p>
           <p className="text-[11px] leading-relaxed">
-            By submitting this application, you declare that you possess a valid driving license, agree to follow all traffic safety rules, agree to the{' '}
-            <Link href="/terms-and-conditions" target="_blank" className="font-bold text-emerald-600 hover:underline">
+            By submitting this application, you declare that you possess a valid driving license,
+            agree to follow all traffic safety rules, agree to the{' '}
+            <Link
+              href="/terms-and-conditions"
+              target="_blank"
+              className="font-bold text-emerald-600 hover:underline"
+            >
               Zayka Food Terms &amp; Conditions
             </Link>
             , acknowledge the{' '}
-            <Link href="/delivery-policy" target="_blank" className="font-bold text-emerald-600 hover:underline">
+            <Link
+              href="/delivery-policy"
+              target="_blank"
+              className="font-bold text-emerald-600 hover:underline"
+            >
               Delivery Policy
             </Link>
             , and acknowledge our{' '}
-            <Link href="/privacy-policy" target="_blank" className="font-bold text-emerald-600 hover:underline">
+            <Link
+              href="/privacy-policy"
+              target="_blank"
+              className="font-bold text-emerald-600 hover:underline"
+            >
               Privacy Policy
-            </Link>.
+            </Link>
+            .
           </p>
         </div>
 
@@ -346,7 +379,9 @@ export default function DriverRegisterPage() {
           disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-base font-bold text-white shadow-xl shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
         >
-          <span>{isSubmitting ? 'Submitting Application...' : 'Submit Delivery Partner Registration'}</span>
+          <span>
+            {isSubmitting ? 'Submitting Application...' : 'Submit Delivery Partner Registration'}
+          </span>
           <ArrowRight className="h-5 w-5" />
         </button>
       </form>

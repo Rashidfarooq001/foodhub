@@ -62,13 +62,18 @@ export class AuthController {
   @Public()
   @Post('check-hotel-phone')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Pre-validate phone for Hotel Dashboard OTP login (checks restaurant owner + approval status)' })
+  @ApiOperation({
+    summary:
+      'Pre-validate phone for Hotel Dashboard OTP login (checks restaurant owner + approval status)',
+  })
   @ApiResponse({ status: 200, description: 'Authorized restaurant owner phone, proceed with OTP' })
-  @ApiResponse({ status: 401, description: 'No hotel account, wrong role, pending approval, or suspended' })
+  @ApiResponse({
+    status: 401,
+    description: 'No hotel account, wrong role, pending approval, or suspended',
+  })
   async checkHotelPhone(@Body('phone') phone: string) {
     return this.authService.checkHotelPhone(phone);
   }
-
 
   @Public()
   @Post('register')
@@ -86,7 +91,10 @@ export class AuthController {
   @Post('register/restaurant-owner')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Public Restaurant Owner Registration (Owner + Restaurant details)' })
-  @ApiResponse({ status: 201, description: 'Restaurant owner registered successfully (pending admin approval)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Restaurant owner registered successfully (pending admin approval)',
+  })
   async registerRestaurantOwner(@Body() dto: RegisterRestaurantOwnerDto, @Req() req: Request) {
     const ip = req.ip || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
@@ -97,7 +105,10 @@ export class AuthController {
   @Post('register/delivery-partner')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Public Delivery Partner Registration (Driver + Vehicle details)' })
-  @ApiResponse({ status: 201, description: 'Delivery partner registered successfully (under admin review)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Delivery partner registered successfully (under admin review)',
+  })
   async registerDeliveryPartner(@Body() dto: RegisterDeliveryPartnerDto, @Req() req: Request) {
     const ip = req.ip || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
@@ -106,7 +117,10 @@ export class AuthController {
 
   @Get('me')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current authenticated user session, profile, and linked restaurant/driver context' })
+  @ApiOperation({
+    summary:
+      'Get current authenticated user session, profile, and linked restaurant/driver context',
+  })
   @ApiResponse({ status: 200, description: 'Current authenticated context retrieved successfully' })
   async getMe(@CurrentUser('id') userId: string) {
     return this.authService.getMe(userId);
@@ -125,8 +139,14 @@ export class AuthController {
   @Public()
   @Post('verify-registration-widget')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify MSG91 Widget access token for restaurant registration phone check (no account creation, no login)' })
-  @ApiResponse({ status: 200, description: 'Widget token verified, phone matches registration phone' })
+  @ApiOperation({
+    summary:
+      'Verify MSG91 Widget access token for restaurant registration phone check (no account creation, no login)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Widget token verified, phone matches registration phone',
+  })
   @ApiResponse({ status: 400, description: 'Invalid widget token or phone mismatch' })
   async verifyRegistrationWidget(
     @Body('accessToken') accessToken: string,
@@ -134,7 +154,6 @@ export class AuthController {
   ) {
     return this.authService.verifyRegistrationWidgetToken(accessToken, phone);
   }
-
 
   @Public()
   @Post('verify-otp')
@@ -162,7 +181,9 @@ export class AuthController {
   @Public()
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin Dashboard Two-Password Authentication (16-digit P1 + 8-digit P2)' })
+  @ApiOperation({
+    summary: 'Admin Dashboard Two-Password Authentication (16-digit P1 + 8-digit P2)',
+  })
   @ApiResponse({ status: 200, description: 'Admin authenticated successfully' })
   @ApiResponse({ status: 401, description: 'Invalid admin credentials' })
   async adminLogin(@Body() dto: AdminTwoPasswordLoginDto, @Req() req: Request) {
@@ -175,7 +196,10 @@ export class AuthController {
   @Post('admin/verify-security-questions')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify Admin Security Questions (Date of Birth + Favorite Person)' })
-  @ApiResponse({ status: 200, description: 'Security questions verified, returns short-lived reset token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Security questions verified, returns short-lived reset token',
+  })
   @ApiResponse({ status: 401, description: 'Unable to verify the recovery information' })
   async verifyAdminSecurityQuestions(
     @Body() dto: AdminVerifySecurityQuestionsDto,
@@ -212,7 +236,9 @@ export class AuthController {
   @Patch('admin/change-security-questions')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update Admin Password Recovery Security Questions (Requires Current Password 1)' })
+  @ApiOperation({
+    summary: 'Update Admin Password Recovery Security Questions (Requires Current Password 1)',
+  })
   @ApiResponse({ status: 200, description: 'Security questions updated successfully' })
   @ApiResponse({ status: 401, description: 'Invalid current password' })
   async changeAdminSecurityQuestions(
@@ -275,7 +301,9 @@ export class AuthController {
   @Public()
   @Post('verify-reset-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify MSG91 access token for password reset and issue short-lived resetToken' })
+  @ApiOperation({
+    summary: 'Verify MSG91 access token for password reset and issue short-lived resetToken',
+  })
   @ApiResponse({ status: 200, description: 'Reset token issued successfully' })
   async verifyResetToken(@Body() dto: VerifyResetTokenDto) {
     return this.authService.verifyResetToken(dto);

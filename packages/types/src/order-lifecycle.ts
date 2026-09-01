@@ -3,11 +3,19 @@ import { OrderStatus } from './enums.js';
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.PENDING]: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
   [OrderStatus.ACCEPTED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-  [OrderStatus.PREPARING]: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [
+    OrderStatus.DRIVER_ASSIGNED,
+    OrderStatus.OUT_FOR_DELIVERY,
+    OrderStatus.CANCELLED,
+  ],
   [OrderStatus.DRIVER_ASSIGNED]: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
   [OrderStatus.ARRIVED_AT_RESTAURANT]: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
   [OrderStatus.PICKED_UP]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-  [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.FAILED],
+  [OrderStatus.OUT_FOR_DELIVERY]: [
+    OrderStatus.DELIVERED,
+    OrderStatus.CANCELLED,
+    OrderStatus.FAILED,
+  ],
   [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
   [OrderStatus.REJECTED]: [],
   [OrderStatus.CANCELLED]: [],
@@ -18,13 +26,22 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export const ADMIN_ORDER_FILTERS = {
   ALL: 'ALL',
-  PENDING:           [OrderStatus.PENDING],
-  ACCEPTED:          [OrderStatus.ACCEPTED],
-  PREPARING:         [OrderStatus.PREPARING],
-  DRIVER_ASSIGNED:   [OrderStatus.DRIVER_ASSIGNED],
-  OUT_FOR_DELIVERY:  [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY],
-  DELIVERED:         [OrderStatus.DELIVERED],
-  CANCELLED:         [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED],
+  PENDING: [OrderStatus.PENDING],
+  ACCEPTED: [OrderStatus.ACCEPTED],
+  PREPARING: [OrderStatus.PREPARING],
+  DRIVER_ASSIGNED: [OrderStatus.DRIVER_ASSIGNED],
+  OUT_FOR_DELIVERY: [
+    OrderStatus.ARRIVED_AT_RESTAURANT,
+    OrderStatus.PICKED_UP,
+    OrderStatus.OUT_FOR_DELIVERY,
+  ],
+  DELIVERED: [OrderStatus.DELIVERED],
+  CANCELLED: [
+    OrderStatus.CANCELLED,
+    OrderStatus.REJECTED,
+    OrderStatus.FAILED,
+    OrderStatus.REFUNDED,
+  ],
 } as const;
 
 export const getCustomerOrderStage = (status: OrderStatus) => {

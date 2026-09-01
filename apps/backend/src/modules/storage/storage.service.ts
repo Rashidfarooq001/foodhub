@@ -24,23 +24,13 @@ export class StorageService {
     }
   }
 
-
   validateFile(file: any, acceptType: 'image' | 'video' | 'any' = 'any') {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
-    const allowedImageMimes = [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/jpg',
-    ];
-    const allowedVideoMimes = [
-      'video/mp4',
-      'video/quicktime',
-      'video/webm',
-    ];
+    const allowedImageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const allowedVideoMimes = ['video/mp4', 'video/quicktime', 'video/webm'];
 
     const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp'];
     const allowedVideoExts = ['.mp4', '.mov', '.webm'];
@@ -49,7 +39,9 @@ export class StorageService {
 
     if (acceptType === 'image') {
       if (!allowedImageMimes.includes(file.mimetype) || !allowedImageExts.includes(fileExt)) {
-        throw new BadRequestException('Invalid image format. Allowed formats: JPG, JPEG, PNG, WEBP');
+        throw new BadRequestException(
+          'Invalid image format. Allowed formats: JPG, JPEG, PNG, WEBP',
+        );
       }
     } else if (acceptType === 'video') {
       if (!allowedVideoMimes.includes(file.mimetype) || !allowedVideoExts.includes(fileExt)) {
@@ -57,10 +49,14 @@ export class StorageService {
       }
     } else {
       // 'any' allowed media
-      const isAllowedImage = allowedImageMimes.includes(file.mimetype) && allowedImageExts.includes(fileExt);
-      const isAllowedVideo = allowedVideoMimes.includes(file.mimetype) && allowedVideoExts.includes(fileExt);
+      const isAllowedImage =
+        allowedImageMimes.includes(file.mimetype) && allowedImageExts.includes(fileExt);
+      const isAllowedVideo =
+        allowedVideoMimes.includes(file.mimetype) && allowedVideoExts.includes(fileExt);
       if (!isAllowedImage && !isAllowedVideo) {
-        throw new BadRequestException('Unsupported media format. Allowed formats: JPG, JPEG, PNG, WEBP, MP4, MOV, WEBM');
+        throw new BadRequestException(
+          'Unsupported media format. Allowed formats: JPG, JPEG, PNG, WEBP, MP4, MOV, WEBM',
+        );
       }
     }
 
@@ -78,7 +74,7 @@ export class StorageService {
   async saveUploadedFile(file: any) {
     const ext = path.extname(file.originalname || '.jpg');
     const uniqueFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    
+
     let fileBuffer: Buffer | null = null;
     if (file.buffer) {
       fileBuffer = file.buffer;
@@ -93,15 +89,17 @@ export class StorageService {
     // 1. Check if S3 is configured
     if (this.s3Client && this.s3BucketName) {
       try {
-        await this.s3Client.send(new PutObjectCommand({
-          Bucket: this.s3BucketName,
-          Key: `uploads/${uniqueFilename}`,
-          Body: fileBuffer,
-          ContentType: file.mimetype || 'image/jpeg',
-        }));
+        await this.s3Client.send(
+          new PutObjectCommand({
+            Bucket: this.s3BucketName,
+            Key: `uploads/${uniqueFilename}`,
+            Body: fileBuffer,
+            ContentType: file.mimetype || 'image/jpeg',
+          }),
+        );
 
         const s3Url = `https://${this.s3BucketName}.s3.${this.s3Region}.amazonaws.com/uploads/${uniqueFilename}`;
-        
+
         // Write the S3 metadata to Postgres SystemSettings instead of Base64 blob
         await (this.prisma as any).systemSetting.upsert({
           where: { key: `media_file_${uniqueFilename}` },
@@ -113,7 +111,7 @@ export class StorageService {
         });
 
         this.logger.log(`[Media Storage] Uploaded to S3: ${uniqueFilename}`);
-        
+
         return {
           url: s3Url,
           filename: uniqueFilename,
@@ -165,20 +163,18 @@ export class StorageService {
     };
   }
 
-
   getPublicUrl(filename: string): string {
     let host: string;
 
     if (process.env.PUBLIC_URL && process.env.PUBLIC_URL.trim()) {
       host = process.env.PUBLIC_URL.trim();
     } else if (process.env.NODE_ENV === 'production') {
-      host = (
+      host =
         process.env.BACKEND_URL ||
         process.env.PUBLIC_API_URL ||
         process.env.NEXT_PUBLIC_API_URL ||
         process.env.RENDER_EXTERNAL_URL || // Render auto-sets this
-        ''
-      );
+        '';
       if (!host) {
         // Last resort: derive from PORT so media still works on any host
         host = `http://0.0.0.0:${process.env.PORT || 4000}`;
@@ -187,12 +183,13 @@ export class StorageService {
       host = `http://localhost:${process.env.PORT || 4000}`;
     }
 
-    host = host.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+    host = host
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/api\/v1\/?$/, '');
 
     return `${host}/uploads/${filename}`;
   }
-
-
 
   deleteFile(filename: string) {
     if (!filename || typeof filename !== 'string') {

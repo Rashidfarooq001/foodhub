@@ -81,7 +81,9 @@ export default function AdminWalletsPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-8 text-center text-xs font-bold text-gray-400">Loading customer wallets...</div>
+          <div className="py-8 text-center text-xs font-bold text-gray-400">
+            Loading customer wallets...
+          </div>
         ) : customerWallets.length === 0 ? (
           <div className="py-8 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No active customer wallets found.
@@ -98,11 +100,15 @@ export default function AdminWalletsPage() {
                   <div>
                     <span className="font-black text-xs text-gray-900 block">{c.name}</span>
                     <span className="text-[10px] text-gray-500 font-mono">{c.phone}</span>
-                    <span className="text-[10px] text-gray-400 block">{c.txCount} transactions</span>
+                    <span className="text-[10px] text-gray-400 block">
+                      {c.txCount} transactions
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="font-black text-sm text-emerald-700 block">₹{c.balance}</span>
-                    <span className="text-[9px] font-bold text-emerald-600 uppercase">Available</span>
+                    <span className="text-[9px] font-bold text-emerald-600 uppercase">
+                      Available
+                    </span>
                   </div>
                 </div>
               ))}
@@ -143,7 +149,9 @@ export default function AdminWalletsPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-8 text-center text-xs font-bold text-gray-400">Loading courier ledgers...</div>
+          <div className="py-8 text-center text-xs font-bold text-gray-400">
+            Loading courier ledgers...
+          </div>
         ) : driverWallets.length === 0 ? (
           <div className="py-8 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No courier settlement records found.
@@ -159,8 +167,12 @@ export default function AdminWalletsPage() {
                 >
                   <div>
                     <span className="font-black text-xs text-gray-900 block">{d.name}</span>
-                    <span className="text-[10px] text-gray-500 font-mono">{d.phone} • {d.vehicle}</span>
-                    <span className="text-[10px] text-gray-400 block">{d.txCount} trips completed</span>
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      {d.phone} • {d.vehicle}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block">
+                      {d.txCount} trips completed
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="font-black text-sm text-teal-700 block">₹{d.balance}</span>

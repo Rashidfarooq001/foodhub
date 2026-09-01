@@ -17,27 +17,42 @@ export class VerifyOtpDto {
   @IsString()
   accessToken?: string;
 
-  @ApiPropertyOptional({ example: 'CUSTOMER', description: 'Target application/role requirement: CUSTOMER | HOTEL | DELIVERY | ADMIN' })
+  @ApiPropertyOptional({
+    example: 'CUSTOMER',
+    description: 'Target application/role requirement: CUSTOMER | HOTEL | DELIVERY | ADMIN',
+  })
   @IsOptional()
   @IsString()
   targetRole?: string;
 
-  @ApiPropertyOptional({ example: 'Rahul Sharma', description: 'Signup full name if registering via verified OTP' })
+  @ApiPropertyOptional({
+    example: 'Rahul Sharma',
+    description: 'Signup full name if registering via verified OTP',
+  })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ example: '123 MG Road, Indiranagar, Bengaluru', description: 'Signup delivery address' })
+  @ApiPropertyOptional({
+    example: '123 MG Road, Indiranagar, Bengaluru',
+    description: 'Signup delivery address',
+  })
   @IsOptional()
   @IsString()
   address?: string;
 
-  @ApiPropertyOptional({ example: 'CustomerPass123!', description: 'Signup password (hashed upon verification)' })
+  @ApiPropertyOptional({
+    example: 'CustomerPass123!',
+    description: 'Signup password (hashed upon verification)',
+  })
   @IsOptional()
   @IsString()
   password?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Explicit acceptance of Terms & Conditions and Privacy Policy' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Explicit acceptance of Terms & Conditions and Privacy Policy',
+  })
   @IsOptional()
   termsAccepted?: boolean;
 }

@@ -30,7 +30,7 @@ const NAVIGATION = [
   { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
   { name: 'Payments & Settlements', href: '/payments', icon: CreditCard },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
-  
+
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
   { name: 'Account Settings', href: '/account-settings', icon: UserCog },
@@ -101,7 +101,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       {/* Admin Footer Badge */}
       <div className="p-3.5 border-t border-gray-100 bg-purple-50/50 rounded-2xl shrink-0">
         <p className="text-xs font-bold text-purple-900 truncate">SuperAdmin Operator</p>
-        <p className="text-[10px] text-purple-700 font-bold truncate">Role: Platform Owner (Full Access)</p>
+        <p className="text-[10px] text-purple-700 font-bold truncate">
+          Role: Platform Owner (Full Access)
+        </p>
       </div>
     </div>
   );

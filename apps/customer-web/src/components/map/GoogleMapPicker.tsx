@@ -42,7 +42,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
       const map = new window.mappls.Map(containerId, {
         center: {
           lat: Number(centerLat),
-          lng: Number(centerLng)
+          lng: Number(centerLng),
         },
         zoom: 14,
         zoomControl: true,
@@ -90,14 +90,21 @@ export const GoogleMapPicker: React.FC<Props> = ({
   useEffect(() => {
     if (sdkError) {
       setErrorDetails(sdkError);
-    } else if (sdkLoaded && typeof window !== 'undefined' && window.mappls && !mapInstanceRef.current) {
+    } else if (
+      sdkLoaded &&
+      typeof window !== 'undefined' &&
+      window.mappls &&
+      !mapInstanceRef.current
+    ) {
       initMap();
     }
   }, [sdkLoaded, sdkError]);
 
   if (errorDetails) {
     return (
-      <div className={`${className} flex flex-col items-center justify-center bg-red-50 border border-red-100 text-sm p-4 text-center`}>
+      <div
+        className={`${className} flex flex-col items-center justify-center bg-red-50 border border-red-100 text-sm p-4 text-center`}
+      >
         <span className="font-bold text-red-700 mb-2">Map Unavailable</span>
         <span className="text-red-500 text-xs">{errorDetails}</span>
       </div>
@@ -109,11 +116,16 @@ export const GoogleMapPicker: React.FC<Props> = ({
       {!isLoaded && (
         <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-2">
           <Loader2 className="h-6 w-6 animate-spin text-rose-500" />
-          {!mapKey && <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>}
+          {!mapKey && (
+            <span className="text-xs text-red-500">Missing NEXT_PUBLIC_MAPPLS_WEB_KEY</span>
+          )}
         </div>
       )}
-      <div id="mappls-location-picker" ref={mapRef} style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }} />
+      <div
+        id="mappls-location-picker"
+        ref={mapRef}
+        style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }}
+      />
     </div>
   );
 };
-

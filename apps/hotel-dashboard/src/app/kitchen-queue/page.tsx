@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Utensils,
-  Bike,
-  RefreshCw,
-  Volume2,
-} from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Utensils, Bike, RefreshCw, Volume2 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { useKitchenStore } from '../../stores/use-kitchen-store';
@@ -25,19 +17,24 @@ export default function KitchenQueuePage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const pending = queue.filter((q) => (q.status as string) === 'PENDING');
-  const preparing = queue.filter((q) => (q.status as string) === 'PREPARING' || (q.status as string) === 'ACCEPTED');
+  const preparing = queue.filter(
+    (q) => (q.status as string) === 'PREPARING' || (q.status as string) === 'ACCEPTED',
+  );
   const ready = queue.filter((q) => (q.status as string) === 'READY_FOR_PICKUP');
 
   const refreshOrders = async () => {
     if (!accessToken) return;
     setIsRefreshing(true);
     try {
-      const res = await fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await fetch(
+        `${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       if (res.ok) {
         const data = await res.json();
-        setQueue(Array.isArray(data) ? data : data.orders ?? []);
+        setQueue(Array.isArray(data) ? data : (data.orders ?? []));
       }
     } catch {
       /* ignore */
@@ -164,11 +161,15 @@ export default function KitchenQueuePage() {
                 #{order.orderNumber || order.id.slice(0, 8)}
               </span>
               <span className="rounded-lg bg-orange-50 border border-orange-200 px-2 py-0.5 text-[10px] font-black text-orange-800 uppercase">
-                {order.deliveryMode === 'DIRECT_DELIVERY' || order.deliveryMode === 'RESTAURANT_DELIVERY' ? 'Self Delivery' : 'Zayka Delivery'}
+                {order.deliveryMode === 'DIRECT_DELIVERY' ||
+                order.deliveryMode === 'RESTAURANT_DELIVERY'
+                  ? 'Self Delivery'
+                  : 'Zayka Delivery'}
               </span>
             </div>
             <p className="text-xs font-bold text-gray-700 mt-0.5">
-              {order.customerName || 'Customer'} {order.customerPhone ? `• ${order.customerPhone}` : ''}
+              {order.customerName || 'Customer'}{' '}
+              {order.customerPhone ? `• ${order.customerPhone}` : ''}
             </p>
           </div>
 
@@ -395,7 +396,9 @@ export default function KitchenQueuePage() {
           </div>
           <div className="space-y-3">
             {preparing.length === 0 ? (
-              <div className="py-8 text-center text-xs font-bold text-gray-400">No items cooking</div>
+              <div className="py-8 text-center text-xs font-bold text-gray-400">
+                No items cooking
+              </div>
             ) : (
               preparing.map((o) => renderOrderCard(o, 'PREPARING'))
             )}
@@ -412,7 +415,9 @@ export default function KitchenQueuePage() {
           </div>
           <div className="space-y-3">
             {ready.length === 0 ? (
-              <div className="py-8 text-center text-xs font-bold text-gray-400">No orders waiting</div>
+              <div className="py-8 text-center text-xs font-bold text-gray-400">
+                No orders waiting
+              </div>
             ) : (
               ready.map((o) => renderOrderCard(o, 'READY'))
             )}

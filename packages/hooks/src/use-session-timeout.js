@@ -18,7 +18,13 @@ export function useSessionTimeout({ portalName, isAuthenticated, accessToken, lo
         if (isProtectedPath)
             return isProtectedPath(path);
         if (portalName === 'customer') {
-            const publicCustomerPaths = ['/login', '/signup', '/forgot-password', '/restaurant/register', '/driver/register'];
+            const publicCustomerPaths = [
+                '/login',
+                '/signup',
+                '/forgot-password',
+                '/restaurant/register',
+                '/driver/register',
+            ];
             return !publicCustomerPaths.some((p) => path.startsWith(p));
         }
         if (portalName === 'hotel') {

@@ -34,7 +34,7 @@ async function inspectDriversDatabase() {
       console.log(`  Vehicles: ${JSON.stringify(d.vehicles)}`);
 
       const activeJobs = d.deliveryJobs.filter((j: any) =>
-        ['ASSIGNED', 'ARRIVED', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(j.status)
+        ['ASSIGNED', 'ARRIVED', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(j.status),
       );
       const completedJobs = d.deliveryJobs.filter((j: any) => j.status === 'DELIVERED');
 

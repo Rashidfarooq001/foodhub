@@ -5,13 +5,16 @@ import { useSettingsStore } from '../../stores/use-settings-store';
 import { Settings, Bell, Leaf, Moon } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { isVegOnly, toggleVegOnly, pushEnabled, togglePush, smsEnabled, toggleSms } = useSettingsStore();
+  const { isVegOnly, toggleVegOnly, pushEnabled, togglePush, smsEnabled, toggleSms } =
+    useSettingsStore();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5 sm:px-4 lg:px-5 space-y-5">
       <div>
         <h1 className="text-3xl font-black text-gray-900">App Settings</h1>
-        <p className="text-xs text-gray-500">Configure dietary preferences, alerts & notifications</p>
+        <p className="text-xs text-gray-500">
+          Configure dietary preferences, alerts & notifications
+        </p>
       </div>
 
       <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
@@ -23,7 +26,9 @@ export default function SettingsPage() {
             </div>
             <div>
               <h4 className="text-sm font-bold text-gray-900">Pure Veg Mode</h4>
-              <p className="text-xs text-gray-500">Only show 100% vegetarian restaurants and dishes</p>
+              <p className="text-xs text-gray-500">
+                Only show 100% vegetarian restaurants and dishes
+              </p>
             </div>
           </div>
           <button
@@ -48,7 +53,9 @@ export default function SettingsPage() {
             </div>
             <div>
               <h4 className="text-sm font-bold text-gray-900">Push Notifications</h4>
-              <p className="text-xs text-gray-500">Get live order tracking & dispatch updates on your browser</p>
+              <p className="text-xs text-gray-500">
+                Get live order tracking & dispatch updates on your browser
+              </p>
             </div>
           </div>
           <button
@@ -73,7 +80,9 @@ export default function SettingsPage() {
             </div>
             <div>
               <h4 className="text-sm font-bold text-gray-900">SMS Alerts</h4>
-              <p className="text-xs text-gray-500">Receive delivery OTP and receipt updates over SMS</p>
+              <p className="text-xs text-gray-500">
+                Receive delivery OTP and receipt updates over SMS
+              </p>
             </div>
           </div>
           <button

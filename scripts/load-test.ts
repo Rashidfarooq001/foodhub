@@ -17,7 +17,9 @@ async function runLoadTest(
 ): Promise<LoadTestMetrics> {
   console.log(`🚀 Starting FoodHub Load Test Simulation...`);
   console.log(`Target: ${targetUrl}`);
-  console.log(`Concurrency: ${totalConcurrency} workers | Requests per worker: ${requestsPerWorker}\n`);
+  console.log(
+    `Concurrency: ${totalConcurrency} workers | Requests per worker: ${requestsPerWorker}\n`,
+  );
 
   const startTime = Date.now();
   const latencies: number[] = [];
@@ -60,9 +62,8 @@ async function runLoadTest(
   const durationSec = (Date.now() - startTime) / 1000;
   latencies.sort((a, b) => a - b);
 
-  const avgLatency = latencies.length > 0
-    ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
-    : 0;
+  const avgLatency =
+    latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
 
   const p95Index = Math.floor(latencies.length * 0.95);
   const p99Index = Math.floor(latencies.length * 0.99);

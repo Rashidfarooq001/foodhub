@@ -4,7 +4,9 @@ export function serializePrisma(data) {
     }
     if (typeof data === 'object' &&
         data !== null &&
-        ((data.s !== undefined && data.e !== undefined && Array.isArray(data.d)) ||
+        ((data.s !== undefined &&
+            data.e !== undefined &&
+            Array.isArray(data.d)) ||
             typeof data.toNumber === 'function')) {
         return Number(data);
     }

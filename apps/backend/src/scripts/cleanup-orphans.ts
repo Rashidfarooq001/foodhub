@@ -9,7 +9,7 @@ async function bootstrap() {
   const prisma = app.get(PrismaService);
 
   console.log('Finding potential orphans...');
-  
+
   // Find users who are NOT admins
   const potentialOrphans = await prisma.user.findMany({
     where: {
@@ -68,7 +68,7 @@ async function bootstrap() {
         console.error(`Failed to delete orphaned user ${orphan.id}:`, err.message);
       }
     }
-    
+
     console.log(`Cleanup complete. Deleted ${deletedCount} orphans.`);
   }
 

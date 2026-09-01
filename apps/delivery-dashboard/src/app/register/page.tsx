@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bike, ShieldCheck, CheckCircle2, ArrowRight, AlertCircle, Phone, Mail, Lock, User, FileText, Truck, MapPin } from 'lucide-react';
+import {
+  Bike,
+  ShieldCheck,
+  CheckCircle2,
+  ArrowRight,
+  AlertCircle,
+  Phone,
+  Mail,
+  Lock,
+  User,
+  FileText,
+  Truck,
+  MapPin,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 
@@ -37,7 +50,9 @@ export default function DeliveryPartnerRegisterPage() {
   useEffect(() => {
     fetch(`${API_BASE}/drivers/vehicle-types`)
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setVehicleTypes(data); })
+      .then((data) => {
+        if (Array.isArray(data)) setVehicleTypes(data);
+      })
       .catch(() => {
         setVehicleTypes([
           { code: 'MOTORCYCLE', name: 'Motorcycle / Bike' },
@@ -149,13 +164,18 @@ export default function DeliveryPartnerRegisterPage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your ZaykaFood Delivery Partner application has been received and is under review by ZaykaFood Operations.
+              Your ZaykaFood Delivery Partner application has been received and is under review by
+              ZaykaFood Operations.
             </p>
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 space-y-1">
-            <p className="uppercase tracking-wider text-[10px] text-amber-700 font-black">Application Status</p>
-            <p className="text-sm font-black text-amber-800">UNDER ADMIN REVIEW (isApproved=false)</p>
+            <p className="uppercase tracking-wider text-[10px] text-amber-700 font-black">
+              Application Status
+            </p>
+            <p className="text-sm font-black text-amber-800">
+              UNDER ADMIN REVIEW (isApproved=false)
+            </p>
           </div>
 
           <div className="pt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -178,7 +198,11 @@ export default function DeliveryPartnerRegisterPage() {
         {/* Header */}
         <div className="text-center space-y-2 text-white">
           <div className="mx-auto flex h-16 items-center justify-center">
-            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
+            <img
+              src="/zaykafood-logo.png"
+              alt="ZaykaFood"
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </div>
           <h1 className="text-3xl font-black">Become a ZaykaFood Delivery Partner</h1>
           <p className="text-xs text-gray-400 max-w-md mx-auto">
@@ -193,7 +217,10 @@ export default function DeliveryPartnerRegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl"
+        >
           <div className="flex items-center gap-2 text-base font-black text-gray-900 border-b border-gray-100 pb-4">
             <User className="h-5 w-5 text-orange-600" /> Personal &amp; Account Details
           </div>
@@ -222,14 +249,16 @@ export default function DeliveryPartnerRegisterPage() {
                   required
                   value={form.phone}
                   onChange={handleChange}
-                  placeholder="9876543211"
+                  placeholder="Enter phone number"
                   className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Email Address *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Email Address *
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -238,7 +267,7 @@ export default function DeliveryPartnerRegisterPage() {
                   required
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="aadil@example.com"
+                  placeholder="Enter email"
                   className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
@@ -261,7 +290,9 @@ export default function DeliveryPartnerRegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm Password *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Confirm Password *
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -291,15 +322,21 @@ export default function DeliveryPartnerRegisterPage() {
                 required
                 className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
               >
-                <option value="" disabled>Select vehicle type *</option>
+                <option value="" disabled>
+                  Select vehicle type *
+                </option>
                 {vehicleTypes.map((vt) => (
-                  <option key={vt.code} value={vt.code}>{vt.name}</option>
+                  <option key={vt.code} value={vt.code}>
+                    {vt.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Vehicle Registration Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Vehicle Registration Number *
+              </label>
               <input
                 type="text"
                 name="vehicleNumber"
@@ -312,7 +349,9 @@ export default function DeliveryPartnerRegisterPage() {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Driving License Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Driving License Number *
+              </label>
               <input
                 type="text"
                 name="licenseNumber"

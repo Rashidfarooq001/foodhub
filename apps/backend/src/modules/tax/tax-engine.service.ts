@@ -216,10 +216,7 @@ export class TaxEngineService implements OnModuleInit {
           code,
           isActive: true,
           effectiveFrom: { lte: transactionDate },
-          OR: [
-            { effectiveTill: null },
-            { effectiveTill: { gte: transactionDate } },
-          ],
+          OR: [{ effectiveTill: null }, { effectiveTill: { gte: transactionDate } }],
         },
         orderBy: { effectiveFrom: 'desc' },
       });
@@ -255,7 +252,8 @@ export class TaxEngineService implements OnModuleInit {
 
     const supplierState = (input.supplierState || 'J&K').toUpperCase().trim();
     const recipientState = (input.recipientState || 'J&K').toUpperCase().trim();
-    const isInterstate = supplierState !== recipientState && supplierState.length > 0 && recipientState.length > 0;
+    const isInterstate =
+      supplierState !== recipientState && supplierState.length > 0 && recipientState.length > 0;
 
     const rate = Number(rule.rate);
     const cgstRate = Number(rule.cgstRate);

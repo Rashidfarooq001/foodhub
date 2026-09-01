@@ -159,7 +159,9 @@ export default function AdminRestaurantApprovalPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading applications...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading applications...
+          </div>
         ) : applications.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No restaurant applications found.
@@ -176,13 +178,20 @@ export default function AdminRestaurantApprovalPage() {
                   <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
                     <div>
                       <h3 className="font-black text-sm text-gray-900">{app.name}</h3>
-                      <p className="text-[11px] text-gray-500 font-medium">{app.phone || 'No phone'}</p>
+                      <p className="text-[11px] text-gray-500 font-medium">
+                        {app.phone || 'No phone'}
+                      </p>
                     </div>
 
-                    <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase ${
-                      app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                      app.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                    }`}>
+                    <span
+                      className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                        app.status === 'APPROVED'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : app.status === 'REJECTED'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
                       {app.status}
                     </span>
                   </div>
@@ -190,12 +199,19 @@ export default function AdminRestaurantApprovalPage() {
                   <div className="text-xs space-y-1">
                     <div className="flex items-center gap-1 text-gray-700">
                       <FileText className="h-3.5 w-3.5 text-purple-600 shrink-0" />
-                      <span>FSSAI: <strong className="font-mono">{app.licenseFssai || 'Pending Document'}</strong></span>
+                      <span>
+                        FSSAI:{' '}
+                        <strong className="font-mono">
+                          {app.licenseFssai || 'Pending Document'}
+                        </strong>
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-1 text-gray-500">
                       <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-                      <span className="truncate">{app.addressLine || 'Address provided during onboarding'}</span>
+                      <span className="truncate">
+                        {app.addressLine || 'Address provided during onboarding'}
+                      </span>
                     </div>
                   </div>
 
@@ -257,14 +273,21 @@ export default function AdminRestaurantApprovalPage() {
                       <td className="py-3 text-gray-600">{app.phone || '—'}</td>
                       <td className="py-3 font-mono text-gray-800">{app.licenseFssai || '—'}</td>
                       <td className="py-3">
-                        <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase ${
-                          app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                          app.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
+                        <span
+                          className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                            app.status === 'APPROVED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : app.status === 'REJECTED'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
                           {app.status}
                         </span>
                       </td>
-                      <td className="py-3 text-gray-400">{new Date(app.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 text-gray-400">
+                        {new Date(app.createdAt).toLocaleDateString()}
+                      </td>
                       <td className="py-3 text-right space-x-1.5">
                         <button
                           onClick={() => setSelectedApp(app)}
@@ -307,7 +330,9 @@ export default function AdminRestaurantApprovalPage() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
           <div className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 sticky top-0 bg-white z-10">
-              <h2 className="text-base font-black text-gray-900">Application KYC: {selectedApp.name}</h2>
+              <h2 className="text-base font-black text-gray-900">
+                Application KYC: {selectedApp.name}
+              </h2>
               <button
                 onClick={() => setSelectedApp(null)}
                 className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"
@@ -318,8 +343,12 @@ export default function AdminRestaurantApprovalPage() {
 
             <div className="space-y-3 text-xs">
               <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-                <span className="text-[10px] text-gray-400 font-bold uppercase block">FSSAI License</span>
-                <span className="font-mono text-sm font-black text-gray-900 block">{selectedApp.licenseFssai || 'Not provided'}</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                  FSSAI License
+                </span>
+                <span className="font-mono text-sm font-black text-gray-900 block">
+                  {selectedApp.licenseFssai || 'Not provided'}
+                </span>
                 {selectedApp.fssaiUrl && (
                   <a
                     href={getImageUrl(selectedApp.fssaiUrl)}
@@ -334,8 +363,12 @@ export default function AdminRestaurantApprovalPage() {
               </div>
 
               <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-                <span className="text-[10px] text-gray-400 font-bold uppercase block">PAN &amp; Tax Registration</span>
-                <span className="font-mono text-sm font-black text-gray-900 block">{selectedApp.panNumber || 'Not provided'}</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                  PAN &amp; Tax Registration
+                </span>
+                <span className="font-mono text-sm font-black text-gray-900 block">
+                  {selectedApp.panNumber || 'Not provided'}
+                </span>
               </div>
             </div>
 

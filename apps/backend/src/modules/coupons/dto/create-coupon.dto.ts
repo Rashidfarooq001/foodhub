@@ -1,6 +1,13 @@
 import {
-  IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional,
-  IsDateString, Min, Max, IsInt,
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsDateString,
+  Min,
+  Max,
+  IsInt,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CouponType } from '@prisma/client';

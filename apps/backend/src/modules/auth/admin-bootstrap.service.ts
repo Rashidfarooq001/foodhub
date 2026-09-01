@@ -36,7 +36,9 @@ export class AdminBootstrapService implements OnModuleInit {
       const initialFavHash = await bcrypt.hash('zaykafood', 10);
 
       if (!existingAdmin) {
-        this.logger.log(`[AdminBootstrap] No Admin account found. Provisioning initial platform ADMIN (${adminPhone} / ${adminEmail})...`);
+        this.logger.log(
+          `[AdminBootstrap] No Admin account found. Provisioning initial platform ADMIN (${adminPhone} / ${adminEmail})...`,
+        );
         const passwordHash = await bcrypt.hash(rawPassword, 12);
         await this.prisma.user.create({
           data: {
@@ -73,12 +75,16 @@ export class AdminBootstrapService implements OnModuleInit {
               deletedAt: null,
             },
           });
-          this.logger.log(`[AdminBootstrap] Two-password security hashes provisioned for existing Admin account.`);
+          this.logger.log(
+            `[AdminBootstrap] Two-password security hashes provisioned for existing Admin account.`,
+          );
         }
         this.logger.log(`[AdminBootstrap] Platform ADMIN account verified.`);
       }
     } catch (err: any) {
-      this.logger.error(`[AdminBootstrap] Failed to verify/provision admin: ${err?.message || err}`);
+      this.logger.error(
+        `[AdminBootstrap] Failed to verify/provision admin: ${err?.message || err}`,
+      );
     }
   }
 }

@@ -31,11 +31,7 @@ export class WalletController {
   @ApiOperation({ summary: 'Get paginated wallet transaction history' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async getHistory(
-    @Request() req: any,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
+  async getHistory(@Request() req: any, @Query('page') page = 1, @Query('limit') limit = 20) {
     const userId = req.user?.id || req.user?.sub;
     return this.walletService.getTransactionHistory(userId, +page, +limit);
   }

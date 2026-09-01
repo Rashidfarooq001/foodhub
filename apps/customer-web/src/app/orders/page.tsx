@@ -158,7 +158,9 @@ export default function OrderHistoryPage() {
                     <span className="flex items-center gap-1.5 rounded-full bg-orange-600 px-2 py-0.5 text-[10px] font-black text-white">
                       <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> LIVE
                     </span>
-                    <span className="text-xs font-bold text-gray-700">#{activeOrder.orderNumber}</span>
+                    <span className="text-xs font-bold text-gray-700">
+                      #{activeOrder.orderNumber}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-bold text-orange-700">
                     <Clock className="h-3.5 w-3.5 text-orange-600" />
@@ -252,7 +254,8 @@ export default function OrderHistoryPage() {
                       <div>
                         <h3 className="text-base font-black text-gray-900">{ord.restaurantName}</h3>
                         <p className="text-[10px] text-gray-400">
-                          {ord.date} • <span className="font-bold text-gray-700">#{ord.orderNumber}</span>
+                          {ord.date} •{' '}
+                          <span className="font-bold text-gray-700">#{ord.orderNumber}</span>
                         </p>
                       </div>
                     </div>
@@ -262,29 +265,34 @@ export default function OrderHistoryPage() {
                         ord.status === 'DELIVERED'
                           ? 'bg-emerald-100 text-emerald-800'
                           : ord.status === 'CANCELLED'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
                       }`}
                     >
                       {ord.status.replace(/_/g, ' ')}
                     </span>
                   </div>
 
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="space-y-0.5">
-                        <p className="text-xs text-gray-600 font-medium">
-                          <span className="font-bold text-gray-900">{ord.itemCount} Items:</span> {ord.itemsSummary}
-                        </p>
-                        <p className="text-xs text-gray-400 capitalize">
-                          {(ord.paymentMethod || 'Online').replace(/_/g, ' ')}
-                        </p>
-                      </div>
-                      <span className="text-base font-black text-gray-900">₹{ord.totalAmount.toFixed(2)}</span>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-gray-600 font-medium">
+                        <span className="font-bold text-gray-900">{ord.itemCount} Items:</span>{' '}
+                        {ord.itemsSummary}
+                      </p>
+                      <p className="text-xs text-gray-400 capitalize">
+                        {(ord.paymentMethod || 'Online').replace(/_/g, ' ')}
+                      </p>
                     </div>
+                    <span className="text-base font-black text-gray-900">
+                      ₹{ord.totalAmount.toFixed(2)}
+                    </span>
+                  </div>
 
                   {ord.cancellationReason && (
                     <div className="rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-800 border border-rose-200">
-                      <span className="text-[10px] uppercase block font-black text-rose-600">Cancelled:</span>
+                      <span className="text-[10px] uppercase block font-black text-rose-600">
+                        Cancelled:
+                      </span>
                       <span>{ord.cancellationReason}</span>
                     </div>
                   )}

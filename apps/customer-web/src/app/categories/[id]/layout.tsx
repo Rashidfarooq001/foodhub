@@ -12,8 +12,7 @@ export async function generateMetadata({
 
   return {
     title: 'Explore Menu Category | Zayka Food',
-    description:
-      'Browse and order popular food items, dishes, and kitchen specials on Zayka Food.',
+    description: 'Browse and order popular food items, dishes, and kitchen specials on Zayka Food.',
     alternates: {
       canonical: canonicalUrl,
     },
@@ -29,10 +28,6 @@ export async function generateMetadata({
   };
 }
 
-export default function CategoryDetailLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CategoryDetailLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

@@ -16,7 +16,9 @@ export default function AddDriverPage() {
   useEffect(() => {
     adminFetch('/drivers/vehicle-types')
       .then((res) => res.json())
-      .then((data) => { if (Array.isArray(data)) setVehicleTypes(data); })
+      .then((data) => {
+        if (Array.isArray(data)) setVehicleTypes(data);
+      })
       .catch(() => {
         // Fallback to known Prisma enum values if API is unreachable
         setVehicleTypes([
@@ -112,7 +114,9 @@ export default function AddDriverPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Delivery Fleet
           </button>
           <h1 className="text-3xl font-black text-gray-900">Onboard Delivery Partner</h1>
-          <p className="text-xs text-gray-500">Directly create courier account with active duty status</p>
+          <p className="text-xs text-gray-500">
+            Directly create courier account with active duty status
+          </p>
         </div>
       </div>
 
@@ -167,7 +171,7 @@ export default function AddDriverPage() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="driver@zaykafood.com"
+                placeholder="Enter email"
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
@@ -193,7 +197,9 @@ export default function AddDriverPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Driving License Number *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Driving License Number *
+              </label>
               <input
                 type="text"
                 name="licenseNumber"
@@ -213,14 +219,20 @@ export default function AddDriverPage() {
                 required
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-900 focus:border-purple-600 focus:bg-white focus:outline-none min-h-[44px]"
               >
-                <option value="" disabled>Select vehicle type *</option>
+                <option value="" disabled>
+                  Select vehicle type *
+                </option>
                 {vehicleTypes.map((vt) => (
-                  <option key={vt.code} value={vt.code}>{vt.name}</option>
+                  <option key={vt.code} value={vt.code}>
+                    {vt.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Vehicle Registration Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Vehicle Registration Number
+              </label>
               <input
                 type="text"
                 name="vehicleNumber"
@@ -231,7 +243,9 @@ export default function AddDriverPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Operating City / Address</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Operating City / Address
+              </label>
               <input
                 type="text"
                 name="address"
@@ -267,7 +281,7 @@ export default function AddDriverPage() {
                 name="accountNumber"
                 value={form.accountNumber}
                 onChange={handleChange}
-                placeholder="98765432101"
+                placeholder="Enter ID number"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-gray-900 focus:border-purple-600 focus:outline-none"
               />
             </div>

@@ -56,11 +56,20 @@ export default function AdminPrivacyDashboardPage() {
   const [token, setToken] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    'consents' | 'audit' | 'policies' | 'requests' | 'complaints' | 'incidents' | 'inventory' | 'retention'
+    | 'consents'
+    | 'audit'
+    | 'policies'
+    | 'requests'
+    | 'complaints'
+    | 'incidents'
+    | 'inventory'
+    | 'retention'
   >('consents');
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   // 1. Consent Records State & Filters
   const [consents, setConsents] = useState<any[]>([]);
@@ -147,7 +156,14 @@ export default function AdminPrivacyDashboardPage() {
     } catch (err) {
       console.error('Failed to load consents', err);
     }
-  }, [token, consentPage, consentSearch, consentTypeFilter, consentStatusFilter, consentSourceFilter]);
+  }, [
+    token,
+    consentPage,
+    consentSearch,
+    consentTypeFilter,
+    consentStatusFilter,
+    consentSourceFilter,
+  ]);
 
   // Fetch Audit Logs (Paginated)
   const fetchAuditLogs = useCallback(async () => {
@@ -239,7 +255,11 @@ export default function AdminPrivacyDashboardPage() {
   }, [activeTab, fetchConsents, fetchAuditLogs, fetchPolicies]);
 
   // Request Actions
-  const handleUpdateRequestStatus = async (id: string, status: string, rejectionReason?: string) => {
+  const handleUpdateRequestStatus = async (
+    id: string,
+    status: string,
+    rejectionReason?: string,
+  ) => {
     setActionLoading(true);
     try {
       const res = await fetch(API_BASE + '/admin/privacy/requests/' + id, {
@@ -362,7 +382,11 @@ export default function AdminPrivacyDashboardPage() {
       });
       if (!res.ok) throw new Error('Retention job execution failed');
       const data = await res.json();
-      showMsg('Data retention cleanup completed: ' + (data.summary?.expiredOtpsPurged || 0) + ' expired OTPs purged.');
+      showMsg(
+        'Data retention cleanup completed: ' +
+          (data.summary?.expiredOtpsPurged || 0) +
+          ' expired OTPs purged.',
+      );
       await fetchAllData();
     } catch (err: any) {
       showMsg(err.message || 'Cleanup error', true);
@@ -380,13 +404,16 @@ export default function AdminPrivacyDashboardPage() {
             <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
               <ShieldCheck className="h-4 w-4" />
             </span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">Compliance Center</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">
+              Compliance Center
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">
             Privacy, Legal Consent &amp; Audit Control
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Zayka Food • Digital Personal Data Protection Act (DPDP Act 2023) &amp; Consumer Protection Compliance Center
+            Zayka Food • Digital Personal Data Protection Act (DPDP Act 2023) &amp; Consumer
+            Protection Compliance Center
           </p>
         </div>
 
@@ -403,11 +430,12 @@ export default function AdminPrivacyDashboardPage() {
       {/* Feedback Banner */}
       {feedback && (
         <div
-          className={'p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm border ' + (
-            feedback.type === 'error'
+          className={
+            'p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm border ' +
+            (feedback.type === 'error'
               ? 'bg-rose-50 border-rose-200 text-rose-800'
-              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-          )}
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+          }
         >
           <span>{feedback.message}</span>
           <button onClick={() => setFeedback(null)} className="p-1 hover:opacity-75">
@@ -423,7 +451,11 @@ export default function AdminPrivacyDashboardPage() {
           { id: 'audit', label: 'Audit Trail (' + auditTotal + ')', icon: Activity },
           { id: 'policies', label: 'Policy Versions (' + policies.length + ')', icon: BookOpen },
           { id: 'requests', label: 'DSAR Requests (' + requests.length + ')', icon: FileText },
-          { id: 'complaints', label: 'Grievances (' + complaints.length + ')', icon: AlertTriangle },
+          {
+            id: 'complaints',
+            label: 'Grievances (' + complaints.length + ')',
+            icon: AlertTriangle,
+          },
           { id: 'incidents', label: 'Breach Logs (' + incidents.length + ')', icon: Lock },
           { id: 'inventory', label: 'Data Inventory', icon: Layers },
           { id: 'retention', label: 'Retention Policies', icon: Clock },
@@ -434,11 +466,12 @@ export default function AdminPrivacyDashboardPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition ' + (
-                isActive
+              className={
+                'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition ' +
+                (isActive
                   ? 'bg-purple-700 text-white shadow-md shadow-purple-700/20'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              )}
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')
+              }
             >
               <Icon className="h-4 w-4" />
               <span>{tab.label}</span>
@@ -452,9 +485,12 @@ export default function AdminPrivacyDashboardPage() {
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-black text-gray-900">Legal Consent &amp; Acknowledgement Records</h3>
+              <h3 className="text-base font-black text-gray-900">
+                Legal Consent &amp; Acknowledgement Records
+              </h3>
               <p className="text-xs text-gray-500">
-                Authoritative, immutable records of customer acceptance of Terms &amp; Conditions and Privacy Policy.
+                Authoritative, immutable records of customer acceptance of Terms &amp; Conditions
+                and Privacy Policy.
               </p>
             </div>
 
@@ -540,37 +576,50 @@ export default function AdminPrivacyDashboardPage() {
                   </tr>
                 ) : (
                   consents.map((c) => {
-                    const fullName = [c.user?.profile?.firstName, c.user?.profile?.lastName]
-                      .filter(Boolean)
-                      .join(' ') || 'Customer';
+                    const fullName =
+                      [c.user?.profile?.firstName, c.user?.profile?.lastName]
+                        .filter(Boolean)
+                        .join(' ') || 'Customer';
                     const isTerms = c.consentType === 'TERMS_AND_CONDITIONS';
                     return (
                       <tr key={c.id} className="hover:bg-gray-50/50 transition">
                         <td className="p-3">
                           <p className="font-bold text-gray-900">{fullName}</p>
-                          <p className="text-[10px] text-gray-500 font-mono">{c.user?.phone || c.user?.email || c.userId}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">
+                            {c.user?.phone || c.user?.email || c.userId}
+                          </p>
                         </td>
                         <td className="p-3">
                           <span
-                            className={'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' + (
-                              isTerms ? 'bg-orange-100 text-orange-800' : 'bg-purple-100 text-purple-800'
-                            )}
+                            className={
+                              'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' +
+                              (isTerms
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-purple-100 text-purple-800')
+                            }
                           >
                             {isTerms ? 'Terms' : 'Privacy'}
                           </span>
                         </td>
-                        <td className="p-3 font-medium text-gray-900">{c.policyName || c.consentType}</td>
+                        <td className="p-3 font-medium text-gray-900">
+                          {c.policyName || c.consentType}
+                        </td>
                         <td className="p-3 font-mono font-bold text-gray-700">v{c.version}</td>
                         <td className="p-3">
                           <span
-                            className={'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' + (
-                              c.granted ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                            )}
+                            className={
+                              'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' +
+                              (c.granted
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800')
+                            }
                           >
                             {c.granted ? 'Accepted' : 'Withdrawn'}
                           </span>
                         </td>
-                        <td className="p-3 font-mono text-gray-700">{formatIST(c.acceptedAt || c.grantedAt)}</td>
+                        <td className="p-3 font-mono text-gray-700">
+                          {formatIST(c.acceptedAt || c.grantedAt)}
+                        </td>
                         <td className="p-3 text-gray-500 font-medium">{c.source}</td>
                         <td className="p-3 text-right">
                           <button
@@ -591,7 +640,8 @@ export default function AdminPrivacyDashboardPage() {
           {/* Pagination Controls */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-500 font-medium">
             <span>
-              Showing {consents.length} of {consentTotal} records (Page {consentPage} of {consentTotalPages})
+              Showing {consents.length} of {consentTotal} records (Page {consentPage} of{' '}
+              {consentTotalPages})
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -621,9 +671,12 @@ export default function AdminPrivacyDashboardPage() {
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-black text-gray-900">Privacy &amp; Legal Audit Trail</h3>
+              <h3 className="text-base font-black text-gray-900">
+                Privacy &amp; Legal Audit Trail
+              </h3>
               <p className="text-xs text-gray-500">
-                Cryptographically verifiable, tamper-evident log of all consent, data access, and administrative actions.
+                Cryptographically verifiable, tamper-evident log of all consent, data access, and
+                administrative actions.
               </p>
             </div>
 
@@ -687,12 +740,20 @@ export default function AdminPrivacyDashboardPage() {
                       <td className="p-3 font-mono text-gray-700">{formatIST(a.createdAt)}</td>
                       <td className="p-3">
                         <span className="font-bold text-gray-900">{a.actorRole || 'SYSTEM'}</span>
-                        {a.actorId && <p className="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">{a.actorId}</p>}
+                        {a.actorId && (
+                          <p className="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">
+                            {a.actorId}
+                          </p>
+                        )}
                       </td>
                       <td className="p-3 font-mono font-bold text-purple-800">{a.action}</td>
                       <td className="p-3 text-gray-800 font-medium">{a.entity}</td>
-                      <td className="p-3 font-mono text-[10px] text-gray-500 truncate max-w-[120px]">{a.entityId || '—'}</td>
-                      <td className="p-3 font-mono text-[10px] text-gray-400">{a.ipAddress || 'Internal'}</td>
+                      <td className="p-3 font-mono text-[10px] text-gray-500 truncate max-w-[120px]">
+                        {a.entityId || '—'}
+                      </td>
+                      <td className="p-3 font-mono text-[10px] text-gray-400">
+                        {a.ipAddress || 'Internal'}
+                      </td>
                       <td className="p-3 text-right">
                         <button
                           onClick={() => setSelectedAuditLog(a)}
@@ -711,7 +772,8 @@ export default function AdminPrivacyDashboardPage() {
           {/* Pagination Controls */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-500 font-medium">
             <span>
-              Showing {auditLogs.length} of {auditTotal} events (Page {auditPage} of {auditTotalPages})
+              Showing {auditLogs.length} of {auditTotal} events (Page {auditPage} of{' '}
+              {auditTotalPages})
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -740,15 +802,21 @@ export default function AdminPrivacyDashboardPage() {
       {activeTab === 'policies' && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
           <div>
-            <h3 className="text-base font-black text-gray-900">Statutory Legal Policy Version Registry</h3>
+            <h3 className="text-base font-black text-gray-900">
+              Statutory Legal Policy Version Registry
+            </h3>
             <p className="text-xs text-gray-500">
-              Active and historical legal policies published on Zayka Food. Policy changes generate new versioned records without modifying historical acceptances.
+              Active and historical legal policies published on Zayka Food. Policy changes generate
+              new versioned records without modifying historical acceptances.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {policies.map((p) => (
-              <div key={p.id} className="p-5 rounded-3xl border border-gray-100 bg-gray-50/60 space-y-3">
+              <div
+                key={p.id}
+                className="p-5 rounded-3xl border border-gray-100 bg-gray-50/60 space-y-3"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-purple-700" />
@@ -762,8 +830,12 @@ export default function AdminPrivacyDashboardPage() {
                 <p className="text-xs text-gray-600 leading-relaxed">{p.summary}</p>
 
                 <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between text-xs">
-                  <span className="font-bold text-gray-700">Active Version: <span className="font-mono text-purple-800">v{p.version}</span></span>
-                  <span className="text-[11px] text-gray-500 font-mono">Published: {formatIST(p.publishedAt)}</span>
+                  <span className="font-bold text-gray-700">
+                    Active Version: <span className="font-mono text-purple-800">v{p.version}</span>
+                  </span>
+                  <span className="text-[11px] text-gray-500 font-mono">
+                    Published: {formatIST(p.publishedAt)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -774,7 +846,9 @@ export default function AdminPrivacyDashboardPage() {
       {/* TAB 4: DSAR REQUESTS */}
       {activeTab === 'requests' && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-          <h3 className="text-base font-black text-gray-900">Data Subject Access &amp; Erasure Requests (DSAR)</h3>
+          <h3 className="text-base font-black text-gray-900">
+            Data Subject Access &amp; Erasure Requests (DSAR)
+          </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs text-left">
               <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[10px]">
@@ -805,13 +879,14 @@ export default function AdminPrivacyDashboardPage() {
                       </td>
                       <td className="p-3">
                         <span
-                          className={'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' + (
-                            r.status === 'COMPLETED'
+                          className={
+                            'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' +
+                            (r.status === 'COMPLETED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : r.status === 'REJECTED'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
-                          )}
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-amber-100 text-amber-800')
+                          }
                         >
                           {r.status}
                         </span>
@@ -847,7 +922,9 @@ export default function AdminPrivacyDashboardPage() {
       {/* TAB 5: GRIEVANCES & COMPLAINTS */}
       {activeTab === 'complaints' && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-          <h3 className="text-base font-black text-gray-900">Grievance Redressal Tickets (48-Hour SLA)</h3>
+          <h3 className="text-base font-black text-gray-900">
+            Grievance Redressal Tickets (48-Hour SLA)
+          </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs text-left">
               <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[10px]">
@@ -883,9 +960,12 @@ export default function AdminPrivacyDashboardPage() {
                       </td>
                       <td className="p-3">
                         <span
-                          className={'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' + (
-                            c.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          )}
+                          className={
+                            'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' +
+                            (c.status === 'RESOLVED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800')
+                          }
                         >
                           {c.status}
                         </span>
@@ -917,7 +997,9 @@ export default function AdminPrivacyDashboardPage() {
       {activeTab === 'incidents' && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-black text-gray-900">Security &amp; Data Breach Incident Registry</h3>
+            <h3 className="text-base font-black text-gray-900">
+              Security &amp; Data Breach Incident Registry
+            </h3>
             <button
               onClick={() => setShowNewIncidentModal(true)}
               className="px-4 py-2 rounded-2xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition flex items-center gap-1.5 shadow-md shadow-rose-500/20"
@@ -954,13 +1036,14 @@ export default function AdminPrivacyDashboardPage() {
                       </td>
                       <td className="p-3">
                         <span
-                          className={'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' + (
-                            inc.severity === 'CRITICAL'
+                          className={
+                            'px-2.5 py-0.5 rounded-full font-bold text-[10px] ' +
+                            (inc.severity === 'CRITICAL'
                               ? 'bg-rose-100 text-rose-800'
                               : inc.severity === 'HIGH'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          )}
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-yellow-100 text-yellow-800')
+                          }
                         >
                           {inc.severity}
                         </span>
@@ -972,7 +1055,9 @@ export default function AdminPrivacyDashboardPage() {
                         </span>
                       </td>
                       <td className="p-3 font-mono text-gray-700">{formatIST(inc.detectedAt)}</td>
-                      <td className="p-3 text-gray-600 max-w-xs truncate">{inc.mitigationSteps || inc.description}</td>
+                      <td className="p-3 text-gray-600 max-w-xs truncate">
+                        {inc.mitigationSteps || inc.description}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -989,7 +1074,10 @@ export default function AdminPrivacyDashboardPage() {
             <h3 className="text-base font-black text-gray-900">Internal Data Inventory</h3>
             <div className="space-y-3">
               {inventory.map((cat, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1">
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1"
+                >
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-900">{cat.categoryName}</p>
                     <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full">
@@ -1008,10 +1096,15 @@ export default function AdminPrivacyDashboardPage() {
           </div>
 
           <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-            <h3 className="text-base font-black text-gray-900">Authorized Sub-processors &amp; Vendors</h3>
+            <h3 className="text-base font-black text-gray-900">
+              Authorized Sub-processors &amp; Vendors
+            </h3>
             <div className="space-y-3">
               {vendors.map((v, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1">
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1"
+                >
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-900">{v.name}</p>
                     <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
@@ -1036,7 +1129,9 @@ export default function AdminPrivacyDashboardPage() {
         <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-black text-gray-900">Data Retention &amp; Auto-Purge Schedules</h3>
+              <h3 className="text-base font-black text-gray-900">
+                Data Retention &amp; Auto-Purge Schedules
+              </h3>
               <p className="text-xs text-gray-500">
                 Statutory retention periods under Income Tax Act, GST Act 2017, and DPDP Act 2023.
               </p>
@@ -1052,7 +1147,10 @@ export default function AdminPrivacyDashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {retentionPolicies.map((p, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1">
+              <div
+                key={idx}
+                className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1"
+              >
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-black text-purple-900">{p.category}</span>
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-md font-bold text-[10px]">
@@ -1076,7 +1174,10 @@ export default function AdminPrivacyDashboardPage() {
                 <UserCheck className="h-5 w-5 text-purple-700" />
                 <h3 className="text-base font-black text-gray-900">Legal Consent Record Details</h3>
               </div>
-              <button onClick={() => setSelectedConsent(null)} className="p-1 rounded-xl hover:bg-gray-100">
+              <button
+                onClick={() => setSelectedConsent(null)}
+                className="p-1 rounded-xl hover:bg-gray-100"
+              >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
@@ -1084,15 +1185,22 @@ export default function AdminPrivacyDashboardPage() {
             <div className="space-y-2.5">
               <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-400 block">Customer Name</span>
+                  <span className="text-[10px] font-bold uppercase text-gray-400 block">
+                    Customer Name
+                  </span>
                   <span className="font-black text-gray-900 text-sm">
-                    {[selectedConsent.user?.profile?.firstName, selectedConsent.user?.profile?.lastName]
+                    {[
+                      selectedConsent.user?.profile?.firstName,
+                      selectedConsent.user?.profile?.lastName,
+                    ]
                       .filter(Boolean)
                       .join(' ') || 'Customer'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-gray-400 block">Status</span>
+                  <span className="text-[10px] font-bold uppercase text-gray-400 block">
+                    Status
+                  </span>
                   <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block">
                     {selectedConsent.granted ? 'Accepted' : 'Withdrawn'}
                   </span>
@@ -1102,7 +1210,9 @@ export default function AdminPrivacyDashboardPage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Customer ID:</span>
-                  <span className="font-mono text-gray-900 font-bold">{selectedConsent.userId}</span>
+                  <span className="font-mono text-gray-900 font-bold">
+                    {selectedConsent.userId}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Consent Record ID:</span>
@@ -1114,11 +1224,15 @@ export default function AdminPrivacyDashboardPage() {
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Policy:</span>
-                  <span className="font-bold text-gray-900">{selectedConsent.policyName || 'Zayka Food Policy'}</span>
+                  <span className="font-bold text-gray-900">
+                    {selectedConsent.policyName || 'Zayka Food Policy'}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Policy Version:</span>
-                  <span className="font-mono font-bold text-purple-800">v{selectedConsent.version}</span>
+                  <span className="font-mono font-bold text-purple-800">
+                    v{selectedConsent.version}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Accepted At (IST):</span>
@@ -1132,7 +1246,9 @@ export default function AdminPrivacyDashboardPage() {
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">Client IP:</span>
-                  <span className="font-mono text-gray-700">{selectedConsent.ipAddress || 'Not Captured'}</span>
+                  <span className="font-mono text-gray-700">
+                    {selectedConsent.ipAddress || 'Not Captured'}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-500">User Agent:</span>
@@ -1143,7 +1259,9 @@ export default function AdminPrivacyDashboardPage() {
               </div>
 
               <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-900 text-[11px]">
-                <strong>Immutable Legal Evidence:</strong> Under the Digital Personal Data Protection Act, 2023, this consent record represents authoritative evidence of affirmative agreement and cannot be altered or deleted.
+                <strong>Immutable Legal Evidence:</strong> Under the Digital Personal Data
+                Protection Act, 2023, this consent record represents authoritative evidence of
+                affirmative agreement and cannot be altered or deleted.
               </div>
             </div>
 
@@ -1166,7 +1284,10 @@ export default function AdminPrivacyDashboardPage() {
                 <Activity className="h-5 w-5 text-purple-700" />
                 <h3 className="text-base font-black text-gray-900">Audit Trail Event Inspection</h3>
               </div>
-              <button onClick={() => setSelectedAuditLog(null)} className="p-1 rounded-xl hover:bg-gray-100">
+              <button
+                onClick={() => setSelectedAuditLog(null)}
+                className="p-1 rounded-xl hover:bg-gray-100"
+              >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
@@ -1175,19 +1296,27 @@ export default function AdminPrivacyDashboardPage() {
               <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Action:</span>
-                  <span className="font-mono font-bold text-purple-800">{selectedAuditLog.action}</span>
+                  <span className="font-mono font-bold text-purple-800">
+                    {selectedAuditLog.action}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Timestamp:</span>
-                  <span className="font-mono font-bold text-gray-900">{formatIST(selectedAuditLog.createdAt)}</span>
+                  <span className="font-mono font-bold text-gray-900">
+                    {formatIST(selectedAuditLog.createdAt)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Actor Role:</span>
-                  <span className="font-bold text-gray-900">{selectedAuditLog.actorRole || 'SYSTEM'}</span>
+                  <span className="font-bold text-gray-900">
+                    {selectedAuditLog.actorRole || 'SYSTEM'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Actor ID:</span>
-                  <span className="font-mono text-gray-700">{selectedAuditLog.actorId || 'System'}</span>
+                  <span className="font-mono text-gray-700">
+                    {selectedAuditLog.actorId || 'System'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Entity:</span>
@@ -1195,12 +1324,16 @@ export default function AdminPrivacyDashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Entity ID:</span>
-                  <span className="font-mono text-gray-700">{selectedAuditLog.entityId || '—'}</span>
+                  <span className="font-mono text-gray-700">
+                    {selectedAuditLog.entityId || '—'}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Sanitized Event Metadata</label>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Sanitized Event Metadata
+                </label>
                 <pre className="p-3 rounded-2xl bg-gray-900 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
                   {JSON.stringify(selectedAuditLog.metadata || {}, null, 2)}
                 </pre>
@@ -1226,7 +1359,10 @@ export default function AdminPrivacyDashboardPage() {
               <h3>Execute Account Erasure Transaction</h3>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed">
-              You are about to execute a cryptographic anonymization on user <strong>{showDeletionModal.user?.phone}</strong>. This purges active sessions, delivery addresses, and personal name. Financial order invoices remain intact for statutory GST audit compliance.
+              You are about to execute a cryptographic anonymization on user{' '}
+              <strong>{showDeletionModal.user?.phone}</strong>. This purges active sessions,
+              delivery addresses, and personal name. Financial order invoices remain intact for
+              statutory GST audit compliance.
             </p>
             <div className="flex gap-2 pt-2">
               <button
@@ -1251,7 +1387,9 @@ export default function AdminPrivacyDashboardPage() {
       {showNewIncidentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-black text-gray-900">Log Security or Data Breach Incident</h3>
+            <h3 className="text-base font-black text-gray-900">
+              Log Security or Data Breach Incident
+            </h3>
             <form onSubmit={handleCreateIncident} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Incident Title *</label>

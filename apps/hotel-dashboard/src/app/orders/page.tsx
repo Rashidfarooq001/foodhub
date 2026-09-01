@@ -34,7 +34,6 @@ type FilterTab =
   | 'NEW_ORDERS'
   | 'ACCEPTED'
   | 'PREPARING'
-  
   | 'OUT_FOR_DELIVERY'
   | 'COMPLETED'
   | 'REJECTED_CANCELLED'
@@ -106,7 +105,10 @@ export default function HotelOrdersPage() {
 
   // Pickup OTP & QR Modal State
   const [pickupOtpModalOrder, setPickupOtpModalOrder] = useState<OrderRecord | null>(null);
-  const [pickupOtpData, setPickupOtpData] = useState<{ pickupOtp?: string; qrToken?: string } | null>(null);
+  const [pickupOtpData, setPickupOtpData] = useState<{
+    pickupOtp?: string;
+    qrToken?: string;
+  } | null>(null);
   const [isFetchingOtp, setIsFetchingOtp] = useState(false);
 
   const handleFetchPickupOtp = async (order: OrderRecord) => {
@@ -136,7 +138,7 @@ export default function HotelOrdersPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const rawList = Array.isArray(data) ? data : data.orders ?? [];
+        const rawList = Array.isArray(data) ? data : (data.orders ?? []);
 
         const formatted: OrderRecord[] = rawList.map((o: any) => {
           let addrStr = 'Address not available';
@@ -144,9 +146,16 @@ export default function HotelOrdersPage() {
             if (typeof o.deliveryAddress === 'string') {
               addrStr = o.deliveryAddress;
             } else {
-                const a = o.deliveryAddress;
-                const parts = [a.addressLine1 || a.street, a.addressLine2, a.landmark, a.city, a.state, a.postalCode].filter(Boolean);
-                addrStr = parts.length > 0 ? parts.join(', ') : a.label || 'Customer Location';
+              const a = o.deliveryAddress;
+              const parts = [
+                a.addressLine1 || a.street,
+                a.addressLine2,
+                a.landmark,
+                a.city,
+                a.state,
+                a.postalCode,
+              ].filter(Boolean);
+              addrStr = parts.length > 0 ? parts.join(', ') : a.label || 'Customer Location';
             }
           }
 
@@ -155,7 +164,10 @@ export default function HotelOrdersPage() {
             name: i.foodItem?.name || i.name || 'Food Item',
             quantity: i.quantity || 1,
             price: Number(i.unitPrice || i.price || 0),
-            variant: i.variantName || i.variant || (i.selectedVariant ? i.selectedVariant.name : undefined),
+            variant:
+              i.variantName ||
+              i.variant ||
+              (i.selectedVariant ? i.selectedVariant.name : undefined),
             notes: i.instructions || i.notes,
             addons: i.addons,
           }));
@@ -173,14 +185,20 @@ export default function HotelOrdersPage() {
             paymentMethod: o.paymentMethod || 'COD',
             paymentStatus: o.paymentStatus || 'PENDING',
             createdAt: o.createdAt || new Date().toISOString(),
-            placedAt: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-            customerName: o.customer?.profile ? `${o.customer.profile.firstName || ''} ${o.customer.profile.lastName || ''}`.trim() : o.customerName || 'Customer',
+            placedAt: o.createdAt
+              ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '',
+            customerName: o.customer?.profile
+              ? `${o.customer.profile.firstName || ''} ${o.customer.profile.lastName || ''}`.trim()
+              : o.customerName || 'Customer',
             customerPhone: o.customer?.user?.phone || o.customerPhone || '',
             customerAddress: addrStr,
             deliveryAddress: o.deliveryAddress,
             deliveryInstructions: o.deliveryInstructions,
             distanceKm: o.deliveryJob?.distanceKm || o.distanceKm || undefined,
-            driverName: driverObj?.user?.profile ? `${driverObj.user.profile.firstName} ${driverObj.user.profile.lastName || ''}`.trim() : undefined,
+            driverName: driverObj?.user?.profile
+              ? `${driverObj.user.profile.firstName} ${driverObj.user.profile.lastName || ''}`.trim()
+              : undefined,
             driverPhone: driverObj?.user?.phone,
             cancellationReason: o.cancellationReason,
             rejectionReason: o.rejectionReason,
@@ -229,9 +247,12 @@ export default function HotelOrdersPage() {
     if (!message) {
       if (status === 400) msg = 'Invalid order transition requested.';
       else if (status === 401) msg = 'Session expired. Please log in again.';
-      else if (status === 403) msg = 'Access denied. You do not have permission to manage this order.';
-      else if (status === 409) msg = 'This order has already been accepted or modified by another user.';
-      else if (status === 500) msg = 'Restaurant order service temporarily failed. Please try again.';
+      else if (status === 403)
+        msg = 'Access denied. You do not have permission to manage this order.';
+      else if (status === 409)
+        msg = 'This order has already been accepted or modified by another user.';
+      else if (status === 500)
+        msg = 'Restaurant order service temporarily failed. Please try again.';
     }
     setErrorMessage(msg);
     setTimeout(() => setErrorMessage(null), 5000);
@@ -312,7 +333,8 @@ export default function HotelOrdersPage() {
   const handleConfirmReject = async () => {
     if (!rejectingOrder) return;
     setProcessingId(rejectingOrder.id);
-    const finalReason = rejectionReason === 'Other' ? customRejectionReason || 'Other' : rejectionReason;
+    const finalReason =
+      rejectionReason === 'Other' ? customRejectionReason || 'Other' : rejectionReason;
 
     try {
       const res = await fetch(`${API_BASE}/orders/${rejectingOrder.id}/reject`, {
@@ -373,7 +395,10 @@ export default function HotelOrdersPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        showToastError(res.status, errData.message || 'Failed to assign selected delivery partner.');
+        showToastError(
+          res.status,
+          errData.message || 'Failed to assign selected delivery partner.',
+        );
         return;
       }
 
@@ -398,10 +423,17 @@ export default function HotelOrdersPage() {
       }
       if (filter === 'ACCEPTED' && o.status !== 'ACCEPTED') return false;
       if (filter === 'PREPARING' && o.status !== 'PREPARING') return false;
-      
-      if (filter === 'OUT_FOR_DELIVERY' && !['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status)) return false;
+
+      if (
+        filter === 'OUT_FOR_DELIVERY' &&
+        !['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(
+          o.status,
+        )
+      )
+        return false;
       if (filter === 'COMPLETED' && o.status !== 'DELIVERED') return false;
-      if (filter === 'REJECTED_CANCELLED' && !['REJECTED', 'CANCELLED'].includes(o.status)) return false;
+      if (filter === 'REJECTED_CANCELLED' && !['REJECTED', 'CANCELLED'].includes(o.status))
+        return false;
 
       if (search.trim()) {
         const s = search.toLowerCase();
@@ -425,8 +457,14 @@ export default function HotelOrdersPage() {
       if (tab === 'NEW_ORDERS') return o.status === 'PENDING';
       if (tab === 'ACCEPTED') return o.status === 'ACCEPTED';
       if (tab === 'PREPARING') return o.status === 'PREPARING';
-      
-      if (tab === 'OUT_FOR_DELIVERY') return ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status);
+
+      if (tab === 'OUT_FOR_DELIVERY')
+        return [
+          'DRIVER_ASSIGNED',
+          'ARRIVED_AT_RESTAURANT',
+          'PICKED_UP',
+          'OUT_FOR_DELIVERY',
+        ].includes(o.status);
       if (tab === 'COMPLETED') return o.status === 'DELIVERED';
       if (tab === 'REJECTED_CANCELLED') return ['REJECTED', 'CANCELLED'].includes(o.status);
       return true;
@@ -436,25 +474,61 @@ export default function HotelOrdersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 animate-pulse">NEW ORDER</span>;
+        return (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 animate-pulse">
+            NEW ORDER
+          </span>
+        );
       case 'ACCEPTED':
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">ACCEPTED</span>;
+        return (
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">
+            ACCEPTED
+          </span>
+        );
       case 'PREPARING':
-        return <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">PREPARING</span>;
+        return (
+          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
+            PREPARING
+          </span>
+        );
       case 'DRIVER_ASSIGNED':
-        return <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-black text-purple-800">RIDER ASSIGNED</span>;
+        return (
+          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-black text-purple-800">
+            RIDER ASSIGNED
+          </span>
+        );
       case 'ARRIVED_AT_RESTAURANT':
-        return <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-black text-indigo-800">RIDER ARRIVED</span>;
+        return (
+          <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-black text-indigo-800">
+            RIDER ARRIVED
+          </span>
+        );
       case 'PICKED_UP':
       case 'OUT_FOR_DELIVERY':
-        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">OUT FOR DELIVERY</span>;
+        return (
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+            OUT FOR DELIVERY
+          </span>
+        );
       case 'DELIVERED':
-        return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-800">DELIVERED</span>;
+        return (
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-800">
+            DELIVERED
+          </span>
+        );
       case 'REJECTED':
       case 'CANCELLED':
-        return <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800">{status}</span>;
+        return (
+          <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800">
+            {status}
+          </span>
+        );
       default:
-        return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">{status}</span>;
+        return (
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -505,7 +579,7 @@ export default function HotelOrdersPage() {
           { id: 'NEW_ORDERS', label: 'NEW ORDERS' },
           { id: 'ACCEPTED', label: 'ACCEPTED' },
           { id: 'PREPARING', label: 'PREPARING' },
-          
+
           { id: 'OUT_FOR_DELIVERY', label: 'OUT FOR DELIVERY' },
           { id: 'COMPLETED', label: 'COMPLETED' },
           { id: 'REJECTED_CANCELLED', label: 'REJECTED/CANCELLED' },
@@ -526,7 +600,9 @@ export default function HotelOrdersPage() {
               <span>{tab.label}</span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] ${
-                  isActive ? 'bg-orange-100 text-orange-700 font-black' : 'bg-gray-200 text-gray-600'
+                  isActive
+                    ? 'bg-orange-100 text-orange-700 font-black'
+                    : 'bg-gray-200 text-gray-600'
                 }`}
               >
                 {count}
@@ -541,10 +617,15 @@ export default function HotelOrdersPage() {
         {isLoading ? (
           <div className="p-8 text-center text-xs text-gray-400 font-bold">Loading orders...</div>
         ) : filteredOrders.length === 0 ? (
-          <div className="p-8 text-center text-xs text-gray-400 font-bold">No orders found in this section.</div>
+          <div className="p-8 text-center text-xs text-gray-400 font-bold">
+            No orders found in this section.
+          </div>
         ) : (
           filteredOrders.map((o) => (
-            <div key={o.id} className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+            <div
+              key={o.id}
+              className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-4"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-xs font-black text-orange-600">ORDER #{o.orderNumber}</span>
@@ -560,7 +641,9 @@ export default function HotelOrdersPage() {
                     <span>
                       <strong className="text-gray-900">{i.quantity}x</strong> {i.name}
                       {i.variant && (
-                        <span className="ml-1 text-[10px] text-orange-600 font-bold">({typeof i.variant === 'string' ? i.variant : i.variant.name})</span>
+                        <span className="ml-1 text-[10px] text-orange-600 font-bold">
+                          ({typeof i.variant === 'string' ? i.variant : i.variant.name})
+                        </span>
                       )}
                     </span>
                     <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
@@ -569,7 +652,9 @@ export default function HotelOrdersPage() {
               </div>
 
               <div className="flex items-center justify-between text-xs font-black text-gray-900 border-t border-gray-100 pt-3">
-                <span>Total: ₹{o.totalAmount} ({o.paymentMethod})</span>
+                <span>
+                  Total: ₹{o.totalAmount} ({o.paymentMethod})
+                </span>
                 <button
                   onClick={() => setSelectedOrder(o)}
                   className="flex items-center gap-1 text-xs text-orange-600 font-bold hover:underline"
@@ -650,18 +735,24 @@ export default function HotelOrdersPage() {
             <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">Loading orders...</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    Loading orders...
+                  </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">No orders found matching filter criteria.</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    No orders found matching filter criteria.
+                  </td>
                 </tr>
               ) : (
                 filteredOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4 font-black text-orange-600">
                       #{o.orderNumber}
-                      <span className="block text-[10px] font-bold text-gray-400 mt-0.5">{o.placedAt}</span>
+                      <span className="block text-[10px] font-bold text-gray-400 mt-0.5">
+                        {o.placedAt}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-black text-gray-900">{o.customerName}</p>
@@ -672,14 +763,18 @@ export default function HotelOrdersPage() {
                         <div key={idx} className="text-xs">
                           <span className="font-bold text-gray-900">{i.quantity}x</span> {i.name}
                           {i.variant && (
-                            <span className="ml-1 text-[10px] text-orange-600 font-bold">({typeof i.variant === 'string' ? i.variant : i.variant.name})</span>
+                            <span className="ml-1 text-[10px] text-orange-600 font-bold">
+                              ({typeof i.variant === 'string' ? i.variant : i.variant.name})
+                            </span>
                           )}
                         </div>
                       ))}
                     </td>
                     <td className="px-6 py-4 font-black text-gray-900">
                       ₹{o.totalAmount}
-                      <span className="block text-[10px] font-bold text-gray-400 uppercase">{o.paymentMethod}</span>
+                      <span className="block text-[10px] font-bold text-gray-400 uppercase">
+                        {o.paymentMethod}
+                      </span>
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(o.status)}</td>
                     <td className="px-6 py-4 text-center">
@@ -767,29 +862,44 @@ export default function HotelOrdersPage() {
           <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block">RESTAURANT RIDER ASSIGNMENT</span>
-                <h3 className="text-lg font-black text-gray-900">Select ZaykaFood Partner for #{assigningOrder.orderNumber}</h3>
+                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block">
+                  RESTAURANT RIDER ASSIGNMENT
+                </span>
+                <h3 className="text-lg font-black text-gray-900">
+                  Select ZaykaFood Partner for #{assigningOrder.orderNumber}
+                </h3>
               </div>
-              <button onClick={() => setAssigningOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
+              <button
+                onClick={() => setAssigningOrder(null)}
+                className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {isFetchingRiders ? (
-              <div className="py-12 text-center text-xs font-bold text-gray-400">Searching nearby eligible ZaykaFood riders...</div>
+              <div className="py-12 text-center text-xs font-bold text-gray-400">
+                Searching nearby eligible ZaykaFood riders...
+              </div>
             ) : (
               <div className="space-y-4">
                 {/* SECTION 1: AVAILABLE ZAYKAFOOD RIDERS */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Available ZaykaFood Riders ({availableRidersList.length})
+                    <CheckCircle2 className="h-4 w-4" /> Available ZaykaFood Riders (
+                    {availableRidersList.length})
                   </h4>
 
                   {availableRidersList.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center space-y-2">
                       <Bike className="h-8 w-8 mx-auto text-gray-300" />
-                      <p className="text-xs font-bold text-gray-700">No ZaykaFood riders are currently available nearby.</p>
-                      <p className="text-[11px] text-gray-400">ZaykaFood platform fleet will auto-dispatch as soon as a delivery partner becomes online.</p>
+                      <p className="text-xs font-bold text-gray-700">
+                        No ZaykaFood riders are currently available nearby.
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        ZaykaFood platform fleet will auto-dispatch as soon as a delivery partner
+                        becomes online.
+                      </p>
                     </div>
                   ) : (
                     availableRidersList.map((r) => (
@@ -816,7 +926,12 @@ export default function HotelOrdersPage() {
                             <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
                               <span className="text-amber-600 font-black">★ {r.rating}</span>
                               <span>{r.completedCount} deliveries completed</span>
-                              <span className="text-emerald-700 font-bold">{r.distanceText || (r.distanceKm != null && r.distanceKm !== 999 ? `${r.distanceKm} km away` : 'Location unavailable')}</span>
+                              <span className="text-emerald-700 font-bold">
+                                {r.distanceText ||
+                                  (r.distanceKm != null && r.distanceKm !== 999
+                                    ? `${r.distanceKm} km away`
+                                    : 'Location unavailable')}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -841,7 +956,11 @@ export default function HotelOrdersPage() {
                       className="w-full flex items-center justify-between text-xs font-bold text-gray-500 hover:text-gray-800 py-1"
                     >
                       <span>Unavailable Riders ({unavailableRidersList.length})</span>
-                      {showUnavailableRiders ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {showUnavailableRiders ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
                     </button>
 
                     {showUnavailableRiders && (
@@ -852,10 +971,16 @@ export default function HotelOrdersPage() {
                             className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3 opacity-75"
                           >
                             <div className="flex items-center gap-3">
-                              <img src={r.avatar} alt={r.name} className="h-9 w-9 rounded-xl object-cover" />
+                              <img
+                                src={r.avatar}
+                                alt={r.name}
+                                className="h-9 w-9 rounded-xl object-cover"
+                              />
                               <div>
                                 <h5 className="text-xs font-bold text-gray-800">{r.name}</h5>
-                                <p className="text-[10px] text-gray-500">{r.vehicleType} • {r.phone}</p>
+                                <p className="text-[10px] text-gray-500">
+                                  {r.vehicleType} • {r.phone}
+                                </p>
                               </div>
                             </div>
                             <span className="rounded-full bg-gray-200 text-gray-700 text-[10px] font-bold px-2.5 py-1">
@@ -880,23 +1005,37 @@ export default function HotelOrdersPage() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2 text-rose-600">
                 <XCircle className="h-6 w-6" />
-                <h3 className="text-lg font-black text-gray-900">Reject Order #{rejectingOrder.orderNumber}</h3>
+                <h3 className="text-lg font-black text-gray-900">
+                  Reject Order #{rejectingOrder.orderNumber}
+                </h3>
               </div>
-              <button onClick={() => setRejectingOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
+              <button
+                onClick={() => setRejectingOrder(null)}
+                className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <p className="text-xs text-gray-500">
-              Please select a valid reason for rejecting this order. The customer will be notified immediately.
+              Please select a valid reason for rejecting this order. The customer will be notified
+              immediately.
             </p>
 
             <div className="space-y-2 text-xs font-bold text-gray-700">
-              {['Restaurant too busy', 'Item unavailable', 'Restaurant closing', 'Delivery unavailable', 'Other'].map((r) => (
+              {[
+                'Restaurant too busy',
+                'Item unavailable',
+                'Restaurant closing',
+                'Delivery unavailable',
+                'Other',
+              ].map((r) => (
                 <label
                   key={r}
                   className={`flex items-center gap-3 rounded-2xl border p-3 cursor-pointer transition ${
-                    rejectionReason === r ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-100 hover:bg-gray-50'
+                    rejectionReason === r
+                      ? 'border-rose-500 bg-rose-50/40 text-rose-900'
+                      : 'border-gray-100 hover:bg-gray-50'
                   }`}
                 >
                   <input
@@ -949,18 +1088,29 @@ export default function HotelOrdersPage() {
           <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block">ORDER DETAILS</span>
-                <h3 className="text-xl font-black text-gray-900">Order #{selectedOrder.orderNumber}</h3>
+                <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block">
+                  ORDER DETAILS
+                </span>
+                <h3 className="text-xl font-black text-gray-900">
+                  Order #{selectedOrder.orderNumber}
+                </h3>
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 rounded-2xl bg-gray-50 p-4 text-xs font-bold">
               <div>
-                <span className="text-[10px] uppercase text-gray-400 block font-bold">Customer</span>
-                <span className="text-gray-900 font-black text-sm">{selectedOrder.customerName}</span>
+                <span className="text-[10px] uppercase text-gray-400 block font-bold">
+                  Customer
+                </span>
+                <span className="text-gray-900 font-black text-sm">
+                  {selectedOrder.customerName}
+                </span>
                 <p className="text-gray-500 font-bold">{selectedOrder.customerPhone}</p>
               </div>
               <div>
@@ -981,11 +1131,18 @@ export default function HotelOrdersPage() {
               <h4 className="text-xs font-black text-gray-900 uppercase">Items Ordered</h4>
               <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 p-4 text-xs">
                 {selectedOrder.items.map((i, idx) => (
-                  <div key={idx} className="py-2 first:pt-0 last:pb-0 flex justify-between items-center">
+                  <div
+                    key={idx}
+                    className="py-2 first:pt-0 last:pb-0 flex justify-between items-center"
+                  >
                     <div>
-                      <p className="font-black text-gray-900">{i.quantity}x {i.name}</p>
+                      <p className="font-black text-gray-900">
+                        {i.quantity}x {i.name}
+                      </p>
                       {i.variant && (
-                        <p className="text-[10px] text-orange-600 font-bold">Variant: {typeof i.variant === 'string' ? i.variant : i.variant.name}</p>
+                        <p className="text-[10px] text-orange-600 font-bold">
+                          Variant: {typeof i.variant === 'string' ? i.variant : i.variant.name}
+                        </p>
                       )}
                     </div>
                     <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
@@ -1022,20 +1179,31 @@ export default function HotelOrdersPage() {
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">ORDER HANDOVER VERIFICATION</span>
-                <h3 className="text-lg font-black text-gray-900">Pickup Code for #{pickupOtpModalOrder.orderNumber}</h3>
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">
+                  ORDER HANDOVER VERIFICATION
+                </span>
+                <h3 className="text-lg font-black text-gray-900">
+                  Pickup Code for #{pickupOtpModalOrder.orderNumber}
+                </h3>
               </div>
-              <button onClick={() => setPickupOtpModalOrder(null)} className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400">
+              <button
+                onClick={() => setPickupOtpModalOrder(null)}
+                className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {isFetchingOtp ? (
-              <div className="py-8 text-center text-xs font-bold text-gray-400">Generating secure 4-digit handover code...</div>
+              <div className="py-8 text-center text-xs font-bold text-gray-400">
+                Generating secure 4-digit handover code...
+              </div>
             ) : pickupOtpData ? (
               <div className="space-y-6 text-center">
                 <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-6 space-y-2">
-                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Provide this 4-digit code to rider:</span>
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">
+                    Provide this 4-digit code to rider:
+                  </span>
                   <div className="text-4xl font-black tracking-widest text-amber-900 font-mono">
                     {pickupOtpData.pickupOtp}
                   </div>
@@ -1046,7 +1214,9 @@ export default function HotelOrdersPage() {
 
                 {pickupOtpData.qrToken && (
                   <div className="space-y-2 pt-2 border-t border-gray-100">
-                    <span className="text-xs font-bold text-gray-500 uppercase block">OR Signed QR Verification Token</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase block">
+                      OR Signed QR Verification Token
+                    </span>
                     <div className="rounded-2xl bg-gray-900 p-4 text-[10px] font-mono text-emerald-400 break-all select-all shadow-inner">
                       {pickupOtpData.qrToken}
                     </div>

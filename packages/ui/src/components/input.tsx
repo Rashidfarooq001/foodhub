@@ -10,9 +10,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = 'text', error, label, ...props }, ref) => {
     return (
       <div className="w-full">
-        {label && (
-          <label className="mb-1 block text-xs font-medium text-slate-700">{label}</label>
-        )}
+        {label && <label className="mb-1 block text-xs font-medium text-slate-700">{label}</label>}
         <input
           type={type}
           ref={ref}

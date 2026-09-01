@@ -45,7 +45,8 @@ export function getWsBaseUrl(): string {
  * and localhost URLs accessed from production environments.
  */
 export function getImageUrl(url?: string | null): string {
-  const fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+  const fallback =
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
 
   if (!url || typeof url !== 'string' || !url.trim()) {
     return fallback;
@@ -96,13 +97,13 @@ export function getImageUrl(url?: string | null): string {
   return `${serverOrigin}/${cleanUrl.replace(/^\/+/, '')}`;
 }
 
-
 export function getHotelDashboardUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_HOTEL_DASHBOARD_URL;
   if (
     envUrl &&
     envUrl.trim() &&
-    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+    (process.env.NODE_ENV !== 'production' ||
+      (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
   ) {
     return envUrl.trim().replace(/\/+$/, '');
   }
@@ -122,7 +123,8 @@ export function getDeliveryDashboardUrl(): string {
   if (
     envUrl &&
     envUrl.trim() &&
-    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+    (process.env.NODE_ENV !== 'production' ||
+      (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
   ) {
     return envUrl.trim().replace(/\/+$/, '');
   }
@@ -142,7 +144,8 @@ export function getAdminDashboardUrl(): string {
   if (
     envUrl &&
     envUrl.trim() &&
-    (process.env.NODE_ENV !== 'production' || (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
+    (process.env.NODE_ENV !== 'production' ||
+      (!envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')))
   ) {
     return envUrl.trim().replace(/\/+$/, '');
   }
@@ -158,7 +161,11 @@ export function getAdminDashboardUrl(): string {
 }
 
 export function getMapplsApiKey(): string {
-  return process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.MAPPLS_API_KEY || 'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi';
+  return (
+    process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
+    process.env.MAPPLS_API_KEY ||
+    'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+  );
 }
 
 export function getMapplsClientId(): string {
@@ -195,4 +202,3 @@ export const API_CONFIG = {
     return getMapplsClientSecret();
   },
 };
-

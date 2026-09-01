@@ -6,9 +6,9 @@ import { DatabaseModule } from '../database/database.module';
 import { OrdersModule } from '../orders/orders.module';
 
 @Module({
-  imports:     [DatabaseModule, forwardRef(() => OrdersModule)],
+  imports: [DatabaseModule, forwardRef(() => OrdersModule)],
   controllers: [SettlementsController],
-  providers:   [SettlementsService, CommissionService],
-  exports:     [SettlementsService, CommissionService],
+  providers: [SettlementsService, CommissionService],
+  exports: [SettlementsService, CommissionService],
 })
 export class SettlementsModule {}

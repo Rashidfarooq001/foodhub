@@ -36,13 +36,17 @@ async function main() {
   for (const user of users) {
     const canonical = normalizeIndianPhone(user.phone);
     if (!canonical) {
-      console.log(`[INVALID PHONE] ID: ${user.id} | Raw Phone: "${user.phone}" | Role: ${user.role}`);
+      console.log(
+        `[INVALID PHONE] ID: ${user.id} | Raw Phone: "${user.phone}" | Role: ${user.role}`,
+      );
       invalidCount++;
       continue;
     }
 
     if (canonical !== user.phone) {
-      console.log(`[UPDATING] ID: ${user.id} | Old: "${user.phone}" -> New: "${canonical}" | Role: ${user.role}`);
+      console.log(
+        `[UPDATING] ID: ${user.id} | Old: "${user.phone}" -> New: "${canonical}" | Role: ${user.role}`,
+      );
       try {
         await prisma.user.update({
           where: { id: user.id },
@@ -55,7 +59,9 @@ async function main() {
     }
   }
 
-  console.log(`\nMigration completed: ${updatedCount} user phone numbers converted to 10-digit canonical format. (${invalidCount} non-standard invalid records identified).`);
+  console.log(
+    `\nMigration completed: ${updatedCount} user phone numbers converted to 10-digit canonical format. (${invalidCount} non-standard invalid records identified).`,
+  );
 }
 
 main()

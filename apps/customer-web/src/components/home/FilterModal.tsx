@@ -192,9 +192,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
             {/* Pure Veg */}
             <div
-              onClick={() =>
-                setDraftFilters({ ...draftFilters, pureVeg: !draftFilters.pureVeg })
-              }
+              onClick={() => setDraftFilters({ ...draftFilters, pureVeg: !draftFilters.pureVeg })}
               className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3 transition ${
                 draftFilters.pureVeg
                   ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
@@ -220,9 +218,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
             {/* Near Me */}
             <div
-              onClick={() =>
-                setDraftFilters({ ...draftFilters, nearMe: !draftFilters.nearMe })
-              }
+              onClick={() => setDraftFilters({ ...draftFilters, nearMe: !draftFilters.nearMe })}
               className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3 transition ${
                 draftFilters.nearMe
                   ? 'border-rose-600 bg-rose-50/50 shadow-sm'
@@ -235,7 +231,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 </div>
                 <div>
                   <p className="text-xs font-black text-gray-900">Near Me (&le; 10 km)</p>
-                  <p className="text-[10px] text-gray-500">Kitchens in your immediate delivery radius</p>
+                  <p className="text-[10px] text-gray-500">
+                    Kitchens in your immediate delivery radius
+                  </p>
                 </div>
               </div>
               <input

@@ -83,27 +83,29 @@ export default function DeliverySettlementPage() {
       {/* Summary Cards: 2-col on mobile, 4-col on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">LIFETIME EARNINGS</span>
-          <div className="text-lg sm:text-2xl font-black text-gray-900">
-            ₹{totalEarnings}
-          </div>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">
+            LIFETIME EARNINGS
+          </span>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">₹{totalEarnings}</div>
           <span className="text-[10px] text-gray-500 font-semibold block">
             From all completed trips
           </span>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800 block">PENDING SETTLEMENT</span>
-          <div className="text-lg sm:text-2xl font-black text-amber-900">
-            ₹{pendingSettlement}
-          </div>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800 block">
+            PENDING SETTLEMENT
+          </span>
+          <div className="text-lg sm:text-2xl font-black text-amber-900">₹{pendingSettlement}</div>
           <span className="text-[10px] text-amber-700 font-semibold block">
             Scheduled Monday payout
           </span>
         </div>
 
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">AVAILABLE PAYOUT</span>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">
+            AVAILABLE PAYOUT
+          </span>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
             ₹{pendingSettlement}
           </div>
@@ -113,10 +115,10 @@ export default function DeliverySettlementPage() {
         </div>
 
         <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">SETTLED TO BANK</span>
-          <div className="text-lg sm:text-2xl font-black text-blue-900">
-            ₹{settledAmount}
-          </div>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">
+            SETTLED TO BANK
+          </span>
+          <div className="text-lg sm:text-2xl font-black text-blue-900">₹{settledAmount}</div>
           <span className="text-[10px] text-blue-700 font-semibold block">
             IMPS / NEFT transfer
           </span>
@@ -175,12 +177,24 @@ export default function DeliverySettlementPage() {
                   </div>
 
                   <div className="text-[11px] text-gray-500 space-y-0.5">
-                    <div>Restaurant: <strong className="text-gray-800">{trip.restaurantName || 'Restaurant'}</strong></div>
-                    <div>Destination: <strong className="text-gray-800">{trip.customerAddress || 'Customer Area'}</strong></div>
+                    <div>
+                      Restaurant:{' '}
+                      <strong className="text-gray-800">
+                        {trip.restaurantName || 'Restaurant'}
+                      </strong>
+                    </div>
+                    <div>
+                      Destination:{' '}
+                      <strong className="text-gray-800">
+                        {trip.customerAddress || 'Customer Area'}
+                      </strong>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-[10px] text-gray-400 border-t border-gray-200/60 pt-1">
-                    <span>{trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}</span>
+                    <span>
+                      {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}
+                    </span>
                     <span className="font-bold text-emerald-600">SETTLED</span>
                   </div>
                 </div>
@@ -203,12 +217,20 @@ export default function DeliverySettlementPage() {
                 <tbody className="divide-y divide-gray-50 font-medium">
                   {history.map((trip) => (
                     <tr key={trip.id} className="hover:bg-gray-50/50">
-                      <td className="py-3 font-bold text-gray-900">#{trip.orderNumber || trip.id.slice(0, 8)}</td>
+                      <td className="py-3 font-bold text-gray-900">
+                        #{trip.orderNumber || trip.id.slice(0, 8)}
+                      </td>
                       <td className="py-3 text-gray-700">{trip.restaurantName || 'Restaurant'}</td>
-                      <td className="py-3 text-gray-600">{trip.customerAddress || 'Customer Area'}</td>
-                      <td className="py-3 text-gray-400">{trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}</td>
+                      <td className="py-3 text-gray-600">
+                        {trip.customerAddress || 'Customer Area'}
+                      </td>
+                      <td className="py-3 text-gray-400">
+                        {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}
+                      </td>
                       <td className="py-3 font-bold text-emerald-600">COMPLETED</td>
-                      <td className="py-3 font-black text-emerald-700 text-right">+₹{trip.deliveryFee || trip.payout || 65}</td>
+                      <td className="py-3 font-black text-emerald-700 text-right">
+                        +₹{trip.deliveryFee || trip.payout || 65}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

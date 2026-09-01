@@ -38,14 +38,19 @@ export default function DeliveryDashboardPage() {
     }
 
     try {
-      const headers = { 
+      const headers = {
         Authorization: `Bearer ${accessToken}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       };
       const [statsRes, currentRes, jobsRes, statusRes] = await Promise.all([
         fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' }),
         fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, { headers, cache: 'no-store' }),
-        fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' }).catch(() => fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' })),
+        fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, {
+          headers,
+          cache: 'no-store',
+        }).catch(() =>
+          fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' }),
+        ),
         fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' }),
       ]);
 
@@ -68,7 +73,9 @@ export default function DeliveryDashboardPage() {
 
       if (statusRes.ok) {
         const statusData = await statusRes.json();
-        setIsOnDuty(statusData.dutyStatus === 'ONLINE' || statusData.operationalStatus === 'ONLINE');
+        setIsOnDuty(
+          statusData.dutyStatus === 'ONLINE' || statusData.operationalStatus === 'ONLINE',
+        );
       }
     } catch {
       /* offline */
@@ -137,7 +144,7 @@ export default function DeliveryDashboardPage() {
         setLocationError('Location permission is required to receive live delivery tracking.');
         console.error('Geolocation error:', err);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
     );
 
     return () => {
@@ -211,8 +218,13 @@ export default function DeliveryDashboardPage() {
 
   const handleDeclineJob = async (jobId: string) => {
     if (!accessToken) return;
-    if (!confirm('Decline this delivery? This job will be removed from your list, but will remain available for other riders.')) return;
-    
+    if (
+      !confirm(
+        'Decline this delivery? This job will be removed from your list, but will remain available for other riders.',
+      )
+    )
+      return;
+
     setDecliningJobId(jobId);
     try {
       const res = await fetch(`${API_BASE}/delivery/jobs/${jobId}/decline`, {
@@ -225,7 +237,7 @@ export default function DeliveryDashboardPage() {
       });
 
       if (res.ok) {
-        setAvailableJobs(prev => prev.filter(j => j.id !== jobId));
+        setAvailableJobs((prev) => prev.filter((j) => j.id !== jobId));
       } else {
         alert('Failed to decline delivery.');
       }
@@ -239,20 +251,26 @@ export default function DeliveryDashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
       {/* Driver Duty Banner */}
-      <div className={`rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-md flex items-center justify-between transition ${
-        isOnDuty
-          ? 'bg-gradient-to-r from-emerald-600 to-teal-700'
-          : 'bg-gradient-to-r from-gray-700 to-gray-800'
-      }`}>
+      <div
+        className={`rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-md flex items-center justify-between transition ${
+          isOnDuty
+            ? 'bg-gradient-to-r from-emerald-600 to-teal-700'
+            : 'bg-gradient-to-r from-gray-700 to-gray-800'
+        }`}
+      >
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${isOnDuty ? 'bg-emerald-300 animate-pulse' : 'bg-gray-400'}`} />
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${isOnDuty ? 'bg-emerald-300 animate-pulse' : 'bg-gray-400'}`}
+            />
             <span className="text-xs font-black uppercase tracking-wider">
               {isOnDuty ? 'YOU ARE ON DUTY (ONLINE)' : 'YOU ARE OFF DUTY (OFFLINE)'}
             </span>
           </div>
           <p className="text-[11px] text-white/80">
-            {isOnDuty ? 'Receiving live delivery orders near your location' : 'Go online to start receiving order requests'}
+            {isOnDuty
+              ? 'Receiving live delivery orders near your location'
+              : 'Go online to start receiving order requests'}
           </p>
         </div>
 
@@ -263,8 +281,8 @@ export default function DeliveryDashboardPage() {
             isOnDuty && !!currentDelivery
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : isOnDuty
-              ? 'bg-white text-emerald-800 hover:bg-emerald-50'
-              : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                ? 'bg-white text-emerald-800 hover:bg-emerald-50'
+                : 'bg-emerald-500 text-white hover:bg-emerald-600'
           }`}
         >
           <Power className="h-4 w-4" />
@@ -272,24 +290,24 @@ export default function DeliveryDashboardPage() {
         </button>
       </div>
 
-        {/* Location Error Banner */}
-        {locationError && (
-          <div className="rounded-2xl border-2 border-rose-500 bg-rose-50 p-4 shadow-md flex items-center justify-between">
-            <div className="flex items-center gap-2 text-rose-800">
-              <MapPin className="h-5 w-5 shrink-0" />
-              <div>
-                <p className="text-xs font-black uppercase">GPS Disconnected</p>
-                <p className="text-[11px] font-bold opacity-90">{locationError}</p>
-              </div>
+      {/* Location Error Banner */}
+      {locationError && (
+        <div className="rounded-2xl border-2 border-rose-500 bg-rose-50 p-4 shadow-md flex items-center justify-between">
+          <div className="flex items-center gap-2 text-rose-800">
+            <MapPin className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="text-xs font-black uppercase">GPS Disconnected</p>
+              <p className="text-[11px] font-bold opacity-90">{locationError}</p>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="text-[10px] font-black uppercase text-rose-700 underline"
-            >
-              Retry
-            </button>
           </div>
-        )}
+          <button
+            onClick={() => window.location.reload()}
+            className="text-[10px] font-black uppercase text-rose-700 underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ACTIVE DELIVERY IN PROGRESS BANNER (If job active) */}
       {currentDelivery && (
@@ -297,7 +315,9 @@ export default function DeliveryDashboardPage() {
           <div className="flex items-center justify-between border-b border-orange-200 pb-2.5">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-orange-600 animate-ping" />
-              <span className="text-xs font-black text-orange-950 uppercase">ACTIVE DELIVERY IN PROGRESS</span>
+              <span className="text-xs font-black text-orange-950 uppercase">
+                ACTIVE DELIVERY IN PROGRESS
+              </span>
             </div>
             <span className="rounded-xl bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
               #{currentDelivery.orderNumber || currentDelivery.id?.slice(0, 8)}
@@ -306,12 +326,20 @@ export default function DeliveryDashboardPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-[10px] text-gray-500 font-bold uppercase block">Pickup Restaurant</span>
-              <span className="font-black text-gray-900">{currentDelivery.restaurantName || 'Restaurant Kitchen'}</span>
+              <span className="text-[10px] text-gray-500 font-bold uppercase block">
+                Pickup Restaurant
+              </span>
+              <span className="font-black text-gray-900">
+                {currentDelivery.restaurantName || 'Restaurant Kitchen'}
+              </span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-500 font-bold uppercase block">Customer Area</span>
-              <span className="font-black text-gray-900">{currentDelivery.customerAddress || 'Customer Destination'}</span>
+              <span className="text-[10px] text-gray-500 font-bold uppercase block">
+                Customer Area
+              </span>
+              <span className="font-black text-gray-900">
+                {currentDelivery.customerAddress || 'Customer Destination'}
+              </span>
             </div>
           </div>
 
@@ -361,11 +389,17 @@ export default function DeliveryDashboardPage() {
               <CheckCircle2 className="h-6 w-6 rounded-xl bg-purple-50 p-1.5 text-purple-600 shrink-0" />
             </div>
             <h2 className="text-lg sm:text-2xl font-black text-gray-900 mt-1">
-              {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? `${stats.acceptanceRate}%` : 'N/A'}
+              {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined
+                ? `${stats.acceptanceRate}%`
+                : 'N/A'}
             </h2>
           </div>
-          <span className={`text-[10px] font-bold block mt-1 ${stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? 'text-emerald-600' : 'text-gray-400'}`}>
-            {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? 'Target metrics' : 'No deliveries yet'}
+          <span
+            className={`text-[10px] font-bold block mt-1 ${stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined ? 'text-emerald-600' : 'text-gray-400'}`}
+          >
+            {stats?.acceptanceRate !== null && stats?.acceptanceRate !== undefined
+              ? 'Target metrics'
+              : 'No deliveries yet'}
           </span>
         </div>
 
@@ -376,11 +410,15 @@ export default function DeliveryDashboardPage() {
               <Star className="h-6 w-6 rounded-xl bg-amber-50 p-1.5 text-amber-500 shrink-0" />
             </div>
             <h2 className="text-lg sm:text-xl font-black text-gray-900 mt-1">
-              {stats?.avgRating !== null && stats?.avgRating !== undefined ? `${stats.avgRating.toFixed(1)} ★` : 'No ratings yet'}
+              {stats?.avgRating !== null && stats?.avgRating !== undefined
+                ? `${stats.avgRating.toFixed(1)} ★`
+                : 'No ratings yet'}
             </h2>
           </div>
           <span className="text-[9px] leading-tight text-gray-400 font-semibold block mt-1">
-            {stats?.avgRating !== null && stats?.avgRating !== undefined ? 'Customer feedback' : 'Customer feedback will appear after completed deliveries'}
+            {stats?.avgRating !== null && stats?.avgRating !== undefined
+              ? 'Customer feedback'
+              : 'Customer feedback will appear after completed deliveries'}
           </span>
         </div>
       </div>
@@ -436,17 +474,27 @@ export default function DeliveryDashboardPage() {
                       <div className="flex items-start gap-2">
                         <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0 mt-0.5" />
                         <div>
-                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Pickup</span>
-                          <span className="font-bold text-gray-900">{job.restaurantName || 'Restaurant Kitchen'}</span>
-                          <span className="text-[11px] text-gray-500 block truncate">{job.restaurantAddress}</span>
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">
+                            Pickup
+                          </span>
+                          <span className="font-bold text-gray-900">
+                            {job.restaurantName || 'Restaurant Kitchen'}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block truncate">
+                            {job.restaurantAddress}
+                          </span>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-2">
                         <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <div>
-                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Drop</span>
-                          <span className="font-bold text-gray-900">{job.customerAddress || 'Customer Destination'}</span>
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">
+                            Drop
+                          </span>
+                          <span className="font-bold text-gray-900">
+                            {job.customerAddress || 'Customer Destination'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -455,11 +503,14 @@ export default function DeliveryDashboardPage() {
                   <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2">
                     <div className="flex flex-col">
                       <span className="text-[11px] font-bold text-gray-500">
-                        Distance: {job.distanceKm != null ? `${job.distanceKm} km` : 'Distance unavailable'}
+                        Distance:{' '}
+                        {job.distanceKm != null ? `${job.distanceKm} km` : 'Distance unavailable'}
                       </span>
                       {job.offeredAt && (
                         <span className="text-[10px] text-gray-400">
-                          Offered {Math.floor((Date.now() - new Date(job.offeredAt).getTime()) / 60000)} mins ago
+                          Offered{' '}
+                          {Math.floor((Date.now() - new Date(job.offeredAt).getTime()) / 60000)}{' '}
+                          mins ago
                         </span>
                       )}
                     </div>

@@ -6,44 +6,73 @@ describe('AnalyticsService', () => {
   let service: AnalyticsService;
 
   const mockOrders = [
-    { totalAmount: 350, restaurantId: 'rest-1', orderNumber: 'ORD-001', createdAt: new Date(), status: 'DELIVERED', paymentMethod: 'ONLINE', restaurant: { name: 'Spice Garden' } },
-    { totalAmount: 200, restaurantId: 'rest-1', orderNumber: 'ORD-002', createdAt: new Date(), status: 'DELIVERED', paymentMethod: 'WALLET', restaurant: { name: 'Spice Garden' } },
-    { totalAmount: 150, restaurantId: 'rest-2', orderNumber: 'ORD-003', createdAt: new Date(), status: 'DELIVERED', paymentMethod: 'COD',    restaurant: { name: 'Pizza Paradise' } },
+    {
+      totalAmount: 350,
+      restaurantId: 'rest-1',
+      orderNumber: 'ORD-001',
+      createdAt: new Date(),
+      status: 'DELIVERED',
+      paymentMethod: 'ONLINE',
+      restaurant: { name: 'Spice Garden' },
+    },
+    {
+      totalAmount: 200,
+      restaurantId: 'rest-1',
+      orderNumber: 'ORD-002',
+      createdAt: new Date(),
+      status: 'DELIVERED',
+      paymentMethod: 'WALLET',
+      restaurant: { name: 'Spice Garden' },
+    },
+    {
+      totalAmount: 150,
+      restaurantId: 'rest-2',
+      orderNumber: 'ORD-003',
+      createdAt: new Date(),
+      status: 'DELIVERED',
+      paymentMethod: 'COD',
+      restaurant: { name: 'Pizza Paradise' },
+    },
   ];
 
   const makeAggregate = (sum: number, count: number) => ({
-    _sum:   { totalAmount: sum },
+    _sum: { totalAmount: sum },
     _count: { id: count },
-    _avg:   { totalAmount: sum / (count || 1) },
+    _avg: { totalAmount: sum / (count || 1) },
   });
 
   const mockPrisma = {
     order: {
-      count:     jest.fn().mockResolvedValue(5),
+      count: jest.fn().mockResolvedValue(5),
       aggregate: jest.fn().mockResolvedValue(makeAggregate(700, 3)),
-      findMany:  jest.fn().mockResolvedValue(mockOrders),
+      findMany: jest.fn().mockResolvedValue(mockOrders),
     },
-    customer:           { count: jest.fn().mockResolvedValue(120), findFirst: jest.fn() },
-    restaurant:         { count: jest.fn().mockResolvedValue(18), findUnique: jest.fn() },
-    driver:             { count: jest.fn().mockResolvedValue(35), findUnique: jest.fn().mockResolvedValue({ avgRating: 4.5, driverWallet: { balance: 1200 } }) },
-    settlement:         { count: jest.fn().mockResolvedValue(3) },
-    paymentRefund:      { aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 200 } }) },
-    restaurantReview:   { aggregate: jest.fn().mockResolvedValue({ _avg: { rating: 4.2 }, _count: { id: 12 } }) },
-    orderItem:          { groupBy: jest.fn().mockResolvedValue([]) },
+    customer: { count: jest.fn().mockResolvedValue(120), findFirst: jest.fn() },
+    restaurant: { count: jest.fn().mockResolvedValue(18), findUnique: jest.fn() },
+    driver: {
+      count: jest.fn().mockResolvedValue(35),
+      findUnique: jest.fn().mockResolvedValue({ avgRating: 4.5, driverWallet: { balance: 1200 } }),
+    },
+    settlement: { count: jest.fn().mockResolvedValue(3) },
+    paymentRefund: { aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 200 } }) },
+    restaurantReview: {
+      aggregate: jest.fn().mockResolvedValue({ _avg: { rating: 4.2 }, _count: { id: 12 } }),
+    },
+    orderItem: { groupBy: jest.fn().mockResolvedValue([]) },
     deliveryAssignment: { count: jest.fn().mockResolvedValue(10) },
-    wallet:             { findFirst: jest.fn().mockResolvedValue({ balance: 500 }), findUnique: jest.fn().mockResolvedValue({ balance: 200 }) },
-    category:           { findMany: jest.fn().mockResolvedValue([]) },
-    couponUsage:        { count: jest.fn().mockResolvedValue(2) },
-    referral:           { count: jest.fn().mockResolvedValue(1) },
-    $queryRaw:          jest.fn().mockResolvedValue([{ hour: 19, cnt: 45n }]),
+    wallet: {
+      findFirst: jest.fn().mockResolvedValue({ balance: 500 }),
+      findUnique: jest.fn().mockResolvedValue({ balance: 200 }),
+    },
+    category: { findMany: jest.fn().mockResolvedValue([]) },
+    couponUsage: { count: jest.fn().mockResolvedValue(2) },
+    referral: { count: jest.fn().mockResolvedValue(1) },
+    $queryRaw: jest.fn().mockResolvedValue([{ hour: 19, cnt: 45n }]),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AnalyticsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [AnalyticsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);
@@ -79,7 +108,7 @@ describe('AnalyticsService', () => {
   describe('getSalesReport', () => {
     it('should return total revenue summed from orders', async () => {
       const from = new Date('2026-07-01');
-      const to   = new Date('2026-07-31');
+      const to = new Date('2026-07-31');
       const report = await service.getSalesReport(from, to);
       expect(report.totalRevenue).toBe(700); // 350 + 200 + 150
       expect(report.rows).toHaveLength(3);

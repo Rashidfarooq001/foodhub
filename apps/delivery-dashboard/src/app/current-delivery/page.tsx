@@ -45,11 +45,11 @@ export default function CurrentDeliveryPage() {
 
     try {
       const res = await fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
-        cache: 'no-store'
+        cache: 'no-store',
       });
 
       if (!res.ok) {
@@ -234,7 +234,10 @@ export default function CurrentDeliveryPage() {
 
   const handleUnassignJob = async () => {
     if (!currentJob || !accessToken) return;
-    if (!confirm('Are you sure you want to unassign and release this active order back to the queue?')) return;
+    if (
+      !confirm('Are you sure you want to unassign and release this active order back to the queue?')
+    )
+      return;
     setIsSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/unassign`, {
@@ -272,7 +275,8 @@ export default function CurrentDeliveryPage() {
         <Navigation className="h-10 w-10 mx-auto text-gray-300 mb-1" />
         <h2 className="text-base font-black text-gray-900">No Active Delivery Job</h2>
         <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          You do not have any active delivery assigned. Head over to available orders to pick up a delivery request.
+          You do not have any active delivery assigned. Head over to available orders to pick up a
+          delivery request.
         </p>
       </div>
     );
@@ -286,12 +290,18 @@ export default function CurrentDeliveryPage() {
   const restaurantLng = currentJob.pickupLng || currentJob.restaurant?.longitude;
 
   // Active Target for Navigation depending on status
-  const targetLat = currentJob.status === 'ARRIVED_AT_RESTAURANT' || currentJob.status === 'OUT_FOR_DELIVERY' || currentJob.status === 'PICKED_UP'
-    ? destinationLat
-    : restaurantLat;
-  const targetLng = currentJob.status === 'ARRIVED_AT_RESTAURANT' || currentJob.status === 'OUT_FOR_DELIVERY' || currentJob.status === 'PICKED_UP'
-    ? destinationLng
-    : restaurantLng;
+  const targetLat =
+    currentJob.status === 'ARRIVED_AT_RESTAURANT' ||
+    currentJob.status === 'OUT_FOR_DELIVERY' ||
+    currentJob.status === 'PICKED_UP'
+      ? destinationLat
+      : restaurantLat;
+  const targetLng =
+    currentJob.status === 'ARRIVED_AT_RESTAURANT' ||
+    currentJob.status === 'OUT_FOR_DELIVERY' ||
+    currentJob.status === 'PICKED_UP'
+      ? destinationLng
+      : restaurantLng;
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-12">
@@ -314,7 +324,9 @@ export default function CurrentDeliveryPage() {
       <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div>
-            <span className="text-xs text-gray-400 font-bold uppercase block">Current Active Job</span>
+            <span className="text-xs text-gray-400 font-bold uppercase block">
+              Current Active Job
+            </span>
             <h1 className="text-lg sm:text-xl font-black text-gray-900">
               #{currentJob.orderNumber || currentJob.id.slice(0, 8)}
             </h1>
@@ -336,28 +348,48 @@ export default function CurrentDeliveryPage() {
 
         {/* Lifecycle Step Progress */}
         <div className="grid grid-cols-4 gap-1 text-center pt-1">
-          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
-            ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
-              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
-          }`}>
+          <div
+            className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+              [
+                'DRIVER_ASSIGNED',
+                'ARRIVED_AT_RESTAURANT',
+                'PICKED_UP',
+                'OUT_FOR_DELIVERY',
+                'DELIVERED',
+              ].includes(currentJob.status)
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-100 text-gray-400'
+            }`}
+          >
             1. Assigned
           </div>
-          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
-            ['ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
-              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
-          }`}>
+          <div
+            className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+              ['ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(
+                currentJob.status,
+              )
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-100 text-gray-400'
+            }`}
+          >
             2. Arrived
           </div>
-          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
-            ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
-              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
-          }`}>
+          <div
+            className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+              ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(currentJob.status)
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-100 text-gray-400'
+            }`}
+          >
             3. Picked Up
           </div>
-          <div className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
-            currentJob.status === 'DELIVERED'
-              ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
-          }`}>
+          <div
+            className={`p-1.5 rounded-xl text-[9px] font-black uppercase ${
+              currentJob.status === 'DELIVERED'
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-100 text-gray-400'
+            }`}
+          >
             4. Delivered
           </div>
         </div>
@@ -371,10 +403,16 @@ export default function CurrentDeliveryPage() {
               <Store className="h-4 w-4" />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 font-bold uppercase block">Pickup Location</span>
-              <h3 className="font-black text-sm text-gray-900">{currentJob.restaurantName || 'Restaurant Kitchen'}</h3>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                Pickup Location
+              </span>
+              <h3 className="font-black text-sm text-gray-900">
+                {currentJob.restaurantName || 'Restaurant Kitchen'}
+              </h3>
               <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
-                {currentJob.restaurantAddress || currentJob.restaurant?.address || 'Restaurant address in city'}
+                {currentJob.restaurantAddress ||
+                  currentJob.restaurant?.address ||
+                  'Restaurant address in city'}
               </p>
             </div>
           </div>
@@ -399,10 +437,16 @@ export default function CurrentDeliveryPage() {
               <User className="h-4 w-4" />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 font-bold uppercase block">Delivery Destination</span>
-              <h3 className="font-black text-sm text-gray-900">{currentJob.customerName || 'Customer'}</h3>
+              <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                Delivery Destination
+              </span>
+              <h3 className="font-black text-sm text-gray-900">
+                {currentJob.customerName || 'Customer'}
+              </h3>
               <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
-                {currentJob.customerAddress || currentJob.deliveryAddress?.formattedAddress || 'Customer delivery address'}
+                {currentJob.customerAddress ||
+                  currentJob.deliveryAddress?.formattedAddress ||
+                  'Customer delivery address'}
               </p>
             </div>
           </div>
@@ -497,7 +541,8 @@ export default function CurrentDeliveryPage() {
             <span>Step 3: Start Delivery Trip</span>
           </div>
           <p className="text-xs text-orange-800">
-            Package collected in delivery bag. Tap below to start your trip towards customer location.
+            Package collected in delivery bag. Tap below to start your trip towards customer
+            location.
           </p>
           <button
             onClick={handleStartDelivery}

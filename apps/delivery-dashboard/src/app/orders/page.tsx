@@ -69,7 +69,8 @@ export default function DeliveryOrdersPage() {
           <PackageCheck className="h-10 w-10 text-gray-300 mx-auto" />
           <p className="text-sm font-bold text-gray-700">No completed deliveries yet</p>
           <p className="text-xs text-gray-400 max-w-xs mx-auto">
-            Once you complete assigned customer delivery orders, your full trip receipts and payouts will appear here.
+            Once you complete assigned customer delivery orders, your full trip receipts and payouts
+            will appear here.
           </p>
         </div>
       ) : (
@@ -131,7 +132,9 @@ export default function DeliveryOrdersPage() {
                     <tr key={h.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4 font-black text-emerald-800">{h.orderNumber}</td>
                       <td className="px-6 py-4 font-bold text-gray-900">{h.restaurantName}</td>
-                      <td className="px-6 py-4 text-gray-500">{h.distanceKm ? `${h.distanceKm} km` : '—'}</td>
+                      <td className="px-6 py-4 text-gray-500">
+                        {h.distanceKm ? `${h.distanceKm} km` : '—'}
+                      </td>
                       <td className="px-6 py-4 font-black text-emerald-700">₹{h.riderPayout}</td>
                       <td className="px-6 py-4 text-gray-500">
                         {h.deliveredAt ? new Date(h.deliveredAt).toLocaleString() : '—'}

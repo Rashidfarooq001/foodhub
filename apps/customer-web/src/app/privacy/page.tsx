@@ -30,11 +30,15 @@ const API_BASE = getApiBaseUrl();
 export default function CustomerPrivacyCenterPage() {
   const { user, accessToken } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'consents' | 'requests' | 'complaints' | 'retention'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'consents' | 'requests' | 'complaints' | 'retention'
+  >('overview');
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   // Request Forms State
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
@@ -115,7 +119,9 @@ export default function CustomerPrivacyCenterPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showMsg('Your personal data archive was exported successfully in machine-readable JSON format.');
+      showMsg(
+        'Your personal data archive was exported successfully in machine-readable JSON format.',
+      );
     } catch (err: any) {
       showMsg(err.message || 'Export failed', true);
     } finally {
@@ -124,7 +130,11 @@ export default function CustomerPrivacyCenterPage() {
   };
 
   // Toggle Consent
-  const handleToggleConsent = async (consentType: string, currentGranted: boolean, purpose: string) => {
+  const handleToggleConsent = async (
+    consentType: string,
+    currentGranted: boolean,
+    purpose: string,
+  ) => {
     setActionLoading(true);
     try {
       let res;
@@ -223,7 +233,9 @@ export default function CustomerPrivacyCenterPage() {
         throw new Error(errJson.message || 'Failed to submit deletion request');
       }
 
-      showMsg('Account deletion & anonymization request submitted. Our compliance team will process it within statutory timelines.');
+      showMsg(
+        'Account deletion & anonymization request submitted. Our compliance team will process it within statutory timelines.',
+      );
       setShowDeletionModal(false);
       setDeletionConfirmText('');
       setDeletionReason('');
@@ -265,7 +277,9 @@ export default function CustomerPrivacyCenterPage() {
         throw new Error(errJson.message || 'Failed to submit complaint');
       }
 
-      showMsg('Grievance complaint submitted. You will receive an acknowledgement within 48 hours.');
+      showMsg(
+        'Grievance complaint submitted. You will receive an acknowledgement within 48 hours.',
+      );
       setShowComplaintModal(false);
       setComplaintSubject('');
       setComplaintDescription('');
@@ -290,9 +304,13 @@ export default function CustomerPrivacyCenterPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-4 lg:px-5 space-y-5">
           {/* Breadcrumbs */}
           <nav className="flex items-center space-x-2 text-xs font-semibold text-gray-500">
-            <Link href="/" className="hover:text-orange-600 transition">Home</Link>
+            <Link href="/" className="hover:text-orange-600 transition">
+              Home
+            </Link>
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-            <Link href="/profile" className="hover:text-orange-600 transition">My Account</Link>
+            <Link href="/profile" className="hover:text-orange-600 transition">
+              My Account
+            </Link>
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-orange-600 font-bold">Privacy &amp; Data Center</span>
           </nav>
@@ -308,7 +326,8 @@ export default function CustomerPrivacyCenterPage() {
                 Privacy &amp; Data Control Center
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Take control of your personal data. Export your records, manage optional processing consents, request data corrections, or exercise your statutory data deletion rights.
+                Take control of your personal data. Export your records, manage optional processing
+                consents, request data corrections, or exercise your statutory data deletion rights.
               </p>
             </div>
 
@@ -388,19 +407,33 @@ export default function CustomerPrivacyCenterPage() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-gray-400 font-semibold uppercase text-[10px]">Registered Name</span>
-                    <p className="font-bold text-gray-900 text-sm mt-0.5">{profileData?.fullName || 'Not set'}</p>
+                    <span className="text-gray-400 font-semibold uppercase text-[10px]">
+                      Registered Name
+                    </span>
+                    <p className="font-bold text-gray-900 text-sm mt-0.5">
+                      {profileData?.fullName || 'Not set'}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold uppercase text-[10px]">Verified Mobile</span>
-                    <p className="font-bold text-gray-900 text-sm mt-0.5">{profileData?.phone || 'Not set'}</p>
+                    <span className="text-gray-400 font-semibold uppercase text-[10px]">
+                      Verified Mobile
+                    </span>
+                    <p className="font-bold text-gray-900 text-sm mt-0.5">
+                      {profileData?.phone || 'Not set'}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold uppercase text-[10px]">Email Address</span>
-                    <p className="font-bold text-gray-900 text-sm mt-0.5">{profileData?.email || 'None'}</p>
+                    <span className="text-gray-400 font-semibold uppercase text-[10px]">
+                      Email Address
+                    </span>
+                    <p className="font-bold text-gray-900 text-sm mt-0.5">
+                      {profileData?.email || 'None'}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-semibold uppercase text-[10px]">Account Status</span>
+                    <span className="text-gray-400 font-semibold uppercase text-[10px]">
+                      Account Status
+                    </span>
                     <p className="font-bold text-emerald-700 text-sm mt-0.5 flex items-center gap-1">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Active
                     </p>
@@ -409,12 +442,20 @@ export default function CustomerPrivacyCenterPage() {
 
                 <div className="border-t border-gray-100 pt-4 grid grid-cols-2 gap-4 text-center">
                   <div className="p-3 bg-gray-50 rounded-2xl">
-                    <span className="text-[10px] uppercase font-bold text-gray-400">Saved Addresses</span>
-                    <p className="text-lg font-black text-gray-900">{profileData?.metrics?.savedAddresses || 0}</p>
+                    <span className="text-[10px] uppercase font-bold text-gray-400">
+                      Saved Addresses
+                    </span>
+                    <p className="text-lg font-black text-gray-900">
+                      {profileData?.metrics?.savedAddresses || 0}
+                    </p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-2xl">
-                    <span className="text-[10px] uppercase font-bold text-gray-400">Total Orders</span>
-                    <p className="text-lg font-black text-gray-900">{profileData?.metrics?.totalOrders || 0}</p>
+                    <span className="text-[10px] uppercase font-bold text-gray-400">
+                      Total Orders
+                    </span>
+                    <p className="text-lg font-black text-gray-900">
+                      {profileData?.metrics?.totalOrders || 0}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -460,8 +501,12 @@ export default function CustomerPrivacyCenterPage() {
                 </div>
 
                 <div className="border-t border-gray-100 pt-3 text-[11px] text-gray-500 space-y-1">
-                  <p><strong>Legal Framework:</strong> Digital Personal Data Protection Act, 2023</p>
-                  <p><strong>Grievance Email:</strong> businesscity05@gmail.com</p>
+                  <p>
+                    <strong>Legal Framework:</strong> Digital Personal Data Protection Act, 2023
+                  </p>
+                  <p>
+                    <strong>Grievance Email:</strong> businesscity05@gmail.com
+                  </p>
                 </div>
               </div>
             </div>
@@ -473,7 +518,8 @@ export default function CustomerPrivacyCenterPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-gray-900">Consent Management Dashboard</h3>
                 <p className="text-xs text-gray-600">
-                  Under the DPDP Act 2023, you can grant or withdraw consent for optional data processing purposes at any time.
+                  Under the DPDP Act 2023, you can grant or withdraw consent for optional data
+                  processing purposes at any time.
                 </p>
               </div>
 
@@ -482,10 +528,12 @@ export default function CustomerPrivacyCenterPage() {
                 <div className="pt-4 flex items-start justify-between gap-4">
                   <div className="space-y-1 max-w-xl">
                     <span className="text-xs font-black text-gray-900 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-orange-600" /> Terms &amp; Privacy Notice Acknowledgment
+                      <FileText className="h-4 w-4 text-orange-600" /> Terms &amp; Privacy Notice
+                      Acknowledgment
                     </span>
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Essential agreement required for account existence and core transactional food ordering services.
+                      Essential agreement required for account existence and core transactional food
+                      ordering services.
                     </p>
                   </div>
                   <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full shrink-0">
@@ -497,10 +545,12 @@ export default function CustomerPrivacyCenterPage() {
                 <div className="pt-4 flex items-start justify-between gap-4">
                   <div className="space-y-1 max-w-xl">
                     <span className="text-xs font-black text-gray-900 flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-orange-600" /> Location-Based Nearby Kitchen Discovery
+                      <MapPin className="h-4 w-4 text-orange-600" /> Location-Based Nearby Kitchen
+                      Discovery
                     </span>
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Allows using browser/device GPS coordinates to calculate delivery fees, store distance, and route eligible couriers.
+                      Allows using browser/device GPS coordinates to calculate delivery fees, store
+                      distance, and route eligible couriers.
                     </p>
                   </div>
                   <button
@@ -526,10 +576,12 @@ export default function CustomerPrivacyCenterPage() {
                 <div className="pt-4 flex items-start justify-between gap-4">
                   <div className="space-y-1 max-w-xl">
                     <span className="text-xs font-black text-gray-900 flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-orange-600" /> Promotional &amp; Seasonal Food Offers
+                      <Mail className="h-4 w-4 text-orange-600" /> Promotional &amp; Seasonal Food
+                      Offers
                     </span>
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Receive occasional SMS alerts for discount vouchers, festival menus, and local restaurant promotions in Bandipora.
+                      Receive occasional SMS alerts for discount vouchers, festival menus, and local
+                      restaurant promotions in Bandipora.
                     </p>
                   </div>
                   <button
@@ -555,10 +607,12 @@ export default function CustomerPrivacyCenterPage() {
                 <div className="pt-4 flex items-start justify-between gap-4">
                   <div className="space-y-1 max-w-xl">
                     <span className="text-xs font-black text-gray-900 flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-orange-600" /> Real-time Order Tracking Push Notifications
+                      <Bell className="h-4 w-4 text-orange-600" /> Real-time Order Tracking Push
+                      Notifications
                     </span>
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Receive instant live alerts when your order is accepted, preparing, dispatched, and out for delivery.
+                      Receive instant live alerts when your order is accepted, preparing,
+                      dispatched, and out for delivery.
                     </p>
                   </div>
                   <button
@@ -589,7 +643,9 @@ export default function CustomerPrivacyCenterPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-gray-900">Your Privacy Requests</h3>
-                  <p className="text-xs text-gray-600">Track the status of your data access, correction, and deletion requests.</p>
+                  <p className="text-xs text-gray-600">
+                    Track the status of your data access, correction, and deletion requests.
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -626,7 +682,9 @@ export default function CustomerPrivacyCenterPage() {
                     <tbody className="divide-y divide-gray-100">
                       {profileData?.recentRequests?.map((req: any) => (
                         <tr key={req.id}>
-                          <td className="p-3 font-mono text-gray-500">{req.id.substring(0, 8)}...</td>
+                          <td className="p-3 font-mono text-gray-500">
+                            {req.id.substring(0, 8)}...
+                          </td>
                           <td className="p-3 font-bold text-gray-900">{req.type}</td>
                           <td className="p-3">
                             <span
@@ -634,16 +692,21 @@ export default function CustomerPrivacyCenterPage() {
                                 req.status === 'COMPLETED'
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : req.status === 'REJECTED'
-                                  ? 'bg-rose-50 text-rose-700'
-                                  : 'bg-amber-50 text-amber-700'
+                                    ? 'bg-rose-50 text-rose-700'
+                                    : 'bg-amber-50 text-amber-700'
                               }`}
                             >
                               {req.status}
                             </span>
                           </td>
-                          <td className="p-3 text-gray-500">{new Date(req.createdAt).toLocaleDateString()}</td>
+                          <td className="p-3 text-gray-500">
+                            {new Date(req.createdAt).toLocaleDateString()}
+                          </td>
                           <td className="p-3 text-gray-600">
-                            {req.rejectionReason || req.responsePayload?.message || req.reason || 'Under review'}
+                            {req.rejectionReason ||
+                              req.responsePayload?.message ||
+                              req.reason ||
+                              'Under review'}
                           </td>
                         </tr>
                       ))}
@@ -659,8 +722,12 @@ export default function CustomerPrivacyCenterPage() {
             <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-black text-gray-900">Privacy Complaints &amp; Grievances</h3>
-                  <p className="text-xs text-gray-600">Submitted directly to Zayka Food Grievance Team (48-hour SLA).</p>
+                  <h3 className="text-lg font-black text-gray-900">
+                    Privacy Complaints &amp; Grievances
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    Submitted directly to Zayka Food Grievance Team (48-hour SLA).
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowComplaintModal(true)}
@@ -703,7 +770,9 @@ export default function CustomerPrivacyCenterPage() {
                               {c.status}
                             </span>
                           </td>
-                          <td className="p-3 text-gray-600">{c.resolution || 'Investigation in progress'}</td>
+                          <td className="p-3 text-gray-600">
+                            {c.resolution || 'Investigation in progress'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -717,9 +786,12 @@ export default function CustomerPrivacyCenterPage() {
           {activeTab === 'retention' && (
             <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-gray-900">Platform Data Retention Schedules</h3>
+                <h3 className="text-lg font-black text-gray-900">
+                  Platform Data Retention Schedules
+                </h3>
                 <p className="text-xs text-gray-600">
-                  Transparent schedules governing how long different categories of personal and commercial records are retained in compliance with Indian law.
+                  Transparent schedules governing how long different categories of personal and
+                  commercial records are retained in compliance with Indian law.
                 </p>
               </div>
 
@@ -756,7 +828,9 @@ export default function CustomerPrivacyCenterPage() {
               <h3 className="text-base font-black text-gray-900">Request Data Correction</h3>
               <form onSubmit={handleSubmitCorrection} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Select Field to Correct</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Select Field to Correct
+                  </label>
                   <select
                     value={correctionField}
                     onChange={(e) => setCorrectionField(e.target.value)}
@@ -780,7 +854,9 @@ export default function CustomerPrivacyCenterPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Reason for Correction</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Reason for Correction
+                  </label>
                   <textarea
                     rows={2}
                     value={correctionReason}
@@ -819,12 +895,15 @@ export default function CustomerPrivacyCenterPage() {
                 <h3>Request Account Erasure (DPDP Act)</h3>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Submitting this request permanently purges your customer profile, active login sessions, and saved delivery addresses. Non-personal financial order invoices will be retained for 8 years to comply with Indian GST laws.
+                Submitting this request permanently purges your customer profile, active login
+                sessions, and saved delivery addresses. Non-personal financial order invoices will
+                be retained for 8 years to comply with Indian GST laws.
               </p>
               <form onSubmit={handleSubmitDeletion} className="space-y-4 text-xs">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">
-                    Type <span className="font-mono text-rose-600">DELETE MY ACCOUNT</span> to confirm *
+                    Type <span className="font-mono text-rose-600">DELETE MY ACCOUNT</span> to
+                    confirm *
                   </label>
                   <input
                     type="text"
@@ -889,7 +968,9 @@ export default function CustomerPrivacyCenterPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Order Number (if applicable)</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Order Number (if applicable)
+                  </label>
                   <input
                     type="text"
                     value={complaintOrderNumber}
@@ -910,7 +991,9 @@ export default function CustomerPrivacyCenterPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Detailed Description *</label>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Detailed Description *
+                  </label>
                   <textarea
                     rows={4}
                     required

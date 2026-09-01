@@ -66,7 +66,11 @@ export const DeliverySidebar: React.FC<DeliverySidebarProps> = ({
               <Bike className="h-4 w-4" />
             </div>
             <div>
-              <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-7 w-auto object-contain" />
+              <img
+                src="/zaykafood-logo.png"
+                alt="ZaykaFood"
+                className="h-7 w-auto object-contain"
+              />
             </div>
           </Link>
 
@@ -116,8 +120,12 @@ export const DeliverySidebar: React.FC<DeliverySidebarProps> = ({
 
       {/* Driver Footer Card */}
       <div className="p-3.5 border-t border-gray-100 bg-emerald-50/40 rounded-2xl shrink-0">
-        <p className="text-xs font-bold text-gray-900 truncate">{user?.name || 'Courier Partner'}</p>
-        <p className="text-[10px] text-emerald-700 font-bold truncate">KA-01-HA-9821 (Active Driver)</p>
+        <p className="text-xs font-bold text-gray-900 truncate">
+          {user?.name || 'Courier Partner'}
+        </p>
+        <p className="text-[10px] text-emerald-700 font-bold truncate">
+          KA-01-HA-9821 (Active Driver)
+        </p>
       </div>
     </div>
   );

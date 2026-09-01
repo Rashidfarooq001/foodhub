@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const usersService = app.get(UsersService);
   const prisma = app.get(PrismaService);
-  
+
   // 1. Create User & Customer
   const user = await prisma.user.create({
     data: {
@@ -16,13 +16,13 @@ async function bootstrap() {
       passwordHash: 'hash',
       role: 'CUSTOMER',
       profile: { create: { firstName: 'Test', lastName: 'Delete' } },
-      customer: { create: {} }
+      customer: { create: {} },
     },
-    include: { customer: true }
+    include: { customer: true },
   });
-  
+
   console.log('Created User ID:', user.id);
-  
+
   // 2. Delete Customer
   try {
     await usersService.permanentlyDeleteCustomer(user.id);
@@ -30,11 +30,11 @@ async function bootstrap() {
   } catch (e) {
     console.error('Failed to delete:', e.message);
   }
-  
+
   // 3. Check if User exists
   const found = await prisma.user.findFirst({ where: { phone: '+919999999988' } });
   console.log('User found after delete?', !!found);
-  
+
   await app.close();
 }
 bootstrap();

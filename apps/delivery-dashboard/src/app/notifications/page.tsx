@@ -61,7 +61,12 @@ export default function DeliveryNotificationsPage() {
               const rest = item.restaurantName || 'Restaurant';
               const payout = item.riderPayout ? `₹${item.riderPayout}` : 'Earnings';
               const dateStr = item.deliveredAt
-                ? new Date(item.deliveredAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                ? new Date(item.deliveredAt).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
                 : 'Recently';
 
               list.push({
@@ -79,7 +84,8 @@ export default function DeliveryNotificationsPage() {
           list.push({
             id: 'notif-system-welcome',
             title: 'Courier Partner Connected',
-            message: 'Your delivery partner account is active and connected to the live dispatch system.',
+            message:
+              'Your delivery partner account is active and connected to the live dispatch system.',
             time: 'System',
             type: 'SYSTEM',
           });
@@ -118,7 +124,9 @@ export default function DeliveryNotificationsPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Bell className="mx-auto h-10 w-10 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No notifications yet</p>
-          <p className="text-xs text-gray-400">You will receive notifications here when jobs are assigned or completed.</p>
+          <p className="text-xs text-gray-400">
+            You will receive notifications here when jobs are assigned or completed.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -132,8 +140,8 @@ export default function DeliveryNotificationsPage() {
                   n.type === 'ACTIVE'
                     ? 'bg-amber-100 text-amber-700'
                     : n.type === 'PAYOUT'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-blue-100 text-blue-700'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-blue-100 text-blue-700'
                 }`}
               >
                 {n.type === 'ACTIVE' ? (

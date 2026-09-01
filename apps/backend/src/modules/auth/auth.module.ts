@@ -25,7 +25,21 @@ import { PermissionsModule } from '../permissions/permissions.module';
     PermissionsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AdminBootstrapService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
-  exports: [AuthService, AdminBootstrapService, JwtStrategy, JwtAuthGuard, RolesGuard, PermissionsGuard],
+  providers: [
+    AuthService,
+    AdminBootstrapService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
+  ],
+  exports: [
+    AuthService,
+    AdminBootstrapService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
+  ],
 })
 export class AuthModule {}

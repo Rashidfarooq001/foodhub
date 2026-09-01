@@ -28,14 +28,14 @@ Home Page
 
 ### API Endpoints
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/geo/search?q=` | Forward geocoding via Nominatim OSM | None |
-| `GET` | `/api/v1/geo/reverse?lat=&lng=` | Reverse geocoding | None |
-| `GET` | `/api/v1/geo/distance?fromLat&fromLng&toLat&toLng` | Haversine distance + ETA | None |
-| `GET` | `/api/v1/geo/nearby-restaurants?lat&lng&radius` | Restaurants near location | None |
-| `GET` | `/api/v1/geo/nearby-drivers?lat&lng` | Available drivers near location | JWT |
-| `POST` | `/api/v1/geo/validate-radius` | Check delivery address within radius | None |
+| Method | Endpoint                                           | Description                          | Auth |
+| ------ | -------------------------------------------------- | ------------------------------------ | ---- |
+| `GET`  | `/api/v1/geo/search?q=`                            | Forward geocoding via Nominatim OSM  | None |
+| `GET`  | `/api/v1/geo/reverse?lat=&lng=`                    | Reverse geocoding                    | None |
+| `GET`  | `/api/v1/geo/distance?fromLat&fromLng&toLat&toLng` | Haversine distance + ETA             | None |
+| `GET`  | `/api/v1/geo/nearby-restaurants?lat&lng&radius`    | Restaurants near location            | None |
+| `GET`  | `/api/v1/geo/nearby-drivers?lat&lng`               | Available drivers near location      | JWT  |
+| `POST` | `/api/v1/geo/validate-radius`                      | Check delivery address within radius | None |
 
 ### Haversine Formula
 
@@ -79,6 +79,7 @@ User Posts Code to Friend
 ```
 
 **Fraud Guards**:
+
 - `users.referral_code @unique` — no duplicate codes
 - `referrals.referee_id @unique` — one referral per new user
 - `referrer.id === referee.id` → 400 Bad Request
@@ -100,17 +101,18 @@ ValidateCoupon(code, customerId, subtotal)
 ```
 
 **Best-Coupon Suggestion Algorithm**:
+
 - Iterates all ACTIVE coupons ordered by `discountVal DESC`
 - Runs `validateCoupon` on each
 - Returns the highest `discountAmount` among valid coupons
 
 ### Loyalty Tier Logic
 
-| Tier | Required Points |
-|---|---|
-| SILVER | 0 – 499 |
-| GOLD | 500 – 1999 |
-| PLATINUM | 2000+ |
+| Tier     | Required Points |
+| -------- | --------------- |
+| SILVER   | 0 – 499         |
+| GOLD     | 500 – 1999      |
+| PLATINUM | 2000+           |
 
 Points: 1 point per ₹10 spent (to be implemented in order completion hook).
 
@@ -142,16 +144,16 @@ A restaurant with 3×5-star ratings scores lower than one with 300×4.5-star rat
 
 ### API Endpoints
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `POST` | `/api/v1/reviews/restaurant` | Submit restaurant review | JWT |
-| `POST` | `/api/v1/reviews/food` | Submit food item review | JWT |
-| `POST` | `/api/v1/reviews/driver` | Submit driver review | JWT |
-| `GET` | `/api/v1/reviews/restaurant/:id` | List restaurant reviews (paginated) | None |
-| `POST` | `/api/v1/reviews/:id/vote` | Helpful / not-helpful vote | JWT |
-| `POST` | `/api/v1/reviews/:id/report` | Report a review | JWT |
-| `POST` | `/api/v1/reviews/:id/reply` | Owner or admin reply | JWT |
-| `PATCH` | `/api/v1/reviews/:id/moderate` | Hide or delete (admin only) | JWT+ADMIN |
+| Method  | Endpoint                         | Description                         | Auth      |
+| ------- | -------------------------------- | ----------------------------------- | --------- |
+| `POST`  | `/api/v1/reviews/restaurant`     | Submit restaurant review            | JWT       |
+| `POST`  | `/api/v1/reviews/food`           | Submit food item review             | JWT       |
+| `POST`  | `/api/v1/reviews/driver`         | Submit driver review                | JWT       |
+| `GET`   | `/api/v1/reviews/restaurant/:id` | List restaurant reviews (paginated) | None      |
+| `POST`  | `/api/v1/reviews/:id/vote`       | Helpful / not-helpful vote          | JWT       |
+| `POST`  | `/api/v1/reviews/:id/report`     | Report a review                     | JWT       |
+| `POST`  | `/api/v1/reviews/:id/reply`      | Owner or admin reply                | JWT       |
+| `PATCH` | `/api/v1/reviews/:id/moderate`   | Hide or delete (admin only)         | JWT+ADMIN |
 
 ### Moderation Flow
 
@@ -172,31 +174,31 @@ moderate_review(reviewId, { action: 'DELETE' })
 
 ## NEW SCHEMA MODELS (Phase 14-16)
 
-| Model | Purpose |
-|---|---|
-| `ReviewVote` | Helpful/unhelpful vote per user per review |
-| `ReviewReport` | User-reported reviews pending moderation |
-| `ReviewReply` | Owner/admin text reply to a review |
+| Model            | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| `ReviewVote`     | Helpful/unhelpful vote per user per review   |
+| `ReviewReport`   | User-reported reviews pending moderation     |
+| `ReviewReply`    | Owner/admin text reply to a review           |
 | `CustomerPoints` | Loyalty points + tier (SILVER/GOLD/PLATINUM) |
 
 ### Schema Field Additions
 
-| Model | Field | Purpose |
-|---|---|---|
-| `User` | `referralCode String? @unique` | Phase 15 referral engine |
-| `Restaurant` | `deliveryRadius Float @default(5.0)` | Phase 14 radius validation |
-| `RestaurantReview` | `isAnonymous Boolean` | Phase 16 anonymous reviews |
-| `RestaurantReview` | `isHidden Boolean` | Phase 16 moderation |
-| `RestaurantReview` | `@@unique([orderId, customerId])` | One review per order constraint |
+| Model              | Field                                | Purpose                         |
+| ------------------ | ------------------------------------ | ------------------------------- |
+| `User`             | `referralCode String? @unique`       | Phase 15 referral engine        |
+| `Restaurant`       | `deliveryRadius Float @default(5.0)` | Phase 14 radius validation      |
+| `RestaurantReview` | `isAnonymous Boolean`                | Phase 16 anonymous reviews      |
+| `RestaurantReview` | `isHidden Boolean`                   | Phase 16 moderation             |
+| `RestaurantReview` | `@@unique([orderId, customerId])`    | One review per order constraint |
 
 ---
 
 ## MAP COMPONENTS
 
-| Component | Location | Description |
-|---|---|---|
-| `AddressPickerMap` | `customer-web/components/map/` | Draggable Leaflet marker + Nominatim search |
-| `NearbyRestaurantsMap` | `customer-web/components/map/` | Restaurant pins on OSM |
-| `DeliveryRouteMap` | `customer-web/components/map/` | Route polyline with driver live position |
+| Component              | Location                       | Description                                 |
+| ---------------------- | ------------------------------ | ------------------------------------------- |
+| `AddressPickerMap`     | `customer-web/components/map/` | Draggable Leaflet marker + Nominatim search |
+| `NearbyRestaurantsMap` | `customer-web/components/map/` | Restaurant pins on OSM                      |
+| `DeliveryRouteMap`     | `customer-web/components/map/` | Route polyline with driver live position    |
 
 All components use `import('leaflet')` dynamically (no SSR) and OpenStreetMap tiles.

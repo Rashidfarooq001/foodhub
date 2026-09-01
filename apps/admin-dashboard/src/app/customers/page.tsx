@@ -201,7 +201,9 @@ export default function AdminCustomersPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading customer directory...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading customer directory...
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No customers found matching search.
@@ -221,22 +223,32 @@ export default function AdminCustomersPage() {
                       <p className="text-[11px] text-gray-500 font-medium">{c.phone || c.email}</p>
                     </div>
 
-                    <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
-                      c.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'
-                    }`}>
+                    <span
+                      className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                        c.isActive
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-rose-100 text-rose-800 border-rose-200'
+                      }`}
+                    >
                       {c.isActive ? 'Active' : 'Suspended'}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Orders Placed</span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                        Orders Placed
+                      </span>
                       <span className="font-bold text-gray-900">{c.totalOrders} Orders</span>
                     </div>
 
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Total Spent</span>
-                      <span className="font-black text-purple-700">₹{c.totalSpent.toLocaleString()}</span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                        Total Spent
+                      </span>
+                      <span className="font-black text-purple-700">
+                        ₹{c.totalSpent.toLocaleString()}
+                      </span>
                     </div>
                   </div>
 
@@ -244,21 +256,35 @@ export default function AdminCustomersPage() {
                   <div className="pt-2 border-t border-gray-100 flex gap-2">
                     {c.isActive ? (
                       <button
-                        onClick={() => setActiveModal({ type: 'SUSPEND', userId: c.userId, customerName: c.name })}
+                        onClick={() =>
+                          setActiveModal({
+                            type: 'SUSPEND',
+                            userId: c.userId,
+                            customerName: c.name,
+                          })
+                        }
                         className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
                       >
                         Suspend
                       </button>
                     ) : (
                       <button
-                        onClick={() => setActiveModal({ type: 'REACTIVATE', userId: c.userId, customerName: c.name })}
+                        onClick={() =>
+                          setActiveModal({
+                            type: 'REACTIVATE',
+                            userId: c.userId,
+                            customerName: c.name,
+                          })
+                        }
                         className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-black text-white min-h-[40px]"
                       >
                         Reactivate
                       </button>
                     )}
                     <button
-                      onClick={() => setActiveModal({ type: 'DELETE', userId: c.userId, customerName: c.name })}
+                      onClick={() =>
+                        setActiveModal({ type: 'DELETE', userId: c.userId, customerName: c.name })
+                      }
                       className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-2.5 text-xs font-black text-white min-h-[40px]"
                     >
                       Delete
@@ -289,32 +315,56 @@ export default function AdminCustomersPage() {
                       <td className="py-3 text-gray-600">{c.phone}</td>
                       <td className="py-3 text-gray-500">{c.email || '-'}</td>
                       <td className="py-3 font-bold text-gray-800">{c.totalOrders}</td>
-                      <td className="py-3 font-black text-purple-700">₹{c.totalSpent.toLocaleString()}</td>
+                      <td className="py-3 font-black text-purple-700">
+                        ₹{c.totalSpent.toLocaleString()}
+                      </td>
                       <td className="py-3">
-                        <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
-                          c.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'
-                        }`}>
+                        <span
+                          className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                            c.isActive
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border-rose-200'
+                          }`}
+                        >
                           {c.isActive ? 'Active' : 'Suspended'}
                         </span>
                       </td>
                       <td className="py-3 text-right space-x-1.5">
                         {c.isActive ? (
                           <button
-                            onClick={() => setActiveModal({ type: 'SUSPEND', userId: c.userId, customerName: c.name })}
+                            onClick={() =>
+                              setActiveModal({
+                                type: 'SUSPEND',
+                                userId: c.userId,
+                                customerName: c.name,
+                              })
+                            }
                             className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                           >
                             Suspend
                           </button>
                         ) : (
                           <button
-                            onClick={() => setActiveModal({ type: 'REACTIVATE', userId: c.userId, customerName: c.name })}
+                            onClick={() =>
+                              setActiveModal({
+                                type: 'REACTIVATE',
+                                userId: c.userId,
+                                customerName: c.name,
+                              })
+                            }
                             className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
                           >
                             Reactivate
                           </button>
                         )}
                         <button
-                          onClick={() => setActiveModal({ type: 'DELETE', userId: c.userId, customerName: c.name })}
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'DELETE',
+                              userId: c.userId,
+                              customerName: c.name,
+                            })
+                          }
                           className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white hover:bg-rose-700 inline-flex items-center gap-1"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -358,7 +408,10 @@ export default function AdminCustomersPage() {
               {activeModal.type === 'DELETE' && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
                   <p className="font-bold">WARNING</p>
-                  <p className="text-[11px] text-rose-600">This action cannot be undone. The customer's account and active operational data will be permanently removed from the platform.</p>
+                  <p className="text-[11px] text-rose-600">
+                    This action cannot be undone. The customer's account and active operational data
+                    will be permanently removed from the platform.
+                  </p>
                 </div>
               )}
 
@@ -394,7 +447,11 @@ export default function AdminCustomersPage() {
                       : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
                   }`}
                 >
-                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'DELETE PERMANENTLY' : 'Confirm Status Change'}
+                  {isProcessing
+                    ? 'Processing...'
+                    : activeModal.type === 'DELETE'
+                      ? 'DELETE PERMANENTLY'
+                      : 'Confirm Status Change'}
                 </button>
               </div>
             </form>

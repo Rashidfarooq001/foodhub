@@ -26,10 +26,7 @@ describe('PaymentsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PaymentsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [PaymentsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<PaymentsService>(PaymentsService);
@@ -47,19 +44,19 @@ describe('PaymentsService', () => {
         status: 'PENDING',
       });
       const result = await service.verifyPayment({
-        razorpayOrderId:  'order_fake',
-        razorpayPaymentId:'pay_fake',
-        razorpaySignature:'tampered_sig_that_should_fail',
+        razorpayOrderId: 'order_fake',
+        razorpayPaymentId: 'pay_fake',
+        razorpaySignature: 'tampered_sig_that_should_fail',
       });
       expect(result).toHaveProperty('message');
     });
 
     it('should accept a valid signature', async () => {
       const secret = process.env['RAZORPAY_KEY_SECRET'] ?? 'placeholder_secret';
-      const rzpOrderId   = 'order_test_123';
+      const rzpOrderId = 'order_test_123';
       const rzpPaymentId = 'pay_test_456';
-      const body         = `${rzpOrderId}|${rzpPaymentId}`;
-      const validSig     = crypto.createHmac('sha256', secret).update(body).digest('hex');
+      const body = `${rzpOrderId}|${rzpPaymentId}`;
+      const validSig = crypto.createHmac('sha256', secret).update(body).digest('hex');
 
       mockPrisma.payment.findUnique.mockResolvedValueOnce({
         id: 'payment-1',
@@ -69,7 +66,7 @@ describe('PaymentsService', () => {
       });
 
       const result = await service.verifyPayment({
-        razorpayOrderId:  rzpOrderId,
+        razorpayOrderId: rzpOrderId,
         razorpayPaymentId: rzpPaymentId,
         razorpaySignature: validSig,
       });

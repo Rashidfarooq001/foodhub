@@ -4,7 +4,8 @@ import { HotelAuthWrapper } from '../components/layout/HotelAuthWrapper';
 
 export const metadata: Metadata = {
   title: 'ZaykaFood Restaurant & Kitchen Dashboard',
-  description: 'ZaykaFood merchant portal for live KDS order management, menu availability, pricing and revenue analytics.',
+  description:
+    'ZaykaFood merchant portal for live KDS order management, menu availability, pricing and revenue analytics.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -12,11 +13,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full">
       <head>

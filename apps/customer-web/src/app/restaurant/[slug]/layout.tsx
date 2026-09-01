@@ -116,12 +116,13 @@ export default async function RestaurantLayout({
   const cuisines = Array.isArray(restaurantData?.cuisines)
     ? restaurantData.cuisines
     : typeof restaurantData?.cuisines === 'string'
-    ? restaurantData.cuisines.split(',').map((c: string) => c.trim())
-    : ['Multi-Cuisine'];
+      ? restaurantData.cuisines.split(',').map((c: string) => c.trim())
+      : ['Multi-Cuisine'];
   const address = restaurantData?.addressLine || restaurantData?.address || 'Kashmir, India';
-  const banner = restaurantData?.bannerUrl || restaurantData?.logoUrl
-    ? getImageUrl(restaurantData.bannerUrl || restaurantData.logoUrl)
-    : `${baseUrl}/icon.png`;
+  const banner =
+    restaurantData?.bannerUrl || restaurantData?.logoUrl
+      ? getImageUrl(restaurantData.bannerUrl || restaurantData.logoUrl)
+      : `${baseUrl}/icon.png`;
 
   const restaurantSchema: Record<string, any> = {
     '@context': 'https://schema.org',
@@ -146,7 +147,11 @@ export default async function RestaurantLayout({
     restaurantSchema.priceRange = `₹₹ (₹${restaurantData.priceForTwo} for two)`;
   }
 
-  if (restaurantData?.avgRating && Number(restaurantData.avgRating) > 0 && restaurantData?.ratingCount) {
+  if (
+    restaurantData?.avgRating &&
+    Number(restaurantData.avgRating) > 0 &&
+    restaurantData?.ratingCount
+  ) {
     restaurantSchema.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: Number(restaurantData.avgRating).toFixed(1),

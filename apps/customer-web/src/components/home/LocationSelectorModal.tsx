@@ -11,7 +11,13 @@ interface LocationSelectorModalProps {
   onClose: () => void;
   currentLocality?: string;
   currentAddress?: string;
-  onSelectLocation: (loc: { label: string; address: string; lat: number; lng: number; locationSource: string }) => void;
+  onSelectLocation: (loc: {
+    label: string;
+    address: string;
+    lat: number;
+    lng: number;
+    locationSource: string;
+  }) => void;
 }
 
 export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
@@ -20,7 +26,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   onSelectLocation,
 }) => {
   const { status, coordinates, addressData, error, requestLocation } = useGeolocation();
-  
+
   const [manualAddress, setManualAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
   const [resolveError, setResolveError] = useState('');
@@ -28,8 +34,12 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   // 1. Current GPS Location Handler
   useEffect(() => {
     if (status === 'granted' && coordinates && addressData) {
-      const specificName = addressData.locality || addressData.subDistrict || addressData.district || 'Current Location';
-      
+      const specificName =
+        addressData.locality ||
+        addressData.subDistrict ||
+        addressData.district ||
+        'Current Location';
+
       const gpsAddr: CustomerAddressItem = {
         id: 'current-gps',
         label: 'Current Location',
@@ -55,7 +65,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
         lng: coordinates.longitude,
         locationSource: 'CURRENT_GPS',
       });
-      
+
       onClose(); // Auto-close on success
     }
   }, [status, coordinates, addressData, onSelectLocation, onClose]);
@@ -67,7 +77,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   // 2. Manual Address Handler (Resolves via Mappls Backend)
   const handleConfirmManualAddress = async () => {
     if (!manualAddress.trim()) return;
-    
+
     setIsResolving(true);
     setResolveError('');
 
@@ -75,7 +85,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
       const res = await fetch(`${API_BASE}/location/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: manualAddress.trim() })
+        body: JSON.stringify({ query: manualAddress.trim() }),
       });
       const data = await res.json();
 
@@ -107,13 +117,15 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           lng: data.longitude,
           locationSource: 'MANUAL_GEOCODED',
         });
-        
+
         onClose(); // Automatically close after successful resolution
       } else {
-        setResolveError(data.message || "Couldn't verify this location. Please enter a more specific address.");
+        setResolveError(
+          data.message || "Couldn't verify this location. Please enter a more specific address.",
+        );
       }
     } catch (err) {
-      setResolveError("Network error while verifying location. Please try again.");
+      setResolveError('Network error while verifying location. Please try again.');
     } finally {
       setIsResolving(false);
     }
@@ -150,14 +162,14 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
                 <p className="text-[11px] text-gray-500 font-medium truncate">Use device GPS</p>
               </div>
             </button>
-            {error && (
-              <p className="mt-1.5 text-[11px] font-bold text-red-500 px-1">{error}</p>
-            )}
+            {error && <p className="mt-1.5 text-[11px] font-bold text-red-500 px-1">{error}</p>}
           </div>
 
           <div className="flex items-center gap-2 px-2">
             <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              OR
+            </span>
             <div className="h-px flex-1 bg-gray-100" />
           </div>
 
@@ -180,7 +192,9 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
               {isResolving ? 'Verifying location...' : 'Save Location'}
             </button>
             {resolveError && (
-              <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">{resolveError}</p>
+              <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">
+                {resolveError}
+              </p>
             )}
           </div>
         </div>

@@ -1,7 +1,16 @@
 ﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ShoppingBag, CheckCircle2, Clock, Truck, XCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  ShoppingBag,
+  CheckCircle2,
+  Clock,
+  Truck,
+  XCircle,
+  ArrowRight,
+  ShieldCheck,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useAuthStore } from '../../stores/use-auth-store';
 import Link from 'next/link';
@@ -15,7 +24,14 @@ interface NotificationItem {
   title: string;
   message: string;
   time: string;
-  type: 'PLACED' | 'ACCEPTED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'SECURITY';
+  type:
+    | 'PLACED'
+    | 'ACCEPTED'
+    | 'PREPARING'
+    | 'OUT_FOR_DELIVERY'
+    | 'DELIVERED'
+    | 'CANCELLED'
+    | 'SECURITY';
   isRead: boolean;
 }
 
@@ -39,17 +55,20 @@ export default function NotificationsPage() {
 
         if (res.ok) {
           const ordersData = await res.json();
-          const orders = Array.isArray(ordersData) ? ordersData : ordersData.orders ?? [];
+          const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders ?? []);
 
           const list: NotificationItem[] = [];
 
           orders.slice(0, 15).forEach((o: any) => {
             const num = o.orderNumber || o.id.slice(0, 8);
             const restName = o.restaurant?.name || 'Restaurant';
-            const dateStr = new Date(o.createdAt || o.placedAt || Date.now()).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
+            const dateStr = new Date(o.createdAt || o.placedAt || Date.now()).toLocaleTimeString(
+              [],
+              {
+                hour: '2-digit',
+                minute: '2-digit',
+              },
+            );
 
             if (o.status === 'DELIVERED') {
               list.push({
@@ -114,7 +133,8 @@ export default function NotificationsPage() {
             list.push({
               id: 'notif-security-welcome',
               title: 'Account Protected',
-              message: 'Your Zayka Food account is secured with verified device session encryption.',
+              message:
+                'Your Zayka Food account is secured with verified device session encryption.',
               time: 'Recent',
               type: 'SECURITY',
               isRead: true,
@@ -170,7 +190,9 @@ export default function NotificationsPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Bell className="mx-auto h-10 w-10 text-gray-300" />
           <p className="text-base font-bold text-gray-700">You&apos;re all caught up</p>
-          <p className="text-xs text-gray-400">You don&apos;t have any unread notifications right now.</p>
+          <p className="text-xs text-gray-400">
+            You don&apos;t have any unread notifications right now.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -180,13 +202,23 @@ export default function NotificationsPage() {
             const isCancelled = n.type === 'CANCELLED';
             const isSecurity = n.type === 'SECURITY';
 
-            const Icon = isDelivered ? CheckCircle2 : isOfd ? Truck : isCancelled ? XCircle : isSecurity ? ShieldCheck : Clock;
+            const Icon = isDelivered
+              ? CheckCircle2
+              : isOfd
+                ? Truck
+                : isCancelled
+                  ? XCircle
+                  : isSecurity
+                    ? ShieldCheck
+                    : Clock;
 
             return (
               <div
                 key={n.id}
                 className={`flex items-start gap-4 rounded-2xl border p-4 transition shadow-xs ${
-                  n.isRead ? 'border-gray-100 bg-white' : 'border-rose-100 bg-rose-50/40 ring-1 ring-rose-200/50'
+                  n.isRead
+                    ? 'border-gray-100 bg-white'
+                    : 'border-rose-100 bg-rose-50/40 ring-1 ring-rose-200/50'
                 }`}
               >
                 <div
@@ -194,19 +226,21 @@ export default function NotificationsPage() {
                     isDelivered
                       ? 'bg-emerald-100 text-emerald-600'
                       : isOfd
-                      ? 'bg-rose-100 text-rose-600'
-                      : isCancelled
-                      ? 'bg-rose-100 text-rose-600'
-                      : isSecurity
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'bg-orange-100 text-orange-600'
+                        ? 'bg-rose-100 text-rose-600'
+                        : isCancelled
+                          ? 'bg-rose-100 text-rose-600'
+                          : isSecurity
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-orange-100 text-orange-600'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex justify-between items-center gap-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate">{n.title}</h4>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+                      {n.title}
+                    </h4>
                     <span className="text-[10px] text-gray-400 shrink-0">{n.time}</span>
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>

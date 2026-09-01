@@ -18,7 +18,9 @@ async function main() {
 
   console.log('--- RECENT USERS IN DB ---');
   users.forEach((u) => {
-    console.log(`ID: ${u.id} | Phone: "${u.phone}" | Role: ${u.role} | Verified: ${u.isVerified} | Active: ${u.isActive}`);
+    console.log(
+      `ID: ${u.id} | Phone: "${u.phone}" | Role: ${u.role} | Verified: ${u.isVerified} | Active: ${u.isActive}`,
+    );
   });
 }
 

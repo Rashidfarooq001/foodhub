@@ -108,7 +108,9 @@ export default function HotelInventoryPage() {
       <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Inventory & Stock Control</h1>
-          <p className="text-xs text-gray-500">Track real-time stock levels, live kitchen availability & auto-disabled dishes</p>
+          <p className="text-xs text-gray-500">
+            Track real-time stock levels, live kitchen availability & auto-disabled dishes
+          </p>
         </div>
       </div>
 
@@ -120,7 +122,9 @@ export default function HotelInventoryPage() {
         <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Package className="mx-auto h-12 w-12 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No menu items found</p>
-          <p className="text-xs text-gray-400">Add dishes in the Menu Catalog to manage their stock and kitchen availability.</p>
+          <p className="text-xs text-gray-400">
+            Add dishes in the Menu Catalog to manage their stock and kitchen availability.
+          </p>
         </div>
       ) : (
         <div className="overflow-hidden overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm">
@@ -165,8 +169,8 @@ export default function HotelInventoryPage() {
                       {togglingId === item.id
                         ? 'Updating...'
                         : item.isAvailable
-                        ? 'Mark Sold Out'
-                        : 'Mark Available'}
+                          ? 'Mark Sold Out'
+                          : 'Mark Available'}
                     </button>
                   </td>
                 </tr>

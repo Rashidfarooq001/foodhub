@@ -15,7 +15,12 @@ import { PrivacyService } from './privacy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole, PrivacyRequestType, PrivacyRequestStatus, ComplaintStatus } from '@prisma/client';
+import {
+  UserRole,
+  PrivacyRequestType,
+  PrivacyRequestStatus,
+  ComplaintStatus,
+} from '@prisma/client';
 import {
   UpdatePrivacyRequestDto,
   UpdatePrivacyComplaintDto,
@@ -48,7 +53,13 @@ export class AdminPrivacyController {
     @Ip() ip: string,
     @Headers('user-agent') ua: string,
   ) {
-    const updated = await this.privacyService.adminUpdatePrivacyRequest(id, dto, req.user.id, ip, ua);
+    const updated = await this.privacyService.adminUpdatePrivacyRequest(
+      id,
+      dto,
+      req.user.id,
+      ip,
+      ua,
+    );
     return { success: true, updated };
   }
 
@@ -108,7 +119,13 @@ export class AdminPrivacyController {
     @Ip() ip: string,
     @Headers('user-agent') ua: string,
   ) {
-    const updated = await this.privacyService.adminUpdateBreachIncident(id, dto, req.user.id, ip, ua);
+    const updated = await this.privacyService.adminUpdateBreachIncident(
+      id,
+      dto,
+      req.user.id,
+      ip,
+      ua,
+    );
     return { success: true, updated };
   }
 
@@ -188,10 +205,7 @@ export class AdminPrivacyController {
   }
 
   @Post('retention/cleanup')
-  async triggerRetention(
-    @Body() dto: TriggerRetentionCleanupDto,
-    @Req() req: any,
-  ) {
+  async triggerRetention(@Body() dto: TriggerRetentionCleanupDto, @Req() req: any) {
     const result = await this.privacyService.triggerRetentionCleanup(req.user.id, dto.categories);
     return { success: true, ...result };
   }

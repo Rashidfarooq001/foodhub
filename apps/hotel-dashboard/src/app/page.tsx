@@ -12,14 +12,7 @@ import {
   MenuSquare,
   Sparkles,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 
 import { useKitchenStore } from '../stores/use-kitchen-store';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
@@ -83,21 +76,17 @@ export default function HotelDashboardPage() {
         ]);
 
         if (configRes && configRes.ok) {
-            const configData = await configRes.json();
-            if (configData.foodGstRate) setGstRate(configData.foodGstRate);
-          }
-          if (statsRes.ok) {
+          const configData = await configRes.json();
+          if (configData.foodGstRate) setGstRate(configData.foodGstRate);
+        }
+        if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
         }
 
         if (ordersRes.ok) {
           const ordersData = await ordersRes.json();
-          setQueue(
-            Array.isArray(ordersData)
-              ? ordersData
-              : ordersData.orders ?? [],
-          );
+          setQueue(Array.isArray(ordersData) ? ordersData : (ordersData.orders ?? []));
         }
       } catch (err) {
         console.error('Dashboard loading failed:', err);
@@ -137,8 +126,12 @@ export default function HotelDashboardPage() {
       {isPendingApproval && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4 text-xs font-bold text-amber-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="font-black text-amber-800 uppercase tracking-wider text-[10px] block">Application Status</span>
-            <span>Your restaurant application is currently pending administrator verification.</span>
+            <span className="font-black text-amber-800 uppercase tracking-wider text-[10px] block">
+              Application Status
+            </span>
+            <span>
+              Your restaurant application is currently pending administrator verification.
+            </span>
           </div>
           <span className="rounded-xl bg-amber-200 px-3 py-1 text-[10px] font-black text-amber-900 self-start sm:self-auto">
             PENDING APPROVAL
@@ -149,8 +142,13 @@ export default function HotelDashboardPage() {
       {isSuspended && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 sm:p-4 text-xs font-bold text-rose-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="font-black text-rose-800 uppercase tracking-wider text-[10px] block">Account Status</span>
-            <span>Your restaurant has been suspended. You cannot accept new orders. Please contact support.</span>
+            <span className="font-black text-rose-800 uppercase tracking-wider text-[10px] block">
+              Account Status
+            </span>
+            <span>
+              Your restaurant has been suspended. You cannot accept new orders. Please contact
+              support.
+            </span>
           </div>
           <span className="rounded-xl bg-rose-200 px-3 py-1 text-[10px] font-black text-rose-900 self-start sm:self-auto">
             SUSPENDED
@@ -161,7 +159,9 @@ export default function HotelDashboardPage() {
       {isRejected && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-3.5 sm:p-4 text-xs font-bold text-red-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="font-black text-red-800 uppercase tracking-wider text-[10px] block">Application Status</span>
+            <span className="font-black text-red-800 uppercase tracking-wider text-[10px] block">
+              Application Status
+            </span>
             <span>Your application has been rejected by administration.</span>
           </div>
           <span className="rounded-xl bg-red-200 px-3 py-1 text-[10px] font-black text-red-900 self-start sm:self-auto">
@@ -228,23 +228,25 @@ export default function HotelDashboardPage() {
         <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">TODAY SALES</span>
+              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">
+                TODAY SALES
+              </span>
               <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
             </div>
             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2">
               ₹{kpi.todayRevenue.toLocaleString()}
             </h2>
           </div>
-          <p className="mt-2 text-[10px] sm:text-xs font-bold text-emerald-600">
-            Gross food sales
-          </p>
+          <p className="mt-2 text-[10px] sm:text-xs font-bold text-emerald-600">Gross food sales</p>
         </div>
 
         {/* Today Orders */}
         <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">TODAY ORDERS</span>
+              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">
+                TODAY ORDERS
+              </span>
               <ShoppingBag className="h-6 w-6 sm:h-8 sm:w-8 rounded-xl bg-orange-50 p-1.5 text-orange-600" />
             </div>
             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2">
@@ -260,7 +262,9 @@ export default function HotelDashboardPage() {
         <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">ACTIVE QUEUE</span>
+              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">
+                ACTIVE QUEUE
+              </span>
               <Clock className="h-6 w-6 sm:h-8 sm:w-8 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
             </div>
             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2">
@@ -276,7 +280,9 @@ export default function HotelDashboardPage() {
         <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">AVG RATING</span>
+              <span className="text-[10px] sm:text-xs font-black uppercase text-gray-400">
+                AVG RATING
+              </span>
               <Star className="h-6 w-6 sm:h-8 sm:w-8 rounded-xl bg-amber-50 p-1.5 text-amber-500" />
             </div>
             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2">
@@ -311,25 +317,37 @@ export default function HotelDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 text-xs pt-1">
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
             <span className="text-[9px] font-bold text-gray-400 uppercase block">Today Sales</span>
-            <span className="text-base sm:text-lg font-black text-gray-900">₹{kpi.todayRevenue.toLocaleString()}</span>
+            <span className="text-base sm:text-lg font-black text-gray-900">
+              ₹{kpi.todayRevenue.toLocaleString()}
+            </span>
             <span className="text-[9px] text-gray-400 block">Food subtotal</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-teal-700 uppercase block">Sec 9(5) GST ({gstRate}%)</span>
-            <span className="text-base sm:text-lg font-black text-teal-800">₹{Math.round(kpi.todayRevenue * (gstRate / 100)).toLocaleString()}</span>
+            <span className="text-[9px] font-bold text-teal-700 uppercase block">
+              Sec 9(5) GST ({gstRate}%)
+            </span>
+            <span className="text-base sm:text-lg font-black text-teal-800">
+              ₹{Math.round(kpi.todayRevenue * (gstRate / 100)).toLocaleString()}
+            </span>
             <span className="text-[9px] text-teal-600 font-bold block">Remitted by ZaykaFood</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-orange-700 uppercase block">Commission Rate</span>
+            <span className="text-[9px] font-bold text-orange-700 uppercase block">
+              Commission Rate
+            </span>
             <span className="text-base sm:text-lg font-black text-orange-800">Dynamic</span>
             <span className="text-[9px] text-orange-600 block">Contracted Rate</span>
           </div>
 
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-emerald-700 uppercase block">Net Payout</span>
-            <span className="text-base sm:text-lg font-black text-emerald-800">₹{kpi.todayRevenue.toLocaleString()}</span>
+            <span className="text-[9px] font-bold text-emerald-700 uppercase block">
+              Net Payout
+            </span>
+            <span className="text-base sm:text-lg font-black text-emerald-800">
+              ₹{kpi.todayRevenue.toLocaleString()}
+            </span>
             <span className="text-[9px] text-emerald-600 font-bold block">To Bank Account</span>
           </div>
         </div>
@@ -382,18 +400,21 @@ export default function HotelDashboardPage() {
                     <span className="font-black text-xs sm:text-sm text-gray-900">
                       #{order.orderNumber || order.id.slice(0, 8)}
                     </span>
-                    <span className={`rounded-xl px-2 py-0.5 text-[9px] font-black uppercase ${
-                      order.status === 'PENDING'
-                        ? 'bg-amber-100 text-amber-800'
-                        : order.status === 'PREPARING'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-emerald-100 text-emerald-800'
-                    }`}>
+                    <span
+                      className={`rounded-xl px-2 py-0.5 text-[9px] font-black uppercase ${
+                        order.status === 'PENDING'
+                          ? 'bg-amber-100 text-amber-800'
+                          : order.status === 'PREPARING'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                      }`}
+                    >
                       {order.status}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 truncate max-w-[200px]">
-                    {order.customerName || 'Customer'} • ₹{order.totalAmount || order.payableAmount || 0}
+                    {order.customerName || 'Customer'} • ₹
+                    {order.totalAmount || order.payableAmount || 0}
                   </p>
                 </div>
 

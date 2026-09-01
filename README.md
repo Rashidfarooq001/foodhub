@@ -7,6 +7,7 @@ FoodHub is a hyper-local multi-restaurant food ordering and delivery ecosystem b
 The ecosystem comprises 5 applications and 6 shared packages:
 
 ### Applications (`apps/`)
+
 - `customer-web`: Next.js 15 App Router Customer Web App (Port 3000)
 - `hotel-dashboard`: Next.js 15 App Router Kitchen Display & Management (Port 3001)
 - `delivery-dashboard`: Next.js 15 App Router Driver PWA (Port 3002)
@@ -14,6 +15,7 @@ The ecosystem comprises 5 applications and 6 shared packages:
 - `backend`: NestJS 10 REST & WebSockets API Gateway (Port 4000)
 
 ### Shared Packages (`packages/`)
+
 - `@foodhub/ui`: Shared Tailwind CSS & shadcn/ui React components
 - `@foodhub/types`: Shared Zod schemas, TypeScript interfaces & Enums
 - `@foodhub/config`: Shared environment configuration & system constants
@@ -24,11 +26,13 @@ The ecosystem comprises 5 applications and 6 shared packages:
 ## Quick Start Guide
 
 ### Prerequisites
+
 - Node.js >= 20.0.0
 - pnpm >= 9.0.0
 - Docker & Docker Compose (Optional for local Postgres/Redis/Nginx)
 
 ### Installation
+
 ```bash
 # Clone the repository and install dependencies
 pnpm install
@@ -41,6 +45,7 @@ pnpm dev
 ```
 
 ## Local Development Localhost Ports
+
 - Customer Web: `http://localhost:3000`
 - Hotel Dashboard: `http://localhost:3001`
 - Delivery Dashboard: `http://localhost:3002`
@@ -49,6 +54,7 @@ pnpm dev
 - Swagger Documentation: `http://localhost:4000/api/v1/docs`
 
 ## Documentation & Architecture Guides
+
 - [Project Structure](docs/PROJECT_STRUCTURE.md)
 - [Installation Guide](docs/INSTALLATION_GUIDE.md)
 - [Development Guide](docs/DEVELOPMENT_GUIDE.md)

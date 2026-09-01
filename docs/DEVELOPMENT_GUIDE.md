@@ -10,7 +10,9 @@
 - `pnpm clean`: Clean `.next`, `dist`, and `node_modules` caches.
 
 ## Working with Workspace Packages
+
 To add a shared package dependency to an application:
+
 ```bash
 pnpm --filter customer-web add @foodhub/ui@workspace:*
 ```

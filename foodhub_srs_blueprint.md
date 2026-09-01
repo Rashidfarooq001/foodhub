@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0.0-PROD  
 **Phase:** Phase -1 (Planning, Architecture & Product Blueprint)  
-**Target Launch Quality:** Commercial Enterprise Production  
+**Target Launch Quality:** Commercial Enterprise Production
 
 ---
 
@@ -11,6 +11,7 @@
 **FoodHub** is an enterprise-grade, hyper-local multi-restaurant food ordering and delivery ecosystem. The platform serves four primary market participants: Consumers, Restaurant Partners (Hotels), Delivery Fleet Couriers, and Platform Operators (Admins/Support/Finance).
 
 The ecosystem is architected around **five distinct applications** powered by a unified microservices-ready monolithic API backend:
+
 1. **Customer Web Application** (Next.js 15 App Router - Responsive Web App)
 2. **Hotel / Restaurant Partner Dashboard** (Next.js 15 App Router - Kitchen Display & Management)
 3. **Delivery Partner Dashboard** (Next.js 15 App Router - Mobile-Optimized Driver PWA)
@@ -22,27 +23,32 @@ The ecosystem is architected around **five distinct applications** powered by a 
 ## 1. BUSINESS REQUIREMENTS DOCUMENT (BRD)
 
 ### 1.1 Business Vision
+
 To establish the premier hyper-local food discovery and delivery platform delivering ultra-low friction food ordering experiences, sub-30-minute fulfillment SLA, transparent merchant economics, and real-time telemetry across urban and semi-urban markets.
 
 ### 1.2 Business Mission
+
 - **For Consumers:** Deliver hot, fresh food reliably from top local restaurants with transparent live tracking and dynamic options.
 - **For Restaurants:** Provide zero-friction digital store creation, automated kitchen display dispatch, instant inventory controls, and fair payout cycles.
 - **For Delivery Partners:** Offer flexible gig earnings, transparent payout calculations, optimized route navigation, and safety guarantees.
 - **For Platform Operators:** Enable automated operations, fraud prevention, dynamic surge control, and enterprise financial reconciliation.
 
 ### 1.3 Strategic Business Goals & Key Performance Indicators (KPIs)
-| Metric Goal | Target Value | Verification Method |
-| :--- | :--- | :--- |
-| **System Availability SLA** | 99.99% Uptime | Automated Healthchecks & Cloudflare Analytics |
-| **Peak Throughput Capacity** | 10,000 requests/sec | Distributed Load Tests (k6 / Locust) |
-| **Average Fulfillment Time** | < 32 Minutes | Socket.IO Order Telemetry Timestamps |
-| **Merchant Order Acceptance SLA** | < 90 Seconds | Automated BullMQ Timeout Alerts |
-| **Driver Acceptance SLA** | < 30 Seconds | Auto-dispatch Reassignment Trigger |
-| **Refund Resolution Time** | Instant / < 12 hrs | Automated Refund Engine & Wallet Credit |
-| **API Latency (p95)** | < 120 ms | APM Tracking (OpenTelemetry/Datadog) |
+
+| Metric Goal                       | Target Value        | Verification Method                           |
+| :-------------------------------- | :------------------ | :-------------------------------------------- |
+| **System Availability SLA**       | 99.99% Uptime       | Automated Healthchecks & Cloudflare Analytics |
+| **Peak Throughput Capacity**      | 10,000 requests/sec | Distributed Load Tests (k6 / Locust)          |
+| **Average Fulfillment Time**      | < 32 Minutes        | Socket.IO Order Telemetry Timestamps          |
+| **Merchant Order Acceptance SLA** | < 90 Seconds        | Automated BullMQ Timeout Alerts               |
+| **Driver Acceptance SLA**         | < 30 Seconds        | Auto-dispatch Reassignment Trigger            |
+| **Refund Resolution Time**        | Instant / < 12 hrs  | Automated Refund Engine & Wallet Credit       |
+| **API Latency (p95)**             | < 120 ms            | APM Tracking (OpenTelemetry/Datadog)          |
 
 ### 1.4 Project Scope Boundaries
+
 #### In-Scope (Phase 1 Commercial Release):
+
 - Unified NestJS 10 backend supporting PostgreSQL 16 via Prisma ORM, Redis 7 caching & Socket.IO real-time websockets.
 - Multi-role JWT authentication with MSG91 OTP mobile verification and OAuth fallbacks.
 - OpenStreetMap (OSM) & Leaflet spatial coordinate distance calculations, geofencing, and driver live tracking.
@@ -52,26 +58,29 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - Firebase Cloud Messaging (FCM) mobile push alerts + MSG91 SMS notifications.
 
 #### Out-of-Scope (Deferred to Future Iterations):
+
 - Autonomous drone or robotic delivery integrations.
 - Native desktop POS hardware driver integrations.
 - Native Swift (iOS) / Kotlin (Android) binary builds (Phase 1 uses PWA / Next.js 15 Web Standard).
 
 ### 1.5 Key Stakeholders Matrix
-| Stakeholder Group | Role / Primary Interest | Key Expectations |
-| :--- | :--- | :--- |
-| **End Customers** | Ordering food, tracking delivery, applying coupons, managing wallet. | Instant load speed, accurate ETA, hot food delivery, seamless payment. |
-| **Restaurant Owners** | Managing store listings, updating prices, viewing revenue reports. | Reliable payouts, simple interface, flexible menu builder. |
-| **Kitchen Staff** | Accepting incoming orders, setting prep times, marking order ready. | Audio alerts, large touch-friendly interface, fast status toggles. |
-| **Delivery Drivers** | Accepting job offers, navigating to pickup/dropoff, verifying OTP. | High dispatch efficiency, clear earnings breakdown, responsive map. |
-| **Super Admin** | Platform oversight, onboarding approvals, global fee parameters. | Real-time monitoring, audit logs, override permissions. |
-| **Operations Support** | Resolving order disputes, issuing refunds, driver reassignment. | Complete order timeline view, ticket notes, direct action buttons. |
-| **Finance Manager** | Merchant settlement audit, GST/TDS tax deductions, payment gateway reconciliation. | Exportable financial ledgers, automated payout batches. |
+
+| Stakeholder Group      | Role / Primary Interest                                                            | Key Expectations                                                       |
+| :--------------------- | :--------------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| **End Customers**      | Ordering food, tracking delivery, applying coupons, managing wallet.               | Instant load speed, accurate ETA, hot food delivery, seamless payment. |
+| **Restaurant Owners**  | Managing store listings, updating prices, viewing revenue reports.                 | Reliable payouts, simple interface, flexible menu builder.             |
+| **Kitchen Staff**      | Accepting incoming orders, setting prep times, marking order ready.                | Audio alerts, large touch-friendly interface, fast status toggles.     |
+| **Delivery Drivers**   | Accepting job offers, navigating to pickup/dropoff, verifying OTP.                 | High dispatch efficiency, clear earnings breakdown, responsive map.    |
+| **Super Admin**        | Platform oversight, onboarding approvals, global fee parameters.                   | Real-time monitoring, audit logs, override permissions.                |
+| **Operations Support** | Resolving order disputes, issuing refunds, driver reassignment.                    | Complete order timeline view, ticket notes, direct action buttons.     |
+| **Finance Manager**    | Merchant settlement audit, GST/TDS tax deductions, payment gateway reconciliation. | Exportable financial ledgers, automated payout batches.                |
 
 ---
 
 ## 2. USER PERSONAS
 
 ### Persona 1: Customer – Aarav Sharma (The Busy Urban Professional)
+
 - **Demographics:** 28 years old, Senior Software Engineer, living in Tier-1 Metro.
 - **Goals:** Quick dinner ordering after late work shifts, single-click payment, accurate live location tracking of courier.
 - **Pain Points:** Delayed orders with outdated static ETAs, cold food, difficult refund process when items are missing.
@@ -79,6 +88,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Customer Web App -> Search -> Cart -> Razorpay UPI -> Socket.IO Live Map Tracking -> Rating.
 
 ### Persona 2: Restaurant Owner – Rajesh Patel (Spice Garden Restaurant)
+
 - **Demographics:** 46 years old, Owner of 2 popular casual dining outlets.
 - **Goals:** Increase off-peak delivery sales, maintain menu accuracy, track daily revenue and payout schedules.
 - **Pain Points:** High commission fees, delayed weekly payouts, complex menu management tools.
@@ -86,6 +96,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Hotel Dashboard -> Daily Sales Overview -> Menu Builder -> Payout Requests -> Revenue Reports.
 
 ### Persona 3: Kitchen Staff / Operator – Priya Nair (Head Chef)
+
 - **Demographics:** 26 years old, Kitchen Supervisor.
 - **Goals:** Clear visibility of incoming orders, fast preparation status updating, marking out-of-stock items quickly during rush hours.
 - **Pain Points:** Loud noisy kitchen environment where alerts get missed, slow software interfaces causing delayed prep times.
@@ -93,6 +104,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Hotel Live KDS Dashboard -> Audio Alert -> Click "Accept (15 mins)" -> Click "Food Ready".
 
 ### Persona 4: Delivery Partner – Vikram Singh (Gig Courier)
+
 - **Demographics:** 24 years old, Full-time Delivery Courier.
 - **Goals:** Maximize completed orders per hour, transparent distance-based payout earnings, easy navigation.
 - **Pain Points:** Battery drain from GPS, delayed food pickup at kitchens, unresponsive customer address details.
@@ -100,6 +112,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Delivery Mobile PWA -> Online Toggle -> Job Pop-up (Accept) -> Leaflet Map to Restaurant -> Order Pickup -> Leaflet Map to Customer -> OTP Verify -> Mark Delivered.
 
 ### Persona 5: Super Admin – Ananya Verma (VP of Operations)
+
 - **Demographics:** 36 years old, Operations Lead.
 - **Goals:** Complete system stability, real-time oversight of active orders across cities, auditing platform commissions and KYC compliance.
 - **Pain Points:** System downtime during lunch/dinner peak hours, fraud attempt by rogue delivery partners or fake merchant listings.
@@ -107,6 +120,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Admin Dashboard -> Command Center metrics -> Restaurant KYC Approvals -> Driver Fleets -> Global Platform Settings.
 
 ### Persona 6: Operations Support Executive – Rohan Mehta (Customer Success Lead)
+
 - **Demographics:** 29 years old, Customer Support Specialist.
 - **Goals:** Resolve customer order disputes quickly, cancel stuck orders, reassign unassigned drivers, issue wallet credits.
 - **Pain Points:** Lack of full order audit trail context, inability to communicate directly with drivers during active trips.
@@ -114,6 +128,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Key Interactions:** Admin Support Portal -> Order Timeline Inspection -> Call Customer/Driver -> Issue Partial Refund -> Audit Log.
 
 ### Persona 7: Finance & Reconciliation Manager – Meera Iyer (CFO / Finance Lead)
+
 - **Demographics:** 40 years old, Chartered Accountant & Finance Lead.
 - **Goals:** Accurate tax compliance (GST & TDS), automated Razorpay settlement reconciliation, merchant payout disbursement batching.
 - **Pain Points:** Manual payment discrepancies, multi-channel commission calculation errors, missing transaction ledgers.
@@ -125,6 +140,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 3. FEATURE LIST (CATEGORIZED BY PRIORITY)
 
 ### 3.1 Must Have Features (Priority 0 - Critical Path for Launch)
+
 - **Multi-Role Authentication & Authorization:** JWT access & refresh tokens, Passport.js, MSG91 SMS OTP verification, Role-based route guards (`CUSTOMER`, `HOTEL_STAFF`, `HOTEL_OWNER`, `DELIVERY_PARTNER`, `ADMIN`, `SUPER_ADMIN`).
 - **Hyper-Local Restaurant Discovery:** OpenStreetMap geocoding, distance spatial queries (PostGIS / Haversine formula), filter by cuisine, rating, dietary preference (Veg/Non-Veg/Egg), estimated preparation time.
 - **Dynamic Menu & Catalog System:** Multi-category menus, variant selections (Small, Medium, Large), addon groups (Extra Cheese, Choice of Sauce), inventory stock status toggles (In Stock / Out of Stock).
@@ -135,6 +151,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Admin Command & Control Center:** Real-time platform Gross Merchandise Value (GMV), active order maps, merchant onboarding KYC approval workspace, driver fleet monitoring.
 
 ### 3.2 Should Have Features (Priority 1 - High Value)
+
 - **Dynamic Surge & Distance Pricing:** Distance-based tiered delivery fee calculation + peak-hour weather/demand surge price multipliers.
 - **In-App Customer Wallet System:** Wallet balance management, promotional cashback credits, refund balances, immutable double-entry ledger database tables.
 - **Coupon & Promotional Discount Engine:** Percentage off, flat amount discounts, minimum cart thresholds, maximum discount caps, first-order validation, merchant-sponsored vs platform-sponsored coupons.
@@ -143,12 +160,14 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - **Firebase Cloud Messaging (FCM) Integration:** Real-time mobile push notifications for order status changes even when app is backgrounded.
 
 ### 3.3 Nice To Have Features (Priority 2 - Post-Launch Polish)
+
 - **Scheduled Orders:** Pre-order food up to 48 hours in advance for specific delivery time slots.
 - **Favorites & Instant Re-ordering:** 1-click reorder previous basket, saved favorite dishes and restaurants.
 - **Spatial Heatmaps:** Admin visual heatmaps displaying high-density order zones and driver deficit areas.
 - **Exportable Financial Reports:** PDF and CSV exports for merchant earnings statements and tax deductions.
 
 ### 3.4 Future Features (Priority 3 - v2 Roadmap)
+
 - **Group Basket Ordering:** Shared cart link allowing multiple users to add items to a single checkout basket.
 - **Subscription Meal Plans:** Weekly/Monthly automated recurring meal dispatch from partner cloud kitchens.
 - **AI-Powered Personalization:** Machine learning dish suggestions based on ordering history, time of day, and weather conditions.
@@ -158,6 +177,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 4. COMPLETE USER FLOW & JOURNEY MAPS
 
 ### 4.1 Customer Order Journey (8 Screens)
+
 1. **Screen C1: Landing / Location Selector** -> Selects GPS location or enters saved address.
 2. **Screen C2: Restaurant Discovery & Search** -> Applies filters (Veg only, Rating 4+, Delivery speed).
 3. **Screen C3: Restaurant Menu Detail** -> Selects restaurant, views categories and dishes.
@@ -168,6 +188,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 8. **Screen C8: Delivery Completion & Rating Review Modal** -> Submits rating for food, packaging, and courier.
 
 ### 4.2 Hotel / Kitchen Journey (6 Screens)
+
 1. **Screen R1: Hotel Login & Staff Auth** -> Authenticates kitchen staff.
 2. **Screen R2: Live KDS Order Queue** -> Chime alert plays on new order; staff selects prep time (e.g. 20m) and accepts.
 3. **Screen R3: Preparing Queue State** -> Kitchen prepares items; marks order as "Food Ready".
@@ -176,6 +197,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 6. **Screen R6: Daily Kitchen Revenue & Payout Ledger** -> Displays daily total sales and pending payouts.
 
 ### 4.3 Delivery Courier Journey (7 Screens)
+
 1. **Screen D1: Delivery Driver Login & KYC Verification** -> Driver auth and verification status check.
 2. **Screen D2: Duty Toggle (Switch to ONLINE)** -> Driver goes online; geofence dispatch active.
 3. **Screen D3: Order Offer Modal** -> 30s countdown pop-up with trip distance and earnings; driver clicks ACCEPT.
@@ -185,6 +207,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 7. **Screen D7: Trip Completed & Earnings Summary Screen** -> Displays trip earnings, bonus, and updated wallet total.
 
 ### 4.4 Admin & Operations Journey (7 Screens)
+
 1. **Screen A1: Admin Login with Multi-Factor Auth** -> Secure admin authentication.
 2. **Screen A2: Executive Command Center Overview** -> Live GMV, active orders count, online driver count, system latency.
 3. **Screen A3: Merchant Onboarding Workspace** -> Reviews FSSAI license and bank details; approves/rejects.
@@ -207,6 +230,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 6. SITEMAPS FOR ALL 4 FRONTEND APPLICATIONS
 
 ### 6.1 Customer Web Application Sitemap
+
 - `/` - Home Landing & Hyper-Local Restaurant Feed
 - `/explore` - Search, Category Filters, Cuisine Explorer
 - `/restaurant/[slug]` - Restaurant Details, Menu Catalog & Category Navigation
@@ -220,6 +244,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - `/help` - Help Center, FAQ, Support Ticket Escalation
 
 ### 6.2 Hotel / Restaurant Dashboard Sitemap
+
 - `/hotel/login` - Merchant Staff Login
 - `/hotel/onboarding` - Merchant Registration & FSSAI / Bank Document Submission
 - `/hotel/kds` - Live Kitchen Display System Queue
@@ -233,6 +258,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - `/hotel/settings` - Store Timings, FSSAI Details, Packing Charges
 
 ### 6.3 Delivery Partner Dashboard Sitemap (Mobile PWA)
+
 - `/delivery/login` - Driver Phone OTP Login
 - `/delivery/onboarding` - Driver KYC Document Upload (DL, RC, Vehicle)
 - `/delivery/dashboard` - Main Duty Hub (Online/Offline Toggle, Active Radar)
@@ -242,6 +268,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 - `/delivery/profile` - Courier Profile & Support Helpdesk
 
 ### 6.4 Admin Dashboard Sitemap
+
 - `/admin/login` - Enterprise Admin Authentication
 - `/admin/dashboard` - Command Center Overview (Real-time Analytics)
 - `/admin/merchants` - Merchant Onboarding Approvals & Store Master List
@@ -256,27 +283,30 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 7. BRAND GUIDELINES & SPECIFICATIONS
 
 ### 7.1 Logo Concept & Brand Identity
+
 - **Brand Name:** FoodHub
 - **Tagline:** Hyper-Fast Food Delivery
 - **Logo Emblem:** A sleek geometric combination of a location map pin and a dynamic cloche/fork icon. Constructed with sharp 45-degree angle cuts symbolizing speed and precision.
 - **Brand Personality:** Energetic, Ultra-Reliable, Modern, Clean, Delighting.
 
 ### 7.2 Core Color Palette Tokens
-| Token Name | Hex Value | Semantic Purpose |
-| :--- | :--- | :--- |
-| **Primary Base** | `#FF5200` (Orange) | Main Brand Accent, CTAs, Hero Elements |
-| **Primary Hover** | `#E04800` | Hover States for Buttons |
-| **Primary Light** | `#FFF1EC` | Background Highlights, Badges |
-| **Secondary Base** | `#00C853` (Emerald) | Success, Veg Tag, Wallet Cash |
-| **Secondary Light**| `#E6F9ED` | Success Badges, Veg Filters |
-| **Neutral Slate-900** | `#0F172A` (Dark Slate) | Headings, Dark Mode Background |
-| **Neutral Slate-600** | `#475569` (Muted Slate) | Body Text, Secondary Labels |
-| **Neutral Slate-100** | `#F1F5F9` (Light Slate) | Borders, Card Backgrounds |
-| **Functional Error**| `#EF4444` (Red) | Non-Veg Tag, Errors, Destructive Actions |
-| **Functional Amber**| `#F59E0B` (Amber) | Ratings, Warnings, Pending Status |
-| **Functional Info** | `#3B82F6` (Blue) | Live Tracking Status, Info Badges |
+
+| Token Name            | Hex Value               | Semantic Purpose                         |
+| :-------------------- | :---------------------- | :--------------------------------------- |
+| **Primary Base**      | `#FF5200` (Orange)      | Main Brand Accent, CTAs, Hero Elements   |
+| **Primary Hover**     | `#E04800`               | Hover States for Buttons                 |
+| **Primary Light**     | `#FFF1EC`               | Background Highlights, Badges            |
+| **Secondary Base**    | `#00C853` (Emerald)     | Success, Veg Tag, Wallet Cash            |
+| **Secondary Light**   | `#E6F9ED`               | Success Badges, Veg Filters              |
+| **Neutral Slate-900** | `#0F172A` (Dark Slate)  | Headings, Dark Mode Background           |
+| **Neutral Slate-600** | `#475569` (Muted Slate) | Body Text, Secondary Labels              |
+| **Neutral Slate-100** | `#F1F5F9` (Light Slate) | Borders, Card Backgrounds                |
+| **Functional Error**  | `#EF4444` (Red)         | Non-Veg Tag, Errors, Destructive Actions |
+| **Functional Amber**  | `#F59E0B` (Amber)       | Ratings, Warnings, Pending Status        |
+| **Functional Info**   | `#3B82F6` (Blue)        | Live Tracking Status, Info Badges        |
 
 ### 7.3 Typography Standards
+
 - **Primary Body Font:** `Inter`, sans-serif (Google Fonts)
 - **Primary Heading Font:** `Outfit`, sans-serif (Google Fonts)
 - **Monospace Code Font:** `JetBrains Mono`, monospace
@@ -287,6 +317,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 8. DESIGN SYSTEM TOKENS (SHADCN / TAILWIND ALIGNED)
 
 ### 8.1 Color Tokens Specification (CSS Custom Properties)
+
 ```css
 :root {
   --background: 0 0% 100%;
@@ -313,16 +344,19 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ```
 
 ### 8.2 Spacing & Geometry Tokens
+
 - Base Grid Step: 4px
 - `space-1` = 4px, `space-2` = 8px, `space-3` = 12px, `space-4` = 16px, `space-6` = 24px, `space-8` = 32px, `space-12` = 48px, `space-16` = 64px.
 
 ### 8.3 Shadow Elevation Tokens
+
 - `shadow-sm`: `0 1px 2px 0 rgb(0 0 0 / 0.05)`
 - `shadow-md`: `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)`
 - `shadow-lg`: `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)`
 - `shadow-brand`: `0 8px 25px -5px rgba(255, 82, 0, 0.25)`
 
 ### 8.4 Animation & Transition Tokens
+
 - Fast Micro-interaction: `150ms cubic-bezier(0.4, 0, 0.2, 1)`
 - Modal/Drawer Transition: `300ms cubic-bezier(0.16, 1, 0.3, 1)`
 - Framer Motion Spring Variant: `{ type: "spring", stiffness: 300, damping: 28 }`
@@ -344,18 +378,19 @@ To establish the premier hyper-local food discovery and delivery platform delive
 
 ## 10. RESPONSIVE LAYOUT MATRIX & BREAKPOINT RULES
 
-| Device Category | Viewport Width | Navigation Pattern | Layout Grid Columns | Special UI Rules |
-| :--- | :--- | :--- | :--- | :--- |
-| **Mobile** | < 640px (`sm`) | Bottom Sticky Nav Bar / Drawer | 1 Column Stack | Floating view cart bar, full-screen modals, touch-optimised 48px targets. |
-| **Tablet** | 640px - 1023px (`md`) | Collapsible Drawer / Header | 2 Columns Grid | Responsive data table with horizontal swipe. |
-| **Laptop** | 1024px - 1439px (`lg`) | Permanent Top Nav / Sidebar | 3 Columns Grid | Dual pane dashboard layout with side inspection drawers. |
-| **Desktop / KDS** | 1440px+ (`xl`) | Extended Fixed Sidebar | 4 Columns Grid | High-density multi-card KDS kitchen grid & live admin command maps. |
+| Device Category   | Viewport Width         | Navigation Pattern             | Layout Grid Columns | Special UI Rules                                                          |
+| :---------------- | :--------------------- | :----------------------------- | :------------------ | :------------------------------------------------------------------------ |
+| **Mobile**        | < 640px (`sm`)         | Bottom Sticky Nav Bar / Drawer | 1 Column Stack      | Floating view cart bar, full-screen modals, touch-optimised 48px targets. |
+| **Tablet**        | 640px - 1023px (`md`)  | Collapsible Drawer / Header    | 2 Columns Grid      | Responsive data table with horizontal swipe.                              |
+| **Laptop**        | 1024px - 1439px (`lg`) | Permanent Top Nav / Sidebar    | 3 Columns Grid      | Dual pane dashboard layout with side inspection drawers.                  |
+| **Desktop / KDS** | 1440px+ (`xl`)         | Extended Fixed Sidebar         | 4 Columns Grid      | High-density multi-card KDS kitchen grid & live admin command maps.       |
 
 ---
 
 ## 11. STRUCTURAL ASCII WIREFRAMES FOR CORE SCREENS
 
 ### 11.1 Screen C1 & C2: Customer Restaurant Discovery (`/explore`)
+
 ```
 +-----------------------------------------------------------------------------------+
 | [Logo: FoodHub]  📍 Deliver to: 124 Park Avenue, Koramangala ▾   [Search dishes] [🛒 Cart (2)] |
@@ -380,6 +415,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ```
 
 ### 11.2 Screen C7: Customer Live Real-Time Order Tracking (`/order/[id]/track`)
+
 ```
 +-----------------------------------------------------------------------------------+
 | ← Back to Orders           ORDER #FH-89210            [ Help & Support ]          |
@@ -401,6 +437,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ```
 
 ### 11.3 Screen R2: Hotel Live Kitchen KDS Display (`/hotel/kds`)
+
 ```
 +-----------------------------------------------------------------------------------+
 | [FoodHub Kitchen KDS]  Spice Garden Outlet #1    [🔊 Sound: ON]  [STATUS: ONLINE] |
@@ -418,6 +455,7 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ```
 
 ### 11.4 Screen D3 & D4: Delivery Courier Navigation Dashboard (`/delivery/dashboard`)
+
 ```
 +-----------------------------------------------------------------------------------+
 | [🛵 FoodHub Courier]       Status: 🟢 ONLINE            Today's Earnings: ₹840.00 |
@@ -459,21 +497,23 @@ To establish the premier hyper-local food discovery and delivery platform delive
 ## 13. API & MICROSERVICES ARCHITECTURE PLANNING
 
 ### 13.1 NestJS Backend Modules Layout
+
 `/src/modules`: `auth`, `users`, `restaurants`, `menu`, `orders`, `payments`, `delivery`, `wallet`, `coupons`, `reviews`, `websockets`, `queues`.
 
 ### 13.2 Key REST Endpoints Table
-| Module | Method | Endpoint | Auth Guard | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| Auth | `POST` | `/api/v1/auth/send-otp` | Public | Sends MSG91 SMS OTP |
-| Auth | `POST` | `/api/v1/auth/verify-otp` | Public | Returns JWT Access & Refresh Tokens |
-| Restaurant | `GET` | `/api/v1/restaurants/nearby` | Public | Spatial search by lat/lng |
-| Restaurant | `GET` | `/api/v1/restaurants/:slug` | Public | Fetches menu catalog tree |
-| Orders | `POST` | `/api/v1/orders` | Customer | Creates draft order & Razorpay order |
-| Orders | `GET` | `/api/v1/orders/:id/track` | Auth | Returns live order state & driver pos |
-| Kitchen | `PATCH`| `/api/v1/kitchen/orders/:id/status` | Hotel Staff | Updates status (`ACCEPTED`, `READY`) |
-| Delivery | `PATCH`| `/api/v1/delivery/duty` | Driver | Toggles Online/Offline status |
-| Delivery | `POST` | `/api/v1/delivery/orders/:id/verify-otp`| Driver | Verifies customer OTP & delivers |
-| Admin | `GET` | `/api/v1/admin/analytics/overview` | Admin | Returns system GMV & stats |
+
+| Module     | Method  | Endpoint                                 | Auth Guard  | Description                           |
+| :--------- | :------ | :--------------------------------------- | :---------- | :------------------------------------ |
+| Auth       | `POST`  | `/api/v1/auth/send-otp`                  | Public      | Sends MSG91 SMS OTP                   |
+| Auth       | `POST`  | `/api/v1/auth/verify-otp`                | Public      | Returns JWT Access & Refresh Tokens   |
+| Restaurant | `GET`   | `/api/v1/restaurants/nearby`             | Public      | Spatial search by lat/lng             |
+| Restaurant | `GET`   | `/api/v1/restaurants/:slug`              | Public      | Fetches menu catalog tree             |
+| Orders     | `POST`  | `/api/v1/orders`                         | Customer    | Creates draft order & Razorpay order  |
+| Orders     | `GET`   | `/api/v1/orders/:id/track`               | Auth        | Returns live order state & driver pos |
+| Kitchen    | `PATCH` | `/api/v1/kitchen/orders/:id/status`      | Hotel Staff | Updates status (`ACCEPTED`, `READY`)  |
+| Delivery   | `PATCH` | `/api/v1/delivery/duty`                  | Driver      | Toggles Online/Offline status         |
+| Delivery   | `POST`  | `/api/v1/delivery/orders/:id/verify-otp` | Driver      | Verifies customer OTP & delivers      |
+| Admin      | `GET`   | `/api/v1/admin/analytics/overview`       | Admin       | Returns system GMV & stats            |
 
 ---
 
@@ -502,36 +542,40 @@ foodhub-platform/
 
 ## 15. ROLE-BASED ACCESS CONTROL (RBAC) MATRIX
 
-| Action / Resource | CUSTOMER | HOTEL_STAFF | DRIVER | ADMIN | SUPER_ADMIN |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Browse Restaurants | ALLOWED | ALLOWED | ALLOWED | ALLOWED | ALLOWED |
-| Place Order | ALLOWED | DENIED | DENIED | DENIED | ALLOWED (Test) |
-| Accept Kitchen Order | DENIED | ALLOWED | DENIED | DENIED | ALLOWED |
-| Toggle Dish Availability | DENIED | ALLOWED | DENIED | DENIED | ALLOWED |
-| Accept Delivery Job | DENIED | DENIED | ALLOWED | DENIED | DENIED |
-| Approve Merchant KYC | DENIED | DENIED | DENIED | ALLOWED | ALLOWED |
-| Update System Fees | DENIED | DENIED | DENIED | DENIED | ALLOWED |
-| View Audit Logs | DENIED | DENIED | DENIED | ALLOWED | ALLOWED |
+| Action / Resource        | CUSTOMER | HOTEL_STAFF | DRIVER  | ADMIN   | SUPER_ADMIN    |
+| :----------------------- | :------- | :---------- | :------ | :------ | :------------- |
+| Browse Restaurants       | ALLOWED  | ALLOWED     | ALLOWED | ALLOWED | ALLOWED        |
+| Place Order              | ALLOWED  | DENIED      | DENIED  | DENIED  | ALLOWED (Test) |
+| Accept Kitchen Order     | DENIED   | ALLOWED     | DENIED  | DENIED  | ALLOWED        |
+| Toggle Dish Availability | DENIED   | ALLOWED     | DENIED  | DENIED  | ALLOWED        |
+| Accept Delivery Job      | DENIED   | DENIED      | ALLOWED | DENIED  | DENIED         |
+| Approve Merchant KYC     | DENIED   | DENIED      | DENIED  | ALLOWED | ALLOWED        |
+| Update System Fees       | DENIED   | DENIED      | DENIED  | DENIED  | ALLOWED        |
+| View Audit Logs          | DENIED   | DENIED      | DENIED  | ALLOWED | ALLOWED        |
 
 ---
 
 ## 16. DETAILED BUSINESS RULES & GOVERNANCE ENGINES
 
 ### 16.1 Restaurant Onboarding & Verification Rules
+
 - Merchant must upload FSSAI 14-digit license, GSTIN tax registration certificate, and bank account cancelled cheque.
 - Auto-rejection if FSSAI license expiry date is within 30 days of submission.
 - Admin must review and approve document scans within 48 business hours before the restaurant listing status transitions to `APPROVED`.
 
 ### 16.2 Delivery Courier KYC Approval Rules
+
 - Courier driver must upload Driving License, Vehicle Registration Certificate (RC), and National Identity proof.
 - Background check status must be verified as `CLEAR` by Admin before driver can switch duty status to `ONLINE`.
 
 ### 16.3 Cancellation & Refund Governance Rules
+
 - **Cancellation within 60s of order placement:** 100% immediate refund credited to Customer Wallet / Source Gateway.
 - **Cancellation after Kitchen Acceptance:** 0% refund if kitchen has started food preparation (prevents food waste loss).
 - **Restaurant Order Rejection / Timeout:** 100% instant refund + ₹50 promotional wallet voucher compensation to customer.
 
 ### 16.4 Delivery Auto-Dispatch & Geofence Rules
+
 - Search radius starts at 3.0 km from restaurant location.
 - Active drivers sorted by Haversine distance and current active trip count.
 - Driver receives job offer modal with 30-second countdown timer. If no action, offer auto-escalates to next nearest driver.
@@ -541,10 +585,12 @@ foodhub-platform/
 ## 17. CODING STANDARDS & ENGINEERING GUIDELINES
 
 ### 17.1 TypeScript & Code Quality Rules
+
 - Enforce strict mode in `tsconfig.json` (`strict: true`, `noImplicitAny: true`).
 - Absolute paths configured using TS path aliases (e.g. `@/components/`, `@/services/`, `@/types/`).
 
 ### 17.2 Component & State Management Conventions
+
 - Server Components by default in Next.js 15 App Router. Use `'use client'` directive strictly when React state, hooks, or browser events are required.
 - Global UI state managed via **Zustand** stores. Async server state managed exclusively via **TanStack Query (React Query v5)** with automatic cache invalidation.
 - All form inputs validated client-side using **React Hook Form** with **Zod** schema resolvers.
@@ -561,4 +607,5 @@ The **Phase -1 (Architecture & Product Blueprint)** phase is defined as **100% C
 4. **Phase 0 Readiness:** The architecture blueprint is detailed to the extent that engineering teams can immediately generate boilerplates, schemas, and API contracts in Phase 0 without requiring further design clarification.
 
 ---
+
 **END OF PRODUCT REQUIREMENTS BLUEPRINT**

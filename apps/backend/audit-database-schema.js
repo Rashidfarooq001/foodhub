@@ -40,7 +40,7 @@ async function main() {
     const restaurants = await prisma.restaurant.findMany();
     auditResults.restaurantsCount = restaurants.length;
     auditResults.pendingRestaurants = restaurants.filter(
-      (r) => r.status === 'PENDING_APPROVAL' || r.status === 'UNDER_REVIEW'
+      (r) => r.status === 'PENDING_APPROVAL' || r.status === 'UNDER_REVIEW',
     ).length;
 
     const drivers = await prisma.driver.findMany();
@@ -50,7 +50,8 @@ async function main() {
     const orders = await prisma.order.findMany();
     auditResults.ordersCount = orders.length;
     auditResults.unassignedOrders = orders.filter(
-      (o) => o.status === 'PREPARING' && !o.assignedFoodhubDriverId && !o.assignedRestaurantDriverId
+      (o) =>
+        o.status === 'PREPARING' && !o.assignedFoodhubDriverId && !o.assignedRestaurantDriverId,
     ).length;
 
     const coupons = await prisma.coupon.findMany();
@@ -62,23 +63,32 @@ async function main() {
 
     console.log('\nUSER RECORDS DETAILED AUDIT:');
     users.forEach((u) => {
-      console.log(`- User ID: ${u.id} | Email: ${u.email || 'N/A'} | Phone: ${u.phone} | Role: ${u.role} | Active: ${u.isActive} | Profile: ${u.profile ? 'YES' : 'NO'}`);
+      console.log(
+        `- User ID: ${u.id} | Email: ${u.email || 'N/A'} | Phone: ${u.phone} | Role: ${u.role} | Active: ${u.isActive} | Profile: ${u.profile ? 'YES' : 'NO'}`,
+      );
       if (u.profile) {
-        console.log(`  Profile ID: ${u.profile.id} | Name: ${u.profile.firstName} ${u.profile.lastName} | Avatar: ${u.profile.avatarUrl || 'NULL'}`);
+        console.log(
+          `  Profile ID: ${u.profile.id} | Name: ${u.profile.firstName} ${u.profile.lastName} | Avatar: ${u.profile.avatarUrl || 'NULL'}`,
+        );
       }
     });
 
     console.log('\nRESTAURANT RECORDS DETAILED AUDIT:');
     restaurants.forEach((r) => {
-      console.log(`- Rest ID: ${r.id} | Name: ${r.name} | Slug: ${r.slug} | Status: ${r.status} | DeliveryMode: ${r.deliveryMode || 'N/A'}`);
-      console.log(`  Logo: ${r.logoUrl || 'NULL'} | Banner: ${r.bannerUrl || 'NULL'} | FSSAI: ${r.fssaiLicense || 'NULL'}`);
+      console.log(
+        `- Rest ID: ${r.id} | Name: ${r.name} | Slug: ${r.slug} | Status: ${r.status} | DeliveryMode: ${r.deliveryMode || 'N/A'}`,
+      );
+      console.log(
+        `  Logo: ${r.logoUrl || 'NULL'} | Banner: ${r.bannerUrl || 'NULL'} | FSSAI: ${r.fssaiLicense || 'NULL'}`,
+      );
     });
 
     console.log('\nDRIVER RECORDS DETAILED AUDIT:');
     drivers.forEach((d) => {
-      console.log(`- Driver ID: ${d.id} | User ID: ${d.userId} | License: ${d.licenseNumber} | Approved: ${d.isApproved}`);
+      console.log(
+        `- Driver ID: ${d.id} | User ID: ${d.userId} | License: ${d.licenseNumber} | Approved: ${d.isApproved}`,
+      );
     });
-
   } catch (err) {
     console.error('Database Audit Error:', err);
   } finally {

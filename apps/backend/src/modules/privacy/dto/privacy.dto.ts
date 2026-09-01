@@ -1,4 +1,14 @@
-import { IsString, IsBoolean, IsOptional, IsEnum, IsArray, IsObject, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  IsObject,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import {
   PrivacyConsentType,
   PrivacyRequestType,

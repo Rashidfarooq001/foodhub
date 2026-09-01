@@ -42,7 +42,11 @@ export const MobileBottomNav: React.FC = () => {
         <div className="flex items-center justify-around max-w-md mx-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.href ? (item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href)) : false;
+            const isActive = item.href
+              ? item.href === '/'
+                ? pathname === '/'
+                : pathname?.startsWith(item.href)
+              : false;
 
             if (item.isCartAction) {
               return (
@@ -60,9 +64,7 @@ export const MobileBottomNav: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] font-bold tracking-tight mt-0.5">
-                    {item.label}
-                  </span>
+                  <span className="text-[11px] font-bold tracking-tight mt-0.5">{item.label}</span>
                 </button>
               );
             }
@@ -76,7 +78,9 @@ export const MobileBottomNav: React.FC = () => {
                 }`}
               >
                 <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                <span className={`text-[11px] tracking-tight mt-0.5 ${isActive ? 'font-black' : 'font-bold'}`}>
+                <span
+                  className={`text-[11px] tracking-tight mt-0.5 ${isActive ? 'font-black' : 'font-bold'}`}
+                >
                   {item.label}
                 </span>
               </Link>

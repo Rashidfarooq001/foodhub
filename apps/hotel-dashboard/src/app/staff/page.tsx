@@ -48,14 +48,18 @@ export default function HotelStaffPage() {
 
         if (res.ok) {
           const data = await res.json();
-          const deliveryStaff = Array.isArray(data.staff) ? data.staff : Array.isArray(data) ? data : [];
+          const deliveryStaff = Array.isArray(data.staff)
+            ? data.staff
+            : Array.isArray(data)
+              ? data
+              : [];
           deliveryStaff.forEach((s: any) => {
             list.push({
               id: s.id,
               name: s.name,
               phone: s.phone,
               role: 'DELIVERY_STAFF',
-              status: s.isActive ? (s.status || 'AVAILABLE') : 'INACTIVE',
+              status: s.isActive ? s.status || 'AVAILABLE' : 'INACTIVE',
             });
           });
         }
@@ -76,7 +80,9 @@ export default function HotelStaffPage() {
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Staff Management ({staff.length})</h1>
-          <p className="text-xs text-gray-500">Manage kitchen operators, store administrators &amp; dedicated delivery fleet</p>
+          <p className="text-xs text-gray-500">
+            Manage kitchen operators, store administrators &amp; dedicated delivery fleet
+          </p>
         </div>
       </div>
 
@@ -88,7 +94,9 @@ export default function HotelStaffPage() {
         <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Users className="mx-auto h-12 w-12 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No staff members found</p>
-          <p className="text-xs text-gray-400">Staff members and delivery fleet operators will be listed here.</p>
+          <p className="text-xs text-gray-400">
+            Staff members and delivery fleet operators will be listed here.
+          </p>
         </div>
       ) : (
         <div className="overflow-hidden overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm">

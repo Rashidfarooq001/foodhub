@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Search, Loader2, AlertCircle } from 'lucide-react';
@@ -10,7 +10,7 @@ interface AddressSearchBarProps {
 }
 
 export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<GeolocationSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,8 +49,8 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
         setIsOpen(true);
       } catch (err: any) {
         if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-          console.error("Address Search Error:", err);
-          setErrorMsg("Unable to search locations. Please try again.");
+          console.error('Address Search Error:', err);
+          setErrorMsg('Unable to search locations. Please try again.');
           setIsOpen(true);
         }
       } finally {
@@ -69,8 +69,8 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -81,15 +81,15 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (suggestions.length > 0 || hasSearched || errorMsg) setIsOpen(true); }}
+          onFocus={() => {
+            if (suggestions.length > 0 || hasSearched || errorMsg) setIsOpen(true);
+          }}
           placeholder="Search location (e.g. Sopore, Bandipora, Srinagar...)"
           className="w-full rounded-xl border border-gray-200 py-2.5 pl-9 pr-10 font-medium focus:border-orange-500 focus:outline-none text-xs"
         />
-        {loading && (
-          <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-orange-500" />
-        )}
+        {loading && <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-orange-500" />}
       </div>
-      
+
       {isOpen && (
         <div className="absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-gray-100 bg-white py-1 shadow-xl text-xs">
           {errorMsg ? (
@@ -105,7 +105,7 @@ export default function AddressSearchBar({ onAddressSelect }: AddressSearchBarPr
                   onClick={() => {
                     setQuery(item.placeName || item.address);
                     setIsOpen(false);
-                    
+
                     if (onAddressSelect && item.latitude !== 0 && item.longitude !== 0) {
                       onAddressSelect({
                         address: item.address || item.placeName,

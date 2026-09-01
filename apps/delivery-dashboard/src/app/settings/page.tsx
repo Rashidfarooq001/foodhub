@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, KeyRound, Lock, Camera, Trash2, Save, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import {
+  User,
+  KeyRound,
+  Lock,
+  Camera,
+  Trash2,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+} from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -247,7 +257,10 @@ export default function DeliverySettingsPage() {
 
       {/* TAB 1: COURIER PROFILE & AVATAR */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <form
+          onSubmit={handleSaveProfile}
+          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4"
+        >
           <div className="flex flex-col sm:flex-row items-center gap-4 border-b border-gray-100 pb-4">
             <div className="relative shrink-0">
               <img
@@ -275,7 +288,9 @@ export default function DeliverySettingsPage() {
 
             <div className="space-y-2 text-center sm:text-left">
               <div>
-                <h3 className="text-sm sm:text-base font-black text-gray-900">Courier Profile Photo</h3>
+                <h3 className="text-sm sm:text-base font-black text-gray-900">
+                  Courier Profile Photo
+                </h3>
                 <p className="text-xs text-gray-500">Supports JPEG, PNG, or WebP up to 5MB.</p>
               </div>
 
@@ -322,7 +337,9 @@ export default function DeliverySettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Registered Phone (Verified)</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              Registered Phone (Verified)
+            </label>
             <input
               type="text"
               disabled
@@ -344,9 +361,14 @@ export default function DeliverySettingsPage() {
 
       {/* TAB 2: PASSWORD SECURITY */}
       {activeTab === 'passwords' && (
-        <form onSubmit={handleChangePassword} className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <form
+          onSubmit={handleChangePassword}
+          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4"
+        >
           <div>
-            <h2 className="text-sm sm:text-base font-black text-gray-900">Update Account Password</h2>
+            <h2 className="text-sm sm:text-base font-black text-gray-900">
+              Update Account Password
+            </h2>
             <p className="text-xs text-gray-500">Change password for courier partner login</p>
           </div>
 
@@ -381,7 +403,9 @@ export default function DeliverySettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              Confirm New Password
+            </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input

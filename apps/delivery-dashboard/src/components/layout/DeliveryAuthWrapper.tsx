@@ -10,11 +10,7 @@ import { ZaykaFoodSplash } from './ZaykaFoodSplash';
 
 const API_BASE = getApiBaseUrl();
 
-const PUBLIC_ROUTES = [
-  '/login',
-  '/forgot-password',
-  '/reset-password',
-];
+const PUBLIC_ROUTES = ['/login', '/forgot-password', '/reset-password'];
 
 export function DeliveryAuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,9 +23,7 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
 
   const isPublicRoute =
     Boolean(pathname) &&
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(route),
-    );
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route));
 
   useSessionTimeout({
     portalName: 'delivery',
@@ -64,7 +58,10 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (alive && data?.profile) {
-          const fullName = `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() || data.name || 'Courier Partner';
+          const fullName =
+            `${data.profile.firstName || ''} ${data.profile.lastName || ''}`.trim() ||
+            data.name ||
+            'Courier Partner';
           updateUser({
             firstName: data.profile.firstName,
             lastName: data.profile.lastName,
@@ -74,7 +71,9 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
         }
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [isAuthenticated, accessToken, mounted, updateUser, isPublicRoute]);
 
   // Handle protected route redirection

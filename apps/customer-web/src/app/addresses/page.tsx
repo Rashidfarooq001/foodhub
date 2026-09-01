@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Trash2, CheckCircle2, X, Navigation, Home, Briefcase, Tag } from 'lucide-react';
+import {
+  MapPin,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  X,
+  Navigation,
+  Home,
+  Briefcase,
+  Tag,
+} from 'lucide-react';
 import { useAddressStore } from '../../stores/use-address-store';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -9,7 +19,14 @@ import { getApiBaseUrl } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function AddressesPage() {
-  const { addresses, selectedAddressId, setSelectedAddress, setAddresses, addAddress, removeAddress } = useAddressStore();
+  const {
+    addresses,
+    selectedAddressId,
+    setSelectedAddress,
+    setAddresses,
+    addAddress,
+    removeAddress,
+  } = useAddressStore();
   const { accessToken } = useAuthStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +106,7 @@ export default function AddressesPage() {
         setVerificationError("Couldn't find this address. Please enter a more specific address.");
       }
     } catch {
-      setVerificationError("Unable to verify this address right now. Please try again.");
+      setVerificationError('Unable to verify this address right now. Please try again.');
     } finally {
       setIsVerifying(false);
     }
@@ -178,7 +195,9 @@ export default function AddressesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Saved Delivery Addresses</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage your home, office &amp; custom food delivery locations.</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Manage your home, office &amp; custom food delivery locations.
+          </p>
         </div>
         <button
           onClick={() => {
@@ -202,7 +221,9 @@ export default function AddressesPage() {
       ) : addresses.length === 0 ? (
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center text-xs font-bold text-gray-400 space-y-3">
           <MapPin className="h-10 w-10 mx-auto text-gray-300" />
-          <p>No saved addresses yet. Click &quot;Add New Address&quot; above to add your location.</p>
+          <p>
+            No saved addresses yet. Click &quot;Add New Address&quot; above to add your location.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,7 +255,8 @@ export default function AddressesPage() {
               </div>
 
               <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                {addr.addressLine1}, {addr.addressLine2 ? `${addr.addressLine2}, ` : ''}{addr.city}, {addr.state} - {addr.postalCode}
+                {addr.addressLine1}, {addr.addressLine2 ? `${addr.addressLine2}, ` : ''}
+                {addr.city}, {addr.state} - {addr.postalCode}
               </p>
 
               <div className="flex justify-between items-center border-t border-gray-100 pt-3 text-xs font-bold">
@@ -264,7 +286,10 @@ export default function AddressesPage() {
               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-orange-600" /> New Delivery Location
               </h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-100">
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="rounded-full p-2 text-gray-400 hover:bg-gray-100"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -279,7 +304,9 @@ export default function AddressesPage() {
                       type="button"
                       onClick={() => setLabel(l)}
                       className={`flex-1 rounded-2xl py-2.5 text-xs font-bold border transition ${
-                        label === l ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-xs' : 'border-gray-200 text-gray-600'
+                        label === l
+                          ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-xs'
+                          : 'border-gray-200 text-gray-600'
                       }`}
                     >
                       {l}
@@ -289,7 +316,9 @@ export default function AddressesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Complete Address *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Complete Address *
+                </label>
                 <textarea
                   required
                   rows={4}
@@ -303,7 +332,7 @@ export default function AddressesPage() {
                   className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-900 focus:border-orange-500 focus:outline-none resize-none disabled:opacity-50"
                 />
               </div>
-              
+
               {verificationError && (
                 <div className="flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-700 border border-rose-100">
                   <p>{verificationError}</p>
@@ -325,7 +354,9 @@ export default function AddressesPage() {
                     <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                     <h4 className="font-black">Address matched</h4>
                   </div>
-                  <p className="text-xs font-bold text-emerald-900/70">? Mappls verified location</p>
+                  <p className="text-xs font-bold text-emerald-900/70">
+                    ? Mappls verified location
+                  </p>
                   <p className="text-sm font-bold text-gray-900 bg-white p-3 rounded-lg border border-emerald-100">
                     {matchedAddress.formattedAddress}
                   </p>

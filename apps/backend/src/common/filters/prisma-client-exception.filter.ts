@@ -1,10 +1,4 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
 import { AbstractHttpAdapter } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
 
@@ -67,7 +61,9 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
         // Null constraint violation
         statusCode = HttpStatus.BAD_REQUEST;
         const rawField = exception.meta?.constraint;
-        const field = Array.isArray(rawField) ? rawField.join(', ') : (rawField || 'unknown field') as string;
+        const field = Array.isArray(rawField)
+          ? rawField.join(', ')
+          : ((rawField || 'unknown field') as string);
         message = `Required field is missing: ${field.replace(/_/g, ' ')}.`;
         break;
       }
@@ -80,16 +76,18 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
       }
 
       default: {
-        this.logger.error(
-          `Unhandled Prisma error: ${exception.code} — ${exception.message}`,
-        );
+        this.logger.error(`Unhandled Prisma error: ${exception.code} — ${exception.message}`);
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
         message = `A database error occurred [${exception.code}]: ${exception.message.split('\n').pop() || 'Please contact support.'}`;
         break;
       }
     }
 
-    this.httpAdapter.reply(response, { statusCode, message, error: this.httpStatusToError(statusCode) }, statusCode);
+    this.httpAdapter.reply(
+      response,
+      { statusCode, message, error: this.httpStatusToError(statusCode) },
+      statusCode,
+    );
   }
 
   private buildUniqueConstraintMessage(fields: string[]): string {
@@ -102,13 +100,27 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
     if (fields.some((f) => f.toLowerCase().includes('email'))) {
       return 'An account with this email address is already registered. Please log in instead.';
     }
-    if (fields.some((f) => f.toLowerCase().includes('license_number') || f.toLowerCase().includes('licensenumber'))) {
+    if (
+      fields.some(
+        (f) =>
+          f.toLowerCase().includes('license_number') || f.toLowerCase().includes('licensenumber'),
+      )
+    ) {
       return 'This driving license number is already registered with another account.';
     }
-    if (fields.some((f) => f.toLowerCase().includes('vehicle_number') || f.toLowerCase().includes('vehiclenumber'))) {
+    if (
+      fields.some(
+        (f) =>
+          f.toLowerCase().includes('vehicle_number') || f.toLowerCase().includes('vehiclenumber'),
+      )
+    ) {
       return 'This vehicle registration number is already registered with another account.';
     }
-    if (fields.some((f) => f.toLowerCase().includes('fssai') || f.toLowerCase().includes('license_fssai'))) {
+    if (
+      fields.some(
+        (f) => f.toLowerCase().includes('fssai') || f.toLowerCase().includes('license_fssai'),
+      )
+    ) {
       return 'This FSSAI license number is already registered with another restaurant.';
     }
     if (fields.some((f) => f.toLowerCase().includes('gstin'))) {
@@ -123,10 +135,14 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
 
   private httpStatusToError(status: number): string {
     switch (status) {
-      case 400: return 'Bad Request';
-      case 404: return 'Not Found';
-      case 409: return 'Conflict';
-      default:  return 'Internal Server Error';
+      case 400:
+        return 'Bad Request';
+      case 404:
+        return 'Not Found';
+      case 409:
+        return 'Conflict';
+      default:
+        return 'Internal Server Error';
     }
   }
 }

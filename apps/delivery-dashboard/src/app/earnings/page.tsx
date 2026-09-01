@@ -31,25 +31,21 @@ export default function DeliveryEarningsPage() {
     fetchStats();
   }, [accessToken]);
 
-  const weeklyData = stats?.weeklyEarnings
-    ? [
-        { day: 'Mon', pay: Math.round(stats.weeklyEarnings * 0.13) },
-        { day: 'Tue', pay: Math.round(stats.weeklyEarnings * 0.14) },
-        { day: 'Wed', pay: Math.round(stats.weeklyEarnings * 0.12) },
-        { day: 'Thu', pay: Math.round(stats.weeklyEarnings * 0.16) },
-        { day: 'Fri', pay: Math.round(stats.weeklyEarnings * 0.19) },
-        { day: 'Sat', pay: Math.round(stats.weeklyEarnings * 0.23) },
-        { day: 'Sun', pay: Math.round(stats.weeklyEarnings * 0.24) },
-      ]
-    : [
-        { day: 'Mon', pay: 0 },
-        { day: 'Tue', pay: 0 },
-        { day: 'Wed', pay: 0 },
-        { day: 'Thu', pay: 0 },
-        { day: 'Fri', pay: 0 },
-        { day: 'Sat', pay: 0 },
-        { day: 'Sun', pay: 0 },
-      ];
+  const weeklyData: { day: string; pay: number }[] =
+    stats?.dailyEarningsBreakdown && stats.dailyEarningsBreakdown.length > 0
+      ? stats.dailyEarningsBreakdown.map((d: { day: string; pay: number }) => ({
+          day: d.day,
+          pay: d.pay,
+        }))
+      : [
+          { day: 'Mon', pay: 0 },
+          { day: 'Tue', pay: 0 },
+          { day: 'Wed', pay: 0 },
+          { day: 'Thu', pay: 0 },
+          { day: 'Fri', pay: 0 },
+          { day: 'Sat', pay: 0 },
+          { day: 'Sun', pay: 0 },
+        ];
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -77,7 +73,9 @@ export default function DeliveryEarningsPage() {
       {/* Summary Cards: 2-col on mobile, 3-col on desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">TODAY EARNINGS</span>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">
+            TODAY EARNINGS
+          </span>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
             ₹{stats?.todayEarnings ?? 0}
           </div>
@@ -87,7 +85,9 @@ export default function DeliveryEarningsPage() {
         </div>
 
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">THIS WEEK TOTAL</span>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">
+            THIS WEEK TOTAL
+          </span>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
             ₹{stats?.weeklyEarnings ?? 0}
           </div>
@@ -97,7 +97,9 @@ export default function DeliveryEarningsPage() {
         </div>
 
         <div className="col-span-2 sm:col-span-1 rounded-2xl border border-blue-200 bg-blue-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">LIFETIME DISBURSED</span>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">
+            LIFETIME DISBURSED
+          </span>
           <div className="text-lg sm:text-2xl font-black text-blue-950">
             ₹{stats?.totalEarnings ?? stats?.monthlyEarnings ?? 0}
           </div>
@@ -112,7 +114,9 @@ export default function DeliveryEarningsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm sm:text-base font-black text-gray-900">Weekly Earnings Trend</h3>
-            <p className="text-[10px] sm:text-xs text-gray-400">Daily rider payout breakdown across current weekly cycle</p>
+            <p className="text-[10px] sm:text-xs text-gray-400">
+              Daily rider payout breakdown across current weekly cycle
+            </p>
           </div>
           <span className="flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl">
             <TrendingUp className="h-3 w-3 text-emerald-600" />

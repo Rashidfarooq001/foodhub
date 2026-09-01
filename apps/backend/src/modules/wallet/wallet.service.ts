@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { WalletTransactionType } from '@prisma/client';
 
@@ -25,12 +21,7 @@ export class WalletService {
     return { balance: Number(wallet.balance), userId };
   }
 
-  async credit(
-    userId:      string,
-    amount:      number,
-    description: string,
-    referenceId?: string,
-  ) {
+  async credit(userId: string, amount: number, description: string, referenceId?: string) {
     if (amount <= 0) {
       throw new BadRequestException('Credit amount must be positive');
     }
@@ -40,12 +31,12 @@ export class WalletService {
     const [updatedWallet, tx] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { userId },
-        data:  { balance: { increment: amount } },
+        data: { balance: { increment: amount } },
       }),
       this.prisma.walletTransaction.create({
         data: {
-          walletId:    wallet.id,
-          type:        WalletTransactionType.CREDIT,
+          walletId: wallet.id,
+          type: WalletTransactionType.CREDIT,
           amount,
           description,
           referenceId,
@@ -54,17 +45,12 @@ export class WalletService {
     ]);
 
     return {
-      newBalance:    Number(updatedWallet.balance),
+      newBalance: Number(updatedWallet.balance),
       transactionId: tx.id,
     };
   }
 
-  async debit(
-    userId:      string,
-    amount:      number,
-    description: string,
-    referenceId?: string,
-  ) {
+  async debit(userId: string, amount: number, description: string, referenceId?: string) {
     if (amount <= 0) {
       throw new BadRequestException('Debit amount must be positive');
     }
@@ -72,20 +58,18 @@ export class WalletService {
     const wallet = await this.getOrCreateWallet(userId);
 
     if (Number(wallet.balance) < amount) {
-      throw new BadRequestException(
-        `Insufficient wallet balance. Available: ₹${wallet.balance}`,
-      );
+      throw new BadRequestException(`Insufficient wallet balance. Available: ₹${wallet.balance}`);
     }
 
     const [updatedWallet, tx] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { userId },
-        data:  { balance: { decrement: amount } },
+        data: { balance: { decrement: amount } },
       }),
       this.prisma.walletTransaction.create({
         data: {
-          walletId:    wallet.id,
-          type:        WalletTransactionType.DEBIT,
+          walletId: wallet.id,
+          type: WalletTransactionType.DEBIT,
           amount,
           description,
           referenceId,
@@ -94,7 +78,7 @@ export class WalletService {
     ]);
 
     return {
-      newBalance:    Number(updatedWallet.balance),
+      newBalance: Number(updatedWallet.balance),
       transactionId: tx.id,
     };
   }
@@ -105,10 +89,10 @@ export class WalletService {
     const skip = (page - 1) * limit;
     const [transactions, total] = await this.prisma.$transaction([
       this.prisma.walletTransaction.findMany({
-        where:   { walletId: wallet.id },
+        where: { walletId: wallet.id },
         orderBy: { createdAt: 'desc' },
         skip,
-        take:    limit,
+        take: limit,
       }),
       this.prisma.walletTransaction.count({
         where: { walletId: wallet.id },
@@ -116,7 +100,7 @@ export class WalletService {
     ]);
 
     return {
-      balance:      Number(wallet.balance),
+      balance: Number(wallet.balance),
       transactions,
       total,
       page,

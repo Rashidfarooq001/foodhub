@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, ArrowRight, AlertCircle, HelpCircle, KeyRound, CheckCircle2, Calendar, UserCheck } from 'lucide-react';
+import {
+  ShieldCheck,
+  Lock,
+  ArrowRight,
+  AlertCircle,
+  HelpCircle,
+  KeyRound,
+  CheckCircle2,
+  Calendar,
+  UserCheck,
+} from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -228,8 +238,14 @@ export default function AdminLoginPage() {
         {mode === 'LOGIN' && (
           <>
             <div className="text-center space-y-2">
-              <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
-              <h1 className="text-2xl font-black tracking-tight text-gray-900">ZaykaFood Admin Portal</h1>
+              <img
+                src="/zaykafood-logo.png"
+                alt="ZaykaFood"
+                className="h-16 w-auto object-contain mx-auto"
+              />
+              <h1 className="text-2xl font-black tracking-tight text-gray-900">
+                ZaykaFood Admin Portal
+              </h1>
               <p className="text-xs text-gray-500 font-medium">
                 Two-Password Authentication System (Restricted to ADMIN / SUPER_ADMIN)
               </p>
@@ -334,7 +350,9 @@ export default function AdminLoginPage() {
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 shadow-sm">
                 <UserCheck className="h-9 w-9" />
               </div>
-              <h1 className="text-2xl font-black tracking-tight text-gray-900">Reset Admin Password</h1>
+              <h1 className="text-2xl font-black tracking-tight text-gray-900">
+                Reset Admin Password
+              </h1>
               <p className="text-xs text-gray-500 font-medium">
                 Verify your security information to reset your password.
               </p>
@@ -411,7 +429,9 @@ export default function AdminLoginPage() {
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 shadow-sm">
                 <KeyRound className="h-9 w-9" />
               </div>
-              <h1 className="text-2xl font-black tracking-tight text-gray-900">Create New Admin Password</h1>
+              <h1 className="text-2xl font-black tracking-tight text-gray-900">
+                Create New Admin Password
+              </h1>
               <p className="text-xs text-gray-500 font-medium">
                 Set your new 16-digit Password 1 and 8-digit Password 2.
               </p>
@@ -506,7 +526,8 @@ export default function AdminLoginPage() {
             <div className="space-y-2">
               <h1 className="text-2xl font-black text-gray-900">Password Reset Successfully</h1>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                Your Admin credentials have been updated and all previous active sessions have been revoked.
+                Your Admin credentials have been updated and all previous active sessions have been
+                revoked.
               </p>
             </div>
 

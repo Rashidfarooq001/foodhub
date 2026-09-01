@@ -46,9 +46,7 @@ export function useMsg91Widget(options) {
         setPhone(inputPhone);
         setError('');
         setIsLoading(true);
-        const widgetId = options.widgetId ||
-            process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ||
-            '3668626d5043313835303335';
+        const widgetId = options.widgetId || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
         const tokenAuth = options.tokenAuth ||
             process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
             process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||

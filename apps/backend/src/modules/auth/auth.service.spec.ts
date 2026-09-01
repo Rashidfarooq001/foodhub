@@ -61,7 +61,8 @@ describe('FoodHub MSG91 Widget Forgot Password & Reset Authorization Test Suite'
     }),
     findUserByPhoneOrEmail: jest.fn().mockImplementation(async (input: string) => {
       const clean = input.replace(/\D/g, '');
-      if (input === '+919876543211' || input === 'customer@foodhub.com' || clean === '9876543211') return mockCustomerUser;
+      if (input === '+919876543211' || input === 'customer@foodhub.com' || clean === '9876543211')
+        return mockCustomerUser;
       return null;
     }),
     findUserById: jest.fn().mockImplementation(async (id: string) => {

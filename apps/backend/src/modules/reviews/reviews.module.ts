@@ -4,9 +4,9 @@ import { ReviewsService } from './reviews.service';
 import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports:     [DatabaseModule],
+  imports: [DatabaseModule],
   controllers: [ReviewsController],
-  providers:   [ReviewsService],
-  exports:     [ReviewsService],
+  providers: [ReviewsService],
+  exports: [ReviewsService],
 })
 export class ReviewsModule {}

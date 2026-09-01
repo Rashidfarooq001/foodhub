@@ -20,10 +20,7 @@ export class ReferralsController {
 
   @Post('apply')
   @ApiOperation({ summary: 'Apply a referral code (new user only, one-time)' })
-  async apply(
-    @Request() req: { user: { sub: string } },
-    @Body() dto: ApplyReferralDto,
-  ) {
+  async apply(@Request() req: { user: { sub: string } }, @Body() dto: ApplyReferralDto) {
     return this.referralsService.applyReferralCode(req.user.sub, dto.code);
   }
 

@@ -8,7 +8,7 @@ export class CreatePaymentDto {
   @IsNotEmpty()
   orderId!: string;
 
-  @ApiProperty({ example: 685.50 })
+  @ApiProperty({ example: 685.5 })
   @IsNumber()
   @Min(1)
   amount!: number;

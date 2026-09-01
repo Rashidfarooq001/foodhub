@@ -6,13 +6,13 @@
 
 ## 1. VPS Infrastructure Requirements
 
-| Resource | Minimum Specification | Recommended Production |
-|---|---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS | Ubuntu 24.04 LTS |
-| CPU | 4 vCPU | 8 vCPU |
-| RAM | 8 GB | 16 GB |
-| Storage | 80 GB NVMe SSD | 160 GB NVMe SSD |
-| Network | 1 Gbps port | 1 Gbps redundant |
+| Resource | Minimum Specification    | Recommended Production |
+| -------- | ------------------------ | ---------------------- |
+| OS       | Ubuntu 22.04 / 24.04 LTS | Ubuntu 24.04 LTS       |
+| CPU      | 4 vCPU                   | 8 vCPU                 |
+| RAM      | 8 GB                     | 16 GB                  |
+| Storage  | 80 GB NVMe SSD           | 160 GB NVMe SSD        |
+| Network  | 1 Gbps port              | 1 Gbps redundant       |
 
 ---
 
@@ -80,10 +80,10 @@ sudo systemctl enable certbot.timer
 
 ## 5. Domain DNS Mapping
 
-| Subdomain | Target IP | Record Type |
-|---|---|---|
-| `customer.foodhub.com` | VPS Public IP | `A` |
-| `hotel.foodhub.com` | VPS Public IP | `A` |
-| `delivery.foodhub.com` | VPS Public IP | `A` |
-| `admin.foodhub.com` | VPS Public IP | `A` |
-| `api.foodhub.com` | VPS Public IP | `A` |
+| Subdomain              | Target IP     | Record Type |
+| ---------------------- | ------------- | ----------- |
+| `customer.foodhub.com` | VPS Public IP | `A`         |
+| `hotel.foodhub.com`    | VPS Public IP | `A`         |
+| `delivery.foodhub.com` | VPS Public IP | `A`         |
+| `admin.foodhub.com`    | VPS Public IP | `A`         |
+| `api.foodhub.com`      | VPS Public IP | `A`         |

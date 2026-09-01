@@ -5,9 +5,9 @@ import { DistanceService } from './distance.service';
 import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports:     [DatabaseModule],
+  imports: [DatabaseModule],
   controllers: [GeolocationController],
-  providers:   [GeolocationService, DistanceService],
-  exports:     [GeolocationService, DistanceService],
+  providers: [GeolocationService, DistanceService],
+  exports: [GeolocationService, DistanceService],
 })
 export class GeolocationModule {}

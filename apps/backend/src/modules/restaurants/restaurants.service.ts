@@ -1,4 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, UnauthorizedException, ForbiddenException, Optional, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+  Optional,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { GeolocationService } from '../geolocation/geolocation.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -51,10 +60,14 @@ export class RestaurantsService {
   async createRestaurant(dto: CreateRestaurantDto) {
     // Validate required fields — never invent defaults
     if (!dto.password || !dto.password.trim()) {
-      throw new BadRequestException('A password is required to create the restaurant owner account.');
+      throw new BadRequestException(
+        'A password is required to create the restaurant owner account.',
+      );
     }
     if (!dto.email || !dto.email.trim()) {
-      throw new BadRequestException('An email address is required for the restaurant owner account.');
+      throw new BadRequestException(
+        'An email address is required for the restaurant owner account.',
+      );
     }
     if (!dto.ownerName || !dto.ownerName.trim()) {
       throw new BadRequestException('Owner full name is required.');
@@ -85,18 +98,11 @@ export class RestaurantsService {
         });
       } else {
         const rawTenDigits = canonicalPhone.replace(/\D/g, '').slice(-10);
-        const uniqueFormats = [
-          canonicalPhone,
-          `91${rawTenDigits}`,
-          rawTenDigits,
-        ];
+        const uniqueFormats = [canonicalPhone, `91${rawTenDigits}`, rawTenDigits];
 
         const existingUser = await tx.user.findFirst({
           where: {
-            OR: [
-              ...uniqueFormats.map((p) => ({ phone: p })),
-              { email },
-            ],
+            OR: [...uniqueFormats.map((p) => ({ phone: p })), { email }],
           },
         });
 
@@ -134,13 +140,7 @@ export class RestaurantsService {
         '-' +
         Math.floor(Math.random() * 1000);
 
-      const fullAddress = [
-        dto.address,
-        dto.city,
-        dto.state,
-        dto.pin,
-        dto.country,
-      ]
+      const fullAddress = [dto.address, dto.city, dto.state, dto.pin, dto.country]
         .filter(Boolean)
         .join(', ');
 
@@ -150,7 +150,9 @@ export class RestaurantsService {
 
       // FSSAI is required for restaurant registration
       if (!dto.fssaiLicense || !dto.fssaiLicense.trim()) {
-        throw new BadRequestException('FSSAI license number is required for restaurant registration.');
+        throw new BadRequestException(
+          'FSSAI license number is required for restaurant registration.',
+        );
       }
 
       const restaurant = await tx.restaurant.create({
@@ -169,7 +171,6 @@ export class RestaurantsService {
           fssaiUrl: dto.fssaiUrl,
           panUrl: dto.panUrl,
           panNumber: dto.panNumber,
-
 
           status: RestaurantStatus.PENDING_APPROVAL,
           isOpen: false,
@@ -240,9 +241,7 @@ export class RestaurantsService {
         password: result.generatedPassword,
         ownerId: result.ownerId,
       },
-      avgRating: result.restaurant.avgRating
-        ? Number(result.restaurant.avgRating)
-        : 0,
+      avgRating: result.restaurant.avgRating ? Number(result.restaurant.avgRating) : 0,
       commissionRate: result.restaurant.commissionRate
         ? Number(result.restaurant.commissionRate)
         : 0,
@@ -253,7 +252,8 @@ export class RestaurantsService {
     let whereCondition: any = { deletedAt: null };
     if (statusFilter && statusFilter.toUpperCase() !== 'ALL') {
       const s = statusFilter.toUpperCase();
-      if (s === 'PENDING' || s === 'PENDING_APPROVAL') whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
+      if (s === 'PENDING' || s === 'PENDING_APPROVAL')
+        whereCondition.status = RestaurantStatus.PENDING_APPROVAL;
       else if (s === 'APPROVED') whereCondition.status = RestaurantStatus.APPROVED;
       else if (s === 'SUSPENDED') whereCondition.status = RestaurantStatus.SUSPENDED;
       else if (s === 'REJECTED') whereCondition.status = RestaurantStatus.REJECTED;
@@ -285,15 +285,13 @@ export class RestaurantsService {
       },
     });
 
-    return serializePrisma(restaurants.map((restaurant) => ({
-      ...restaurant,
-      avgRating: restaurant.avgRating
-        ? Number(restaurant.avgRating)
-        : 0,
-      commissionRate: restaurant.commissionRate
-        ? Number(restaurant.commissionRate)
-        : 0,
-    })));
+    return serializePrisma(
+      restaurants.map((restaurant) => ({
+        ...restaurant,
+        avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
+        commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
+      })),
+    );
   }
 
   async findAllRestaurants(adminView = false, userLat?: number, userLng?: number) {
@@ -324,9 +322,14 @@ export class RestaurantsService {
     let etas = new Map<string, number>();
 
     if (userLat !== undefined && userLng !== undefined) {
-      const destinations = restaurants.map(r => [r.latitude || 0, r.longitude || 0] as [number, number]);
+      const destinations = restaurants.map(
+        (r) => [r.latitude || 0, r.longitude || 0] as [number, number],
+      );
       try {
-        const matrixResults = await this.geolocationService.computeDistanceMatrix([userLat, userLng], destinations);
+        const matrixResults = await this.geolocationService.computeDistanceMatrix(
+          [userLat, userLng],
+          destinations,
+        );
         restaurants.forEach((rest, index) => {
           const result = matrixResults[index];
           if (result && typeof result.distanceKm === 'number' && result.distanceKm >= 0) {
@@ -341,23 +344,23 @@ export class RestaurantsService {
       }
     }
 
-    return serializePrisma(restaurants.map((restaurant) => {
-      let distanceKm: number | null = distances.get(restaurant.id) ?? null;
-      let deliveryTimeMins: number | null = etas.get(restaurant.id) ?? null;
-      return {
-        ...restaurant,
-        distanceKm,
-        deliveryTimeMins,
-        avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
-        commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
-      };
-    }));
+    return serializePrisma(
+      restaurants.map((restaurant) => {
+        let distanceKm: number | null = distances.get(restaurant.id) ?? null;
+        let deliveryTimeMins: number | null = etas.get(restaurant.id) ?? null;
+        return {
+          ...restaurant,
+          distanceKm,
+          deliveryTimeMins,
+          avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
+          commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
+        };
+      }),
+    );
   }
 
   async findRestaurantById(idOrSlug: string) {
-    const whereCondition = isUUID(idOrSlug)
-      ? { id: idOrSlug }
-      : { slug: idOrSlug };
+    const whereCondition = isUUID(idOrSlug) ? { id: idOrSlug } : { slug: idOrSlug };
 
     const restaurant = await this.prisma.restaurant.findFirst({
       where: { ...whereCondition, deletedAt: null },
@@ -393,19 +396,13 @@ export class RestaurantsService {
     });
 
     if (!restaurant) {
-      throw new NotFoundException(
-        `Restaurant ${idOrSlug} not found`,
-      );
+      throw new NotFoundException(`Restaurant ${idOrSlug} not found`);
     }
 
     return serializePrisma({
       ...restaurant,
-      avgRating: restaurant.avgRating
-        ? Number(restaurant.avgRating)
-        : 0,
-      commissionRate: restaurant.commissionRate
-        ? Number(restaurant.commissionRate)
-        : 0,
+      avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
+      commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
     });
   }
 
@@ -447,7 +444,9 @@ export class RestaurantsService {
     } else if (status === 'REJECTED') {
       prismaStatus = RestaurantStatus.REJECTED;
       if (!rejectionReason || !rejectionReason.trim()) {
-        throw new BadRequestException('A valid rejection reason is mandatory when rejecting a restaurant.');
+        throw new BadRequestException(
+          'A valid rejection reason is mandatory when rejecting a restaurant.',
+        );
       }
     } else if (status === 'SUSPENDED') {
       prismaStatus = RestaurantStatus.SUSPENDED;
@@ -466,9 +465,10 @@ export class RestaurantsService {
       data: {
         status: prismaStatus,
         isOpen,
-        rejectionReason: (prismaStatus === RestaurantStatus.REJECTED || prismaStatus === RestaurantStatus.SUSPENDED)
-          ? rejectionReason?.trim() || null
-          : null,
+        rejectionReason:
+          prismaStatus === RestaurantStatus.REJECTED || prismaStatus === RestaurantStatus.SUSPENDED
+            ? rejectionReason?.trim() || null
+            : null,
       },
     });
 
@@ -489,7 +489,10 @@ export class RestaurantsService {
               isActive: true,
             },
           });
-        } else if (prismaStatus === RestaurantStatus.REJECTED || prismaStatus === RestaurantStatus.SUSPENDED) {
+        } else if (
+          prismaStatus === RestaurantStatus.REJECTED ||
+          prismaStatus === RestaurantStatus.SUSPENDED
+        ) {
           // Check if merchant owns any other approved active restaurant before deactivating account
           const otherApprovedRestaurant = await this.prisma.restaurant.findFirst({
             where: {
@@ -595,36 +598,40 @@ export class RestaurantsService {
       select: { id: true, status: true },
     });
     const activeOrdersCount = activeOrders.length;
-    
-    const historicalOrdersCount = await this.prisma.order.count({ where: { restaurantId: restaurant.id } });
-    const historicalSettlementsCount = await this.prisma.restaurantSettlement.count({ where: { restaurantId: restaurant.id } });
+
+    const historicalOrdersCount = await this.prisma.order.count({
+      where: { restaurantId: restaurant.id },
+    });
+    const historicalSettlementsCount = await this.prisma.restaurantSettlement.count({
+      where: { restaurantId: restaurant.id },
+    });
 
     // 2. Perform safe permanent deletion using an atomic transaction
     await this.prisma.$transaction(async (tx) => {
-      
       // Handle active orders: Cancel them gracefully with a status history log
       if (activeOrdersCount > 0) {
-        const orderHistories = activeOrders.map(order => ({
+        const orderHistories = activeOrders.map((order) => ({
           orderId: order.id,
           fromStatus: order.status,
           toStatus: OrderStatus.CANCELLED,
         }));
-        
+
         await tx.orderStatusHistory.createMany({
           data: orderHistories,
         });
 
-        const orderTimelines = activeOrders.map(order => ({
+        const orderTimelines = activeOrders.map((order) => ({
           orderId: order.id,
           status: OrderStatus.CANCELLED,
-          message: 'Order automatically cancelled because the restaurant was permanently deleted by SuperAdmin.',
+          message:
+            'Order automatically cancelled because the restaurant was permanently deleted by SuperAdmin.',
         }));
 
         await tx.orderTimeline.createMany({
           data: orderTimelines,
         });
 
-        const cancellations = activeOrders.map(order => ({
+        const cancellations = activeOrders.map((order) => ({
           orderId: order.id,
           reason: 'Restaurant permanently deleted by SuperAdmin',
           cancelledBy: adminUserId || restaurant.id,
@@ -702,20 +709,31 @@ export class RestaurantsService {
           where: { userId: ownerUser.id },
         });
 
-        const hasOtherRoles = !!ownerUser.driver || !!ownerUser.customer || otherOwnedRestaurantsCount > 0 || staffRolesCount > 0;
+        const hasOtherRoles =
+          !!ownerUser.driver ||
+          !!ownerUser.customer ||
+          otherOwnedRestaurantsCount > 0 ||
+          staffRolesCount > 0;
 
         if (!hasOtherRoles) {
           // Delete the entire user (cascades to Profile, etc.)
           await tx.user.delete({
             where: { id: ownerUser.id },
           });
-        } else if (ownerUser.role === UserRole.RESTAURANT_OWNER && otherOwnedRestaurantsCount === 0) {
-           // Demote role to customer if they have a customer profile, or something else
-           const nextRole = ownerUser.driver ? UserRole.DELIVERY_PARTNER : (ownerUser.customer ? UserRole.CUSTOMER : UserRole.CUSTOMER);
-           await tx.user.update({
-             where: { id: ownerUser.id },
-             data: { role: nextRole },
-           });
+        } else if (
+          ownerUser.role === UserRole.RESTAURANT_OWNER &&
+          otherOwnedRestaurantsCount === 0
+        ) {
+          // Demote role to customer if they have a customer profile, or something else
+          const nextRole = ownerUser.driver
+            ? UserRole.DELIVERY_PARTNER
+            : ownerUser.customer
+              ? UserRole.CUSTOMER
+              : UserRole.CUSTOMER;
+          await tx.user.update({
+            where: { id: ownerUser.id },
+            data: { role: nextRole },
+          });
         }
       }
 
@@ -727,11 +745,11 @@ export class RestaurantsService {
             entityName: 'Restaurant',
             entityId: restaurant.id,
             userId: adminUserId,
-            oldValue: { 
+            oldValue: {
               name: restaurant.name,
               activeOrdersAffected: activeOrdersCount,
               historicalOrdersPreserved: historicalOrdersCount,
-              historicalSettlementsPreserved: historicalSettlementsCount
+              historicalSettlementsPreserved: historicalSettlementsCount,
             },
           },
         });
@@ -825,7 +843,17 @@ export class RestaurantsService {
     });
   }
 
-  async updateStoreProfile(id: string, dto: { name?: string; phone?: string; licenseFssai?: string; gstin?: string; bannerUrl?: string; menuUrl?: string }) {
+  async updateStoreProfile(
+    id: string,
+    dto: {
+      name?: string;
+      phone?: string;
+      licenseFssai?: string;
+      gstin?: string;
+      bannerUrl?: string;
+      menuUrl?: string;
+    },
+  ) {
     const data: any = {};
     if (dto.name) data.name = dto.name;
     if (dto.phone) data.phone = dto.phone;
@@ -847,7 +875,10 @@ export class RestaurantsService {
     });
   }
 
-  async updateRestaurantTimings(restaurantId: string, timings: Array<{ dayOfWeek: number; openTime: string; closeTime: string; isClosed: boolean }>) {
+  async updateRestaurantTimings(
+    restaurantId: string,
+    timings: Array<{ dayOfWeek: number; openTime: string; closeTime: string; isClosed: boolean }>,
+  ) {
     await this.prisma.restaurantTiming.deleteMany({
       where: { restaurantId },
     });
@@ -896,7 +927,8 @@ export class RestaurantsService {
       },
     });
 
-    const successRate = totalAssignedOrders > 0 ? Math.round((completedOrders / totalAssignedOrders) * 100) : 100;
+    const successRate =
+      totalAssignedOrders > 0 ? Math.round((completedOrders / totalAssignedOrders) * 100) : 100;
 
     return {
       avgDeliveryTimeMins: 22,
@@ -907,11 +939,17 @@ export class RestaurantsService {
     };
   }
 
-  async updateCommissionRate(restaurantId: string, commissionRate: number | null, adminUserId?: string) {
+  async updateCommissionRate(
+    restaurantId: string,
+    commissionRate: number | null,
+    adminUserId?: string,
+  ) {
     if (commissionRate !== null && commissionRate !== undefined) {
       const num = Number(commissionRate);
       if (isNaN(num) || num < 0 || num > 100) {
-        throw new BadRequestException('Commission rate must be a valid number between 0% and 100% or null (unconfigured).');
+        throw new BadRequestException(
+          'Commission rate must be a valid number between 0% and 100% or null (unconfigured).',
+        );
       }
     }
 
@@ -921,8 +959,10 @@ export class RestaurantsService {
 
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    const previousRate = restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : null;
-    const newRate = commissionRate !== null && commissionRate !== undefined ? Number(commissionRate) : null;
+    const previousRate =
+      restaurant.commissionRate !== null ? Number(restaurant.commissionRate) : null;
+    const newRate =
+      commissionRate !== null && commissionRate !== undefined ? Number(commissionRate) : null;
 
     const updated = await this.prisma.restaurant.update({
       where: { id: restaurantId },
@@ -952,6 +992,3 @@ export class RestaurantsService {
     };
   }
 }
-
-
-

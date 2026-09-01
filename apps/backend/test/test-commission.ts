@@ -44,7 +44,11 @@ class InMemoryPrismaService {
 
   auditLog = {
     create: async ({ data }: { data: any }) => {
-      const log = { id: 'audit-' + Math.random().toString(36).slice(2, 9), createdAt: new Date(), ...data };
+      const log = {
+        id: 'audit-' + Math.random().toString(36).slice(2, 9),
+        createdAt: new Date(),
+        ...data,
+      };
       this.auditLogs.push(log);
       return log;
     },
@@ -60,7 +64,12 @@ async function runUnitCommissionTest() {
   const taxEngine = new TaxEngineService(mockPrisma as any);
   const pricingService = new PricingService(mockPrisma as any);
   const distanceService = new DistanceService(mockPrisma as any, null as any);
-  const quoteService = new OrderQuoteService(mockPrisma as any, taxEngine, pricingService, distanceService);
+  const quoteService = new OrderQuoteService(
+    mockPrisma as any,
+    taxEngine,
+    pricingService,
+    distanceService,
+  );
 
   // 1. Setup Global PricingConfig with NULL commission (UNCONFIGURED fallback)
   console.log('STEP 1: Testing Global PricingConfig default (UNCONFIGURED fallback)...');
@@ -111,11 +120,23 @@ async function runUnitCommissionTest() {
     restaurantSettlement: quoteA.restaurantSettlement,
   });
 
-  if (quoteA.commissionRate !== null) throw new Error(`Expected quoteA.commissionRate to be null, got ${quoteA.commissionRate}`);
-  if (quoteA.commissionStatus !== 'UNCONFIGURED') throw new Error(`Expected quoteA.commissionStatus to be UNCONFIGURED, got ${quoteA.commissionStatus}`);
-  if (quoteA.restaurantCommission !== 0) throw new Error(`Expected quoteA.restaurantCommission to be 0, got ${quoteA.restaurantCommission}`);
-  if (quoteA.restaurantSettlement !== 500) throw new Error(`Expected quoteA.restaurantSettlement to be 500, got ${quoteA.restaurantSettlement}`);
-  console.log('✓ PASS: Restaurant A correctly resolved to UNCONFIGURED with ₹0.00 commission deduction.');
+  if (quoteA.commissionRate !== null)
+    throw new Error(`Expected quoteA.commissionRate to be null, got ${quoteA.commissionRate}`);
+  if (quoteA.commissionStatus !== 'UNCONFIGURED')
+    throw new Error(
+      `Expected quoteA.commissionStatus to be UNCONFIGURED, got ${quoteA.commissionStatus}`,
+    );
+  if (quoteA.restaurantCommission !== 0)
+    throw new Error(
+      `Expected quoteA.restaurantCommission to be 0, got ${quoteA.restaurantCommission}`,
+    );
+  if (quoteA.restaurantSettlement !== 500)
+    throw new Error(
+      `Expected quoteA.restaurantSettlement to be 500, got ${quoteA.restaurantSettlement}`,
+    );
+  console.log(
+    '✓ PASS: Restaurant A correctly resolved to UNCONFIGURED with ₹0.00 commission deduction.',
+  );
 
   // 4. Test Quote on Restaurant B (0% rate)
   console.log('\nSTEP 4: Calculating Quote for Restaurant B (commissionRate = 0.0%)...');
@@ -131,10 +152,20 @@ async function runUnitCommissionTest() {
     restaurantSettlement: quoteB.restaurantSettlement,
   });
 
-  if (quoteB.commissionRate !== 0) throw new Error(`Expected quoteB.commissionRate to be 0, got ${quoteB.commissionRate}`);
-  if (quoteB.commissionStatus !== 'CONFIGURED') throw new Error(`Expected quoteB.commissionStatus to be CONFIGURED, got ${quoteB.commissionStatus}`);
-  if (quoteB.restaurantCommission !== 0) throw new Error(`Expected quoteB.restaurantCommission to be 0, got ${quoteB.restaurantCommission}`);
-  if (quoteB.restaurantSettlement !== 500) throw new Error(`Expected quoteB.restaurantSettlement to be 500, got ${quoteB.restaurantSettlement}`);
+  if (quoteB.commissionRate !== 0)
+    throw new Error(`Expected quoteB.commissionRate to be 0, got ${quoteB.commissionRate}`);
+  if (quoteB.commissionStatus !== 'CONFIGURED')
+    throw new Error(
+      `Expected quoteB.commissionStatus to be CONFIGURED, got ${quoteB.commissionStatus}`,
+    );
+  if (quoteB.restaurantCommission !== 0)
+    throw new Error(
+      `Expected quoteB.restaurantCommission to be 0, got ${quoteB.restaurantCommission}`,
+    );
+  if (quoteB.restaurantSettlement !== 500)
+    throw new Error(
+      `Expected quoteB.restaurantSettlement to be 500, got ${quoteB.restaurantSettlement}`,
+    );
   console.log('✓ PASS: Restaurant B correctly resolved to CONFIGURED 0% (NOT UNCONFIGURED).');
 
   // 5. Test Quote on Restaurant C (15% rate)
@@ -151,11 +182,23 @@ async function runUnitCommissionTest() {
     restaurantSettlement: quoteC.restaurantSettlement,
   });
 
-  if (quoteC.commissionRate !== 15) throw new Error(`Expected quoteC.commissionRate to be 15, got ${quoteC.commissionRate}`);
-  if (quoteC.commissionStatus !== 'CONFIGURED') throw new Error(`Expected quoteC.commissionStatus to be CONFIGURED, got ${quoteC.commissionStatus}`);
-  if (quoteC.restaurantCommission !== 75) throw new Error(`Expected quoteC.restaurantCommission to be 75, got ${quoteC.restaurantCommission}`);
-  if (quoteC.restaurantSettlement !== 425) throw new Error(`Expected quoteC.restaurantSettlement to be 425, got ${quoteC.restaurantSettlement}`);
-  console.log('✓ PASS: Restaurant C correctly resolved to CONFIGURED 15% (₹75 commission on ₹500 food).');
+  if (quoteC.commissionRate !== 15)
+    throw new Error(`Expected quoteC.commissionRate to be 15, got ${quoteC.commissionRate}`);
+  if (quoteC.commissionStatus !== 'CONFIGURED')
+    throw new Error(
+      `Expected quoteC.commissionStatus to be CONFIGURED, got ${quoteC.commissionStatus}`,
+    );
+  if (quoteC.restaurantCommission !== 75)
+    throw new Error(
+      `Expected quoteC.restaurantCommission to be 75, got ${quoteC.restaurantCommission}`,
+    );
+  if (quoteC.restaurantSettlement !== 425)
+    throw new Error(
+      `Expected quoteC.restaurantSettlement to be 425, got ${quoteC.restaurantSettlement}`,
+    );
+  console.log(
+    '✓ PASS: Restaurant C correctly resolved to CONFIGURED 15% (₹75 commission on ₹500 food).',
+  );
 
   // 6. Create Historical Order #1 for Restaurant C (15%)
   console.log('\nSTEP 6: Creating Historical Order #1 for Restaurant C with 15% snapshot...');
@@ -207,7 +250,9 @@ async function runUnitCommissionTest() {
   });
 
   if (quoteCNew.commissionRate !== 20 || quoteCNew.restaurantCommission !== 100) {
-    throw new Error('Expected new quote to be 20% (₹100 commission), got ' + quoteCNew.restaurantCommission);
+    throw new Error(
+      'Expected new quote to be 20% (₹100 commission), got ' + quoteCNew.restaurantCommission,
+    );
   }
 
   const order2 = await mockPrisma.order.create({
@@ -233,13 +278,29 @@ async function runUnitCommissionTest() {
   const checkOrder2 = await mockPrisma.order.findUnique({ where: { id: order2.id } });
 
   console.log('Database verification:');
-  console.log('- Historical Order #1 Snapshot Commission:', checkOrder1.pricingSnapshot.commissionRate + '%', `(₹${checkOrder1.pricingSnapshot.commissionAmount})`);
-  console.log('- New Order #2 Snapshot Commission:       ', checkOrder2.pricingSnapshot.commissionRate + '%', `(₹${checkOrder2.pricingSnapshot.commissionAmount})`);
+  console.log(
+    '- Historical Order #1 Snapshot Commission:',
+    checkOrder1.pricingSnapshot.commissionRate + '%',
+    `(₹${checkOrder1.pricingSnapshot.commissionAmount})`,
+  );
+  console.log(
+    '- New Order #2 Snapshot Commission:       ',
+    checkOrder2.pricingSnapshot.commissionRate + '%',
+    `(₹${checkOrder2.pricingSnapshot.commissionAmount})`,
+  );
 
-  if (checkOrder1.pricingSnapshot.commissionRate !== 15 || checkOrder1.pricingSnapshot.commissionAmount !== 75) {
-    throw new Error('CRITICAL FAILURE: Historical Order #1 commission was mutated or recalculated!');
+  if (
+    checkOrder1.pricingSnapshot.commissionRate !== 15 ||
+    checkOrder1.pricingSnapshot.commissionAmount !== 75
+  ) {
+    throw new Error(
+      'CRITICAL FAILURE: Historical Order #1 commission was mutated or recalculated!',
+    );
   }
-  if (checkOrder2.pricingSnapshot.commissionRate !== 20 || checkOrder2.pricingSnapshot.commissionAmount !== 100) {
+  if (
+    checkOrder2.pricingSnapshot.commissionRate !== 20 ||
+    checkOrder2.pricingSnapshot.commissionAmount !== 100
+  ) {
     throw new Error('CRITICAL FAILURE: New Order #2 commission snapshot was not set to 20%!');
   }
 

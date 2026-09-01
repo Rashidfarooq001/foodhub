@@ -23,7 +23,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('nosplash') === '1' || sessionStorage.getItem('zayka_splash_shown') === '1') {
+      if (
+        urlParams.get('nosplash') === '1' ||
+        sessionStorage.getItem('zayka_splash_shown') === '1'
+      ) {
         setSplashDone(true);
       }
     }

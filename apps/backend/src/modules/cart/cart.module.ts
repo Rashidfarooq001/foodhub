@@ -4,9 +4,9 @@ import { CartService } from './cart.service';
 import { CacheModule } from '../cache/cache.module';
 
 @Module({
-  imports:     [CacheModule],
+  imports: [CacheModule],
   controllers: [CartController],
-  providers:   [CartService],
-  exports:     [CartService],
+  providers: [CartService],
+  exports: [CartService],
 })
 export class CartModule {}

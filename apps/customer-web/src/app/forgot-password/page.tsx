@@ -3,7 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Phone, ArrowRight, ShieldCheck, Lock, CheckCircle2, RotateCcw, Edit2 } from 'lucide-react';
+import {
+  Sparkles,
+  Phone,
+  ArrowRight,
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  RotateCcw,
+  Edit2,
+} from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
@@ -17,7 +26,9 @@ export default function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
-  const [forgotStep, setForgotStep] = useState<'SEND_OTP' | 'VERIFY_OTP' | 'NEW_PASSWORD'>('SEND_OTP');
+  const [forgotStep, setForgotStep] = useState<'SEND_OTP' | 'VERIFY_OTP' | 'NEW_PASSWORD'>(
+    'SEND_OTP',
+  );
   const [otp, setOtp] = useState(['', '', '', '']);
 
   const [error, setError] = useState('');
@@ -80,7 +91,10 @@ export default function ForgotPasswordPage() {
       }
 
       const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+      const tokenAuth =
+        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
+        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
+        '556022TLShucwZ86a6d8a7bP1';
       const identifier = formatIdentifier(phone);
 
       const configuration = {
@@ -90,7 +104,10 @@ export default function ForgotPasswordPage() {
         exposeMethods: true,
         captchaRenderId: '',
         success: (msgData: any) => {
-          const token = typeof msgData === 'string' ? msgData : (msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token);
+          const token =
+            typeof msgData === 'string'
+              ? msgData
+              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
           if (token) {
             handleVerifyResetWidgetToken(token);
           } else {
@@ -99,7 +116,7 @@ export default function ForgotPasswordPage() {
           }
         },
         failure: (err: any) => {
-          setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
+          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
           setIsLoading(false);
         },
       };
@@ -108,7 +125,11 @@ export default function ForgotPasswordPage() {
         try {
           (window as any).initSendOTP(configuration);
           if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(identifier, () => {}, (err: any) => console.error('[MSG91 Reset] sendOtp error:', err));
+            (window as any).sendOtp(
+              identifier,
+              () => {},
+              (err: any) => console.error('[MSG91 Reset] sendOtp error:', err),
+            );
           }
         } catch (widgetErr: any) {
           console.warn('[MSG91 Reset] initSendOTP exception:', widgetErr);
@@ -166,10 +187,14 @@ export default function ForgotPasswordPage() {
 
     if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
       try {
-        (window as any).verifyOtp(enteredOtp, () => {}, (err: any) => {
-          setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
-          setIsLoading(false);
-        });
+        (window as any).verifyOtp(
+          enteredOtp,
+          () => {},
+          (err: any) => {
+            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
+            setIsLoading(false);
+          },
+        );
         return;
       } catch (verifyErr: any) {
         console.warn('[MSG91 Reset] verifyOtp exception:', verifyErr);
@@ -300,8 +325,8 @@ export default function ForgotPasswordPage() {
             {forgotStep === 'SEND_OTP'
               ? 'Enter your registered mobile number for password reset'
               : forgotStep === 'VERIFY_OTP'
-              ? 'Enter 4-digit SMS OTP sent to your mobile number'
-              : 'Create a new secure password for your account'}
+                ? 'Enter 4-digit SMS OTP sent to your mobile number'
+                : 'Create a new secure password for your account'}
           </p>
         </div>
 
@@ -320,7 +345,9 @@ export default function ForgotPasswordPage() {
         {forgotStep === 'SEND_OTP' ? (
           <form onSubmit={handleSendResetOtp} className="space-y-5" autoComplete="off">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Registered Mobile Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Registered Mobile Number
+              </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -354,16 +381,22 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleVerifyResetOtpManual} className="space-y-5">
             <div className="rounded-2xl bg-orange-50 p-3 text-center border border-orange-100">
               <p className="text-xs font-bold text-orange-900">Verify Password Reset Mobile</p>
-              <p className="text-[11px] text-orange-700 mt-0.5">OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span></p>
+              <p className="text-[11px] text-orange-700 mt-0.5">
+                OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">Enter 4-Digit MSG91 OTP</label>
+              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">
+                Enter 4-Digit MSG91 OTP
+              </label>
               <div className="flex justify-center gap-3">
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => { otpInputsRef.current[idx] = el; }}
+                    ref={(el) => {
+                      otpInputsRef.current[idx] = el;
+                    }}
                     type="text"
                     maxLength={1}
                     value={digit}
@@ -397,7 +430,10 @@ export default function ForgotPasswordPage() {
             <div className="flex items-center justify-between text-xs pt-1">
               <button
                 type="button"
-                onClick={() => { setForgotStep('SEND_OTP'); setError(''); }}
+                onClick={() => {
+                  setForgotStep('SEND_OTP');
+                  setError('');
+                }}
                 className="flex items-center gap-1 font-bold text-gray-500 hover:text-orange-600"
               >
                 <Edit2 className="h-3.5 w-3.5" /> Edit Mobile Number
@@ -420,7 +456,10 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSetNewPasswordSubmit} className="space-y-5" autoComplete="off">
             <div className="rounded-2xl bg-emerald-50 p-3 text-center border border-emerald-100">
               <p className="text-xs font-bold text-emerald-900">Mobile Verified Successfully</p>
-              <p className="text-[11px] text-emerald-700 mt-0.5">Please create a new password for <span className="font-black">+{phone.replace(/\D/g, '')}</span></p>
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Please create a new password for{' '}
+                <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+              </p>
             </div>
 
             <div>
@@ -440,7 +479,9 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Confirm New Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input

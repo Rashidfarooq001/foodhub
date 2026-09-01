@@ -207,7 +207,11 @@ export default function HotelMenuPage() {
     }
   };
 
-  const toggleVariantAvailability = async (variantId: string, currentStatus: boolean, itemId: string) => {
+  const toggleVariantAvailability = async (
+    variantId: string,
+    currentStatus: boolean,
+    itemId: string,
+  ) => {
     try {
       const res = await fetch(`${API_BASE}/menus/variants/${variantId}/availability`, {
         method: 'PATCH',
@@ -400,9 +404,8 @@ export default function HotelMenuPage() {
     }
   };
 
-  const filteredItems = selectedCatId === 'ALL'
-    ? items
-    : items.filter((i) => i.categoryId === selectedCatId);
+  const filteredItems =
+    selectedCatId === 'ALL' ? items : items.filter((i) => i.categoryId === selectedCatId);
 
   if (!restaurantId) {
     return (
@@ -471,7 +474,9 @@ export default function HotelMenuPage() {
               }`}
             >
               <span>{cat.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-orange-700 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-orange-700 text-white' : 'bg-gray-100 text-gray-500'}`}
+              >
                 {count}
               </span>
             </button>
@@ -505,7 +510,9 @@ export default function HotelMenuPage() {
                 <div
                   key={item.id}
                   className={`rounded-2xl sm:rounded-3xl border bg-white p-4 shadow-sm space-y-3 flex flex-col justify-between transition ${
-                    item.isAvailable ? 'border-gray-200' : 'border-rose-200 bg-rose-50/20 opacity-80'
+                    item.isAvailable
+                      ? 'border-gray-200'
+                      : 'border-rose-200 bg-rose-50/20 opacity-80'
                   }`}
                 >
                   <div className="space-y-2.5">
@@ -527,7 +534,9 @@ export default function HotelMenuPage() {
                             <ImageIcon className="h-6 w-6" />
                           </div>
                         )}
-                        <span className={`absolute top-1.5 left-1.5 h-3 w-3 rounded-full border border-white ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        <span
+                          className={`absolute top-1.5 left-1.5 h-3 w-3 rounded-full border border-white ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                        />
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -566,14 +575,26 @@ export default function HotelMenuPage() {
                               key={vIdx}
                               className="flex items-center justify-between bg-white border border-gray-200 px-2 py-1 rounded-lg text-xs"
                             >
-                              <span className="font-bold text-gray-800 text-[11px]">{v.variantName}</span>
+                              <span className="font-bold text-gray-800 text-[11px]">
+                                {v.variantName}
+                              </span>
                               <div className="flex items-center gap-1.5">
-                                <span className="font-black text-orange-600 text-[11px]">₹{v.price}</span>
+                                <span className="font-black text-orange-600 text-[11px]">
+                                  ₹{v.price}
+                                </span>
                                 {v.id && (
                                   <button
-                                    onClick={() => toggleVariantAvailability(v.id!, v.isAvailable ?? true, item.id)}
+                                    onClick={() =>
+                                      toggleVariantAvailability(
+                                        v.id!,
+                                        v.isAvailable ?? true,
+                                        item.id,
+                                      )
+                                    }
                                     className={`text-[9px] font-black px-1 rounded ${
-                                      v.isAvailable !== false ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                                      v.isAvailable !== false
+                                        ? 'text-emerald-700 bg-emerald-50'
+                                        : 'text-rose-700 bg-rose-50'
                                     }`}
                                     title="Toggle Variant Availability"
                                   >
@@ -599,7 +620,9 @@ export default function HotelMenuPage() {
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
-                      <span className={`h-2 w-2 rounded-full ${item.isAvailable ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <span
+                        className={`h-2 w-2 rounded-full ${item.isAvailable ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                      />
                       <span>{item.isAvailable ? 'Available' : 'Sold Out'}</span>
                     </button>
 
@@ -721,9 +744,7 @@ export default function HotelMenuPage() {
             <form onSubmit={handleSaveFoodItem} className="space-y-4">
               {/* Dish Name */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Dish Name *
-                </label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Dish Name *</label>
                 <input
                   type="text"
                   required
@@ -736,9 +757,7 @@ export default function HotelMenuPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Description
-                </label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
                 <textarea
                   rows={2}
                   placeholder="Describe ingredients, cooking style, portion information..."
@@ -751,9 +770,7 @@ export default function HotelMenuPage() {
               {/* Category & Base Price (2-col on tablet) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Category *
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Category *</label>
                   <select
                     required
                     value={categoryId}
@@ -814,11 +831,7 @@ export default function HotelMenuPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   Dish Photograph
                 </label>
-                <MediaUploader
-                  value={image}
-                  onChange={(url) => setImage(url)}
-                  acceptType="image"
-                />
+                <MediaUploader value={image} onChange={(url) => setImage(url)} acceptType="image" />
               </div>
 
               {/* ============================================================= */}
@@ -851,7 +864,12 @@ export default function HotelMenuPage() {
                     type="button"
                     onClick={() => {
                       setVariants([
-                        { variantName: 'Half', price: Math.round(price * 0.6), isAvailable: true, displayOrder: 0 },
+                        {
+                          variantName: 'Half',
+                          price: Math.round(price * 0.6),
+                          isAvailable: true,
+                          displayOrder: 0,
+                        },
                         { variantName: 'Full', price: price, isAvailable: true, displayOrder: 1 },
                       ]);
                     }}
@@ -863,9 +881,24 @@ export default function HotelMenuPage() {
                     type="button"
                     onClick={() => {
                       setVariants([
-                        { variantName: 'Regular', price: price, isAvailable: true, displayOrder: 0 },
-                        { variantName: 'Medium', price: Math.round(price * 1.3), isAvailable: true, displayOrder: 1 },
-                        { variantName: 'Large', price: Math.round(price * 1.6), isAvailable: true, displayOrder: 2 },
+                        {
+                          variantName: 'Regular',
+                          price: price,
+                          isAvailable: true,
+                          displayOrder: 0,
+                        },
+                        {
+                          variantName: 'Medium',
+                          price: Math.round(price * 1.3),
+                          isAvailable: true,
+                          displayOrder: 1,
+                        },
+                        {
+                          variantName: 'Large',
+                          price: Math.round(price * 1.6),
+                          isAvailable: true,
+                          displayOrder: 2,
+                        },
                       ]);
                     }}
                     className="text-[10px] font-bold bg-white border border-orange-300 text-orange-800 px-2.5 py-1 rounded-lg hover:bg-orange-100 transition"
@@ -892,14 +925,18 @@ export default function HotelMenuPage() {
                         />
 
                         <div className="relative w-24">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">
+                            ₹
+                          </span>
                           <input
                             type="number"
                             required
                             min={0}
                             placeholder="Price"
                             value={v.price}
-                            onChange={(e) => handleVariantChange(idx, 'price', Number(e.target.value))}
+                            onChange={(e) =>
+                              handleVariantChange(idx, 'price', Number(e.target.value))
+                            }
                             className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-6 pr-2 py-2 text-xs font-bold text-gray-900 focus:outline-none min-h-[38px]"
                           />
                         </div>

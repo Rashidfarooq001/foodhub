@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsArray,
-  IsEmail,
-  IsNumber,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsEmail, IsNumber, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 
@@ -115,7 +108,9 @@ export class CreateRestaurantDto {
    * return a 400: "Restaurant location is required."
    */
   @ApiPropertyOptional({ description: 'GPS latitude coordinate from Mappls / device GPS' })
-  @Transform(({ value }) => (value === null || value === undefined || value === '' ? undefined : Number(value)))
+  @Transform(({ value }) =>
+    value === null || value === undefined || value === '' ? undefined : Number(value),
+  )
   @IsNumber()
   @IsOptional()
   latitude?: number;
@@ -124,7 +119,9 @@ export class CreateRestaurantDto {
    * GPS longitude — same null-safety treatment as latitude.
    */
   @ApiPropertyOptional({ description: 'GPS longitude coordinate from Mappls / device GPS' })
-  @Transform(({ value }) => (value === null || value === undefined || value === '' ? undefined : Number(value)))
+  @Transform(({ value }) =>
+    value === null || value === undefined || value === '' ? undefined : Number(value),
+  )
   @IsNumber()
   @IsOptional()
   longitude?: number;

@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Post, Body, Param, Query,
-  UseGuards, Headers, RawBodyRequest, Req,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Headers,
+  RawBodyRequest,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
@@ -50,10 +58,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
   @ApiOperation({ summary: 'Get payment transactions and GMV metrics for Admin' })
-  async getPaymentsForAdmin(
-    @Query('page') page = 1,
-    @Query('limit') limit = 50,
-  ) {
+  async getPaymentsForAdmin(@Query('page') page = 1, @Query('limit') limit = 50) {
     return this.paymentsService.getPaymentsForAdmin(+page, +limit);
   }
 
@@ -62,10 +67,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Initiate refund for an order (Admin/System)' })
-  async refund(
-    @Param('orderId') orderId: string,
-    @Body('reason') reason: string,
-  ) {
+  async refund(@Param('orderId') orderId: string, @Body('reason') reason: string) {
     return this.paymentsService.initiateRefund(orderId, reason);
   }
 }

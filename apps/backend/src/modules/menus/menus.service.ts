@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { serializePrisma } from '../../common/utils/serializer.util';
 
@@ -9,7 +14,10 @@ export class MenusService {
   /**
    * Helper to verify that the requesting user owns or manages the restaurant.
    */
-  async verifyRestaurantOwnership(restaurantId: string, actor: { userId?: string; role?: string; restaurantId?: string }) {
+  async verifyRestaurantOwnership(
+    restaurantId: string,
+    actor: { userId?: string; role?: string; restaurantId?: string },
+  ) {
     if (!actor || !actor.userId) {
       throw new ForbiddenException('Authentication required to modify menu catalog.');
     }
@@ -42,7 +50,9 @@ export class MenusService {
       }
     }
 
-    throw new ForbiddenException('Access denied. You do not own or manage this restaurant catalog.');
+    throw new ForbiddenException(
+      'Access denied. You do not own or manage this restaurant catalog.',
+    );
   }
 
   // ==========================================
@@ -100,7 +110,10 @@ export class MenusService {
       orderBy: { displayOrder: 'asc' },
     });
 
-    const categoryMap = new Map<string, { id: string; name: string; image: string; itemCount: number }>();
+    const categoryMap = new Map<
+      string,
+      { id: string; name: string; image: string; itemCount: number }
+    >();
 
     for (const cat of categories) {
       const normalizedName = cat.name.trim();
@@ -125,7 +138,13 @@ export class MenusService {
     return serializePrisma(Array.from(categoryMap.values()));
   }
 
-  async updateCategory(id: string, name?: string, displayOrder?: number, isActive?: boolean, actor?: any) {
+  async updateCategory(
+    id: string,
+    name?: string,
+    displayOrder?: number,
+    isActive?: boolean,
+    actor?: any,
+  ) {
     const cat = await this.prisma.category.findUnique({ where: { id } });
     if (!cat) throw new NotFoundException(`Category ${id} not found`);
 
@@ -158,7 +177,7 @@ export class MenusService {
 
   async reorderCategories(categoryIds: string[], actor?: any) {
     if (!categoryIds || categoryIds.length === 0) return [];
-    
+
     if (actor) {
       const firstCat = await this.prisma.category.findUnique({ where: { id: categoryIds[0] } });
       if (firstCat) {
@@ -230,7 +249,13 @@ export class MenusService {
     // Clean and validate variants
     const processedVariants = (variants || []).map((v: any, idx: number) => {
       const vName = v.variantName || v.name || 'Standard';
-      const vPrice = Number(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : price || 0));
+      const vPrice = Number(
+        v.price !== undefined
+          ? v.price
+          : v.priceModifier !== undefined
+            ? v.priceModifier
+            : price || 0,
+      );
       return {
         variantName: vName.trim(),
         price: vPrice,
@@ -240,7 +265,8 @@ export class MenusService {
       };
     });
 
-    const basePrice = processedVariants.length > 0 ? processedVariants[0].price : Number(price || 0);
+    const basePrice =
+      processedVariants.length > 0 ? processedVariants[0].price : Number(price || 0);
 
     const res = await this.prisma.foodItem.create({
       data: {
@@ -315,7 +341,9 @@ export class MenusService {
       if (variants.length > 0) {
         await this.prisma.foodVariant.createMany({
           data: variants.map((v: any, idx: number) => {
-            const vPrice = Number(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : 0));
+            const vPrice = Number(
+              v.price !== undefined ? v.price : v.priceModifier !== undefined ? v.priceModifier : 0,
+            );
             return {
               foodItemId: id,
               variantName: (v.variantName || v.name || `Variant ${idx + 1}`).trim(),
@@ -476,7 +504,11 @@ export class MenusService {
   // INDEPENDENT VARIANT MANAGEMENT
   // ==========================================
 
-  async addVariant(foodItemId: string, dto: { name: string; price: number; isAvailable?: boolean; displayOrder?: number }, actor?: any) {
+  async addVariant(
+    foodItemId: string,
+    dto: { name: string; price: number; isAvailable?: boolean; displayOrder?: number },
+    actor?: any,
+  ) {
     const foodItem = await this.prisma.foodItem.findUnique({ where: { id: foodItemId } });
     if (!foodItem) throw new NotFoundException(`Food item ${foodItemId} not found`);
 
@@ -504,7 +536,11 @@ export class MenusService {
     return serializePrisma(variant);
   }
 
-  async updateVariant(variantId: string, dto: { name?: string; price?: number; isAvailable?: boolean; displayOrder?: number }, actor?: any) {
+  async updateVariant(
+    variantId: string,
+    dto: { name?: string; price?: number; isAvailable?: boolean; displayOrder?: number },
+    actor?: any,
+  ) {
     const variant = await this.prisma.foodVariant.findUnique({
       where: { id: variantId },
       include: { foodItem: true },
@@ -519,7 +555,10 @@ export class MenusService {
       where: { id: variantId },
       data: {
         ...(dto.name !== undefined && { variantName: dto.name.trim() }),
-        ...(dto.price !== undefined && { price: Number(dto.price), priceModifier: Number(dto.price) }),
+        ...(dto.price !== undefined && {
+          price: Number(dto.price),
+          priceModifier: Number(dto.price),
+        }),
         ...(dto.isAvailable !== undefined && { isAvailable: dto.isAvailable }),
         ...(dto.displayOrder !== undefined && { displayOrder: dto.displayOrder }),
       },

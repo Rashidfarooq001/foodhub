@@ -3,6 +3,7 @@
 ---
 
 ## 1. Security & Compliance Checklist
+
 - [x] Helmet HTTP security headers active in backend
 - [x] CORS restricted to explicit frontend domains (`ALLOWED_ORIGINS`)
 - [x] Confidential fields (`passwordHash`, `refreshTokenHash`, `secretKey`) stripped by `ResponseSanitizeInterceptor`
@@ -14,6 +15,7 @@
 ---
 
 ## 2. Infrastructure & Containerization Checklist
+
 - [x] Multi-stage Dockerfiles configured for Backend and 4 Next.js apps
 - [x] Docker Compose production manifest (`docker-compose.prod.yml`) verified
 - [x] Healthchecks configured for Postgres, Redis, and Backend API
@@ -24,6 +26,7 @@
 ---
 
 ## 3. Testing & QA Acceptance
+
 - [x] Monorepo Type-Check (`pnpm type-check` 👉 **17/17 passed**)
 - [x] Jest Unit & Integration Test Suites 👉 **55/55 tests passed**
 - [x] Playwright Cross-browser E2E Configured (`playwright.config.ts`)
@@ -32,6 +35,7 @@
 ---
 
 ## 4. Disaster Recovery & Backup Checklist
+
 - [x] Automated daily database backup script (`scripts/db-backup.sh`)
 - [x] Interactive point-in-time restore script (`scripts/db-restore.sh`)
 - [x] Environment variable validator (`scripts/env-check.ts`)

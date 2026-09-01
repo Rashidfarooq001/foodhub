@@ -20,22 +20,23 @@ export const useActiveDeliveryStore = create<ActiveDeliveryState>()((set, get) =
   completeDelivery: () => {
     set({ currentJob: null });
   },
-markPickedUp: () => {
-  set((state) => ({
-    currentJob: state.currentJob
-      ? {
-          ...state.currentJob,
-          status: 'OUT_FOR_DELIVERY',
-        }
-      : null,
-  }));
-},
+  markPickedUp: () => {
+    set((state) => ({
+      currentJob: state.currentJob
+        ? {
+            ...state.currentJob,
+            status: 'OUT_FOR_DELIVERY',
+          }
+        : null,
+    }));
+  },
 
   acceptNewJob: (job) => {
-  set({
-    currentJob: {
-      ...job,
-      status: 'OUT_FOR_DELIVERY',
-    },
-  });
-},}));
+    set({
+      currentJob: {
+        ...job,
+        status: 'OUT_FOR_DELIVERY',
+      },
+    });
+  },
+}));

@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, KeyRound, Lock, Camera, Trash2, Save, CheckCircle2, AlertCircle, Store, FileText } from 'lucide-react';
+import {
+  User,
+  KeyRound,
+  Lock,
+  Camera,
+  Trash2,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Store,
+  FileText,
+} from 'lucide-react';
 import { MediaUploader } from '../../components/common/MediaUploader';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -321,7 +332,10 @@ export default function HotelSettingsPage() {
 
       {/* TAB 1: OWNER PROFILE & AVATAR */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <form
+          onSubmit={handleSaveProfile}
+          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4"
+        >
           <div className="flex flex-col sm:flex-row items-center gap-4 border-b border-gray-100 pb-4">
             <div className="relative shrink-0">
               <img
@@ -349,7 +363,9 @@ export default function HotelSettingsPage() {
 
             <div className="space-y-2 text-center sm:text-left">
               <div>
-                <h3 className="text-sm sm:text-base font-black text-gray-900">Owner Profile Picture</h3>
+                <h3 className="text-sm sm:text-base font-black text-gray-900">
+                  Owner Profile Picture
+                </h3>
                 <p className="text-xs text-gray-500">Supports JPEG, PNG, or WebP up to 5MB.</p>
               </div>
 
@@ -408,9 +424,14 @@ export default function HotelSettingsPage() {
 
       {/* TAB 2: PASSWORD SECURITY */}
       {activeTab === 'passwords' && (
-        <form onSubmit={handleChangePassword} className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <form
+          onSubmit={handleChangePassword}
+          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4"
+        >
           <div>
-            <h2 className="text-sm sm:text-base font-black text-gray-900">Update Account Password</h2>
+            <h2 className="text-sm sm:text-base font-black text-gray-900">
+              Update Account Password
+            </h2>
             <p className="text-xs text-gray-500">Change password for merchant owner login</p>
           </div>
 
@@ -445,7 +466,9 @@ export default function HotelSettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              Confirm New Password
+            </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -472,7 +495,10 @@ export default function HotelSettingsPage() {
 
       {/* TAB 3: STORE BRAND & MEDIA */}
       {activeTab === 'store' && (
-        <form onSubmit={handleSaveStore} className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <form
+          onSubmit={handleSaveStore}
+          className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4"
+        >
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Restaurant Name</label>
             <input
@@ -495,7 +521,9 @@ export default function HotelSettingsPage() {
 
           {/* Media Upload Section */}
           <div className="border-t border-b border-gray-100 py-3 space-y-3">
-            <h3 className="text-xs font-black uppercase text-gray-900 tracking-wider">Brand Media &amp; Promo Assets</h3>
+            <h3 className="text-xs font-black uppercase text-gray-900 tracking-wider">
+              Brand Media &amp; Promo Assets
+            </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <MediaUploader
                 label="Restaurant Logo (JPG, PNG, WEBP max 5MB)"
@@ -520,7 +548,9 @@ export default function HotelSettingsPage() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">FSSAI License No.</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                FSSAI License No.
+              </label>
               <input
                 type="text"
                 value={fssai}

@@ -26,7 +26,9 @@ const API_BASE = getApiBaseUrl();
 export default function AdminAccountSettingsPage() {
   const { user, accessToken, updateUser } = useAdminAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'passwords' | 'security-questions' | 'account'>('profile');
+  const [activeTab, setActiveTab] = useState<
+    'profile' | 'passwords' | 'security-questions' | 'account'
+  >('profile');
 
   // Profile State
   const [firstName, setFirstName] = useState(user?.firstName || 'Admin');
@@ -166,7 +168,8 @@ export default function AdminAccountSettingsPage() {
 
       const updatedProfile = data?.profile;
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      const savedAvatarUrl = updatedProfile?.avatarUrl !== undefined ? updatedProfile.avatarUrl : finalAvatarUrl;
+      const savedAvatarUrl =
+        updatedProfile?.avatarUrl !== undefined ? updatedProfile.avatarUrl : finalAvatarUrl;
 
       updateUser({
         firstName: updatedProfile?.firstName || firstName.trim(),
@@ -347,10 +350,15 @@ export default function AdminAccountSettingsPage() {
 
       {/* TAB 1: PROFILE PICTURE & NAME */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-8">
+        <form
+          onSubmit={handleSaveProfile}
+          className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-8"
+        >
           <div>
             <h2 className="text-xl font-bold text-gray-900">Administrator Profile</h2>
-            <p className="text-xs text-gray-500">Update your public display name and avatar picture</p>
+            <p className="text-xs text-gray-500">
+              Update your public display name and avatar picture
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-100 pb-8">
@@ -449,18 +457,23 @@ export default function AdminAccountSettingsPage() {
 
       {/* TAB 2: TWO-PASSWORD MANAGEMENT */}
       {activeTab === 'passwords' && (
-        <form onSubmit={handleSaveTwoPasswords} className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+        <form
+          onSubmit={handleSaveTwoPasswords}
+          className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6"
+        >
           <div>
             <h2 className="text-xl font-bold text-gray-900">Manage Two-Password Credentials</h2>
             <p className="text-xs text-gray-500">
-              Update Password 1 (16 numeric digits) or Password 2 (8 numeric digits). Existing passwords are never exposed.
+              Update Password 1 (16 numeric digits) or Password 2 (8 numeric digits). Existing
+              passwords are never exposed.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                New Password 1 <span className="text-purple-600 font-bold">(16 Numeric Digits)</span>
+                New Password 1{' '}
+                <span className="text-purple-600 font-bold">(16 Numeric Digits)</span>
               </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -518,7 +531,8 @@ export default function AdminAccountSettingsPage() {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Password Recovery Questions</h2>
             <p className="text-xs text-gray-500">
-              Configure security information used to recover Admin credentials via Forgot Password workflow.
+              Configure security information used to recover Admin credentials via Forgot Password
+              workflow.
             </p>
           </div>
 
@@ -529,7 +543,9 @@ export default function AdminAccountSettingsPage() {
                 <span>Question 1: Date of Birth</span>
               </div>
               <p className="text-sm font-mono font-bold text-gray-900">••/••/••••</p>
-              <p className="text-[10px] text-gray-400 font-semibold">Stored securely as salted bcrypt hash</p>
+              <p className="text-[10px] text-gray-400 font-semibold">
+                Stored securely as salted bcrypt hash
+              </p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-5 space-y-2">
@@ -538,7 +554,9 @@ export default function AdminAccountSettingsPage() {
                 <span>Question 2: Favorite Person</span>
               </div>
               <p className="text-sm font-mono font-bold text-gray-900">••••••••</p>
-              <p className="text-[10px] text-gray-400 font-semibold">Stored securely as salted bcrypt hash</p>
+              <p className="text-[10px] text-gray-400 font-semibold">
+                Stored securely as salted bcrypt hash
+              </p>
             </div>
           </div>
 
@@ -554,10 +572,17 @@ export default function AdminAccountSettingsPage() {
           </div>
 
           {showSecurityModal && (
-            <form onSubmit={handleSaveSecurityQuestions} className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 space-y-5">
+            <form
+              onSubmit={handleSaveSecurityQuestions}
+              className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 space-y-5"
+            >
               <div className="border-b border-purple-100 pb-3">
-                <h3 className="text-sm font-black text-purple-900 uppercase tracking-wider">Update Security Information</h3>
-                <p className="text-xs text-purple-700 font-medium">Requires current Admin Password 1 authorization</p>
+                <h3 className="text-sm font-black text-purple-900 uppercase tracking-wider">
+                  Update Security Information
+                </h3>
+                <p className="text-xs text-purple-700 font-medium">
+                  Requires current Admin Password 1 authorization
+                </p>
               </div>
 
               <div>
@@ -645,17 +670,25 @@ export default function AdminAccountSettingsPage() {
         <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-8">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Security & Credentials Summary</h2>
-            <p className="text-xs text-gray-500">Read-only account metadata and platform privileges</p>
+            <p className="text-xs text-gray-500">
+              Read-only account metadata and platform privileges
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Account ID</span>
-              <p className="text-xs font-mono font-bold text-gray-900 truncate">{user?.id || 'admin-uuid'}</p>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Account ID
+              </span>
+              <p className="text-xs font-mono font-bold text-gray-900 truncate">
+                {user?.id || 'admin-uuid'}
+              </p>
             </div>
 
             <div className="rounded-2xl border border-purple-100 bg-purple-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Platform Role</span>
+              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">
+                Platform Role
+              </span>
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-purple-600 shrink-0" />
                 <p className="text-xs font-black text-purple-900">{user?.role || 'SUPER_ADMIN'}</p>
@@ -663,7 +696,9 @@ export default function AdminAccountSettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Account Status</span>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
+                Account Status
+              </span>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                 <p className="text-xs font-black text-emerald-900">ACTIVE & VERIFIED</p>
@@ -671,24 +706,33 @@ export default function AdminAccountSettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password 1</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Password 1
+              </span>
               <p className="text-xs font-black text-gray-900">•••••••••••••••• (16 Digits)</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password 2</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Password 2
+              </span>
               <p className="text-xs font-black text-gray-900">•••••••• (8 Digits)</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auth Scheme</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Auth Scheme
+              </span>
               <p className="text-xs font-bold text-purple-700">Two-Password Hashing</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 text-xs font-bold text-indigo-900">
             <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0" />
-            <span>Protected by ZaykaFood Two-Password Authentication &amp; 256-Bit SSL JWT Session Management</span>
+            <span>
+              Protected by ZaykaFood Two-Password Authentication &amp; 256-Bit SSL JWT Session
+              Management
+            </span>
           </div>
         </div>
       )}

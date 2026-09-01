@@ -1,12 +1,22 @@
 import {
-  Controller, Get, Post, Patch, Body, Param,
-  Query, UseGuards, Request, HttpException, InternalServerErrorException, Logger, ForbiddenException, BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  HttpException,
+  InternalServerErrorException,
+  Logger,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import {
-  ApiTags, ApiOperation, ApiBearerAuth, ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
-import { OrderStateMachineService } from './order-state-machine.service';
+import { OrderLifecycleService } from './order-lifecycle.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -24,7 +34,7 @@ export class OrdersController {
 
   constructor(
     private readonly ordersService: OrdersService,
-    private readonly stateMachineService: OrderStateMachineService,
+    private readonly lifecycleService: OrderLifecycleService,
     private readonly prisma: PrismaService,
     private readonly geoService: GeolocationService,
   ) {}
@@ -69,7 +79,9 @@ export class OrdersController {
         select: { id: true },
       });
       if (!ownsRestaurant && !isStaff) {
-        throw new ForbiddenException('Access denied. You do not own or manage this restaurant orders.');
+        throw new ForbiddenException(
+          'Access denied. You do not own or manage this restaurant orders.',
+        );
       }
       return this.ordersService.getRestaurantOrders(targetRestId, status as any, +page, +limit);
     }
@@ -93,20 +105,14 @@ export class OrdersController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get customer order history with status filter' })
-  async getOrderHistory(
-    @Request() req: any,
-    @Query('status') status?: string,
-  ) {
+  async getOrderHistory(@Request() req: any, @Query('status') status?: string) {
     const userId = req.user.id || req.user.sub;
     return this.ordersService.getCustomerOrderHistory(userId, status);
   }
 
   @Get('my')
   @ApiOperation({ summary: 'Get customer order history' })
-  async getMyOrdersAlias(
-    @Request() req: any,
-    @Query('status') status?: string,
-  ) {
+  async getMyOrdersAlias(@Request() req: any, @Query('status') status?: string) {
     const userId = req.user.id || req.user.sub;
     return this.ordersService.getCustomerOrderHistory(userId, status);
   }
@@ -128,27 +134,19 @@ export class OrdersController {
 
   @Post(':id/confirm-delivery')
   @ApiOperation({ summary: 'Customer or authorized actor confirms order delivery via OTP' })
-  async confirmDelivery(
-    @Param('id') id: string,
-    @Body('otp') otp: string,
-    @Request() req: any,
-  ) {
+  async confirmDelivery(@Param('id') id: string, @Body('otp') otp: string, @Request() req: any) {
     if (!otp) throw new BadRequestException('Delivery confirmation OTP is required.');
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
       driverId: req.user?.driverId,
     };
-    return this.stateMachineService.completeDeliveryWithOtp(id, otp, actor);
+    return this.lifecycleService.completeDeliveryWithOtp(id, otp, actor);
   }
 
   @Post(':id/verify-delivery')
   @ApiOperation({ summary: 'Verify delivery OTP (authoritative alias)' })
-  async verifyDelivery(
-    @Param('id') id: string,
-    @Body('otp') otp: string,
-    @Request() req: any,
-  ) {
+  async verifyDelivery(@Param('id') id: string, @Body('otp') otp: string, @Request() req: any) {
     return this.confirmDelivery(id, otp, req);
   }
 
@@ -177,7 +175,9 @@ export class OrdersController {
   }
 
   @Get(':id/eligible-riders')
-  @ApiOperation({ summary: 'Get eligible FoodHub delivery partners for explicit restaurant rider selection' })
+  @ApiOperation({
+    summary: 'Get eligible FoodHub delivery partners for explicit restaurant rider selection',
+  })
   async getEligibleRiders(@Param('id') id: string, @Request() req: any) {
     const order = await this.prisma.order.findUnique({
       where: { id },
@@ -193,7 +193,9 @@ export class OrdersController {
     const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
 
     if (!isOwner && !isStaff && !isAdmin) {
-      throw new ForbiddenException('Access denied. You do not own or manage this restaurant order.');
+      throw new ForbiddenException(
+        'Access denied. You do not own or manage this restaurant order.',
+      );
     }
 
     const drivers = await this.prisma.driver.findMany({
@@ -212,12 +214,15 @@ export class OrdersController {
 
     const getHaversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
       const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) * 10) / 10;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
     };
 
     return drivers.map((d) => {
@@ -239,7 +244,7 @@ export class OrdersController {
       let distanceText = 'Location unavailable';
 
       if (d.currentLat && d.currentLng) {
-        if (d.lastSeenAt && (now.getTime() - new Date(d.lastSeenAt).getTime() > 15 * 60 * 1000)) {
+        if (d.lastSeenAt && now.getTime() - new Date(d.lastSeenAt).getTime() > 15 * 60 * 1000) {
           distanceText = 'Location outdated';
         } else {
           distanceKm = getHaversine(restLat, restLng, d.currentLat, d.currentLng);
@@ -281,7 +286,9 @@ export class OrdersController {
         firstName,
         lastName,
         phone,
-        avatar: d.user?.profile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
+        avatar:
+          d.user?.profile?.avatarUrl ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
         rating: avgRating,
         completedCount: completedJobs.length,
         status,
@@ -310,7 +317,7 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.assignRiderToOrder(id, driverId, actor);
+      return await this.lifecycleService.assignRiderToOrder(id, driverId, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       this.logger.error(`ASSIGN RIDER FAILED for order ${id}: ${err?.message}`, err?.stack);
@@ -330,10 +337,13 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.transition(id, OrderStatus.ACCEPTED, actor);
+      return await this.lifecycleService.transition(id, OrderStatus.ACCEPTED, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
-      this.logger.error(`ACCEPT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      this.logger.error(
+        `ACCEPT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`,
+        err?.stack,
+      );
       throw new InternalServerErrorException({
         message: err?.message || 'Restaurant order service temporarily failed.',
         details: err?.stack || String(err),
@@ -350,10 +360,13 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.transition(id, OrderStatus.REJECTED, actor, { reason });
+      return await this.lifecycleService.transition(id, OrderStatus.REJECTED, actor, { reason });
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
-      this.logger.error(`REJECT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      this.logger.error(
+        `REJECT ORDER TRANSITION FAILED for order ${id}: ${err?.message}`,
+        err?.stack,
+      );
       throw new InternalServerErrorException({
         message: err?.message || 'Restaurant order service temporarily failed.',
         details: err?.stack || String(err),
@@ -370,10 +383,13 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.transition(id, OrderStatus.PREPARING, actor);
+      return await this.lifecycleService.transition(id, OrderStatus.PREPARING, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
-      this.logger.error(`PREPARE ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      this.logger.error(
+        `PREPARE ORDER TRANSITION FAILED for order ${id}: ${err?.message}`,
+        err?.stack,
+      );
       throw new InternalServerErrorException({
         message: err?.message || 'Restaurant order service temporarily failed.',
         details: err?.stack || String(err),
@@ -382,7 +398,10 @@ export class OrdersController {
   }
 
   @Post(':id/ready')
-  @ApiOperation({ summary: 'Restaurant marks order ready — triggers driver dispatch (PREPARING → DRIVER_ASSIGNED)' })
+  @ApiOperation({
+    summary:
+      'Restaurant marks order ready — triggers driver dispatch (PREPARING → DRIVER_ASSIGNED)',
+  })
   async markOrderReady(@Param('id') id: string, @Request() req: any) {
     try {
       const actor = {
@@ -390,10 +409,13 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.transition(id, OrderStatus.DRIVER_ASSIGNED, actor);
+      return await this.lifecycleService.transition(id, OrderStatus.DRIVER_ASSIGNED, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
-      this.logger.error(`READY ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);
+      this.logger.error(
+        `READY ORDER TRANSITION FAILED for order ${id}: ${err?.message}`,
+        err?.stack,
+      );
       throw new InternalServerErrorException({
         message: err?.message || 'Restaurant order service temporarily failed.',
         details: err?.stack || String(err),
@@ -415,7 +437,7 @@ export class OrdersController {
         restaurantId: req.user?.restaurantId,
         driverId: req.user?.driverId,
       };
-      return await this.stateMachineService.transition(id, dto.status as OrderStatus, actor);
+      return await this.lifecycleService.transition(id, dto.status as OrderStatus, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       this.logger.error(`UPDATE ORDER STATUS FAILED for order ${id}: ${err?.message}`, err?.stack);
@@ -428,24 +450,23 @@ export class OrdersController {
 
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Cancel order (within cancellation policy)' })
-  async cancel(
-    @Param('id') id: string,
-    @Body() cancelDto: CancelOrderDto,
-    @Request() req: any,
-  ) {
+  async cancel(@Param('id') id: string, @Body() cancelDto: CancelOrderDto, @Request() req: any) {
     const userId = req.user?.id;
     return this.ordersService.cancelOrder(id, cancelDto, userId);
   }
 
   @Get(':id/pickup-otp')
-  @ApiOperation({ summary: 'Authorized restaurant staff retrieves 4-digit pickup code & signed QR token for order handover' })
+  @ApiOperation({
+    summary:
+      'Authorized restaurant staff retrieves 4-digit pickup code & signed QR token for order handover',
+  })
   async getPickupOtp(@Param('id') id: string, @Request() req: any) {
     const actor = {
       userId: req.user?.id || req.user?.sub,
       role: req.user?.role,
       restaurantId: req.user?.restaurantId,
     };
-    return this.stateMachineService.getRestaurantPickupOtp(id, actor);
+    return this.lifecycleService.getRestaurantPickupOtp(id, actor);
   }
 
   @Post(':id/reviews')
@@ -474,14 +495,8 @@ export class OrdersController {
 
   @Post(':id/repeat')
   @ApiOperation({ summary: 'Customer fetches items to repeat previous order' })
-  async repeatOrder(
-    @Param('id') id: string,
-    @Request() req: any,
-  ) {
+  async repeatOrder(@Param('id') id: string, @Request() req: any) {
     const userId = req.user?.id || req.user?.sub;
     return this.ordersService.repeatOrder(id, userId);
   }
-
-
 }
-

@@ -23,7 +23,9 @@ async function main() {
     console.log(`    Phone:   ${admin.phone}`);
     console.log(`    Email:   ${admin.email || 'N/A'}`);
     console.log(`    Role:    ${admin.role}`);
-    console.log(`    Name:    ${admin.profile ? `${admin.profile.firstName} ${admin.profile.lastName}` : 'N/A'}`);
+    console.log(
+      `    Name:    ${admin.profile ? `${admin.profile.firstName} ${admin.profile.lastName}` : 'N/A'}`,
+    );
   });
 
   const adminUserIds = admins.map((a) => a.id);
@@ -31,8 +33,12 @@ async function main() {
   // 2. Count rows in all tables
   const totalUsers = await prisma.user.count();
   const nonAdminUsers = await prisma.user.count({ where: { id: { notIn: adminUserIds } } });
-  const adminProfilesCount = await prisma.profile.count({ where: { userId: { in: adminUserIds } } });
-  const nonAdminProfilesCount = await prisma.profile.count({ where: { userId: { notIn: adminUserIds } } });
+  const adminProfilesCount = await prisma.profile.count({
+    where: { userId: { in: adminUserIds } },
+  });
+  const nonAdminProfilesCount = await prisma.profile.count({
+    where: { userId: { notIn: adminUserIds } },
+  });
 
   const counts = {
     'Admin Users (TO PRESERVE)': admins.length,
@@ -62,10 +68,16 @@ async function main() {
     'Coupons (TO DELETE)': await prisma.coupon.count(),
     'Coupon Usages (TO DELETE)': await prisma.couponUsage.count(),
     'Payments (TO DELETE)': await prisma.payment.count(),
-    'Non-Admin Wallets (TO DELETE)': await prisma.wallet.count({ where: { userId: { notIn: adminUserIds } } }),
-    'Non-Admin Wallet Transactions (TO DELETE)': await prisma.walletTransaction.count({ where: { wallet: { userId: { notIn: adminUserIds } } } }),
+    'Non-Admin Wallets (TO DELETE)': await prisma.wallet.count({
+      where: { userId: { notIn: adminUserIds } },
+    }),
+    'Non-Admin Wallet Transactions (TO DELETE)': await prisma.walletTransaction.count({
+      where: { wallet: { userId: { notIn: adminUserIds } } },
+    }),
     'Notifications (TO DELETE)': await prisma.notification.count(),
-    'Audit Logs (TO DELETE)': await prisma.auditLog.count({ where: { userId: { notIn: adminUserIds } } }),
+    'Audit Logs (TO DELETE)': await prisma.auditLog.count({
+      where: { userId: { notIn: adminUserIds } },
+    }),
   };
 
   console.log('\n=== ROW CLEANUP SUMMARY REPORT ===');

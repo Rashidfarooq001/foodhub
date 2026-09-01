@@ -18,14 +18,14 @@ describe('FoodHub End-to-End Menu Variant & Order Immutability Integration Test'
     id: mockFoodItemId,
     restaurantId: mockRestaurantId,
     name: 'Special Hyderabadi Biryani',
-    price: new Decimal(260.00),
+    price: new Decimal(260.0),
     isAvailable: true,
     variants: [
       {
         id: mockVariantHalfId,
         foodItemId: mockFoodItemId,
         variantName: 'Half',
-        price: new Decimal(140.00),
+        price: new Decimal(140.0),
         isAvailable: true,
         displayOrder: 0,
       },
@@ -33,7 +33,7 @@ describe('FoodHub End-to-End Menu Variant & Order Immutability Integration Test'
         id: mockVariantFullId,
         foodItemId: mockFoodItemId,
         variantName: 'Full',
-        price: new Decimal(260.00),
+        price: new Decimal(260.0),
         isAvailable: true,
         displayOrder: 1,
       },
@@ -63,17 +63,19 @@ describe('FoodHub End-to-End Menu Variant & Order Immutability Integration Test'
     },
     pricingConfig: {
       findFirst: jest.fn().mockResolvedValue({
-        baseDeliveryFee: new Decimal(15.00),
-        baseDeliveryDistanceKm: new Decimal(3.00),
-        perKmDeliveryFee: new Decimal(5.00),
-        platformFee: new Decimal(3.00),
-        smallOrderFeeThreshold: new Decimal(0.00),
-        smallOrderFee: new Decimal(0.00),
+        baseDeliveryFee: new Decimal(15.0),
+        baseDeliveryDistanceKm: new Decimal(3.0),
+        perKmDeliveryFee: new Decimal(5.0),
+        platformFee: new Decimal(3.0),
+        smallOrderFeeThreshold: new Decimal(0.0),
+        smallOrderFee: new Decimal(0.0),
         defaultCommissionRate: new Decimal(0.15),
       }),
     },
     user: {
-      findUnique: jest.fn().mockResolvedValue({ id: 'user-1', phone: '+919999999999', isBlocked: false }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 'user-1', phone: '+919999999999', isBlocked: false }),
     },
   };
 
@@ -113,7 +115,7 @@ describe('FoodHub End-to-End Menu Variant & Order Immutability Integration Test'
           id: 'unavail-var-id',
           foodItemId: mockFoodItemId,
           variantName: 'Special',
-          price: new Decimal(300.00),
+          price: new Decimal(300.0),
           isAvailable: false,
           displayOrder: 2,
         },

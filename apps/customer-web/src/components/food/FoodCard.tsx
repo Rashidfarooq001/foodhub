@@ -111,7 +111,9 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
         <div className="absolute top-2 left-2 flex h-4 w-4 items-center justify-center rounded-sm bg-white/90 p-0.5 shadow-sm">
           <div
             className={`h-2.5 w-2.5 rounded-full ${
-              food.isVeg ? 'bg-emerald-600 ring-1 ring-emerald-600' : 'bg-red-600 ring-1 ring-red-600'
+              food.isVeg
+                ? 'bg-emerald-600 ring-1 ring-emerald-600'
+                : 'bg-red-600 ring-1 ring-red-600'
             }`}
           />
         </div>
@@ -148,9 +150,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
         {/* Price & Action Row */}
         <div className="mt-2 flex items-center justify-between gap-1">
           <div className="flex flex-col">
-            <span className="text-xs sm:text-sm font-black text-gray-900">
-              ₹{displayPrice}
-            </span>
+            <span className="text-xs sm:text-sm font-black text-gray-900">₹{displayPrice}</span>
             {isCustomizable && (
               <span className="text-[9px] font-bold text-rose-500 uppercase tracking-tight">
                 Customise
@@ -170,9 +170,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
                   >
                     <Minus className="h-3 w-3 stroke-[3]" />
                   </button>
-                  <span className="text-xs font-black min-w-[12px] text-center">
-                    {totalInCart}
-                  </span>
+                  <span className="text-xs font-black min-w-[12px] text-center">{totalInCart}</span>
                   <button
                     type="button"
                     onClick={handleIncrement}

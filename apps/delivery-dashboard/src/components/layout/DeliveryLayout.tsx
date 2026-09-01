@@ -15,9 +15,7 @@ export const DeliveryLayout: React.FC<{ children: React.ReactNode }> = ({ childr
       />
       <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
         <DeliveryHeader onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
       </div>
     </div>
   );

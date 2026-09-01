@@ -69,7 +69,8 @@ export class BrowserLocationService {
           let errorMessage = 'Failed to get location';
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = 'Location permission was denied. Please allow location access in your browser settings.';
+              errorMessage =
+                'Location permission was denied. Please allow location access in your browser settings.';
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage = 'Location information is currently unavailable.';
@@ -84,7 +85,7 @@ export class BrowserLocationService {
           enableHighAccuracy: true,
           timeout: timeoutMs,
           maximumAge: 0,
-        }
+        },
       );
     });
   }
@@ -94,11 +95,11 @@ export class BrowserLocationService {
       const url = API_BASE + '/geolocation/reverse-geocode?lat=' + lat + '&lng=' + lng;
       const finalUrl = url.replace('/customer/geolocation', '/geolocation');
       const res = await fetch(finalUrl);
-      
+
       if (!res.ok) {
         throw new Error('Reverse geocoding failed on backend');
       }
-      
+
       const data = await res.json();
       return data;
     } catch (e) {

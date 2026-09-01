@@ -22,7 +22,13 @@ const API_BASE = getApiBaseUrl();
 interface SettlementDetail {
   period: { start: string; end: string; label: string };
   restaurant: { id: string; name: string; phone: string; commissionRate: number };
-  bankAccount: { bankName: string; accountHolder: string; accountNumber: string; ifscCode: string; isConfigured: boolean };
+  bankAccount: {
+    bankName: string;
+    accountHolder: string;
+    accountNumber: string;
+    ifscCode: string;
+    isConfigured: boolean;
+  };
   financialSummary: {
     orderCount: number;
     grossSales: number;
@@ -79,9 +85,12 @@ export default function MerchantSettlementsPage() {
     setIsLoading(true);
     try {
       const [detailRes, histRes] = await Promise.all([
-        fetch(`${API_BASE}/settlements/restaurant/${restaurantId}/detail?periodType=${periodType}`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        }),
+        fetch(
+          `${API_BASE}/settlements/restaurant/${restaurantId}/detail?periodType=${periodType}`,
+          {
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          },
+        ),
         fetch(`${API_BASE}/settlements/restaurant/${restaurantId}/history`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         }),
@@ -232,7 +241,9 @@ export default function MerchantSettlementsPage() {
           {/* Financial Summary Cards: 2-col on mobile, 4-col on desktop */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">GROSS FOOD SALES</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">
+                GROSS FOOD SALES
+              </span>
               <div className="text-lg sm:text-2xl font-black text-gray-900">
                 ₹{fin.grossSales.toLocaleString()}
               </div>
@@ -242,7 +253,9 @@ export default function MerchantSettlementsPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-orange-600 block">COMMISSION</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-orange-600 block">
+                COMMISSION
+              </span>
               <div className="text-lg sm:text-2xl font-black text-orange-600">
                 -₹{fin.commissionAmount.toLocaleString()}
               </div>
@@ -252,7 +265,9 @@ export default function MerchantSettlementsPage() {
             </div>
 
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">NET PAYABLE</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800 block">
+                NET PAYABLE
+              </span>
               <div className="text-lg sm:text-2xl font-black text-emerald-900">
                 ₹{fin.netPayable.toLocaleString()}
               </div>
@@ -262,10 +277,10 @@ export default function MerchantSettlementsPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">PAYOUT STATUS</span>
-              <div className="pt-1">
-                {getStatusPill(fin.status)}
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">
+                PAYOUT STATUS
+              </span>
+              <div className="pt-1">{getStatusPill(fin.status)}</div>
               <span className="text-[10px] text-gray-500 block pt-0.5">
                 {fin.utrNumber ? `UTR: ${fin.utrNumber}` : 'Scheduled Monday'}
               </span>
@@ -281,10 +296,15 @@ export default function MerchantSettlementsPage() {
                 </div>
                 <div>
                   <span className="text-xs font-black text-gray-900 block">
-                    {detail.bankAccount.bankName || 'HDFC Bank'} • {detail.bankAccount.accountHolder || 'Registered Account'}
+                    {detail.bankAccount.bankName || 'HDFC Bank'} •{' '}
+                    {detail.bankAccount.accountHolder || 'Registered Account'}
                   </span>
                   <span className="text-[11px] text-gray-500 font-mono">
-                    A/C: **** **** {detail.bankAccount.accountNumber ? detail.bankAccount.accountNumber.slice(-4) : '4821'} (IFSC: {detail.bankAccount.ifscCode || 'HDFC0001234'})
+                    A/C: **** ****{' '}
+                    {detail.bankAccount.accountNumber
+                      ? detail.bankAccount.accountNumber.slice(-4)
+                      : '4821'}{' '}
+                    (IFSC: {detail.bankAccount.ifscCode || 'HDFC0001234'})
                   </span>
                 </div>
               </div>
@@ -355,10 +375,16 @@ export default function MerchantSettlementsPage() {
                     <tr key={ord.orderId} className="hover:bg-gray-50/50">
                       <td className="py-3 font-bold text-gray-900">#{ord.orderNumber}</td>
                       <td className="py-3 text-gray-600">{ord.customerName}</td>
-                      <td className="py-3 text-gray-400">{new Date(ord.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 text-gray-400">
+                        {new Date(ord.createdAt).toLocaleDateString()}
+                      </td>
                       <td className="py-3 font-bold text-gray-900">₹{ord.foodSubtotal}</td>
-                      <td className="py-3 text-orange-600 font-semibold">-₹{ord.commissionAmount} ({ord.commissionRate}%)</td>
-                      <td className="py-3 font-black text-emerald-700 text-right">₹{ord.restaurantNet}</td>
+                      <td className="py-3 text-orange-600 font-semibold">
+                        -₹{ord.commissionAmount} ({ord.commissionRate}%)
+                      </td>
+                      <td className="py-3 font-black text-emerald-700 text-right">
+                        ₹{ord.restaurantNet}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -388,19 +414,28 @@ export default function MerchantSettlementsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-gray-900">
-                        {new Date(h.periodStart).toLocaleDateString()} – {new Date(h.periodEnd).toLocaleDateString()}
+                        {new Date(h.periodStart).toLocaleDateString()} –{' '}
+                        {new Date(h.periodEnd).toLocaleDateString()}
                       </span>
                       {getStatusPill(h.status)}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1">
                       <div>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Gross Sales</span>
-                        <span className="font-bold text-gray-900">₹{h.grossAmount.toLocaleString()}</span>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                          Gross Sales
+                        </span>
+                        <span className="font-bold text-gray-900">
+                          ₹{h.grossAmount.toLocaleString()}
+                        </span>
                       </div>
                       <div>
-                        <span className="text-[9px] text-emerald-700 font-bold uppercase block">Net Payout</span>
-                        <span className="font-black text-emerald-800">₹{h.netPayable.toLocaleString()}</span>
+                        <span className="text-[9px] text-emerald-700 font-bold uppercase block">
+                          Net Payout
+                        </span>
+                        <span className="font-black text-emerald-800">
+                          ₹{h.netPayable.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
@@ -431,14 +466,23 @@ export default function MerchantSettlementsPage() {
                     {history.map((h) => (
                       <tr key={h.id} className="hover:bg-gray-50/50">
                         <td className="py-3 font-bold text-gray-900">
-                          {new Date(h.periodStart).toLocaleDateString()} – {new Date(h.periodEnd).toLocaleDateString()}
+                          {new Date(h.periodStart).toLocaleDateString()} –{' '}
+                          {new Date(h.periodEnd).toLocaleDateString()}
                         </td>
                         <td className="py-3 text-gray-600">{h.orderCount}</td>
-                        <td className="py-3 font-bold text-gray-900">₹{h.grossAmount.toLocaleString()}</td>
-                        <td className="py-3 text-orange-600 font-semibold">-₹{h.commissionAmount.toLocaleString()}</td>
-                        <td className="py-3 font-black text-emerald-700">₹{h.netPayable.toLocaleString()}</td>
+                        <td className="py-3 font-bold text-gray-900">
+                          ₹{h.grossAmount.toLocaleString()}
+                        </td>
+                        <td className="py-3 text-orange-600 font-semibold">
+                          -₹{h.commissionAmount.toLocaleString()}
+                        </td>
+                        <td className="py-3 font-black text-emerald-700">
+                          ₹{h.netPayable.toLocaleString()}
+                        </td>
                         <td className="py-3">{getStatusPill(h.status)}</td>
-                        <td className="py-3 font-mono text-gray-500 text-right">{h.utrNumber || '—'}</td>
+                        <td className="py-3 font-mono text-gray-500 text-right">
+                          {h.utrNumber || '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

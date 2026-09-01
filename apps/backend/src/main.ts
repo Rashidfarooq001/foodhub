@@ -90,8 +90,6 @@ async function bootstrap() {
   app.use('/uploads', handleDbMediaFallback);
   app.use('/api/v1/uploads', handleDbMediaFallback);
 
-
-
   // Body Size (Strict 10MB limit for general API payloads to prevent DoS)
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -131,12 +129,7 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'X-Request-ID',
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Request-ID'],
   });
 
   // Validation

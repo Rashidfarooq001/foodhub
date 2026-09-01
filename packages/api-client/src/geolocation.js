@@ -45,7 +45,9 @@ export async function searchPlacesByName(query, signal) {
 }
 export async function forwardGeocodeStructuredAddress(payload, signal) {
     try {
-        const res = await apiClient.post('/location/resolve', payload, { signal });
+        const res = await apiClient.post('/location/resolve', payload, {
+            signal,
+        });
         const data = res.data;
         const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
         const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
@@ -58,7 +60,8 @@ export async function forwardGeocodeStructuredAddress(payload, signal) {
         }
         return {
             success: false,
-            message: data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+            message: data?.message ||
+                "Couldn't determine the location of this address. Please check your address details and try again.",
         };
     }
     catch (err) {
@@ -70,7 +73,9 @@ export async function forwardGeocodeStructuredAddress(payload, signal) {
             payload.city,
             payload.state,
             payload.postalCode,
-        ].filter(Boolean).join(', ');
+        ]
+            .filter(Boolean)
+            .join(', ');
         return forwardGeocodeAddress(query, signal);
     }
 }
@@ -93,7 +98,8 @@ export async function forwardGeocodeAddress(addressQuery, signal) {
         }
         return {
             success: false,
-            message: res?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+            message: res?.message ||
+                "Couldn't determine the location of this address. Please check your address details and try again.",
         };
     }
     catch (err) {

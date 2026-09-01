@@ -32,7 +32,9 @@ async function main() {
     if (!adminUser) {
       report.fail.push('A. ADMIN PROFILE - Admin user record not found in database');
     } else {
-      console.log(`- Found Admin in DB: ID=${adminUser.id}, Email=${adminUser.email}, Phone=${adminUser.phone}`);
+      console.log(
+        `- Found Admin in DB: ID=${adminUser.id}, Email=${adminUser.email}, Phone=${adminUser.phone}`,
+      );
       console.log(`  Current Profile Avatar in DB: ${adminUser.profile?.avatarUrl || 'NULL'}`);
 
       // 2. Perform Admin Login to get real JWT token
@@ -49,7 +51,9 @@ async function main() {
       if (!loginRes.ok) {
         const errText = await loginRes.text();
         console.log(`  Login Failure Payload: ${errText}`);
-        report.fail.push(`A. ADMIN PROFILE - Admin Login returned status ${loginRes.status}: ${errText}`);
+        report.fail.push(
+          `A. ADMIN PROFILE - Admin Login returned status ${loginRes.status}: ${errText}`,
+        );
         report.failureDetails.push({
           bug: 'Admin Login Auth Failure',
           liveUrl: `${API_BASE}/auth/admin/login`,
@@ -61,10 +65,12 @@ async function main() {
           httpStatus: loginRes.status,
           frontendState: 'unauthenticated',
           databaseState: `User ID=${adminUser.id}`,
-          rootCause: 'Admin authentication fails if credentials or passcode do not match production DB hash',
+          rootCause:
+            'Admin authentication fails if credentials or passcode do not match production DB hash',
           file: 'apps/backend/src/modules/auth/auth.service.ts',
           lineComponent: 'loginAdmin() line 1000-1050',
-          fixRequired: 'Verify exact production Admin credentials or test with valid session JWT token',
+          fixRequired:
+            'Verify exact production Admin credentials or test with valid session JWT token',
         });
       } else {
         const loginData = await loginRes.json();
@@ -78,16 +84,21 @@ async function main() {
         });
         const profileGetData = await profileGetRes.json();
         console.log(`- GET /auth/profile Status: ${profileGetRes.status}`);
-        console.log(`  Returned Avatar URL: ${profileGetData.profile?.avatarUrl || profileGetData.avatarUrl || 'NULL'}`);
+        console.log(
+          `  Returned Avatar URL: ${profileGetData.profile?.avatarUrl || profileGetData.avatarUrl || 'NULL'}`,
+        );
 
         // 4. Test Image Upload
         const testImageBuffer = Buffer.from(
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-          'base64'
+          'base64',
         );
         const FormData = require('form-data');
         const form = new FormData();
-        form.append('file', testImageBuffer, { filename: 'test-avatar.png', contentType: 'image/png' });
+        form.append('file', testImageBuffer, {
+          filename: 'test-avatar.png',
+          contentType: 'image/png',
+        });
 
         const uploadRes = await fetch(`${API_BASE}/storage/upload?type=image`, {
           method: 'POST',
@@ -118,12 +129,18 @@ async function main() {
 
           // 6. Test direct image retrieval
           const imgFetchRes = await fetch(newAvatarUrl);
-          console.log(`- Direct Image HTTP Status: ${imgFetchRes.status}, Content-Type: ${imgFetchRes.headers.get('content-type')}`);
+          console.log(
+            `- Direct Image HTTP Status: ${imgFetchRes.status}, Content-Type: ${imgFetchRes.headers.get('content-type')}`,
+          );
 
           if (patchRes.ok && imgFetchRes.status === 200) {
-            report.pass.push('A. ADMIN PROFILE - Image upload, profile update, DB persist, and image retrieval succeeded');
+            report.pass.push(
+              'A. ADMIN PROFILE - Image upload, profile update, DB persist, and image retrieval succeeded',
+            );
           } else {
-            report.fail.push(`A. ADMIN PROFILE - PATCH status ${patchRes.status}, Image status ${imgFetchRes.status}`);
+            report.fail.push(
+              `A. ADMIN PROFILE - PATCH status ${patchRes.status}, Image status ${imgFetchRes.status}`,
+            );
           }
         } else {
           report.fail.push(`A. ADMIN PROFILE - Upload failed with status ${uploadRes.status}`);
@@ -146,7 +163,9 @@ async function main() {
     const testEmail = `testrest_${Date.now()}@foodhub.com`;
     const testPassword = 'PartnerPass@123';
 
-    console.log(`- Submitting new Restaurant Application to POST /restaurants: Phone=${testPhone}, Email=${testEmail}`);
+    console.log(
+      `- Submitting new Restaurant Application to POST /restaurants: Phone=${testPhone}, Email=${testEmail}`,
+    );
 
     const regRes = await fetch(`${API_BASE}/restaurants`, {
       method: 'POST',
@@ -171,7 +190,9 @@ async function main() {
     console.log(`  Register Response Payload:`, JSON.stringify(regData));
 
     if (regRes.ok && regData.restaurant) {
-      console.log(`  Created Restaurant ID: ${regData.restaurant.id}, Status: ${regData.restaurant.status}`);
+      console.log(
+        `  Created Restaurant ID: ${regData.restaurant.id}, Status: ${regData.restaurant.status}`,
+      );
 
       // Verify record exists in DB
       const dbRest = await prisma.restaurant.findUnique({
@@ -182,7 +203,9 @@ async function main() {
       console.log(`- DB Verification: Found Rest in DB? ${!!dbRest}, Status=${dbRest?.status}`);
 
       if (dbRest) {
-        report.pass.push('B. RESTAURANT REGISTRATION - End-to-end registration API & DB entry created successfully');
+        report.pass.push(
+          'B. RESTAURANT REGISTRATION - End-to-end registration API & DB entry created successfully',
+        );
       } else {
         report.fail.push('B. RESTAURANT REGISTRATION - DB record not found after 201 response');
       }
@@ -212,11 +235,17 @@ async function main() {
       if (r.bannerUrl) {
         const fetchRes = await fetch(r.bannerUrl).catch(() => null);
         if (fetchRes) {
-          console.log(`    HTTP Status: ${fetchRes.status}, Content-Type: ${fetchRes.headers.get('content-type')}`);
+          console.log(
+            `    HTTP Status: ${fetchRes.status}, Content-Type: ${fetchRes.headers.get('content-type')}`,
+          );
           if (fetchRes.status === 200) {
-            report.pass.push(`C. RESTAURANT DOCUMENTS - Banner URL ${r.bannerUrl} returns HTTP 200`);
+            report.pass.push(
+              `C. RESTAURANT DOCUMENTS - Banner URL ${r.bannerUrl} returns HTTP 200`,
+            );
           } else {
-            report.fail.push(`C. RESTAURANT DOCUMENTS - Banner URL ${r.bannerUrl} returned HTTP ${fetchRes.status}`);
+            report.fail.push(
+              `C. RESTAURANT DOCUMENTS - Banner URL ${r.bannerUrl} returned HTTP ${fetchRes.status}`,
+            );
           }
         } else {
           report.fail.push(`C. RESTAURANT DOCUMENTS - Failed to fetch banner URL ${r.bannerUrl}`);

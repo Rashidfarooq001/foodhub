@@ -23,9 +23,15 @@ async function main() {
     console.log(`Role:             ${admin.role}`);
     console.log(`Is Active:        ${admin.isActive}`);
     console.log(`Is Verified:      ${admin.isVerified}`);
-    console.log(`Has passwordHash: ${!!admin.passwordHash} (${admin.passwordHash ? admin.passwordHash.substring(0, 15) + '...' : 'NULL'})`);
-    console.log(`Has password1Hash: ${!!admin.password1Hash} (${admin.password1Hash ? admin.password1Hash.substring(0, 15) + '...' : 'NULL'})`);
-    console.log(`Has password2Hash: ${!!admin.password2Hash} (${admin.password2Hash ? admin.password2Hash.substring(0, 15) + '...' : 'NULL'})`);
+    console.log(
+      `Has passwordHash: ${!!admin.passwordHash} (${admin.passwordHash ? admin.passwordHash.substring(0, 15) + '...' : 'NULL'})`,
+    );
+    console.log(
+      `Has password1Hash: ${!!admin.password1Hash} (${admin.password1Hash ? admin.password1Hash.substring(0, 15) + '...' : 'NULL'})`,
+    );
+    console.log(
+      `Has password2Hash: ${!!admin.password2Hash} (${admin.password2Hash ? admin.password2Hash.substring(0, 15) + '...' : 'NULL'})`,
+    );
 
     // Test default two-passwords against hashes if present
     if (admin.password1Hash) {

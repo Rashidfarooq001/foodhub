@@ -47,15 +47,35 @@ async function main() {
   // 3. Verify driver DOES NOT appear in Restaurant Applications list
   const restAppListRes = await fetch(`${API_BASE}/restaurants/applications`);
   const restAppListData = await restAppListRes.json();
-  const foundInRestAppList = Array.isArray(restAppListData) && restAppListData.some((r) => r.id === driverId || r.ownerId === userId);
+  const foundInRestAppList =
+    Array.isArray(restAppListData) &&
+    restAppListData.some((r) => r.id === driverId || r.ownerId === userId);
   console.log(`  Driver incorrectly found in Restaurant Applications list? ${foundInRestAppList}`);
 
   // Sign Admin token for approval endpoint
   const crypto = require('crypto');
-  function base64Url(str) { return Buffer.from(str).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_'); }
+  function base64Url(str) {
+    return Buffer.from(str)
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  }
   const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ sub: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5', role: 'SUPER_ADMIN', exp: Math.floor(Date.now() / 1000) + 3600 }));
-  const sig = crypto.createHmac('sha256', 'foodhub_jwt_super_secret_key_2026_production').update(`${header}.${payload}`).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const payload = base64Url(
+    JSON.stringify({
+      sub: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5',
+      role: 'SUPER_ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }),
+  );
+  const sig = crypto
+    .createHmac('sha256', 'foodhub_jwt_super_secret_key_2026_production')
+    .update(`${header}.${payload}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
   const adminToken = `${header}.${payload}.${sig}`;
 
   // 4. Admin Approve Driver

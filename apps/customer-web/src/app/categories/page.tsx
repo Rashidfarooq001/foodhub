@@ -17,9 +17,11 @@ export default function CategoriesPage() {
         const res = await fetch(`${API_BASE}/categories`);
         if (res.ok) {
           const data = await res.json();
-          setCategories(Array.isArray(data) ? data : data.categories ?? []);
+          setCategories(Array.isArray(data) ? data : (data.categories ?? []));
         }
-      } catch { /* backend offline */ } finally {
+      } catch {
+        /* backend offline */
+      } finally {
         setIsLoading(false);
       }
     };

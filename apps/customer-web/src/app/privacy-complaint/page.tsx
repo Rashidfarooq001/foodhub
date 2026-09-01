@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, CheckCircle2, AlertTriangle, ArrowLeft, Mail, Phone, MapPin, Clock } from 'lucide-react';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -16,7 +25,9 @@ export default function PrivacyComplaintPage() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +59,8 @@ export default function PrivacyComplaintPage() {
 
       setFeedback({
         type: 'success',
-        message: 'Your privacy grievance has been logged successfully. Our Grievance Team will acknowledge within 48 hours and resolve within 15–30 days.',
+        message:
+          'Your privacy grievance has been logged successfully. Our Grievance Team will acknowledge within 48 hours and resolve within 15–30 days.',
       });
       setName('');
       setEmail('');
@@ -57,7 +69,10 @@ export default function PrivacyComplaintPage() {
       setSubject('');
       setDescription('');
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Submission failed. Please email businesscity05@gmail.com' });
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Submission failed. Please email businesscity05@gmail.com',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +81,10 @@ export default function PrivacyComplaintPage() {
   return (
     <div className="min-h-[100dvh] bg-gray-50 py-5 px-4 sm:px-4 lg:px-5">
       <div className="mx-auto max-w-3xl space-y-5">
-        <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-orange-600 transition">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-orange-600 transition"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Home
         </Link>
 
@@ -80,7 +98,9 @@ export default function PrivacyComplaintPage() {
               File a Privacy Grievance or Security Report
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-              In compliance with the Digital Personal Data Protection Act, 2023 and Consumer Protection (E-Commerce) Rules, 2020, submit any concerns regarding data accuracy, unauthorized access, consent withdrawal, or platform privacy practices.
+              In compliance with the Digital Personal Data Protection Act, 2023 and Consumer
+              Protection (E-Commerce) Rules, 2020, submit any concerns regarding data accuracy,
+              unauthorized access, consent withdrawal, or platform privacy practices.
             </p>
           </div>
 
@@ -136,7 +156,7 @@ export default function PrivacyComplaintPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="Enter email"
                   className="w-full rounded-2xl border border-gray-200 p-3 font-bold text-gray-900"
                 />
               </div>
@@ -144,7 +164,9 @@ export default function PrivacyComplaintPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Phone Number (Optional)</label>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Phone Number (Optional)
+                </label>
                 <input
                   type="tel"
                   value={phone}
@@ -154,7 +176,9 @@ export default function PrivacyComplaintPage() {
                 />
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Order Number (if applicable)</label>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Order Number (if applicable)
+                </label>
                 <input
                   type="text"
                   value={orderNumber}
@@ -175,9 +199,13 @@ export default function PrivacyComplaintPage() {
                 <option value="PRIVACY_CONCERN">General Personal Data Protection Inquiry</option>
                 <option value="INCORRECT_DATA">Incorrect / Misleading Personal Data</option>
                 <option value="UNAUTHORIZED_ACCESS">Unauthorized Account Activity</option>
-                <option value="LOCATION_TRACKING">Location Tracking &amp; Distance Inquiries</option>
+                <option value="LOCATION_TRACKING">
+                  Location Tracking &amp; Distance Inquiries
+                </option>
                 <option value="UNAUTHORIZED_SHARING">Unauthorized Third-Party Sharing</option>
-                <option value="ACCOUNT_SECURITY">Account Security &amp; Vulnerability Disclosure</option>
+                <option value="ACCOUNT_SECURITY">
+                  Account Security &amp; Vulnerability Disclosure
+                </option>
                 <option value="OTHER">Other Compliance Matter</option>
               </select>
             </div>
@@ -216,9 +244,17 @@ export default function PrivacyComplaintPage() {
           </form>
 
           <div className="border-t border-gray-100 pt-6 text-[11px] text-gray-500 space-y-1">
-            <p><strong>Designated Grievance Authority:</strong> Zayka Food – Grievance Team</p>
-            <p><strong>Escalation / Alternate Contact:</strong> In case of urgent escalations, you may email businesscity05@gmail.com with subject tag [URGENT GRIEVANCE].</p>
-            <p><strong>Legal Framework:</strong> Consumer Protection (E-Commerce) Rules 2020 &amp; DPDP Act 2023.</p>
+            <p>
+              <strong>Designated Grievance Authority:</strong> Zayka Food – Grievance Team
+            </p>
+            <p>
+              <strong>Escalation / Alternate Contact:</strong> In case of urgent escalations, you
+              may email businesscity05@gmail.com with subject tag [URGENT GRIEVANCE].
+            </p>
+            <p>
+              <strong>Legal Framework:</strong> Consumer Protection (E-Commerce) Rules 2020 &amp;
+              DPDP Act 2023.
+            </p>
           </div>
         </div>
       </div>

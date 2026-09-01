@@ -3,7 +3,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UtensilsCrossed, Phone, Lock, CheckCircle2, ArrowLeft, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
+import {
+  UtensilsCrossed,
+  Phone,
+  Lock,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  KeyRound,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -167,7 +176,9 @@ export default function RestaurantForgotPasswordPage() {
         {step === 'PHONE' && (
           <form onSubmit={handleRequestOtp} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Registered Restaurant Mobile Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Registered Restaurant Mobile Number
+              </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -191,7 +202,10 @@ export default function RestaurantForgotPasswordPage() {
             </button>
 
             <div className="text-center pt-2">
-              <Link href="/login" className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-orange-600">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-orange-600"
+              >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Restaurant Login
               </Link>
             </div>
@@ -204,12 +218,15 @@ export default function RestaurantForgotPasswordPage() {
             <div className="rounded-2xl bg-orange-50 p-4 border border-orange-100 text-center space-y-1">
               <p className="text-xs font-bold text-orange-900">Enter Verification Code</p>
               <p className="text-[11px] text-orange-700">
-                OTP sent to registered phone <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+                OTP sent to registered phone{' '}
+                <span className="font-black">+{phone.replace(/\D/g, '')}</span>
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 text-center">4-Digit SMS OTP</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1 text-center">
+                4-Digit SMS OTP
+              </label>
               <input
                 type="text"
                 maxLength={4}
@@ -251,7 +268,9 @@ export default function RestaurantForgotPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Confirm New Password
+              </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -285,7 +304,9 @@ export default function RestaurantForgotPasswordPage() {
 
             <div className="space-y-1">
               <h2 className="text-xl font-black text-gray-900">Password Reset Successfully</h2>
-              <p className="text-xs text-gray-500">Your restaurant account password has been updated.</p>
+              <p className="text-xs text-gray-500">
+                Your restaurant account password has been updated.
+              </p>
             </div>
 
             <button
@@ -303,9 +324,14 @@ export default function RestaurantForgotPasswordPage() {
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
           <span>ZaykaFood Partner</span>
           <span>•</span>
-          <Link href="/login" className="hover:text-white transition">Login</Link>
+          <Link href="/login" className="hover:text-white transition">
+            Login
+          </Link>
           <span>•</span>
-          <Link href="/partner/register" className="font-bold text-orange-500 hover:text-orange-400 transition underline">
+          <Link
+            href="/partner/register"
+            className="font-bold text-orange-500 hover:text-orange-400 transition underline"
+          >
             Become a Partner
           </Link>
         </div>

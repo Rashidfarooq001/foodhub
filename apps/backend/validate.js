@@ -7,8 +7,8 @@ const payload = {
   items: [
     {
       foodItemId: 'eb11eba8-e571-4b79-b49b-1b05878ee7ff',
-      variantId: '31213185-a04b-40d7-9e2f-8943f6ea01ac'
-    }
+      variantId: '31213185-a04b-40d7-9e2f-8943f6ea01ac',
+    },
   ],
   paymentMethod: 'UPI',
   deliveryAddress: {
@@ -22,8 +22,8 @@ const payload = {
     longitude: 74.522066,
     postalCode: '193201',
     state: 'Jammu & Kashmir',
-    locationSource: 'CURRENT_GPS'
-  }
+    locationSource: 'CURRENT_GPS',
+  },
 };
 
 const instance = plainToInstance(CreateOrderDto, payload);

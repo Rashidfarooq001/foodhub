@@ -9,13 +9,14 @@ export default function HotelReportsPage() {
   const downloadReport = (format: string) => {
     setDownloading(format);
     setTimeout(() => {
-      const csvContent = "data:text/csv;charset=utf-8,Date,OrderNo,GrossSales,Commission,NetPayout\n"
-        + `2026-08-17,ORD-101,450,67.5,382.5\n`
-        + `2026-08-17,ORD-102,620,93.0,527.0\n`;
+      const csvContent =
+        'data:text/csv;charset=utf-8,Date,OrderNo,GrossSales,Commission,NetPayout\n' +
+        `2026-08-17,ORD-101,450,67.5,382.5\n` +
+        `2026-08-17,ORD-102,620,93.0,527.0\n`;
       const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Restaurant_Report_${format}_${Date.now()}.csv`);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `Restaurant_Report_${format}_${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -76,7 +77,9 @@ export default function HotelReportsPage() {
               className={`w-full flex items-center justify-center gap-2 rounded-2xl text-xs font-black text-white shadow-md transition min-h-[44px] ${r.btnColor}`}
             >
               <Download className="h-4 w-4" />
-              <span>{downloading === r.format ? 'Generating...' : `Download .${r.format.toLowerCase()}`}</span>
+              <span>
+                {downloading === r.format ? 'Generating...' : `Download .${r.format.toLowerCase()}`}
+              </span>
             </button>
           </div>
         ))}

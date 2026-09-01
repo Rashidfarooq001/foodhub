@@ -74,7 +74,10 @@ export class HealthController {
   @ApiOperation({ summary: 'Comprehensive Readiness Probe (Kubernetes / Infrastructure)' })
   async checkReady() {
     const dbStatus = await this.checkDb().catch((e) => ({ status: 'error', error: e.message }));
-    const redisStatus = await this.checkRedis().catch((e) => ({ status: 'error', error: e.message }));
+    const redisStatus = await this.checkRedis().catch((e) => ({
+      status: 'error',
+      error: e.message,
+    }));
 
     const isHealthy = dbStatus.status === 'ok' && redisStatus.status === 'ok';
 

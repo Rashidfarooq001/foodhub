@@ -19,10 +19,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PartnerLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function PartnerLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

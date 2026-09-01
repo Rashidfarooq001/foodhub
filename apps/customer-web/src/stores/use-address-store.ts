@@ -15,7 +15,8 @@ export interface CustomerAddressItem {
   postalCode: string;
   latitude?: number | null;
   longitude?: number | null;
-  locationSource?: 'CURRENT_GPS' | 'PLACE_SEARCH' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MANUAL_GEOCODED';
+  locationSource?:
+    'CURRENT_GPS' | 'PLACE_SEARCH' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MANUAL_GEOCODED';
   verificationStatus?: 'VERIFIED' | 'FAILED' | 'UNVERIFIED';
   accuracyMeters?: number | null;
   isDefault: boolean;
@@ -48,12 +49,13 @@ export const useAddressStore = create<AddressState>()(
         set((state) => {
           const rawId = (newAddr as any).id;
           const isCurrentLoc = rawId === 'current-location' || newAddr.label === 'Current Location';
-          const id = isCurrentLoc ? 'current-location' : (rawId || `addr-${Date.now()}`);
+          const id = isCurrentLoc ? 'current-location' : rawId || `addr-${Date.now()}`;
           const item: CustomerAddressItem = {
             ...newAddr,
             id,
             label: isCurrentLoc ? 'Current Location' : newAddr.label,
-            locationSource: newAddr.locationSource || (isCurrentLoc ? 'CURRENT_GPS' : 'PLACE_SEARCH'),
+            locationSource:
+              newAddr.locationSource || (isCurrentLoc ? 'CURRENT_GPS' : 'PLACE_SEARCH'),
             verificationStatus: newAddr.verificationStatus || 'VERIFIED',
           };
 
@@ -73,7 +75,8 @@ export const useAddressStore = create<AddressState>()(
           const updated = state.addresses.filter((a) => a.id !== id);
           return {
             addresses: updated,
-            selectedAddressId: state.selectedAddressId === id ? (updated[0]?.id || null) : state.selectedAddressId,
+            selectedAddressId:
+              state.selectedAddressId === id ? updated[0]?.id || null : state.selectedAddressId,
           };
         }),
 
@@ -100,4 +103,3 @@ export const useAddressStore = create<AddressState>()(
     },
   ),
 );
-

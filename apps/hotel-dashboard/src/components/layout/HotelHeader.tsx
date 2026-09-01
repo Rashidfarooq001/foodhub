@@ -102,10 +102,10 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
           title="Toggle Store Online/Offline Availability"
         >
           <Power className={`h-4 w-4 shrink-0 ${isOpen ? 'text-emerald-600' : 'text-rose-600'}`} />
-          <span>
-            {loadingToggle ? 'SAVING...' : isOpen ? 'STORE ONLINE' : 'STORE OFFLINE'}
-          </span>
-          <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+          <span>{loadingToggle ? 'SAVING...' : isOpen ? 'STORE ONLINE' : 'STORE OFFLINE'}</span>
+          <span
+            className={`h-2 w-2 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}
+          />
         </button>
 
         <ThemeToggle />

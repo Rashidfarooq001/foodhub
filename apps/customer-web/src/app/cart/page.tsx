@@ -39,7 +39,7 @@ export default function CartPage() {
   } = useCartStore();
 
   const subtotal = getSubtotal();
-  
+
   useEffect(() => {
     if (items.length > 0) {
       fetchCartQuote().catch(console.error);
@@ -58,7 +58,9 @@ export default function CartPage() {
           <ShoppingBag className="h-8 w-8" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">Your cart is empty</h2>
-        <p className="text-xs text-gray-500">Good food is always waiting for you. Discover top kitchens nearby!</p>
+        <p className="text-xs text-gray-500">
+          Good food is always waiting for you. Discover top kitchens nearby!
+        </p>
         <button
           onClick={() => router.push('/')}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
@@ -102,7 +104,9 @@ export default function CartPage() {
             <div className="flex items-center gap-2.5 min-w-0">
               <Store className="h-5 w-5 text-orange-600 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 truncate">{restaurantName || 'Kitchen'}</p>
+                <p className="text-xs font-bold text-gray-900 truncate">
+                  {restaurantName || 'Kitchen'}
+                </p>
                 <p className="text-[10px] text-gray-400">{items.length} items in cart</p>
               </div>
             </div>
@@ -116,7 +120,9 @@ export default function CartPage() {
 
           {/* Items List */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-100 pb-2">Order Items</h3>
+            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-100 pb-2">
+              Order Items
+            </h3>
             <div className="divide-y divide-gray-100">
               {items.map((item) => (
                 <div key={item.id} className="py-3 flex items-center justify-between text-xs">
@@ -172,8 +178,6 @@ export default function CartPage() {
             </div>
           </div>
 
-
-
           {/* Bill Summary */}
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-2 text-xs">
             <h3 className="font-bold text-gray-900 border-b border-gray-100 pb-2">Bill Summary</h3>
@@ -187,11 +191,11 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Platform Fee</span>
-                <span>&#x20B9;{platformFee}</span>
+              <span>&#x20B9;{platformFee}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>GST &amp; Taxes</span>
-                <span>&#x20B9;{tax}</span>
+              <span>&#x20B9;{tax}</span>
             </div>
 
             <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center text-sm font-black text-gray-900">

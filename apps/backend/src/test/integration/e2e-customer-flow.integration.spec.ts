@@ -4,7 +4,7 @@ import { AppModule } from '../../app.module';
 import { Logger } from 'nestjs-pino';
 import { PrismaService } from '../../modules/database/prisma.service';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const request = require('supertest');
 
 describe('End-to-End Customer Order & Live Tracking Integration', () => {
@@ -36,9 +36,7 @@ describe('End-to-End Customer Order & Live Tracking Integration', () => {
   });
 
   it('should respond to health check and orders API endpoints cleanly', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/health')
-      .expect(200);
+    const res = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
 
     expect(res.body).toBeDefined();
   });

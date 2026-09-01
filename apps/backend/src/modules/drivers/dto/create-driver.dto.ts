@@ -42,7 +42,8 @@ export class CreateDriverDto {
   licenseNumber!: string;
 
   @ApiPropertyOptional({
-    description: 'Vehicle type — must exactly match one of: BICYCLE, SCOOTER, MOTORCYCLE, EV_SCOOTER',
+    description:
+      'Vehicle type — must exactly match one of: BICYCLE, SCOOTER, MOTORCYCLE, EV_SCOOTER',
     enum: VehicleType,
   })
   @IsEnum(VehicleType, {

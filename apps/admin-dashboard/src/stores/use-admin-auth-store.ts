@@ -72,7 +72,9 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     }),
     {
       name: 'foodhub-admin-auth',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? localStorage : dummyStorage,
+      ),
     },
   ),
 );

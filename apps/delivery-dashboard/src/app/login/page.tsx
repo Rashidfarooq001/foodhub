@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bike, Lock, Mail, ArrowRight, Phone, CheckCircle2, RotateCcw, Edit2, ShieldCheck } from 'lucide-react';
+import {
+  Bike,
+  Lock,
+  Mail,
+  ArrowRight,
+  Phone,
+  CheckCircle2,
+  RotateCcw,
+  Edit2,
+  ShieldCheck,
+} from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 import Link from 'next/link';
@@ -16,9 +26,9 @@ export default function DeliveryLoginPage() {
   const [loginMode, setLoginMode] = useState<'OTP' | 'PASSWORD'>('OTP');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
 
-  const [email, setEmail] = useState('driver@zaykafood.com');
-  const [password, setPassword] = useState('DriverPass123!');
-  const [phone, setPhone] = useState('9876500999');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
 
   const [error, setError] = useState('');
@@ -110,7 +120,10 @@ export default function DeliveryLoginPage() {
     setIsLoading(true);
 
     const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-    const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+    const tokenAuth =
+      process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
+      process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
+      '556022TLShucwZ86a6d8a7bP1';
     const identifier = formatIdentifier(phone);
 
     const configuration = {
@@ -120,7 +133,10 @@ export default function DeliveryLoginPage() {
       exposeMethods: true,
       captchaRenderId: '',
       success: (data: any) => {
-        const token = typeof data === 'string' ? data : (data?.message || data?.jwtToken || data?.accessToken || data?.token);
+        const token =
+          typeof data === 'string'
+            ? data
+            : data?.message || data?.jwtToken || data?.accessToken || data?.token;
         if (token) {
           handleWidgetSuccess(token);
         } else {
@@ -129,7 +145,7 @@ export default function DeliveryLoginPage() {
         }
       },
       failure: (err: any) => {
-        setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
+        setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
         setIsLoading(false);
       },
     };
@@ -138,7 +154,11 @@ export default function DeliveryLoginPage() {
       try {
         (window as any).initSendOTP(configuration);
         if (typeof (window as any).sendOtp === 'function') {
-          (window as any).sendOtp(identifier, () => {}, (err: any) => console.error('[MSG91 Delivery] sendOtp error:', err));
+          (window as any).sendOtp(
+            identifier,
+            () => {},
+            (err: any) => console.error('[MSG91 Delivery] sendOtp error:', err),
+          );
         }
         setStep('OTP');
         setCooldown(30);
@@ -166,10 +186,14 @@ export default function DeliveryLoginPage() {
 
     if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
       try {
-        (window as any).verifyOtp(enteredOtp, () => {}, (err: any) => {
-          setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
-          setIsLoading(false);
-        });
+        (window as any).verifyOtp(
+          enteredOtp,
+          () => {},
+          (err: any) => {
+            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
+            setIsLoading(false);
+          },
+        );
         return;
       } catch (verifyErr: any) {
         console.warn('[MSG91 Delivery] verifyOtp exception:', verifyErr);
@@ -226,24 +250,36 @@ export default function DeliveryLoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-16 items-center justify-center">
-            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
+            <img
+              src="/zaykafood-logo.png"
+              alt="ZaykaFood"
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </div>
           <h1 className="text-2xl font-black text-gray-900">Courier Partner Portal</h1>
-          <p className="text-xs text-gray-500">Sign in to view trip dispatches, earnings &amp; GPS navigation</p>
+          <p className="text-xs text-gray-500">
+            Sign in to view trip dispatches, earnings &amp; GPS navigation
+          </p>
         </div>
 
         {/* Mode Selector Tabs */}
         <div className="grid grid-cols-2 rounded-2xl bg-gray-100 p-1 text-xs font-bold">
           <button
             type="button"
-            onClick={() => { setLoginMode('OTP'); setError(''); }}
+            onClick={() => {
+              setLoginMode('OTP');
+              setError('');
+            }}
             className={`rounded-xl py-2.5 transition ${loginMode === 'OTP' ? 'bg-white text-emerald-600 shadow' : 'text-gray-500 hover:text-gray-900'}`}
           >
             MSG91 OTP Login
           </button>
           <button
             type="button"
-            onClick={() => { setLoginMode('PASSWORD'); setError(''); }}
+            onClick={() => {
+              setLoginMode('PASSWORD');
+              setError('');
+            }}
             className={`rounded-xl py-2.5 transition ${loginMode === 'PASSWORD' ? 'bg-white text-emerald-600 shadow' : 'text-gray-500 hover:text-gray-900'}`}
           >
             Password Login
@@ -267,7 +303,9 @@ export default function DeliveryLoginPage() {
           step === 'PHONE' ? (
             <form onSubmit={handleSendOtp} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Registered Courier Phone</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Registered Courier Phone
+                </label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
@@ -296,7 +334,9 @@ export default function DeliveryLoginPage() {
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => { otpInputsRef.current[idx] = el; }}
+                    ref={(el) => {
+                      otpInputsRef.current[idx] = el;
+                    }}
                     type="text"
                     maxLength={1}
                     value={digit}
@@ -329,7 +369,10 @@ export default function DeliveryLoginPage() {
               <div className="flex items-center justify-between text-xs pt-1">
                 <button
                   type="button"
-                  onClick={() => { setStep('PHONE'); setError(''); }}
+                  onClick={() => {
+                    setStep('PHONE');
+                    setError('');
+                  }}
                   className="flex items-center gap-1 font-bold text-gray-500 hover:text-emerald-600"
                 >
                   <Edit2 className="h-3.5 w-3.5" /> Edit Phone
@@ -351,7 +394,9 @@ export default function DeliveryLoginPage() {
         ) : (
           <form onSubmit={handlePasswordLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Courier Email / Phone</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Courier Email / Phone
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -408,7 +453,9 @@ export default function DeliveryLoginPage() {
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
           <span>ZaykaFood Delivery</span>
           <span>•</span>
-          <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
+          <Link href="/support" className="hover:text-white transition">
+            Help &amp; Contact
+          </Link>
         </div>
       </footer>
     </div>

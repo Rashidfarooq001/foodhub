@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  Req,
-  Ip,
-  Headers,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Ip, Headers } from '@nestjs/common';
 import { PrivacyService } from './privacy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -87,11 +78,7 @@ export class PrivacyController {
 
   @UseGuards(JwtAuthGuard)
   @Get('export')
-  async exportMyData(
-    @Req() req: any,
-    @Ip() ip: string,
-    @Headers('user-agent') ua: string,
-  ) {
+  async exportMyData(@Req() req: any, @Ip() ip: string, @Headers('user-agent') ua: string) {
     const exportPayload = await this.privacyService.exportUserData(req.user.id, ip, ua);
     return { success: true, ...exportPayload };
   }

@@ -10,11 +10,11 @@ export class OrdersRepository {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        orderItems:     { include: { foodItem: true } },
+        orderItems: { include: { foodItem: true } },
         orderTimelines: { orderBy: { createdAt: 'asc' } },
-        payments:       true,
-        cancellation:   true,
-        refund:         true,
+        payments: true,
+        cancellation: true,
+        refund: true,
       },
     });
     if (!order) throw new NotFoundException(`Order ${id} not found`);
@@ -36,10 +36,7 @@ export class OrdersRepository {
     // Resolve Customer from User.id or Customer.id
     const customer = await this.prisma.customer.findFirst({
       where: {
-        OR: [
-          { userId: userIdOrCustomerId },
-          { id: userIdOrCustomerId },
-        ],
+        OR: [{ userId: userIdOrCustomerId }, { id: userIdOrCustomerId }],
       },
     });
 
@@ -47,10 +44,7 @@ export class OrdersRepository {
 
     return this.prisma.order.findMany({
       where: {
-        OR: [
-          { customerId: targetCustomerId },
-          { customer: { userId: userIdOrCustomerId } },
-        ],
+        OR: [{ customerId: targetCustomerId }, { customer: { userId: userIdOrCustomerId } }],
         deletedAt: null,
       },
       include: {
@@ -73,12 +67,7 @@ export class OrdersRepository {
     });
   }
 
-  async findByRestaurant(
-    restaurantId: string,
-    status?: any,
-    page = 1,
-    limit = 20,
-  ) {
+  async findByRestaurant(restaurantId: string, status?: any, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     let statusFilter: any = undefined;
     if (typeof status === 'string' && status.includes(',')) {
@@ -95,8 +84,17 @@ export class OrdersRepository {
       },
       include: {
         orderItems: { include: { foodItem: true } },
-        restaurant: { select: { id: true, name: true, addressLine: true, phone: true, latitude: true, longitude: true } },
-        customer:   { include: { user: { include: { profile: true } } } },
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            addressLine: true,
+            phone: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        customer: { include: { user: { include: { profile: true } } } },
         deliveryJob: {
           include: {
             driver: {
@@ -109,7 +107,7 @@ export class OrdersRepository {
       },
       orderBy: { createdAt: 'desc' },
       skip,
-      take:    limit,
+      take: limit,
     });
 
     return orders;
@@ -125,11 +123,11 @@ export class OrdersRepository {
     }
 
     return this.prisma.order.findMany({
-      where:   { ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
+      where: { ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
       include: {
         orderItems: { include: { foodItem: true } },
         restaurant: { select: { id: true, name: true, addressLine: true, phone: true } },
-        customer:   { include: { user: { include: { profile: true } } } },
+        customer: { include: { user: { include: { profile: true } } } },
         deliveryJob: {
           include: {
             driver: {
@@ -142,26 +140,22 @@ export class OrdersRepository {
       },
       orderBy: { createdAt: 'desc' },
       skip,
-      take:    limit,
+      take: limit,
     });
   }
 
   async findByDriver(driverId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     return this.prisma.deliveryAssignment.findMany({
-      where:   { driverId },
+      where: { driverId },
       include: { order: { include: { orderItems: true } } },
       orderBy: { offeredAt: 'desc' },
       skip,
-      take:    limit,
+      take: limit,
     });
   }
 
-  async appendTimeline(
-    orderId: string,
-    status: OrderStatus,
-    message?: string,
-  ) {
+  async appendTimeline(orderId: string, status: OrderStatus, message?: string) {
     return this.prisma.orderTimeline.create({
       data: { orderId, status, message },
     });

@@ -33,9 +33,9 @@ export class UsersService {
 
     const rawTenDigits = canonicalPhone.replace(/\D/g, '').slice(-10);
     const formatsToMatch = [
-      canonicalPhone,           // Canonical: +91XXXXXXXXXX
-      `91${rawTenDigits}`,      // Legacy 12-digit: 91XXXXXXXXXX
-      rawTenDigits,             // Legacy 10-digit: XXXXXXXXXX
+      canonicalPhone, // Canonical: +91XXXXXXXXXX
+      `91${rawTenDigits}`, // Legacy 12-digit: 91XXXXXXXXXX
+      rawTenDigits, // Legacy 10-digit: XXXXXXXXXX
     ];
 
     return this.prisma.user.findFirst({
@@ -196,7 +196,12 @@ export class UsersService {
     };
   }
 
-  async updateUserStatusByAdmin(userId: string, isActive: boolean, reason?: string, adminUserId?: string) {
+  async updateUserStatusByAdmin(
+    userId: string,
+    isActive: boolean,
+    reason?: string,
+    adminUserId?: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -252,7 +257,9 @@ export class UsersService {
         where: { OR: [{ role: UserRole.ADMIN }, { role: UserRole.SUPER_ADMIN }] },
       });
       if (existingAdminCount >= 1) {
-        throw new BadRequestException('A single platform Admin account already exists. Secondary admin creation is prohibited.');
+        throw new BadRequestException(
+          'A single platform Admin account already exists. Secondary admin creation is prohibited.',
+        );
       }
     }
 
@@ -363,7 +370,7 @@ export class UsersService {
         postalCode: dto.postalCode || '',
         latitude: dto.latitude !== undefined && dto.latitude !== null ? dto.latitude : 0,
         longitude: dto.longitude !== undefined && dto.longitude !== null ? dto.longitude : 0,
-        isDefault: dto.isDefault ?? (count === 0),
+        isDefault: dto.isDefault ?? count === 0,
       },
     });
   }
@@ -452,7 +459,9 @@ export class UsersService {
   // --- SUPERADMIN CUSTOMER MANAGEMENT ---
 
   async suspendCustomer(userId: string, reason?: string, adminUserId?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, role: UserRole.CUSTOMER } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, role: UserRole.CUSTOMER },
+    });
     if (!user) throw new NotFoundException('Customer not found');
 
     const updated = await this.prisma.user.update({
@@ -471,7 +480,7 @@ export class UsersService {
         },
       });
     } catch {}
-    
+
     if (this.gateway) {
       this.gateway.emitToAdmin(ORDER_EVENTS.USER_STATUS_CHANGED as any, {
         userId,
@@ -483,7 +492,9 @@ export class UsersService {
   }
 
   async reactivateCustomer(userId: string, adminUserId?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, role: UserRole.CUSTOMER } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, role: UserRole.CUSTOMER },
+    });
     if (!user) throw new NotFoundException('Customer not found');
 
     const updated = await this.prisma.user.update({
@@ -527,7 +538,8 @@ export class UsersService {
       where: { ownerId: userId },
     });
 
-    const hasOtherRoles = !!user.driver || user.restaurantStaff.length > 0 || ownedRestaurantsCount > 0;
+    const hasOtherRoles =
+      !!user.driver || user.restaurantStaff.length > 0 || ownedRestaurantsCount > 0;
 
     const customerSnapshot = {
       id: user.customer.id,
@@ -582,6 +594,9 @@ export class UsersService {
       } catch {}
     });
 
-    return { success: true, message: 'Customer permanently deleted and financial records preserved' };
+    return {
+      success: true,
+      message: 'Customer permanently deleted and financial records preserved',
+    };
   }
 }

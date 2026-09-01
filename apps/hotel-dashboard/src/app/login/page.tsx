@@ -53,9 +53,10 @@ export default function HotelLoginPage() {
       payload = { email: cleanIdentity.toLowerCase(), password, targetRole: 'HOTEL' };
     } else {
       const cleanDigits = cleanIdentity.replace(/\D/g, '');
-      const rawDigits = cleanDigits.startsWith('91') && cleanDigits.length === 12
-        ? cleanDigits.substring(2)
-        : cleanDigits;
+      const rawDigits =
+        cleanDigits.startsWith('91') && cleanDigits.length === 12
+          ? cleanDigits.substring(2)
+          : cleanDigits;
 
       if (rawDigits.length !== 10 || !/^[6-9]\d{9}$/.test(rawDigits)) {
         setError('Enter a valid 10-digit Indian mobile number.');
@@ -142,7 +143,9 @@ export default function HotelLoginPage() {
             </label>
             <div className="relative flex items-center">
               {!identity.includes('@') && (
-                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">+91</span>
+                <span className="absolute left-3 text-xs font-black text-gray-500 border-r border-gray-200 pr-2">
+                  +91
+                </span>
               )}
               <input
                 type="text"
@@ -156,7 +159,7 @@ export default function HotelLoginPage() {
                     setIdentity(val);
                   }
                 }}
-                placeholder="7006298759 or email"
+                placeholder="Phone number or email"
                 className={`w-full rounded-2xl border border-gray-200 py-3.5 ${!identity.includes('@') ? 'pl-14' : 'pl-4'} pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20`}
               />
             </div>
@@ -209,9 +212,14 @@ export default function HotelLoginPage() {
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
           <span>ZaykaFood Partner</span>
           <span>•</span>
-          <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
+          <Link href="/support" className="hover:text-white transition">
+            Help &amp; Contact
+          </Link>
           <span>•</span>
-          <Link href="/partner/register" className="font-bold text-orange-500 hover:text-orange-400 transition underline">
+          <Link
+            href="/partner/register"
+            className="font-bold text-orange-500 hover:text-orange-400 transition underline"
+          >
             Become a Partner
           </Link>
         </div>

@@ -69,7 +69,11 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Suspend a customer (SuperAdmin Only)' })
-  async suspendCustomer(@Param('id') customerId: string, @Body('reason') reason?: string, @Request() req?: any) {
+  async suspendCustomer(
+    @Param('id') customerId: string,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
+  ) {
     const adminUserId = req?.user?.id || req?.user?.sub;
     return this.usersService.suspendCustomer(customerId, reason, adminUserId);
   }

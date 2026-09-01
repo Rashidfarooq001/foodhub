@@ -53,7 +53,7 @@ export default function OrderDetailsPage() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const [showSupportModal, setShowSupportModal] = useState(false);
-        
+
   const fetchOrderDetail = async () => {
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}`, {
@@ -128,7 +128,6 @@ export default function OrderDetailsPage() {
     }
   };
 
-  
   const handleReorder = async () => {
     if (!order) return;
     try {
@@ -241,8 +240,8 @@ export default function OrderDetailsPage() {
                     order.status === 'DELIVERED'
                       ? 'bg-emerald-100 text-emerald-800'
                       : isCancelled
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-amber-100 text-amber-800'
+                        ? 'bg-rose-100 text-rose-800'
+                        : 'bg-amber-100 text-amber-800'
                   }`}
                 >
                   {order.status.replace(/_/g, ' ')}
@@ -250,7 +249,10 @@ export default function OrderDetailsPage() {
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Placed on {new Date(order.createdAt).toLocaleDateString()} at{' '}
-                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(order.createdAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </p>
             </div>
 
@@ -265,12 +267,12 @@ export default function OrderDetailsPage() {
             )}
           </div>
 
-
-
           {/* STATUS TIMELINE */}
           {!isCancelled ? (
             <div className="py-3">
-              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-4">Order Progress</h4>
+              <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-4">
+                Order Progress
+              </h4>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 text-center">
                 {statusSteps.map((step, idx) => {
                   const isDone = currentStepIndex >= idx;
@@ -287,12 +289,17 @@ export default function OrderDetailsPage() {
                       >
                         {isDone ? '✓' : idx + 1}
                       </div>
-                      <p className={`text-[10px] font-bold ${isCurrent ? 'text-orange-600' : isDone ? 'text-gray-900' : 'text-gray-400'}`}>
+                      <p
+                        className={`text-[10px] font-bold ${isCurrent ? 'text-orange-600' : isDone ? 'text-gray-900' : 'text-gray-400'}`}
+                      >
                         {step.label}
                       </p>
                       {timelineEntry && (
                         <p className="text-[9px] text-gray-400">
-                          {new Date(timelineEntry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(timelineEntry.createdAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </p>
                       )}
                     </div>
@@ -302,11 +309,17 @@ export default function OrderDetailsPage() {
             </div>
           ) : (
             <div className="rounded-2xl bg-rose-50 p-4 border border-rose-200 text-xs font-bold text-rose-800 space-y-1">
-              <span className="uppercase text-[10px] text-rose-600 font-black">Order Cancelled</span>
+              <span className="uppercase text-[10px] text-rose-600 font-black">
+                Order Cancelled
+              </span>
               <p>{order.cancellation?.reason || 'Order was cancelled by customer / store.'}</p>
               {order.refund && (
                 <p className="text-[11px] font-semibold text-rose-700 pt-1">
-                  Refund Status: <span className="uppercase font-black text-emerald-700">{order.refund.isProcessed ? 'REFUNDED' : 'PROCESSING'}</span> (₹{Number(order.refund.amount)})
+                  Refund Status:{' '}
+                  <span className="uppercase font-black text-emerald-700">
+                    {order.refund.isProcessed ? 'REFUNDED' : 'PROCESSING'}
+                  </span>{' '}
+                  (₹{Number(order.refund.amount)})
                 </p>
               )}
             </div>
@@ -340,15 +353,23 @@ export default function OrderDetailsPage() {
 
             {/* Itemization Table */}
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
-              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Items Ordered</h3>
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
+                Items Ordered
+              </h3>
               <div className="divide-y divide-gray-100">
                 {(order.orderItems || []).map((item: any) => (
                   <div key={item.id} className="py-3 flex justify-between items-center text-xs">
                     <div>
-                      <p className="font-bold text-gray-900">{item.foodItem?.name || item.name || 'Food Item'}</p>
-                      <p className="text-[10px] text-gray-500">Qty: {item.quantity} × ₹{Number(item.unitPrice)}</p>
+                      <p className="font-bold text-gray-900">
+                        {item.foodItem?.name || item.name || 'Food Item'}
+                      </p>
+                      <p className="text-[10px] text-gray-500">
+                        Qty: {item.quantity} × ₹{Number(item.unitPrice)}
+                      </p>
                     </div>
-                    <span className="font-black text-gray-900">₹{Number(item.totalPrice).toFixed(2)}</span>
+                    <span className="font-black text-gray-900">
+                      ₹{Number(item.totalPrice).toFixed(2)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -356,22 +377,34 @@ export default function OrderDetailsPage() {
 
             {/* Delivery Address & Courier Card */}
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
-              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Delivery Information</h3>
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
+                Delivery Information
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
                   <span className="block font-semibold text-gray-400 mb-1">Delivery Address</span>
-                  <p className="font-bold text-gray-900">{deliveryAddress.addressLine1 || deliveryAddress.street}</p>
-                  <p className="text-gray-500">{deliveryAddress.city}, {deliveryAddress.state} - {deliveryAddress.postalCode}</p>
+                  <p className="font-bold text-gray-900">
+                    {deliveryAddress.addressLine1 || deliveryAddress.street}
+                  </p>
+                  <p className="text-gray-500">
+                    {deliveryAddress.city}, {deliveryAddress.state} - {deliveryAddress.postalCode}
+                  </p>
                 </div>
 
                 <div>
-                  <span className="block font-semibold text-gray-400 mb-1">Assigned Delivery Partner</span>
+                  <span className="block font-semibold text-gray-400 mb-1">
+                    Assigned Delivery Partner
+                  </span>
                   {order.assignedRestaurantDriver ? (
                     <div>
                       <p className="font-bold text-gray-900">
-                        {order.assignedRestaurantDriver.firstName} {order.assignedRestaurantDriver.lastName || ''}
+                        {order.assignedRestaurantDriver.firstName}{' '}
+                        {order.assignedRestaurantDriver.lastName || ''}
                       </p>
-                      <p className="text-gray-500">{order.assignedRestaurantDriver.phone} ({order.assignedRestaurantDriver.vehicleNumber})</p>
+                      <p className="text-gray-500">
+                        {order.assignedRestaurantDriver.phone} (
+                        {order.assignedRestaurantDriver.vehicleNumber})
+                      </p>
                     </div>
                   ) : (
                     <p className="text-gray-500 italic">Delivery partner assigned upon dispatch</p>
@@ -384,22 +417,30 @@ export default function OrderDetailsPage() {
           {/* Right Column: Price Summary & Actions */}
           <div className="space-y-4">
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-4">
-              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Bill Summary</h3>
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
+                Bill Summary
+              </h3>
 
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-gray-600">
                   <span>Item Subtotal</span>
-                  <span className="font-bold text-gray-900">₹{Number(order.subtotal).toFixed(2)}</span>
+                  <span className="font-bold text-gray-900">
+                    ₹{Number(order.subtotal).toFixed(2)}
+                  </span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery Fee</span>
-                  <span className="font-bold text-gray-900">₹{Number(order.deliveryFee || 0).toFixed(2)}</span>
+                  <span className="font-bold text-gray-900">
+                    ₹{Number(order.deliveryFee || 0).toFixed(2)}
+                  </span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Taxes (GST 5%)</span>
-                  <span className="font-bold text-gray-900">₹{Number(order.taxAmount || 0).toFixed(2)}</span>
+                  <span className="font-bold text-gray-900">
+                    ₹{Number(order.taxAmount || 0).toFixed(2)}
+                  </span>
                 </div>
 
                 {Number(order.discountAmount) > 0 && (
@@ -423,7 +464,9 @@ export default function OrderDetailsPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-400">Payment Status</span>
-                  <span className="font-bold text-emerald-700 uppercase">{order.paymentStatus}</span>
+                  <span className="font-bold text-emerald-700 uppercase">
+                    {order.paymentStatus}
+                  </span>
                 </div>
               </div>
 
@@ -456,7 +499,8 @@ export default function OrderDetailsPage() {
                         onClick={() => setShowReviewModal(true)}
                         className="w-full flex items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 py-3 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
                       >
-                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Rate &amp; Review Store
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Rate &amp; Review
+                        Store
                       </button>
                     )}
                   </>
@@ -481,7 +525,10 @@ export default function OrderDetailsPage() {
             <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="text-lg font-black text-gray-900">ZaykaFood Tax Invoice</h3>
-                <button onClick={() => setShowReceipt(false)} className="text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={() => setShowReceipt(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -494,7 +541,9 @@ export default function OrderDetailsPage() {
                 <hr />
                 {(order.orderItems || []).map((i: any) => (
                   <div key={i.id} className="flex justify-between">
-                    <span>{i.quantity}x {i.foodItem?.name || i.name}</span>
+                    <span>
+                      {i.quantity}x {i.foodItem?.name || i.name}
+                    </span>
                     <span>₹{Number(i.totalPrice).toFixed(2)}</span>
                   </div>
                 ))}
@@ -503,7 +552,9 @@ export default function OrderDetailsPage() {
                   <span>Grand Total</span>
                   <span>₹{Number(order.totalAmount).toFixed(2)}</span>
                 </div>
-                <p>Payment: {order.paymentMethod} ({order.paymentStatus})</p>
+                <p>
+                  Payment: {order.paymentMethod} ({order.paymentStatus})
+                </p>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -523,7 +574,9 @@ export default function OrderDetailsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-lg font-black text-rose-600">Cancel Order</h3>
-              <p className="text-xs text-gray-500">Please provide a reason for cancelling this order.</p>
+              <p className="text-xs text-gray-500">
+                Please provide a reason for cancelling this order.
+              </p>
 
               <textarea
                 rows={3}
@@ -534,7 +587,10 @@ export default function OrderDetailsPage() {
               />
 
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowCancelModal(false)} className="px-4 py-2 text-xs font-bold text-gray-600">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600"
+                >
                   Close
                 </button>
                 <button
@@ -563,7 +619,9 @@ export default function OrderDetailsPage() {
                     onClick={() => setReviewRating(star)}
                     className="p-1 text-amber-400"
                   >
-                    <Star className={`h-8 w-8 ${star <= reviewRating ? 'fill-amber-400' : 'text-gray-200'}`} />
+                    <Star
+                      className={`h-8 w-8 ${star <= reviewRating ? 'fill-amber-400' : 'text-gray-200'}`}
+                    />
                   </button>
                 ))}
               </div>
@@ -577,7 +635,10 @@ export default function OrderDetailsPage() {
               />
 
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowReviewModal(false)} className="px-4 py-2 text-xs font-bold text-gray-600">
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600"
+                >
                   Cancel
                 </button>
                 <button
@@ -594,26 +655,34 @@ export default function OrderDetailsPage() {
 
         {/* SUPPORT MODAL */}
         {showSupportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl space-y-4">
-                <h3 className="text-lg font-black text-gray-900">Need Help with Order #{order.orderNumber}?</h3>
-                <p className="text-sm text-gray-600">
-                  If you have an issue with this order, please email our support team directly. We typically respond within 2-4 hours.
-                </p>
-                <div className="flex justify-end gap-3 pt-2">
-                  <button onClick={() => setShowSupportModal(false)} className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-xl">
-                    Close
-                  </button>
-                  <a
-                    href={"mailto:businesscity05@gmail.com?subject=Help with Order " + order.orderNumber}
-                    className="rounded-xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 flex items-center justify-center"
-                  >
-                    Email Support
-                  </a>
-                </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl space-y-4">
+              <h3 className="text-lg font-black text-gray-900">
+                Need Help with Order #{order.orderNumber}?
+              </h3>
+              <p className="text-sm text-gray-600">
+                If you have an issue with this order, please email our support team directly. We
+                typically respond within 2-4 hours.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setShowSupportModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-xl"
+                >
+                  Close
+                </button>
+                <a
+                  href={
+                    'mailto:businesscity05@gmail.com?subject=Help with Order ' + order.orderNumber
+                  }
+                  className="rounded-xl bg-orange-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-orange-700 flex items-center justify-center"
+                >
+                  Email Support
+                </a>
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     </CustomerAuthGuard>
   );

@@ -82,7 +82,8 @@ export default function LoginPage() {
           <div className="space-y-2">
             <h2 className="text-2xl font-black text-gray-900">Authentication Disabled</h2>
             <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
-              Customer authentication screens are temporarily hidden during active development (`AUTH_ENABLED=false`).
+              Customer authentication screens are temporarily hidden during active development
+              (`AUTH_ENABLED=false`).
             </p>
           </div>
           <div className="pt-2">
@@ -112,14 +113,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-
-
         {/* Session Expired Banner */}
-        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true' && (
-          <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
-            ⚠️ Your session has expired. Please log in again.
-          </div>
-        )}
+        {typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).get('expired') === 'true' && (
+            <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
+              ⚠️ Your session has expired. Please log in again.
+            </div>
+          )}
 
         {error && (
           <div className="rounded-xl bg-rose-50 p-3 text-center text-xs font-bold text-rose-600 border border-rose-100">

@@ -86,7 +86,9 @@ export default function AdminUsersManagementPage() {
       });
 
       if (res.ok) {
-        setActionSuccess(`User account ${!currentIsActive ? 'activated' : 'deactivated'} successfully.`);
+        setActionSuccess(
+          `User account ${!currentIsActive ? 'activated' : 'deactivated'} successfully.`,
+        );
         fetchUsers();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -186,7 +188,9 @@ export default function AdminUsersManagementPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading user accounts...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading user accounts...
+          </div>
         ) : users.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No user accounts found matching query.
@@ -216,23 +220,33 @@ export default function AdminUsersManagementPage() {
                         </div>
                       </div>
 
-                      <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
-                        u.isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
-                      }`}>
+                      <span
+                        className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                          u.isActive
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                        }`}
+                      >
                         {u.isActive ? 'Active' : 'Disabled'}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Role</span>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                          Role
+                        </span>
                         <span className="font-bold text-gray-900">{u.role.replace('_', ' ')}</span>
                       </div>
 
                       <div>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Associated</span>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                          Associated
+                        </span>
                         {u.restaurant ? (
-                          <span className="font-bold text-amber-900 truncate block">🏬 {u.restaurant.name}</span>
+                          <span className="font-bold text-amber-900 truncate block">
+                            🏬 {u.restaurant.name}
+                          </span>
                         ) : u.driver ? (
                           <span className="font-bold text-blue-900 truncate block">🛵 Courier</span>
                         ) : (
@@ -310,9 +324,13 @@ export default function AdminUsersManagementPage() {
                           )}
                         </td>
                         <td className="py-3">
-                          <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
-                            u.isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
-                          }`}>
+                          <span
+                            className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${
+                              u.isActive
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : 'bg-rose-50 text-rose-800 border-rose-200'
+                            }`}
+                          >
                             {u.isActive ? 'Active' : 'Disabled'}
                           </span>
                         </td>

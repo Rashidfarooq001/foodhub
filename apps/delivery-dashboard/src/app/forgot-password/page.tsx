@@ -3,7 +3,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bike, Phone, Lock, CheckCircle2, ArrowLeft, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
+import {
+  Bike,
+  Phone,
+  Lock,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  KeyRound,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -147,7 +156,11 @@ export default function DeliveryForgotPasswordPage() {
       <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl border border-gray-100">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-16 items-center justify-center">
-            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-16 w-auto object-contain mx-auto" />
+            <img
+              src="/zaykafood-logo.png"
+              alt="ZaykaFood"
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </div>
           <h1 className="text-2xl font-black text-gray-900">Courier Password Recovery</h1>
           <p className="text-xs text-gray-500">
@@ -166,7 +179,9 @@ export default function DeliveryForgotPasswordPage() {
         {step === 'PHONE' && (
           <form onSubmit={handleRequestOtp} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Registered Courier Mobile Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Registered Courier Mobile Number
+              </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -190,7 +205,10 @@ export default function DeliveryForgotPasswordPage() {
             </button>
 
             <div className="text-center pt-2">
-              <Link href="/login" className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-emerald-600">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-emerald-600"
+              >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Courier Login
               </Link>
             </div>
@@ -203,12 +221,15 @@ export default function DeliveryForgotPasswordPage() {
             <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-100 text-center space-y-1">
               <p className="text-xs font-bold text-emerald-900">Enter Verification Code</p>
               <p className="text-[11px] text-emerald-700">
-                OTP sent to registered phone <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+                OTP sent to registered phone{' '}
+                <span className="font-black">+{phone.replace(/\D/g, '')}</span>
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 text-center">4-Digit SMS OTP</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1 text-center">
+                4-Digit SMS OTP
+              </label>
               <input
                 type="text"
                 maxLength={4}
@@ -250,7 +271,9 @@ export default function DeliveryForgotPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Confirm New Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Confirm New Password
+              </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
@@ -284,7 +307,9 @@ export default function DeliveryForgotPasswordPage() {
 
             <div className="space-y-1">
               <h2 className="text-xl font-black text-gray-900">Password Reset Successfully</h2>
-              <p className="text-xs text-gray-500">Your delivery partner account password has been updated.</p>
+              <p className="text-xs text-gray-500">
+                Your delivery partner account password has been updated.
+              </p>
             </div>
 
             <button
@@ -302,9 +327,13 @@ export default function DeliveryForgotPasswordPage() {
         <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
           <span>ZaykaFood Delivery</span>
           <span>•</span>
-          <Link href="/login" className="hover:text-white transition">Login</Link>
+          <Link href="/login" className="hover:text-white transition">
+            Login
+          </Link>
           <span>•</span>
-          <Link href="/support" className="hover:text-white transition">Help &amp; Contact</Link>
+          <Link href="/support" className="hover:text-white transition">
+            Help &amp; Contact
+          </Link>
         </div>
       </footer>
     </div>

@@ -5,9 +5,9 @@ import { DatabaseModule } from '../database/database.module';
 import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports:     [DatabaseModule, WalletModule],
+  imports: [DatabaseModule, WalletModule],
   controllers: [ReferralsController],
-  providers:   [ReferralsService],
-  exports:     [ReferralsService],
+  providers: [ReferralsService],
+  exports: [ReferralsService],
 })
 export class ReferralsModule {}

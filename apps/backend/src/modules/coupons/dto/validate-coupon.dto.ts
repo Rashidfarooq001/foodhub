@@ -7,7 +7,7 @@ export class ValidateCouponDto {
   @IsNotEmpty()
   code!: string;
 
-  @ApiProperty({ example: 350.00 })
+  @ApiProperty({ example: 350.0 })
   @IsNumber()
   @Min(0)
   subtotal!: number;
@@ -17,4 +17,3 @@ export class ValidateCouponDto {
   @IsOptional()
   restaurantId?: string;
 }
-

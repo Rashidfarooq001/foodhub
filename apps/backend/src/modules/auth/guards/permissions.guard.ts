@@ -39,11 +39,14 @@ export class PermissionsGuard implements CanActivate {
       },
     });
 
-    const userPermissions = roleWithPermissions?.rolePermissions.map((rp) => rp.permission.action) || [];
+    const userPermissions =
+      roleWithPermissions?.rolePermissions.map((rp) => rp.permission.action) || [];
 
     const hasPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));
     if (!hasPermission) {
-      throw new ForbiddenException(`Missing required permissions: ${requiredPermissions.join(', ')}`);
+      throw new ForbiddenException(
+        `Missing required permissions: ${requiredPermissions.join(', ')}`,
+      );
     }
 
     return true;

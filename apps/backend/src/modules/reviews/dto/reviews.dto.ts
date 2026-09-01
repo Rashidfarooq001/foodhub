@@ -1,6 +1,4 @@
-import {
-  IsString, IsOptional, IsInt, Min, Max, IsBoolean, IsUUID,
-} from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsBoolean, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRestaurantReviewDto {
@@ -13,7 +11,9 @@ export class CreateRestaurantReviewDto {
   restaurantId!: string;
 
   @ApiProperty({ example: 4, minimum: 1, maximum: 5 })
-  @IsInt() @Min(1) @Max(5)
+  @IsInt()
+  @Min(1)
+  @Max(5)
   rating!: number;
 
   @ApiPropertyOptional({ example: 'Great food and fast delivery!' })
@@ -37,7 +37,9 @@ export class CreateFoodReviewDto {
   foodItemId!: string;
 
   @ApiProperty({ example: 5 })
-  @IsInt() @Min(1) @Max(5)
+  @IsInt()
+  @Min(1)
+  @Max(5)
   rating!: number;
 
   @ApiPropertyOptional({ example: 'Crispy and delicious!' })
@@ -56,7 +58,9 @@ export class CreateDriverReviewDto {
   driverId!: string;
 
   @ApiProperty({ example: 5 })
-  @IsInt() @Min(1) @Max(5)
+  @IsInt()
+  @Min(1)
+  @Max(5)
   rating!: number;
 
   @ApiPropertyOptional({ example: 'Very professional and on time.' })

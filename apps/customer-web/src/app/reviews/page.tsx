@@ -13,7 +13,7 @@ const getApiBase = () => getApiBaseUrl();
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
-      {[1,2,3,4,5].map((n) => (
+      {[1, 2, 3, 4, 5].map((n) => (
         <Star
           key={n}
           className={`h-4 w-4 ${n <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`}
@@ -26,7 +26,16 @@ function StarRow({ rating }: { rating: number }) {
 export default function ReviewsPage() {
   const router = useRouter();
   const [helpedIds, setHelpedIds] = useState<string[]>([]);
-  const [reviews, setReviews] = useState<Array<{ id: string; restaurantName: string; rating: number; comment: string; date: string; helpful: number }>>([]);
+  const [reviews, setReviews] = useState<
+    Array<{
+      id: string;
+      restaurantName: string;
+      rating: number;
+      comment: string;
+      date: string;
+      helpful: number;
+    }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
@@ -53,13 +62,12 @@ export default function ReviewsPage() {
   }, []);
 
   const markHelpful = (id: string) => {
-    setHelpedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+    setHelpedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 p-4 sm:p-4">
       <div className="mx-auto max-w-lg space-y-5">
-
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900">My Reviews</h1>
@@ -78,7 +86,10 @@ export default function ReviewsPage() {
           </div>
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
+            <div
+              key={review.id}
+              className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-black text-gray-900">{review.restaurantName}</p>

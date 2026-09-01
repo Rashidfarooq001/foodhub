@@ -25,7 +25,9 @@ async function main() {
     console.log(`      Phone:    ${admin.phone}`);
     console.log(`      Email:    ${admin.email || 'N/A'}`);
     console.log(`      Role:     ${admin.role}`);
-    console.log(`      Name:     ${admin.profile ? `${admin.profile.firstName} ${admin.profile.lastName}` : 'N/A'}`);
+    console.log(
+      `      Name:     ${admin.profile ? `${admin.profile.firstName} ${admin.profile.lastName}` : 'N/A'}`,
+    );
     console.log(`      Status:   ACTIVE / PRESERVED ✅`);
   });
 
@@ -46,10 +48,16 @@ async function main() {
   };
 
   counts['Admin Users (TO PRESERVE)'] = adminUsers.length;
-  counts['Admin Profiles (TO PRESERVE)'] = await safeCount('profile', { where: { userId: { in: adminUserIds } } });
+  counts['Admin Profiles (TO PRESERVE)'] = await safeCount('profile', {
+    where: { userId: { in: adminUserIds } },
+  });
 
-  counts['Non-Admin Users (TO DELETE)'] = await safeCount('user', { where: { id: { notIn: adminUserIds } } });
-  counts['Non-Admin Profiles (TO DELETE)'] = await safeCount('profile', { where: { userId: { notIn: adminUserIds } } });
+  counts['Non-Admin Users (TO DELETE)'] = await safeCount('user', {
+    where: { id: { notIn: adminUserIds } },
+  });
+  counts['Non-Admin Profiles (TO DELETE)'] = await safeCount('profile', {
+    where: { userId: { notIn: adminUserIds } },
+  });
 
   counts['Customers (TO DELETE)'] = await safeCount('customer');
   counts['Customer Addresses (TO DELETE)'] = await safeCount('customerAddress');
@@ -78,10 +86,14 @@ async function main() {
   counts['Coupons (TO DELETE)'] = await safeCount('coupon');
   counts['Coupon Usages (TO DELETE)'] = await safeCount('couponUsage');
   counts['Payments (TO DELETE)'] = await safeCount('payment');
-  counts['Wallets (TO DELETE)'] = await safeCount('wallet', { where: { userId: { notIn: adminUserIds } } });
+  counts['Wallets (TO DELETE)'] = await safeCount('wallet', {
+    where: { userId: { notIn: adminUserIds } },
+  });
   counts['Wallet Transactions (TO DELETE)'] = await safeCount('walletTransaction');
   counts['Notifications (TO DELETE)'] = await safeCount('notification');
-  counts['Audit Logs (TO DELETE)'] = await safeCount('auditLog', { where: { userId: { notIn: adminUserIds } } });
+  counts['Audit Logs (TO DELETE)'] = await safeCount('auditLog', {
+    where: { userId: { notIn: adminUserIds } },
+  });
 
   console.log('\n----------------------------------------------------');
   console.log('2. DATA CLEANUP SCOPE (ROW COUNTS TO BE CLEANED)');

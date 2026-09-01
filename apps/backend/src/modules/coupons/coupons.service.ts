@@ -9,10 +9,10 @@ import { CreateCouponDto } from './dto/create-coupon.dto';
 import { CouponStatus } from '@prisma/client';
 
 export interface CouponValidationResult {
-  valid:          boolean;
+  valid: boolean;
   discountAmount: number;
-  message:        string;
-  couponId?:      string;
+  message: string;
+  couponId?: string;
 }
 
 @Injectable()
@@ -21,9 +21,9 @@ export class CouponsService {
 
   /** Full coupon validation engine — returns discount amount if valid */
   async validateCoupon(
-    code:         string,
-    customerId?:  string,
-    subtotal:     number = 0,
+    code: string,
+    customerId?: string,
+    subtotal: number = 0,
     restaurantId?: string,
   ): Promise<CouponValidationResult> {
     if (!code || !code.trim()) {
@@ -51,18 +51,22 @@ export class CouponsService {
 
     if (subtotal < Number(coupon.minOrderVal)) {
       return {
-        valid:          false,
+        valid: false,
         discountAmount: 0,
-        message:        `Minimum order value of ₹${coupon.minOrderVal} is required for this coupon`,
+        message: `Minimum order value of ₹${coupon.minOrderVal} is required for this coupon`,
       };
     }
 
     // Check restaurant restrictions if coupon belongs to a specific restaurant
-    if ((coupon as any).restaurantId && restaurantId && (coupon as any).restaurantId !== restaurantId) {
+    if (
+      (coupon as any).restaurantId &&
+      restaurantId &&
+      (coupon as any).restaurantId !== restaurantId
+    ) {
       return {
-        valid:          false,
+        valid: false,
         discountAmount: 0,
-        message:        'Coupon is not valid for this restaurant',
+        message: 'Coupon is not valid for this restaurant',
       };
     }
 
@@ -101,22 +105,25 @@ export class CouponsService {
     discountAmount = Math.round(discountAmount * 100) / 100;
 
     return {
-      valid:          true,
+      valid: true,
       discountAmount: Math.max(0, discountAmount),
-      message:        `Coupon applied! Saved ₹${discountAmount.toFixed(2)}`,
-      couponId:       coupon.id,
+      message: `Coupon applied! Saved ₹${discountAmount.toFixed(2)}`,
+      couponId: coupon.id,
     };
   }
-
 
   /** Suggest the best available coupon for a given subtotal */
   async suggestBestCoupon(customerId: string, subtotal: number) {
     const activeCoupons = await this.prisma.coupon.findMany({
-      where:   { status: CouponStatus.ACTIVE, validFrom: { lte: new Date() }, validTill: { gte: new Date() } },
+      where: {
+        status: CouponStatus.ACTIVE,
+        validFrom: { lte: new Date() },
+        validTill: { gte: new Date() },
+      },
       orderBy: { discountVal: 'desc' },
     });
 
-    let best: { coupon: typeof activeCoupons[0]; discountAmount: number } | null = null;
+    let best: { coupon: (typeof activeCoupons)[0]; discountAmount: number } | null = null;
 
     for (const c of activeCoupons) {
       const result = await this.validateCoupon(c.code, customerId, subtotal);
@@ -127,18 +134,18 @@ export class CouponsService {
 
     if (!best) return { found: false };
     return {
-      found:          true,
-      code:           best.coupon.code,
+      found: true,
+      code: best.coupon.code,
       discountAmount: best.discountAmount,
-      couponType:     best.coupon.couponType,
-      message:        `Use ${best.coupon.code} to save ₹${best.discountAmount}`,
+      couponType: best.coupon.couponType,
+      message: `Use ${best.coupon.code} to save ₹${best.discountAmount}`,
     };
   }
 
   /** List all active platform coupons */
   async listActiveCoupons() {
     return this.prisma.coupon.findMany({
-      where:   { status: CouponStatus.ACTIVE, validTill: { gte: new Date() } },
+      where: { status: CouponStatus.ACTIVE, validTill: { gte: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -150,15 +157,15 @@ export class CouponsService {
 
     return this.prisma.coupon.create({
       data: {
-        code:        dto.code.toUpperCase(),
-        couponType:  dto.couponType,
+        code: dto.code.toUpperCase(),
+        couponType: dto.couponType,
         discountVal: dto.discountVal,
         minOrderVal: dto.minOrderVal ?? 0,
         maxDiscount: dto.maxDiscount,
-        validFrom:   new Date(dto.validFrom),
-        validTill:   new Date(dto.validTill),
-        usageLimit:  dto.usageLimit ?? 1000,
-        status:      CouponStatus.ACTIVE,
+        validFrom: new Date(dto.validFrom),
+        validTill: new Date(dto.validTill),
+        usageLimit: dto.usageLimit ?? 1000,
+        status: CouponStatus.ACTIVE,
       },
     });
   }
@@ -167,7 +174,7 @@ export class CouponsService {
   async deactivateCoupon(couponId: string) {
     return this.prisma.coupon.update({
       where: { id: couponId },
-      data:  { status: CouponStatus.INACTIVE },
+      data: { status: CouponStatus.INACTIVE },
     });
   }
 }

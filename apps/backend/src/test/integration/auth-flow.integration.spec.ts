@@ -4,7 +4,7 @@ import { AppModule } from '../../app.module';
 import { Logger } from 'nestjs-pino';
 import { PrismaService } from '../../modules/database/prisma.service';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const request = require('supertest');
 
 describe('Auth Flow (Integration)', () => {
@@ -25,7 +25,9 @@ describe('Auth Flow (Integration)', () => {
     },
     otpVerification: {
       create: jest.fn().mockResolvedValue({}),
-      findFirst: jest.fn().mockResolvedValue({ code: '123456', expiresAt: new Date(Date.now() + 60000) }),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue({ code: '123456', expiresAt: new Date(Date.now() + 60000) }),
     },
   };
 
@@ -41,9 +43,7 @@ describe('Auth Flow (Integration)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, transform: true }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
   });
 
@@ -68,8 +68,7 @@ describe('Auth Flow (Integration)', () => {
   });
 
   it('3. GET /api/v1/users/me — should return authenticated user profile using JWT', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/users/me');
+    const res = await request(app.getHttpServer()).get('/api/v1/users/me');
 
     expect(res.status).toBeDefined();
   });

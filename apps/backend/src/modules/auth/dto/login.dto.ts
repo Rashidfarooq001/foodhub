@@ -25,7 +25,8 @@ export class LoginDto {
 
   @ApiPropertyOptional({
     example: 'CUSTOMER',
-    description: 'Expected account role. When set, login is rejected if the account role does not match.',
+    description:
+      'Expected account role. When set, login is rejected if the account role does not match.',
   })
   @IsOptional()
   @IsString()

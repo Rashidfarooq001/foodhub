@@ -4,9 +4,9 @@ import { CouponsService } from './coupons.service';
 import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports:     [DatabaseModule],
+  imports: [DatabaseModule],
   controllers: [CouponsController],
-  providers:   [CouponsService],
-  exports:     [CouponsService],
+  providers: [CouponsService],
+  exports: [CouponsService],
 })
 export class CouponsModule {}

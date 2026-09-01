@@ -16,7 +16,9 @@ async function runTestSuite() {
     // 1. Customer Directory Test
     console.log('\n[1/3] Testing Customer Directory Data Authority...');
     const customersData = await usersService.getCustomersForAdmin('', 1, 10);
-    console.log(`Found ${customersData.customers.length} customers (Total in DB: ${customersData.pagination.total})`);
+    console.log(
+      `Found ${customersData.customers.length} customers (Total in DB: ${customersData.pagination.total})`,
+    );
     if (customersData.customers.length > 0) {
       const first = customersData.customers[0];
       console.log('Sample customer record:', {

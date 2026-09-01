@@ -15,7 +15,7 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'zaykafood-media-prod';
 
 async function main() {
   console.log('🔍 Starting Safe Base64 -> S3 Migration Audit...');
-  
+
   // 1. Identify all Base64 images stored in PostgreSQL
   const mediaSettings = await prisma.systemSetting.findMany({
     where: {
@@ -34,7 +34,7 @@ async function main() {
   for (const setting of mediaSettings) {
     try {
       const parsed = JSON.parse(setting.value);
-      
+
       // If it's already uploaded and we verified it, we can skip it.
       // But this script is safe: it doesn't delete the base64!
       if (parsed.s3Url) {
@@ -54,19 +54,21 @@ async function main() {
       const mimeType = parsed.mimeType || 'image/jpeg';
 
       console.log(`⬆️  Uploading ${filename} to S3 bucket ${BUCKET_NAME}...`);
-      
-      await s3.send(new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: `uploads/${filename}`,
-        Body: buffer,
-        ContentType: mimeType,
-      }));
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: `uploads/${filename}`,
+          Body: buffer,
+          ContentType: mimeType,
+        }),
+      );
 
       const s3Url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/uploads/${filename}`;
 
       // Update the database but DO NOT DELETE the base64 string yet!
       parsed.s3Url = s3Url;
-      
+
       await prisma.systemSetting.update({
         where: { id: setting.id },
         data: {
@@ -90,11 +92,13 @@ async function main() {
   console.log(`Errors: ${errorCount}`);
   console.log('======================================');
   console.log('NOTICE: The original base64 strings have NOT been deleted.');
-  console.log('Once you have verified the S3 URLs in the application, you can run a cleanup script to delete the base64 keys from the JSON objects to reclaim database space.');
+  console.log(
+    'Once you have verified the S3 URLs in the application, you can run a cleanup script to delete the base64 keys from the JSON objects to reclaim database space.',
+  );
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })

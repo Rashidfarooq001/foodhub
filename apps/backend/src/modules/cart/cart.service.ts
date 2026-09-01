@@ -2,17 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { CacheService } from '../cache/cache.service';
 
 export interface CartItem {
-  foodItemId:  string;
-  name:        string;
-  price:       number;
-  quantity:    number;
+  foodItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
   addonsJson?: unknown[];
 }
 
 export interface Cart {
   restaurantId: string;
-  items:        CartItem[];
-  updatedAt:    string;
+  items: CartItem[];
+  updatedAt: string;
 }
 
 const CART_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -30,11 +30,7 @@ export class CartService {
     return raw ?? null;
   }
 
-  async addItem(
-    userId:       string,
-    restaurantId: string,
-    item:         CartItem,
-  ): Promise<Cart> {
+  async addItem(userId: string, restaurantId: string, item: CartItem): Promise<Cart> {
     const existing = await this.getCart(userId);
 
     // If cart belongs to a different restaurant, clear it first
@@ -44,7 +40,7 @@ export class CartService {
 
     const cart: Cart = existing ?? {
       restaurantId,
-      items:     [],
+      items: [],
       updatedAt: new Date().toISOString(),
     };
 
@@ -60,11 +56,7 @@ export class CartService {
     return cart;
   }
 
-  async updateQuantity(
-    userId:     string,
-    foodItemId: string,
-    quantity:   number,
-  ): Promise<Cart> {
+  async updateQuantity(userId: string, foodItemId: string, quantity: number): Promise<Cart> {
     const cart = await this.getCart(userId);
     if (!cart) return { restaurantId: '', items: [], updatedAt: new Date().toISOString() };
 

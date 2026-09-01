@@ -4,7 +4,7 @@ import { DatabaseModule } from '../database/database.module';
 import { CacheModule } from '../cache/cache.module';
 
 @Module({
-  imports:     [DatabaseModule, CacheModule],
+  imports: [DatabaseModule, CacheModule],
   controllers: [HealthController],
 })
 export class HealthModule {}

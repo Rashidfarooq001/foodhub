@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class ResetPasswordDto {
-  @ApiPropertyOptional({ example: 'reset_token_uuid', description: 'Single-use short-lived reset authorization token' })
+  @ApiPropertyOptional({
+    example: 'reset_token_uuid',
+    description: 'Single-use short-lived reset authorization token',
+  })
   @IsOptional()
   @IsString()
   resetToken?: string;

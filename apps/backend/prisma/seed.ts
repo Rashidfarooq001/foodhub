@@ -161,8 +161,8 @@ async function main() {
     where: { slug: 'spice-garden-restaurant' },
     update: {
       isOpen: true,
-      latitude: 34.2980,
-      longitude: 74.4690,
+      latitude: 34.298,
+      longitude: 74.469,
     },
     create: {
       name: 'Spice Garden Restaurant',
@@ -170,33 +170,37 @@ async function main() {
       phone: ownerPhone,
       licenseFssai: '11223344556677',
       addressLine: 'Main Chowk, Sopore, Kashmir 193201',
-      latitude: 34.2980,
-      longitude: 74.4690,
+      latitude: 34.298,
+      longitude: 74.469,
       ownerId: restaurantOwner.id,
       avgRating: 4.8,
-      bannerUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+      bannerUrl:
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
     },
   });
 
   // 9. Seed Categories & Food Items
-  const catBiryani = await prisma.category.findFirst({
-    where: { restaurantId: restaurant.id, name: 'Biryani' },
-  }) || await prisma.category.create({
-    data: { restaurantId: restaurant.id, name: 'Biryani', displayOrder: 1 },
-  });
+  const catBiryani =
+    (await prisma.category.findFirst({
+      where: { restaurantId: restaurant.id, name: 'Biryani' },
+    })) ||
+    (await prisma.category.create({
+      data: { restaurantId: restaurant.id, name: 'Biryani', displayOrder: 1 },
+    }));
 
   await prisma.foodItem.upsert({
-    where: { id: 'food-item-biryani-1' },
+    where: { id: '00000000-0000-0000-0000-000000000001' },
     update: { price: 340 },
     create: {
-      id: 'food-item-biryani-1',
+      id: '00000000-0000-0000-0000-000000000001',
       restaurantId: restaurant.id,
       categoryId: catBiryani.id,
       name: 'Hyderabadi Chicken Dum Biryani',
       description: 'Aromatic basmati rice cooked with marinated chicken pieces and whole spices.',
       price: 340,
       isVeg: false,
-      imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80',
+      imageUrl:
+        'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80',
     },
   });
 

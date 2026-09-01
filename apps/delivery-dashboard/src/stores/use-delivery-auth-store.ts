@@ -67,7 +67,9 @@ export const useDeliveryAuthStore = create<DeliveryAuthState>()(
     }),
     {
       name: 'foodhub-delivery-auth',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? localStorage : dummyStorage,
+      ),
     },
   ),
 );

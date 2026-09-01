@@ -7,13 +7,13 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 
-const REFERRER_REWARD = 50;  // ₹50 for the person who referred
-const REFEREE_REWARD  = 30;  // ₹30 for the new user
+const REFERRER_REWARD = 50; // ₹50 for the person who referred
+const REFEREE_REWARD = 30; // ₹30 for the new user
 
 /** Generate a unique 8-char referral code like FH-A3BK9Z */
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let suffix  = '';
+  let suffix = '';
   for (let i = 0; i < 6; i++) {
     suffix += chars[Math.floor(Math.random() * chars.length)];
   }
@@ -23,8 +23,8 @@ function generateCode(): string {
 @Injectable()
 export class ReferralsService {
   constructor(
-    private readonly prisma:  PrismaService,
-    private readonly wallet:  WalletService,
+    private readonly prisma: PrismaService,
+    private readonly wallet: WalletService,
   ) {}
 
   /** Get or generate a referral code for a user */
@@ -44,7 +44,7 @@ export class ReferralsService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data:  { referralCode: code },
+      data: { referralCode: code },
     });
 
     return code;
@@ -83,22 +83,32 @@ export class ReferralsService {
     // Create referral record
     await this.prisma.referral.create({
       data: {
-        referrerId:   referrerCustomer?.id ?? referrerId,
-        refereeId:    referee.id,
+        referrerId: referrerCustomer?.id ?? referrerId,
+        refereeId: referee.id,
         rewardAmount: REFERRER_REWARD,
       },
     });
 
     // Credit wallets
     await Promise.all([
-      this.wallet.credit(referrerId, REFERRER_REWARD, `Referral reward for inviting ${code}`, referee.id),
-      this.wallet.credit(refereeUserId, REFEREE_REWARD,  `Welcome bonus from referral code ${code}`, referrer.id),
+      this.wallet.credit(
+        referrerId,
+        REFERRER_REWARD,
+        `Referral reward for inviting ${code}`,
+        referee.id,
+      ),
+      this.wallet.credit(
+        refereeUserId,
+        REFEREE_REWARD,
+        `Welcome bonus from referral code ${code}`,
+        referrer.id,
+      ),
     ]);
 
     return {
-      message:        'Referral code applied successfully',
+      message: 'Referral code applied successfully',
       referrerReward: REFERRER_REWARD,
-      refereeReward:  REFEREE_REWARD,
+      refereeReward: REFEREE_REWARD,
     };
   }
 
@@ -118,10 +128,10 @@ export class ReferralsService {
     const totalEarned = referrals.reduce((s, r) => s + Number(r.rewardAmount), 0);
 
     return {
-      referralCode:   user.referralCode,
+      referralCode: user.referralCode,
       totalReferrals: referrals.length,
       totalEarned,
-      shareLink:      `https://foodhub.app/join?ref=${user.referralCode}`,
+      shareLink: `https://foodhub.app/join?ref=${user.referralCode}`,
     };
   }
 }

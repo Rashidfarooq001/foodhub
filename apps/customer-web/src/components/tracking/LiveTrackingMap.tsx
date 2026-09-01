@@ -38,7 +38,12 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
   const [errorDetails, setErrorDetails] = useState<string>('');
 
   const hasValidCoords = (lat?: number | null, lng?: number | null) =>
-    typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat !== 0 &&
+    lng !== 0;
 
   const initMap = useCallback(() => {
     if (mapInstanceRef.current) {
@@ -69,12 +74,12 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
       const custValid = hasValidCoords(customerLat, customerLng);
 
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
-      const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.5220;
+      const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.522;
 
       const map = new window.mappls.Map(containerId, {
         center: {
           lat: Number(centerLat),
-          lng: Number(centerLng)
+          lng: Number(centerLng),
         },
         zoom: 13,
         zoomControl: true,
@@ -89,7 +94,8 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             new window.mappls.Marker({
               map,
               position: { lat: restaurantLat, lng: restaurantLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏪 Kitchen / Restaurant</div>',
+              popupHtml:
+                '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏪 Kitchen / Restaurant</div>',
             });
           }
 
@@ -98,59 +104,67 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             new window.mappls.Marker({
               map,
               position: { lat: customerLat, lng: customerLng },
-              popupHtml: '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
+              popupHtml:
+                '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#15803d;padding:2px 4px;">📍 Your Delivery Address</div>',
             });
           }
 
           // 3. Initial Driver Marker
-          
+
           const isPickedUp = orderStatus === 'PICKED_UP' || orderStatus === 'OUT_FOR_DELIVERY';
           const isDelivered = orderStatus === 'DELIVERED';
-          const showDriver = !isDelivered && (orderStatus === 'DRIVER_ASSIGNED' || orderStatus === 'ARRIVED_AT_RESTAURANT' || isPickedUp);
+          const showDriver =
+            !isDelivered &&
+            (orderStatus === 'DRIVER_ASSIGNED' ||
+              orderStatus === 'ARRIVED_AT_RESTAURANT' ||
+              isPickedUp);
           const driverValid = showDriver && hasValidCoords(driverLat, driverLng);
           if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
             const dMarker = new window.mappls.Marker({
-          map,
-          position: { lat: driverLat, lng: driverLng },
-          html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
-          offset: [0, -20],
-          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
-        });
+              map,
+              position: { lat: driverLat, lng: driverLng },
+              html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
+              offset: [0, -20],
+              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
+            });
             driverMarkerRef.current = dMarker;
           }
 
           // 4. Real Mappls Road Route Polyline
           if (routeCoordinates && routeCoordinates.length >= 2) {
             // Mappls polyline takes an array of {lat, lng} objects or similar, depending on version
-            const path = routeCoordinates.map(coord => {
-              if (Array.isArray(coord)) {
-                return { lat: Number(coord[0]), lng: Number(coord[1]) };
-              } else if (coord && typeof coord === 'object') {
-                return { lat: Number((coord as any).lat), lng: Number((coord as any).lng) };
-              }
-              return { lat: 0, lng: 0 };
-            }).filter(c => c.lat && c.lng);
+            const path = routeCoordinates
+              .map((coord) => {
+                if (Array.isArray(coord)) {
+                  return { lat: Number(coord[0]), lng: Number(coord[1]) };
+                } else if (coord && typeof coord === 'object') {
+                  return { lat: Number((coord as any).lat), lng: Number((coord as any).lng) };
+                }
+                return { lat: 0, lng: 0 };
+              })
+              .filter((c) => c.lat && c.lng);
 
             if (path.length >= 2) {
               const polyline = new window.mappls.Polyline({
                 map,
                 path,
-              strokeColor: '#ea580c',
-              strokeWeight: 5,
-              strokeOpacity: 0.9,
-              fitbounds: false, // We will manually compute bounds below
-            });
-            polylineRef.current = polyline;
+                strokeColor: '#ea580c',
+                strokeWeight: 5,
+                strokeOpacity: 0.9,
+                fitbounds: false, // We will manually compute bounds below
+              });
+              polylineRef.current = polyline;
+            }
           }
-        }
 
           // 5. Automatic Viewport Fitting
           const bounds: [number, number][] = [];
           if (restValid) bounds.push([Number(restaurantLat), Number(restaurantLng)]);
           if (custValid) bounds.push([Number(customerLat), Number(customerLng)]);
-          if (driverValid && driverLat && driverLng) bounds.push([Number(driverLat), Number(driverLng)]);
+          if (driverValid && driverLat && driverLng)
+            bounds.push([Number(driverLat), Number(driverLng)]);
           if (routeCoordinates && routeCoordinates.length >= 2) {
-            routeCoordinates.forEach(coord => {
+            routeCoordinates.forEach((coord) => {
               if (Array.isArray(coord)) {
                 bounds.push([Number(coord[0]), Number(coord[1])]);
               } else if (coord && typeof coord === 'object') {
@@ -160,14 +174,14 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
           }
 
           if (bounds.length > 0) {
-            const minLat = Math.min(...bounds.map(b => b[0]));
-            const maxLat = Math.max(...bounds.map(b => b[0]));
-            const minLng = Math.min(...bounds.map(b => b[1]));
-            const maxLng = Math.max(...bounds.map(b => b[1]));
+            const minLat = Math.min(...bounds.map((b) => b[0]));
+            const maxLat = Math.max(...bounds.map((b) => b[0]));
+            const minLng = Math.min(...bounds.map((b) => b[1]));
+            const maxLng = Math.max(...bounds.map((b) => b[1]));
             try {
               map.fitBounds([
                 [minLat - 0.005, minLng - 0.005],
-                [maxLat + 0.005, maxLng + 0.005]
+                [maxLat + 0.005, maxLng + 0.005],
               ]);
             } catch {
               // ignore fit bounds error
@@ -183,33 +197,41 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         }
       };
 
-              let overlayAdded = false;
-        const safeAddOverlays = () => {
-          if (overlayAdded) return;
-          overlayAdded = true;
-          addOverlays();
-        };
+      let overlayAdded = false;
+      const safeAddOverlays = () => {
+        if (overlayAdded) return;
+        overlayAdded = true;
+        addOverlays();
+      };
 
-        if (map.isStyleLoaded && map.isStyleLoaded()) {
-          safeAddOverlays();
-        } else {
-          if (typeof map.addListener === 'function') {
-            map.addListener('load', safeAddOverlays);
-          } else if (typeof map.on === 'function') {
-            map.on('load', safeAddOverlays);
-          }
-          setTimeout(() => {
-            safeAddOverlays();
-          }, 1500);
+      if (map.isStyleLoaded && map.isStyleLoaded()) {
+        safeAddOverlays();
+      } else {
+        if (typeof map.addListener === 'function') {
+          map.addListener('load', safeAddOverlays);
+        } else if (typeof map.on === 'function') {
+          map.on('load', safeAddOverlays);
         }
-
+        setTimeout(() => {
+          safeAddOverlays();
+        }, 1500);
+      }
     } catch (err: any) {
       console.error('[Mappls Web Map] Initialization error:', err);
       const errStr = err?.message || String(err);
       setErrorDetails(`Init Error: ${errStr}`);
       setMapState('ERROR');
     }
-  }, [restaurantLat, restaurantLng, customerLat, customerLng, routeCoordinates, driverName, driverLat, driverLng]);
+  }, [
+    restaurantLat,
+    restaurantLng,
+    customerLat,
+    customerLng,
+    routeCoordinates,
+    driverName,
+    driverLat,
+    driverLng,
+  ]);
 
   useEffect(() => {
     if (sdkError) {
@@ -246,18 +268,18 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
     }
   }, [driverLat, driverLng, driverName, mapState]);
 
-  
   // Global listener for "recenter-rider" event
   useEffect(() => {
     const handleRecenter = () => {
       const map = mapInstanceRef.current;
       if (!map || mapState !== 'READY') return;
-      
+
       const bounds = [];
       if (hasValidCoords(driverLat, driverLng)) bounds.push([Number(driverLat), Number(driverLng)]);
-      if (hasValidCoords(customerLat, customerLng)) bounds.push([Number(customerLat), Number(customerLng)]);
+      if (hasValidCoords(customerLat, customerLng))
+        bounds.push([Number(customerLat), Number(customerLng)]);
       if (routeCoordinates && routeCoordinates.length >= 2) {
-        routeCoordinates.forEach(coord => {
+        routeCoordinates.forEach((coord) => {
           if (Array.isArray(coord)) {
             bounds.push([Number(coord[0]), Number(coord[1])]);
           } else if (coord && typeof coord === 'object') {
@@ -265,21 +287,21 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
           }
         });
       }
-      
+
       if (bounds.length > 0) {
-        const minLat = Math.min(...bounds.map(b => b[0]));
-        const maxLat = Math.max(...bounds.map(b => b[0]));
-        const minLng = Math.min(...bounds.map(b => b[1]));
-        const maxLng = Math.max(...bounds.map(b => b[1]));
+        const minLat = Math.min(...bounds.map((b) => b[0]));
+        const maxLat = Math.max(...bounds.map((b) => b[0]));
+        const minLng = Math.min(...bounds.map((b) => b[1]));
+        const maxLng = Math.max(...bounds.map((b) => b[1]));
         try {
           map.fitBounds([
             [minLat - 0.005, minLng - 0.005],
-            [maxLat + 0.005, maxLng + 0.005]
+            [maxLat + 0.005, maxLng + 0.005],
           ]);
         } catch {}
       }
     };
-    
+
     window.addEventListener('recenter-rider', handleRecenter);
     return () => window.removeEventListener('recenter-rider', handleRecenter);
   }, [mapState, driverLat, driverLng, customerLat, customerLng, routeCoordinates]);
@@ -306,7 +328,11 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-gray-900/80 backdrop-blur-xs text-white">
           <Loader2 className="h-7 w-7 animate-spin text-orange-500" />
           <span className="text-xs font-bold tracking-wide">Loading Mappls Live Map...</span>
-          {!mapKey && <span className="text-xs text-red-400">Warning: NEXT_PUBLIC_MAPPLS_WEB_KEY is missing!</span>}
+          {!mapKey && (
+            <span className="text-xs text-red-400">
+              Warning: NEXT_PUBLIC_MAPPLS_WEB_KEY is missing!
+            </span>
+          )}
         </div>
       )}
 
@@ -315,7 +341,9 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
           <AlertCircle className="h-8 w-8 text-rose-500 mx-auto shrink-0" />
           <p className="text-xs text-gray-300 font-semibold">Mappls live map failed to load</p>
           <div className="bg-red-950/50 p-3 rounded-lg text-left max-w-full overflow-x-auto border border-red-900">
-             <code className="text-[10px] text-red-200 whitespace-pre-wrap">{errorDetails || 'Unknown error'}</code>
+            <code className="text-[10px] text-red-200 whitespace-pre-wrap">
+              {errorDetails || 'Unknown error'}
+            </code>
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -326,7 +354,12 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         </div>
       )}
 
-      <div id="mappls-live-tracking-map" ref={mapContainerRef} className="flex-1 w-full min-h-[350px]" style={{ zIndex: 1 }} />
+      <div
+        id="mappls-live-tracking-map"
+        ref={mapContainerRef}
+        className="flex-1 w-full min-h-[350px]"
+        style={{ zIndex: 1 }}
+      />
     </div>
   );
 };

@@ -17,7 +17,7 @@ export default function AdminOrdersPage() {
       const res = await adminFetch('/orders?page=1&limit=200');
       if (res.ok) {
         const data = await res.json();
-        setOrders(Array.isArray(data) ? data : data.orders ?? []);
+        setOrders(Array.isArray(data) ? data : (data.orders ?? []));
       }
     } catch {
       /* offline */
@@ -118,7 +118,18 @@ export default function AdminOrdersPage() {
 
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {(['ALL', 'PENDING', 'ACCEPTED', 'PREPARING', 'DRIVER_ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] as const).map((st) => (
+          {(
+            [
+              'ALL',
+              'PENDING',
+              'ACCEPTED',
+              'PREPARING',
+              'DRIVER_ASSIGNED',
+              'OUT_FOR_DELIVERY',
+              'DELIVERED',
+              'CANCELLED',
+            ] as const
+          ).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -141,7 +152,9 @@ export default function AdminOrdersPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading platform orders...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading platform orders...
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No orders found matching filters.
@@ -159,7 +172,9 @@ export default function AdminOrdersPage() {
                     <span className="text-sm font-black text-gray-900">
                       #{o.orderNumber || o.id.slice(0, 8)}
                     </span>
-                    <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${getStatusBadge(o.status)}`}>
+                    <span
+                      className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${getStatusBadge(o.status)}`}
+                    >
                       {o.status}
                     </span>
                   </div>
@@ -167,7 +182,9 @@ export default function AdminOrdersPage() {
                   <div className="text-xs space-y-1 text-gray-600">
                     <div className="flex items-center gap-1.5">
                       <Store className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-                      <span className="font-bold text-gray-900">{o.restaurant?.name || 'Restaurant Kitchen'}</span>
+                      <span className="font-bold text-gray-900">
+                        {o.restaurant?.name || 'Restaurant Kitchen'}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -204,12 +221,22 @@ export default function AdminOrdersPage() {
                 <tbody className="divide-y divide-gray-50 font-medium">
                   {filtered.map((o) => (
                     <tr key={o.id} className="hover:bg-gray-50/50">
-                      <td className="py-3 font-bold text-gray-900">#{o.orderNumber || o.id.slice(0, 8)}</td>
-                      <td className="py-3 text-gray-700">{o.customer?.profile?.firstName || o.customerName || 'Customer'}</td>
-                      <td className="py-3 text-gray-900 font-bold">{o.restaurant?.name || 'Restaurant'}</td>
-                      <td className="py-3 font-black text-gray-900">₹{o.totalAmount || o.payableAmount || 0}</td>
+                      <td className="py-3 font-bold text-gray-900">
+                        #{o.orderNumber || o.id.slice(0, 8)}
+                      </td>
+                      <td className="py-3 text-gray-700">
+                        {o.customer?.profile?.firstName || o.customerName || 'Customer'}
+                      </td>
+                      <td className="py-3 text-gray-900 font-bold">
+                        {o.restaurant?.name || 'Restaurant'}
+                      </td>
+                      <td className="py-3 font-black text-gray-900">
+                        ₹{o.totalAmount || o.payableAmount || 0}
+                      </td>
                       <td className="py-3">
-                        <span className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${getStatusBadge(o.status)}`}>
+                        <span
+                          className={`rounded-xl px-2.5 py-0.5 text-[10px] font-black uppercase border ${getStatusBadge(o.status)}`}
+                        >
                           {o.status}
                         </span>
                       </td>

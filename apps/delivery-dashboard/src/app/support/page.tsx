@@ -23,13 +23,18 @@ export default function DeliverySupportPage() {
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-[10px] text-rose-800 font-bold uppercase block">Emergency Rider Support</span>
-            <h2 className="text-base sm:text-lg font-black text-rose-950">Active Trip SOS Helpline</h2>
+            <span className="text-[10px] text-rose-800 font-bold uppercase block">
+              Emergency Rider Support
+            </span>
+            <h2 className="text-base sm:text-lg font-black text-rose-950">
+              Active Trip SOS Helpline
+            </h2>
           </div>
         </div>
 
         <p className="text-xs text-rose-800 font-medium leading-relaxed">
-          If you have encountered a road incident, customer dispute, or vehicle breakdown during an active delivery trip:
+          If you have encountered a road incident, customer dispute, or vehicle breakdown during an
+          active delivery trip:
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-white border border-rose-200 text-xs">
@@ -53,12 +58,18 @@ export default function DeliverySupportPage() {
         <div className="space-y-2.5 text-xs text-gray-700">
           <div className="p-3 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-1">
             <h4 className="font-bold text-gray-900">What if customer address is unreachable?</h4>
-            <p className="text-gray-600 text-[11px]">Attempt calling the customer twice. If unreachable after 5 minutes, trigger dispatch escalation in Active Trip console.</p>
+            <p className="text-gray-600 text-[11px]">
+              Attempt calling the customer twice. If unreachable after 5 minutes, trigger dispatch
+              escalation in Active Trip console.
+            </p>
           </div>
 
           <div className="p-3 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-1">
             <h4 className="font-bold text-gray-900">How do customer tips get credited?</h4>
-            <p className="text-gray-600 text-[11px]">100% of customer tips are credited directly to your payout ledger with zero platform deduction.</p>
+            <p className="text-gray-600 text-[11px]">
+              100% of customer tips are credited directly to your payout ledger with zero platform
+              deduction.
+            </p>
           </div>
         </div>
       </div>

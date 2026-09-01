@@ -99,7 +99,9 @@ export default function RestaurantPartnerRegisterPage() {
 
   const handleGetOwnerLocation = () => {
     if (!navigator.geolocation) {
-      setLocationStatusMsg('Geolocation is not supported by your browser device. Please enter address manually.');
+      setLocationStatusMsg(
+        'Geolocation is not supported by your browser device. Please enter address manually.',
+      );
       return;
     }
 
@@ -118,10 +120,13 @@ export default function RestaurantPartnerRegisterPage() {
         }));
 
         try {
-          const geoRes = await fetch(`${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`);
+          const geoRes = await fetch(
+            `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
+          );
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            const addrText = typeof geoData === 'string' ? geoData : (geoData.address || geoData.displayName || '');
+            const addrText =
+              typeof geoData === 'string' ? geoData : geoData.address || geoData.displayName || '';
             if (addrText) {
               setForm((prev) => ({
                 ...prev,
@@ -138,7 +143,9 @@ export default function RestaurantPartnerRegisterPage() {
       },
       (err) => {
         setIsLocatingOwner(false);
-        setLocationStatusMsg('Location permission denied or unavailable. Please enable location or enter address manually.');
+        setLocationStatusMsg(
+          'Location permission denied or unavailable. Please enable location or enter address manually.',
+        );
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -185,7 +192,10 @@ export default function RestaurantPartnerRegisterPage() {
 
       // 2. Configure & Trigger MSG91 OTP Widget
       const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+      const tokenAuth =
+        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
+        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
+        '556022TLShucwZ86a6d8a7bP1';
       const identifier = formatIdentifier(form.phone);
 
       const configuration = {
@@ -195,7 +205,10 @@ export default function RestaurantPartnerRegisterPage() {
         exposeMethods: true,
         captchaRenderId: '',
         success: (msgData: any) => {
-          const token = typeof msgData === 'string' ? msgData : (msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token);
+          const token =
+            typeof msgData === 'string'
+              ? msgData
+              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
           if (token) {
             handleBackendWidgetVerification(token);
           } else {
@@ -205,7 +218,11 @@ export default function RestaurantPartnerRegisterPage() {
           }
         },
         failure: (err: any) => {
-          setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Phone verification failed. Please try again.'));
+          setErrorMsg(
+            typeof err === 'string'
+              ? err
+              : err?.message || 'Phone verification failed. Please try again.',
+          );
           setIsVerifyingPhone(false);
           setIsVerifyingOtp(false);
         },
@@ -215,9 +232,13 @@ export default function RestaurantPartnerRegisterPage() {
         try {
           (window as any).initSendOTP(configuration);
           if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(identifier, () => {}, (err: any) => {
-              console.error('[MSG91 Restaurant] sendOtp error:', err);
-            });
+            (window as any).sendOtp(
+              identifier,
+              () => {},
+              (err: any) => {
+                console.error('[MSG91 Restaurant] sendOtp error:', err);
+              },
+            );
           }
         } catch (widgetErr: any) {
           console.warn('[MSG91 Restaurant] initSendOTP exception:', widgetErr);
@@ -281,10 +302,18 @@ export default function RestaurantPartnerRegisterPage() {
     // 1. Try MSG91 Widget JS SDK verifyOtp
     if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
       try {
-        (window as any).verifyOtp(enteredOtp, () => {}, (err: any) => {
-          setErrorMsg(typeof err === 'string' ? err : (err?.message || 'Incorrect OTP entered. Please try again.'));
-          setIsVerifyingOtp(false);
-        });
+        (window as any).verifyOtp(
+          enteredOtp,
+          () => {},
+          (err: any) => {
+            setErrorMsg(
+              typeof err === 'string'
+                ? err
+                : err?.message || 'Incorrect OTP entered. Please try again.',
+            );
+            setIsVerifyingOtp(false);
+          },
+        );
         return;
       } catch (verifyErr: any) {
         console.warn('[MSG91 Restaurant] verifyOtp exception:', verifyErr);
@@ -326,7 +355,11 @@ export default function RestaurantPartnerRegisterPage() {
     if (typeof window !== 'undefined' && typeof (window as any).retryOtp === 'function') {
       (window as any).retryOtp();
     } else if (typeof window !== 'undefined' && typeof (window as any).sendOtp === 'function') {
-      (window as any).sendOtp(identifier, () => {}, (err: any) => console.error(err));
+      (window as any).sendOtp(
+        identifier,
+        () => {},
+        (err: any) => console.error(err),
+      );
     }
   };
 
@@ -337,8 +370,6 @@ export default function RestaurantPartnerRegisterPage() {
     setOtpDigits(['', '', '', '']);
     setErrorMsg(null);
   };
-
-
 
   // 3. Complete Application Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -451,12 +482,15 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-black text-gray-900">Application Submitted!</h1>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              Your restaurant partnership application has been received and is currently under review by ZaykaFood Operations.
+              Your restaurant partnership application has been received and is currently under
+              review by ZaykaFood Operations.
             </p>
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900 space-y-1">
-            <p className="uppercase tracking-wider text-[10px] text-amber-700 font-black">Application Status</p>
+            <p className="uppercase tracking-wider text-[10px] text-amber-700 font-black">
+              Application Status
+            </p>
             <p className="text-sm font-black text-amber-800">PENDING ADMIN APPROVAL</p>
           </div>
 
@@ -484,7 +518,8 @@ export default function RestaurantPartnerRegisterPage() {
           </div>
           <h1 className="text-3xl font-black">Become a ZaykaFood Partner</h1>
           <p className="text-xs text-gray-400 max-w-md mx-auto">
-            Register your restaurant, upload required documents &amp; start receiving orders upon Admin approval
+            Register your restaurant, upload required documents &amp; start receiving orders upon
+            Admin approval
           </p>
         </div>
 
@@ -586,7 +621,9 @@ export default function RestaurantPartnerRegisterPage() {
                       {otpDigits.map((digit, idx) => (
                         <input
                           key={idx}
-                          ref={(el) => { otpInputsRef.current[idx] = el; }}
+                          ref={(el) => {
+                            otpInputsRef.current[idx] = el;
+                          }}
                           type="text"
                           maxLength={1}
                           value={digit}
@@ -631,7 +668,10 @@ export default function RestaurantPartnerRegisterPage() {
 
                     <div className="flex items-center gap-2 text-[11px] text-gray-500 pt-1">
                       {resendCooldown > 0 ? (
-                        <span>Resend OTP in <strong className="text-orange-600">{resendCooldown}s</strong></span>
+                        <span>
+                          Resend OTP in{' '}
+                          <strong className="text-orange-600">{resendCooldown}s</strong>
+                        </span>
                       ) : (
                         <button
                           type="button"
@@ -646,8 +686,6 @@ export default function RestaurantPartnerRegisterPage() {
                 </div>
               )}
 
-
-
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Email Address <span className="text-rose-600 font-bold">*</span>
@@ -660,7 +698,7 @@ export default function RestaurantPartnerRegisterPage() {
                     required
                     value={form.email}
                     onChange={handleChange}
-                    placeholder="owner@restaurant.com"
+                    placeholder="Enter email"
                     className="w-full rounded-2xl border border-gray-200 py-3.5 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
@@ -727,7 +765,9 @@ export default function RestaurantPartnerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">PAN Card Number</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  PAN Card Number
+                </label>
                 <input
                   type="text"
                   name="panNumber"
@@ -770,9 +810,10 @@ export default function RestaurantPartnerRegisterPage() {
                 label="Restaurant Visuals / Store Cover Photo *"
                 acceptType="image"
                 value={form.bannerUrl}
-                onChange={(url) => setForm((prev) => ({ ...prev, bannerUrl: url, logoUrl: prev.logoUrl || url }))}
+                onChange={(url) =>
+                  setForm((prev) => ({ ...prev, bannerUrl: url, logoUrl: prev.logoUrl || url }))
+                }
               />
-
             </div>
           </div>
 
@@ -780,7 +821,8 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div className="flex items-center gap-2 text-base font-black text-gray-900">
-                <MapPin className="h-5 w-5 text-orange-600" /> 3. Store Physical Location &amp; GPS Coordinates
+                <MapPin className="h-5 w-5 text-orange-600" /> 3. Store Physical Location &amp; GPS
+                Coordinates
               </div>
 
               <button
@@ -795,18 +837,22 @@ export default function RestaurantPartnerRegisterPage() {
             </div>
 
             {locationStatusMsg && (
-              <div className={`rounded-2xl p-3 text-xs font-bold border ${
-                locationStatusMsg.includes('captured')
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-amber-50 text-amber-900 border-amber-200'
-              }`}>
+              <div
+                className={`rounded-2xl p-3 text-xs font-bold border ${
+                  locationStatusMsg.includes('captured')
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-amber-50 text-amber-900 border-amber-200'
+                }`}
+              >
                 ℹ️ {locationStatusMsg}
               </div>
             )}
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Full Street Address *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Full Street Address *
+                </label>
                 <input
                   type="text"
                   name="address"
@@ -819,7 +865,9 @@ export default function RestaurantPartnerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">City / Area *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  City / Area *
+                </label>
                 <input
                   type="text"
                   name="city"
@@ -832,7 +880,9 @@ export default function RestaurantPartnerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">State / PIN Code</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  State / PIN Code
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -853,27 +903,35 @@ export default function RestaurantPartnerRegisterPage() {
                 </div>
               </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Store Location</label>
-                  <p className="text-[10px] text-gray-500 mb-3">Drag the pin to exactly where your store is located.</p>
-                  
-                  <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200">
-                    <GoogleMapPicker
-                      initialLat={form.latitude ?? 0}
-                      initialLng={form.longitude ?? 74.5221}
-                      onLocationChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))}
-                    />
-                  </div>
-                  
-                  {(form.latitude && form.longitude) && (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
-                      <CheckCircle2 className="h-4 w-4" /> Location Captured
-                    </div>
-                  )}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Select Store Location
+                </label>
+                <p className="text-[10px] text-gray-500 mb-3">
+                  Drag the pin to exactly where your store is located.
+                </p>
+
+                <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200">
+                  <GoogleMapPicker
+                    initialLat={form.latitude ?? 0}
+                    initialLng={form.longitude ?? 74.5221}
+                    onLocationChange={(lat, lng) =>
+                      setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }))
+                    }
+                  />
                 </div>
 
+                {form.latitude && form.longitude && (
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
+                    <CheckCircle2 className="h-4 w-4" /> Location Captured
+                  </div>
+                )}
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Cuisines Offered</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Cuisines Offered
+                </label>
                 <input
                   type="text"
                   name="cuisines"
@@ -885,7 +943,9 @@ export default function RestaurantPartnerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Opening / Closing Time</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Opening / Closing Time
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -914,7 +974,11 @@ export default function RestaurantPartnerRegisterPage() {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 py-4 text-base font-black text-white shadow-xl shadow-orange-500/25 hover:from-orange-700 hover:to-amber-600 disabled:opacity-50 transition"
           >
-            <span>{isSubmitting ? 'Submitting Application...' : 'Submit Restaurant Registration Application'}</span>
+            <span>
+              {isSubmitting
+                ? 'Submitting Application...'
+                : 'Submit Restaurant Registration Application'}
+            </span>
             <ArrowRight className="h-5 w-5" />
           </button>
         </form>
@@ -922,4 +986,3 @@ export default function RestaurantPartnerRegisterPage() {
     </div>
   );
 }
-

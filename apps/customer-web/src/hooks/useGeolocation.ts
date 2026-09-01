@@ -1,14 +1,22 @@
 import { useState, useCallback } from 'react';
-import { BrowserLocationService, GeoLocationResult, ReverseGeocodeResult } from '../services/browser-location';
+import {
+  BrowserLocationService,
+  GeoLocationResult,
+  ReverseGeocodeResult,
+} from '../services/browser-location';
 
-export type GeolocationState = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'timeout' | 'error';
+export type GeolocationState =
+  'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'timeout' | 'error';
 
 export interface UseGeolocationResult {
   status: GeolocationState;
   coordinates: GeoLocationResult | null;
   addressData: ReverseGeocodeResult | null;
   error: string | null;
-  requestLocation: () => Promise<{ coords: GeoLocationResult, address: ReverseGeocodeResult } | null>;
+  requestLocation: () => Promise<{
+    coords: GeoLocationResult;
+    address: ReverseGeocodeResult;
+  } | null>;
   reset: () => void;
 }
 
@@ -31,7 +39,7 @@ export function useGeolocation(): UseGeolocationResult {
       setError(null);
 
       const coords = await BrowserLocationService.getCurrentLocation();
-      
+
       if (coords.accuracy > 2000) {
         console.warn('[Location] Accuracy is very poor');
       }
@@ -39,13 +47,16 @@ export function useGeolocation(): UseGeolocationResult {
       setCoordinates(coords);
       setStatus('granted');
 
-      const address = await BrowserLocationService.reverseGeocode(coords.latitude, coords.longitude);
+      const address = await BrowserLocationService.reverseGeocode(
+        coords.latitude,
+        coords.longitude,
+      );
       setAddressData(address);
 
       return { coords, address };
     } catch (err: any) {
       console.error(err);
-      
+
       const errMsg = err.message || 'Unknown error occurred';
       setError(errMsg);
 

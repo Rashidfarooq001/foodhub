@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
@@ -66,7 +77,12 @@ export class RestaurantsController {
     @Body('rejectionReason') rejectionReason?: string,
     @CurrentUser() currentUser?: any,
   ) {
-    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
+    return this.restaurantsService.updateVerificationStatus(
+      id,
+      status,
+      rejectionReason,
+      currentUser?.id,
+    );
   }
 
   @Patch(':id/verify')
@@ -80,7 +96,12 @@ export class RestaurantsController {
     @Body('rejectionReason') rejectionReason?: string,
     @CurrentUser() currentUser?: any,
   ) {
-    return this.restaurantsService.updateVerificationStatus(id, status, rejectionReason, currentUser?.id);
+    return this.restaurantsService.updateVerificationStatus(
+      id,
+      status,
+      rejectionReason,
+      currentUser?.id,
+    );
   }
 
   @Patch(':id/suspend')
@@ -101,10 +122,7 @@ export class RestaurantsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Reactivate a suspended restaurant (Admin Only)' })
-  async reactivateRestaurant(
-    @Param('id') id: string,
-    @CurrentUser() currentUser?: any,
-  ) {
+  async reactivateRestaurant(@Param('id') id: string, @CurrentUser() currentUser?: any) {
     return this.restaurantsService.reactivateRestaurant(id, currentUser?.id);
   }
 
@@ -113,10 +131,7 @@ export class RestaurantsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Permanently delete a restaurant (Admin Only)' })
-  async deleteRestaurant(
-    @Param('id') id: string,
-    @CurrentUser() currentUser?: any,
-  ) {
+  async deleteRestaurant(@Param('id') id: string, @CurrentUser() currentUser?: any) {
     return this.restaurantsService.permanentlyDeleteRestaurant(id, currentUser?.id);
   }
 
@@ -162,11 +177,7 @@ export class RestaurantsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update restaurant store profile and branding' })
-  async updateStoreProfile(
-    @Param('id') id: string,
-    @Body() dto: any,
-    @CurrentUser() user: any,
-  ) {
+  async updateStoreProfile(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) {
     await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.updateStoreProfile(id, dto);
   }
@@ -194,14 +205,21 @@ export class RestaurantsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Generic restaurant update handler for status, commission, radius (Admin Only)' })
+  @ApiOperation({
+    summary: 'Generic restaurant update handler for status, commission, radius (Admin Only)',
+  })
   async patchRestaurant(
     @Param('id') id: string,
     @Body() body: any,
     @CurrentUser() currentUser?: any,
   ) {
     if (body.status) {
-      return this.restaurantsService.updateVerificationStatus(id, body.status, body.rejectionReason, currentUser?.id);
+      return this.restaurantsService.updateVerificationStatus(
+        id,
+        body.status,
+        body.rejectionReason,
+        currentUser?.id,
+      );
     }
     if (body.commissionRate !== undefined) {
       return this.restaurantsService.updateCommissionRate(id, body.commissionRate, currentUser?.id);
@@ -228,11 +246,7 @@ export class RestaurantsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Add a new self-delivery rider' })
-  async createDeliveryStaff(
-    @Param('id') id: string,
-    @Body() dto: any,
-    @CurrentUser() user: any,
-  ) {
+  async createDeliveryStaff(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) {
     await this.restaurantsService.verifyRestaurantAccess(id, user);
     return this.restaurantsService.createDeliveryStaff(id, dto);
   }

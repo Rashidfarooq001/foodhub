@@ -111,11 +111,9 @@ export async function forwardGeocodeStructuredAddress(
   signal?: AbortSignal,
 ): Promise<ForwardGeocodeResponse> {
   try {
-    const res = await apiClient.post<ForwardGeocodeResponse>(
-      '/location/resolve',
-      payload,
-      { signal },
-    );
+    const res = await apiClient.post<ForwardGeocodeResponse>('/location/resolve', payload, {
+      signal,
+    });
     const data: any = res.data;
     const lat = typeof data?.latitude === 'number' ? data.latitude : data?.location?.latitude;
     const lng = typeof data?.longitude === 'number' ? data.longitude : data?.location?.longitude;
@@ -129,7 +127,9 @@ export async function forwardGeocodeStructuredAddress(
     }
     return {
       success: false,
-      message: data?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+      message:
+        data?.message ||
+        "Couldn't determine the location of this address. Please check your address details and try again.",
     };
   } catch (err: any) {
     // Fallback to GET endpoint
@@ -140,7 +140,9 @@ export async function forwardGeocodeStructuredAddress(
       payload.city,
       payload.state,
       payload.postalCode,
-    ].filter(Boolean).join(', ');
+    ]
+      .filter(Boolean)
+      .join(', ');
 
     return forwardGeocodeAddress(query, signal);
   }
@@ -172,13 +174,16 @@ export async function forwardGeocodeAddress(
     }
     return {
       success: false,
-      message: res?.message || "Couldn't determine the location of this address. Please check your address details and try again.",
+      message:
+        res?.message ||
+        "Couldn't determine the location of this address. Please check your address details and try again.",
     };
   } catch (err: any) {
     console.error('[API_CLIENT] Forward geocode error:', err);
     return {
       success: false,
-      message: "Couldn't determine the location of this address. Please check your address details and try again.",
+      message:
+        "Couldn't determine the location of this address. Please check your address details and try again.",
     };
   }
 }

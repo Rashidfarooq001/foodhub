@@ -115,8 +115,12 @@ export default function AdminDashboardPage() {
               <Store className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <span className="text-[15px] font-bold text-gray-900 block leading-tight truncate">Restaurant Approval</span>
-              <span className="text-[12px] text-gray-500 block mt-0.5 truncate">Verify licenses & FSSAI</span>
+              <span className="text-[15px] font-bold text-gray-900 block leading-tight truncate">
+                Restaurant Approval
+              </span>
+              <span className="text-[12px] text-gray-500 block mt-0.5 truncate">
+                Verify licenses & FSSAI
+              </span>
             </div>
           </div>
           <span className="flex items-center justify-center w-[40px] h-7 rounded-[10px] bg-purple-100 text-[13px] font-bold text-purple-700 shrink-0 border border-purple-200 ml-2">
@@ -133,8 +137,12 @@ export default function AdminDashboardPage() {
               <Bike className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <span className="text-[15px] font-bold text-gray-900 block leading-tight truncate">Driver Approval</span>
-              <span className="text-[12px] text-gray-500 block mt-0.5 truncate">Verify licenses & RC documents</span>
+              <span className="text-[15px] font-bold text-gray-900 block leading-tight truncate">
+                Driver Approval
+              </span>
+              <span className="text-[12px] text-gray-500 block mt-0.5 truncate">
+                Verify licenses & RC documents
+              </span>
             </div>
           </div>
           <span className="flex items-center justify-center w-[40px] h-7 rounded-[10px] bg-teal-100 text-[13px] font-bold text-teal-700 shrink-0 border border-teal-200 ml-2">
@@ -148,7 +156,9 @@ export default function AdminDashboardPage() {
         {/* Today GMV */}
         <div className="flex flex-col justify-between rounded-[14px] sm:rounded-[16px] border border-gray-100 bg-white p-[12px] shadow-sm h-[110px]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">TODAY GMV</span>
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">
+              TODAY GMV
+            </span>
             <DollarSign className="h-[24px] w-[24px] rounded-md bg-orange-50 p-1 text-orange-600 shrink-0" />
           </div>
           <div>
@@ -162,7 +172,9 @@ export default function AdminDashboardPage() {
         {/* Today Orders */}
         <div className="flex flex-col justify-between rounded-[14px] sm:rounded-[16px] border border-gray-100 bg-white p-[12px] shadow-sm h-[110px]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">TODAY ORDERS</span>
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">
+              TODAY ORDERS
+            </span>
             <ShoppingBag className="h-[24px] w-[24px] rounded-md bg-blue-50 p-1 text-blue-600 shrink-0" />
           </div>
           <div>
@@ -176,7 +188,9 @@ export default function AdminDashboardPage() {
         {/* Active Restaurants */}
         <div className="flex flex-col justify-between rounded-[14px] sm:rounded-[16px] border border-gray-100 bg-white p-[12px] shadow-sm h-[110px]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">RESTAURANTS</span>
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">
+              RESTAURANTS
+            </span>
             <Store className="h-[24px] w-[24px] rounded-md bg-purple-50 p-1 text-purple-600 shrink-0" />
           </div>
           <div>
@@ -190,7 +204,9 @@ export default function AdminDashboardPage() {
         {/* Active Riders */}
         <div className="flex flex-col justify-between rounded-[14px] sm:rounded-[16px] border border-gray-100 bg-white p-[12px] shadow-sm h-[110px]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">COURIER FLEET</span>
+            <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider truncate mr-1">
+              COURIER FLEET
+            </span>
             <Bike className="h-[24px] w-[24px] rounded-md bg-teal-50 p-1 text-teal-600 shrink-0" />
           </div>
           <div>
@@ -206,9 +222,7 @@ export default function AdminDashboardPage() {
       <div className="rounded-[14px] sm:rounded-[16px] border border-gray-100 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-[16px] font-bold text-gray-900">
-              Weekly Platform GMV
-            </h2>
+            <h2 className="text-[16px] font-bold text-gray-900">Weekly Platform GMV</h2>
             <p className="text-[12px] text-gray-500 mt-0.5">
               Aggregated merchant sales across city operational hubs
             </p>

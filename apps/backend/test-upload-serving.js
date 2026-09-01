@@ -14,7 +14,10 @@ async function main() {
   // 2. Create a test binary image file in uploads
   const testFileName = `test-verification-${Date.now()}.png`;
   const testFilePath = path.join(uploadsDir, testFileName);
-  const sampleBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const sampleBuffer = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64',
+  );
   fs.writeFileSync(testFilePath, sampleBuffer);
   console.log(`1. Created test file on disk: ${testFilePath} (${sampleBuffer.length} bytes) ✅`);
 
@@ -29,7 +32,9 @@ async function main() {
   const oldExists = fs.existsSync(oldFilePath);
   console.log(`   Historical binary binary file exists on disk: ${oldExists}`);
   if (!oldExists) {
-    console.log(`   --> REASON FOR 404: The historical binary file 'file-1786380012654-211824913.png' was stored on ephemeral disk during a previous session/deployment and was lost when the environment restarted. ✅`);
+    console.log(
+      `   --> REASON FOR 404: The historical binary file 'file-1786380012654-211824913.png' was stored on ephemeral disk during a previous session/deployment and was lost when the environment restarted. ✅`,
+    );
   }
 
   // Clean up test file

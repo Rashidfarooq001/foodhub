@@ -24,9 +24,7 @@ interface AuthenticatedSocketUser {
 }
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/orders' })
-export class OrdersGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -69,7 +67,10 @@ export class OrdersGateway
     return null;
   }
 
-  private extractUserFromSocket(client: Socket, messageToken?: string): AuthenticatedSocketUser | null {
+  private extractUserFromSocket(
+    client: Socket,
+    messageToken?: string,
+  ): AuthenticatedSocketUser | null {
     const existing = (client as any)?.user;
     if (existing) return existing;
 
@@ -77,7 +78,9 @@ export class OrdersGateway
     if (!token) return null;
 
     try {
-      const secret = this.configService.get<string>('JWT_SECRET') || 'super-secret-jwt-key-foodhub-2026-enterprise';
+      const secret =
+        this.configService.get<string>('JWT_SECRET') ||
+        'super-secret-jwt-key-foodhub-2026-enterprise';
       const decoded: any = this.jwtService.verify(token, { secret });
       const user: AuthenticatedSocketUser = {
         id: decoded.sub || decoded.id,
@@ -138,7 +141,9 @@ export class OrdersGateway
           restaurantId: true,
           customer: { select: { id: true, userId: true } },
           restaurant: { select: { id: true, ownerId: true } },
-          deliveryJob: { select: { id: true, driverId: true, driver: { select: { userId: true } } } },
+          deliveryJob: {
+            select: { id: true, driverId: true, driver: { select: { userId: true } } },
+          },
           assignedRestaurantDriverId: true,
         },
       });
@@ -152,15 +157,18 @@ export class OrdersGateway
       if (user) {
         const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
         const isCustomer = order.customer?.userId === user.id || order.customerId === user.id;
-        const isRestaurant = order.restaurantId === user.restaurantId || order.restaurant?.ownerId === user.id;
+        const isRestaurant =
+          order.restaurantId === user.restaurantId || order.restaurant?.ownerId === user.id;
         const isAssignedDriver =
-          (order.deliveryJob?.driver?.userId === user.id) ||
+          order.deliveryJob?.driver?.userId === user.id ||
           (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
           (user.driverId && order.assignedRestaurantDriverId === user.driverId);
 
         // If authenticated user is unrelated customer/driver, forbid
         if (!isAdmin && !isCustomer && !isRestaurant && !isAssignedDriver) {
-          this.logger.warn(`Client ${client.id} (user ${user.id}) unauthorized for order:${orderId}`);
+          this.logger.warn(
+            `Client ${client.id} (user ${user.id}) unauthorized for order:${orderId}`,
+          );
           client.emit('error', { message: 'Unauthorized to access order room' });
           return { success: false, message: 'Unauthorized' };
         }
@@ -191,7 +199,10 @@ export class OrdersGateway
 
     if (user) {
       const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-      const isAffiliated = user.restaurantId === restaurantId || user.role === 'RESTAURANT_OWNER' || user.role === 'RESTAURANT_STAFF';
+      const isAffiliated =
+        user.restaurantId === restaurantId ||
+        user.role === 'RESTAURANT_OWNER' ||
+        user.role === 'RESTAURANT_STAFF';
       if (!isAdmin && !isAffiliated) {
         client.emit('error', { message: 'Unauthorized to join restaurant channel' });
         return { success: false, message: 'Unauthorized' };
@@ -315,7 +326,9 @@ export class OrdersGateway
       this.server.to(`restaurant:${restaurantId}`).emit(event, payload);
       this.server.to('admin:operations').emit(event, payload);
     } catch (err: any) {
-      this.logger.warn(`Failed to emit event ${event} to restaurant:${restaurantId}: ${err?.message || err}`);
+      this.logger.warn(
+        `Failed to emit event ${event} to restaurant:${restaurantId}: ${err?.message || err}`,
+      );
     }
   }
 
@@ -326,7 +339,9 @@ export class OrdersGateway
       this.server.to(`driver:${driverId}`).emit(event, payload);
       this.server.to('admin:operations').emit(event, payload);
     } catch (err: any) {
-      this.logger.warn(`Failed to emit event ${event} to driver:${driverId}: ${err?.message || err}`);
+      this.logger.warn(
+        `Failed to emit event ${event} to driver:${driverId}: ${err?.message || err}`,
+      );
     }
   }
 
@@ -337,7 +352,9 @@ export class OrdersGateway
       this.server.to('drivers:available').emit(event, payload);
       this.server.to('admin:operations').emit(event, payload);
     } catch (err: any) {
-      this.logger.warn(`Failed to emit event ${event} to drivers:available: ${err?.message || err}`);
+      this.logger.warn(
+        `Failed to emit event ${event} to drivers:available: ${err?.message || err}`,
+      );
     }
   }
 
@@ -351,4 +368,3 @@ export class OrdersGateway
     }
   }
 }
-

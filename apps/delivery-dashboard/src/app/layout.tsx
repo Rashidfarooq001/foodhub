@@ -7,7 +7,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'ZaykaFood Delivery Partner Dashboard',
-  description: 'Courier app for order dispatches, live navigation, wallet earnings and payout management.',
+  description:
+    'Courier app for order dispatches, live navigation, wallet earnings and payout management.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -15,11 +16,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full">
       <head>
@@ -29,7 +26,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950`}>
+      <body
+        className={`${inter.className} flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950`}
+      >
         <DeliveryAuthWrapper>{children}</DeliveryAuthWrapper>
       </body>
     </html>

@@ -1,6 +1,13 @@
 import {
-  Controller, Get, Post, Delete, Param, Body,
-  UseGuards, Request, Query,
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CouponsService } from './coupons.service';
@@ -23,10 +30,7 @@ export class CouponsController {
 
   @Post('validate')
   @ApiOperation({ summary: 'Validate a coupon code and preview discount amount' })
-  async validate(
-    @Request() req: any,
-    @Body() dto: ValidateCouponDto,
-  ) {
+  async validate(@Request() req: any, @Body() dto: ValidateCouponDto) {
     return {
       valid: false,
       discountAmount: 0,

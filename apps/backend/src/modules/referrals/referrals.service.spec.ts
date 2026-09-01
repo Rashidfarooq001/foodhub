@@ -36,8 +36,8 @@ describe('ReferralsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReferralsService,
-        { provide: PrismaService,  useValue: mockPrisma },
-        { provide: WalletService,  useValue: mockWallet  },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: WalletService, useValue: mockWallet },
       ],
     }).compile();
 
@@ -58,26 +58,26 @@ describe('ReferralsService', () => {
   it('should reject self-referral', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce({ ...mockReferrer, id: 'user-1' });
 
-    await expect(
-      service.applyReferralCode('user-1', 'FH-FRIEND'),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.applyReferralCode('user-1', 'FH-FRIEND')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should reject code not found', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 
-    await expect(
-      service.applyReferralCode('user-2', 'FH-NOTEX'),
-    ).rejects.toThrow(NotFoundException);
+    await expect(service.applyReferralCode('user-2', 'FH-NOTEX')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should reject already-used referral code', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(mockReferrer);
     mockPrisma.referral.findUnique.mockResolvedValueOnce({ id: 'ref-1' }); // already exists
 
-    await expect(
-      service.applyReferralCode('user-1', 'FH-FRIEND'),
-    ).rejects.toThrow(ConflictException);
+    await expect(service.applyReferralCode('user-1', 'FH-FRIEND')).rejects.toThrow(
+      ConflictException,
+    );
   });
 
   it('should return stats with totalReferrals 0 when no referrals', async () => {

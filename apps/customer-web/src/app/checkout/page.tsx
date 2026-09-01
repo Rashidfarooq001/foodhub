@@ -27,7 +27,15 @@ import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-s
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
 import { getApiBaseUrl } from '@foodhub/config';
-import { fetchPricingConfig, forwardGeocodeAddress, forwardGeocodeStructuredAddress, fetchOrderQuote, OrderQuoteData, PricingConfigData, DEFAULT_PRICING_CONFIG_DATA } from '@foodhub/api-client';
+import {
+  fetchPricingConfig,
+  forwardGeocodeAddress,
+  forwardGeocodeStructuredAddress,
+  fetchOrderQuote,
+  OrderQuoteData,
+  PricingConfigData,
+  DEFAULT_PRICING_CONFIG_DATA,
+} from '@foodhub/api-client';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 const API_BASE = getApiBaseUrl();
@@ -44,14 +52,8 @@ export default function CheckoutPage() {
     console.log('CHECKOUT_VERSION = "FINAL-CHECKOUT-2026-08-15"');
     console.log('QUOTE_SOURCE = "BACKEND-ORDER-QUOTE"');
   }, []);
-  const {
-    items,
-    restaurantName,
-    getSubtotal,
-    getTaxAmount,
-    getGrandTotal,
-    clearCart,
-  } = useCartStore();
+  const { items, restaurantName, getSubtotal, getTaxAmount, getGrandTotal, clearCart } =
+    useCartStore();
 
   const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress } =
     useAddressStore();
@@ -86,7 +88,8 @@ export default function CheckoutPage() {
         if (res.ok) {
           const data = await res.json();
           const lat = typeof data.latitude === 'number' ? data.latitude : parseFloat(data.latitude);
-          const lng = typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
+          const lng =
+            typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
 
           setRestaurantData({
             latitude: !isNaN(lat) && lat !== 0 ? lat : null,
@@ -101,14 +104,15 @@ export default function CheckoutPage() {
     fetchRestaurantDetails();
   }, [items]);
 
-  const [pricingConfig, setPricingConfig] = useState<PricingConfigData>(DEFAULT_PRICING_CONFIG_DATA);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfigData>(
+    DEFAULT_PRICING_CONFIG_DATA,
+  );
 
   useEffect(() => {
     fetchPricingConfig().then(setPricingConfig);
   }, []);
 
   // Calculate real customer <-> restaurant distance
-  
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
 
@@ -116,14 +120,21 @@ export default function CheckoutPage() {
   // The quote will be freshly fetched by the useEffect below.
   // This guards against any stale distanceKm (e.g. -1) surviving a page refresh.
   const _rawDistanceKm = orderQuote?.distanceKm ?? null;
-  const realDistanceKm = (_rawDistanceKm !== null && Number.isFinite(_rawDistanceKm) && _rawDistanceKm >= 0)
-    ? _rawDistanceKm
-    : null;
-  const routeAvailable = orderQuote ? (Boolean(orderQuote.routeAvailable) && realDistanceKm !== null) : false;
+  const realDistanceKm =
+    _rawDistanceKm !== null && Number.isFinite(_rawDistanceKm) && _rawDistanceKm >= 0
+      ? _rawDistanceKm
+      : null;
+  const routeAvailable = orderQuote
+    ? Boolean(orderQuote.routeAvailable) && realDistanceKm !== null
+    : false;
 
-  const dynamicDeliveryFee = (orderQuote && routeAvailable && realDistanceKm !== null && typeof orderQuote.customerDeliveryFee === 'number')
-    ? orderQuote.customerDeliveryFee
-    : null;
+  const dynamicDeliveryFee =
+    orderQuote &&
+    routeAvailable &&
+    realDistanceKm !== null &&
+    typeof orderQuote.customerDeliveryFee === 'number'
+      ? orderQuote.customerDeliveryFee
+      : null;
 
   const platformFee = orderQuote ? orderQuote.platformFee : 3.0;
   const subtotal = getSubtotal();
@@ -135,9 +146,14 @@ export default function CheckoutPage() {
   const refreshQuote = useCallback(() => {
     const sub = getSubtotal();
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-    const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined &&
-      selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
-    const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+    const hasCoords =
+      selectedAddress?.latitude !== null &&
+      selectedAddress?.latitude !== undefined &&
+      selectedAddress?.longitude !== null &&
+      selectedAddress?.longitude !== undefined;
+    const locationSource =
+      (selectedAddress as any)?.locationSource ||
+      (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
     console.log('[Checkout Location]', {
       source: locationSource,
@@ -158,13 +174,15 @@ export default function CheckoutPage() {
       discountAmount: 0,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
-      }).then((quote) => {
+    })
+      .then((quote) => {
         if (quote) setOrderQuote(quote);
-      }).catch((err) => {
+      })
+      .catch((err) => {
         setPaymentError(err.message || 'Failed to calculate delivery fee.');
         setOrderQuote(null);
       });
-    }, [items, selectedAddress, tipAmount]);
+  }, [items, selectedAddress, tipAmount]);
 
   useEffect(() => {
     refreshQuote();
@@ -172,16 +190,17 @@ export default function CheckoutPage() {
 
   const tax = orderQuote?.totalCustomerTaxes ?? 0;
   const discount = 0;
-  const baseGrandTotal =
-    subtotal + (dynamicDeliveryFee || 0) + platformFee + tax;
-  const finalPayableTotal = orderQuote ? orderQuote.customerTotal : Math.max(0, baseGrandTotal) + tipAmount;
+  const baseGrandTotal = subtotal + (dynamicDeliveryFee || 0) + platformFee + tax;
+  const finalPayableTotal = orderQuote
+    ? orderQuote.customerTotal
+    : Math.max(0, baseGrandTotal) + tipAmount;
 
   // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
-  
+
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const [manualAddress, setManualAddress] = useState('');
@@ -196,10 +215,10 @@ export default function CheckoutPage() {
   const handleUseCurrentLocation = async () => {
     setLocationError(null);
     const res = await requestLocation();
-    
+
     if (res) {
       const { coords, address } = res;
-      
+
       console.log('[GPS] Native coordinates detected:', {
         latitude: coords.latitude,
         longitude: coords.longitude,
@@ -214,7 +233,10 @@ export default function CheckoutPage() {
       const pincode = (address.pincode || address.postalCode || '').trim();
 
       const specificName = locality || subDistrict || district || 'Current Location';
-      const addressLine2 = [subDistrict, district].filter(Boolean).filter(d => d !== specificName).join(', ');
+      const addressLine2 = [subDistrict, district]
+        .filter(Boolean)
+        .filter((d) => d !== specificName)
+        .join(', ');
 
       const gpsAddr: CustomerAddressItem = {
         id: 'current-location',
@@ -240,10 +262,6 @@ export default function CheckoutPage() {
     }
   };
 
-    
-  
-
-
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       if (typeof window === 'undefined') return resolve(false);
@@ -257,12 +275,11 @@ export default function CheckoutPage() {
     });
   };
 
-  
   const handleVerifyManualAddress = async () => {};
 
   const handleConfirmManualAddress = async () => {
     if (!manualAddress.trim()) return;
-    
+
     setIsVerifyingAddress(true);
     setAddressVerificationError(null);
 
@@ -270,7 +287,7 @@ export default function CheckoutPage() {
       const res = await fetch(`${API_BASE}/location/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: manualAddress.trim() })
+        body: JSON.stringify({ query: manualAddress.trim() }),
       });
       const data = await res.json();
 
@@ -290,26 +307,29 @@ export default function CheckoutPage() {
           verificationStatus: 'VERIFIED' as const,
           isDefault: false,
         };
-        
+
         addAddress(newAddr as any);
         setSelectedAddress(newAddr.id);
         setShowCustomAddressModal(false);
-        
-        setOrderQuote(null); setLocationError(null);
-        
+
+        setOrderQuote(null);
+        setLocationError(null);
+
         setManualAddress('');
         setMatchedAddressResult(null);
       } else {
-        setAddressVerificationError(data.message || "Couldn't verify this location. Please enter a more specific address.");
+        setAddressVerificationError(
+          data.message || "Couldn't verify this location. Please enter a more specific address.",
+        );
       }
     } catch (err) {
-      setAddressVerificationError("Network error while verifying location. Please try again.");
+      setAddressVerificationError('Network error while verifying location. Please try again.');
     } finally {
       setIsVerifyingAddress(false);
     }
   };
-  
-const handlePlaceOrder = async () => {
+
+  const handlePlaceOrder = async () => {
     if (items.length === 0) {
       setPaymentError('Your cart is empty.');
       return;
@@ -409,9 +429,7 @@ const handlePlaceOrder = async () => {
 
       for (const key of forbidden) {
         if (key in createOrderPayload) {
-          throw new Error(
-            `INVALID CREATE ORDER PAYLOAD: ${key} must not be sent by customer`
-          );
+          throw new Error(`INVALID CREATE ORDER PAYLOAD: ${key} must not be sent by customer`);
         }
       }
 
@@ -508,8 +526,7 @@ const handlePlaceOrder = async () => {
       const rzpOrderId = pmtData.razorpayOrderId;
 
       const isDesktop =
-        typeof window !== 'undefined' &&
-        !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        typeof window !== 'undefined' && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -559,7 +576,9 @@ const handlePlaceOrder = async () => {
         modal: {
           ondismiss: function () {
             setIsPlacing(false);
-            setPaymentError(`Order #${createdOrder.orderNumber || orderId} created! Payment process was closed.`);
+            setPaymentError(
+              `Order #${createdOrder.orderNumber || orderId} created! Payment process was closed.`,
+            );
           },
         },
         prefill: {
@@ -613,7 +632,9 @@ const handlePlaceOrder = async () => {
           <Store className="h-7 w-7" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">Your cart is empty</h2>
-        <p className="text-xs text-gray-500">Add items from your favorite local kitchen to proceed.</p>
+        <p className="text-xs text-gray-500">
+          Add items from your favorite local kitchen to proceed.
+        </p>
         <button
           onClick={() => router.push('/')}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-orange-700 transition"
@@ -667,120 +688,148 @@ const handlePlaceOrder = async () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* LEFT COLUMN: Delivery Location & Options */}
             <div className="lg:col-span-7 space-y-4">
-                {/* Delivery Address Card */}
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between pb-3">
-                    <div className="flex items-center gap-2 text-sm font-black text-gray-900">
-                      <MapPin className="h-4 w-4 text-orange-600" />
-                      <span>Delivery Address</span>
-                    </div>
-                    {addresses.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomAddressModal(true)}
-                        className="text-xs font-bold text-orange-600 hover:underline"
-                      >
-                        Change
-                      </button>
-                    )}
+              {/* Delivery Address Card */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3">
+                  <div className="flex items-center gap-2 text-sm font-black text-gray-900">
+                    <MapPin className="h-4 w-4 text-orange-600" />
+                    <span>Delivery Address</span>
                   </div>
-
-                  <div className="flex gap-2 pb-4">
+                  {addresses.length > 0 && (
                     <button
                       type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isLocatingUser}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50 border border-orange-100"
+                      onClick={() => setShowCustomAddressModal(true)}
+                      className="text-xs font-bold text-orange-600 hover:underline"
                     >
-                      <MapPin className={`h-3.5 w-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                      <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
+                      Change
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        
-setManualAddress('');
-setMatchedAddressResult(null);
-setAddressVerificationError(null);
-
-                        setShowCustomAddressModal(true);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-gray-700 hover:bg-gray-200 transition border border-gray-200"
-                    >
-                      <Search className="h-3.5 w-3.5 text-gray-500" />
-                      <span>Change Location</span>
-                    </button>
-                  </div>
-
-                  {locationError && (
-                    <div className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-2 text-[11px] font-bold text-rose-700 flex items-center justify-between">
-                      <span>⚠️ {locationError}</span>
-                      <button type="button" onClick={() => setLocationError(null)} className="text-rose-500">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-
-                  {addresses.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-4 text-center">
-                      <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">Please select a location above.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {addresses.map((addr) => {
-                        const isSelected = selectedAddressId === addr.id;
-                        if (!isSelected) return null; // ONLY SHOW SELECTED ADDRESS TO SAVE SPACE
-
-                        const hasCoords = addr.latitude !== null && addr.latitude !== undefined && addr.longitude !== null && addr.longitude !== undefined;
-                        const addrDist = hasCoords && isSelected && orderQuote?.distanceKm !== null && orderQuote?.distanceKm !== undefined && orderQuote.distanceKm >= 0
-                          ? orderQuote.distanceKm
-                          : null;
-                        const addrRouteAvailable = isSelected ? (orderQuote?.routeAvailable ?? true) : true;
-                        const addrEligible = isSelected ? (orderQuote?.deliveryEligible ?? (addrDist !== null && addrDist <= maxRadiusKm)) : true;
-
-                        return (
-                          <div key={addr.id} className="pt-2 border-t border-gray-100 space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                              <span className="font-black text-gray-900 uppercase tracking-wide">{addr.label}</span>
-                              {hasCoords && (
-                                <span className="font-bold text-emerald-700 flex items-center gap-0.5">
-                                  <Check className="h-3 w-3" /> Address location verified
-                                </span>
-                              )}
-                            </div>
-                            
-                            {addrRouteAvailable && addrDist !== null ? (
-                              <div className="text-[10px] font-bold text-gray-600 flex items-center gap-1">
-                                <span>{addrDist} km away</span>
-                                <span>·</span>
-                                <span className={addrEligible ? "text-emerald-700" : "text-rose-700"}>
-                                  {addrEligible ? `✓ Inside delivery radius (${maxRadiusKm} km)` : `✕ Outside delivery radius (${maxRadiusKm} km)`}
-                                </span>
-                              </div>
-                            ) : (
-                              !addrRouteAvailable || addrDist === null ? (
-                                <div className="text-[10px] font-bold text-amber-700">⚠️ Unable to calculate delivery distance.</div>
-                              ) : null
-                            )}
-
-                            <div className="pt-1 text-[11px] leading-snug text-gray-800">
-                              <p className="font-bold text-gray-900">{addr.addressLine1}</p>
-                              {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && <p>{addr.addressLine2}</p>}
-                              {(addr.city || addr.state || addr.postalCode) && (
-                                <p className="text-gray-500">
-                                  {[addr.city, addr.state].filter(Boolean).join(', ')}{addr.postalCode && addr.postalCode !== 'India' ? ` - ${addr.postalCode}` : ''}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   )}
                 </div>
 
-                {/* Delivery Instructions */}
+                <div className="flex gap-2 pb-4">
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={isLocatingUser}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50 border border-orange-100"
+                  >
+                    <MapPin className={`h-3.5 w-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                    <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualAddress('');
+                      setMatchedAddressResult(null);
+                      setAddressVerificationError(null);
+
+                      setShowCustomAddressModal(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-gray-700 hover:bg-gray-200 transition border border-gray-200"
+                  >
+                    <Search className="h-3.5 w-3.5 text-gray-500" />
+                    <span>Change Location</span>
+                  </button>
+                </div>
+
+                {locationError && (
+                  <div className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-2 text-[11px] font-bold text-rose-700 flex items-center justify-between">
+                    <span>⚠️ {locationError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setLocationError(null)}
+                      className="text-rose-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {addresses.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-4 text-center">
+                    <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Please select a location above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {addresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      if (!isSelected) return null; // ONLY SHOW SELECTED ADDRESS TO SAVE SPACE
+
+                      const hasCoords =
+                        addr.latitude !== null &&
+                        addr.latitude !== undefined &&
+                        addr.longitude !== null &&
+                        addr.longitude !== undefined;
+                      const addrDist =
+                        hasCoords &&
+                        isSelected &&
+                        orderQuote?.distanceKm !== null &&
+                        orderQuote?.distanceKm !== undefined &&
+                        orderQuote.distanceKm >= 0
+                          ? orderQuote.distanceKm
+                          : null;
+                      const addrRouteAvailable = isSelected
+                        ? (orderQuote?.routeAvailable ?? true)
+                        : true;
+                      const addrEligible = isSelected
+                        ? (orderQuote?.deliveryEligible ??
+                          (addrDist !== null && addrDist <= maxRadiusKm))
+                        : true;
+
+                      return (
+                        <div key={addr.id} className="pt-2 border-t border-gray-100 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                            <span className="font-black text-gray-900 uppercase tracking-wide">
+                              {addr.label}
+                            </span>
+                            {hasCoords && (
+                              <span className="font-bold text-emerald-700 flex items-center gap-0.5">
+                                <Check className="h-3 w-3" /> Address location verified
+                              </span>
+                            )}
+                          </div>
+
+                          {addrRouteAvailable && addrDist !== null ? (
+                            <div className="text-[10px] font-bold text-gray-600 flex items-center gap-1">
+                              <span>{addrDist} km away</span>
+                              <span>·</span>
+                              <span className={addrEligible ? 'text-emerald-700' : 'text-rose-700'}>
+                                {addrEligible
+                                  ? `✓ Inside delivery radius (${maxRadiusKm} km)`
+                                  : `✕ Outside delivery radius (${maxRadiusKm} km)`}
+                              </span>
+                            </div>
+                          ) : !addrRouteAvailable || addrDist === null ? (
+                            <div className="text-[10px] font-bold text-amber-700">
+                              ⚠️ Unable to calculate delivery distance.
+                            </div>
+                          ) : null}
+
+                          <div className="pt-1 text-[11px] leading-snug text-gray-800">
+                            <p className="font-bold text-gray-900">{addr.addressLine1}</p>
+                            {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && (
+                              <p>{addr.addressLine2}</p>
+                            )}
+                            {(addr.city || addr.state || addr.postalCode) && (
+                              <p className="text-gray-500">
+                                {[addr.city, addr.state].filter(Boolean).join(', ')}
+                                {addr.postalCode && addr.postalCode !== 'India'
+                                  ? ` - ${addr.postalCode}`
+                                  : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Instructions */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-sm font-black text-gray-900">
@@ -881,7 +930,9 @@ setAddressVerificationError(null);
                       </div>
                       <div>
                         <p className="text-[13px] font-bold text-gray-900">UPI Instant Pay</p>
-                        <p className="text-[10px] text-gray-500">Google Pay, PhonePe, Paytm, BHIM</p>
+                        <p className="text-[10px] text-gray-500">
+                          Google Pay, PhonePe, Paytm, BHIM
+                        </p>
                       </div>
                     </div>
                     <div
@@ -1013,14 +1064,18 @@ setAddressVerificationError(null);
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Fee</span>
                     <span>
-                      {dynamicDeliveryFee !== null
-                        ? `₹${dynamicDeliveryFee}`
-                        : <span className="text-amber-700 font-semibold text-[11px]">Pending distance</span>}
+                      {dynamicDeliveryFee !== null ? (
+                        `₹${dynamicDeliveryFee}`
+                      ) : (
+                        <span className="text-amber-700 font-semibold text-[11px]">
+                          Pending distance
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Platform Fee</span>
-                      <span>&#x20B9;{platformFee || 3}</span>
+                    <span>&#x20B9;{platformFee || 3}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>GST &amp; Taxes</span>
@@ -1043,21 +1098,38 @@ setAddressVerificationError(null);
                 <div className="border-t border-gray-100 pt-3 text-[11px] text-gray-500 leading-relaxed">
                   <p>
                     By placing this order, you agree to Zayka Food&apos;s{' '}
-                    <Link href="/terms-and-conditions" target="_blank" className="font-bold text-orange-600 hover:underline">
+                    <Link
+                      href="/terms-and-conditions"
+                      target="_blank"
+                      className="font-bold text-orange-600 hover:underline"
+                    >
                       Terms &amp; Conditions
                     </Link>{' '}
                     and acknowledge our{' '}
-                    <Link href="/refund-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                    <Link
+                      href="/refund-policy"
+                      target="_blank"
+                      className="font-bold text-orange-600 hover:underline"
+                    >
                       Refund Policy
                     </Link>
                     ,{' '}
-                    <Link href="/delivery-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                    <Link
+                      href="/delivery-policy"
+                      target="_blank"
+                      className="font-bold text-orange-600 hover:underline"
+                    >
                       Delivery Policy
                     </Link>
                     , and{' '}
-                    <Link href="/privacy-policy" target="_blank" className="font-bold text-orange-600 hover:underline">
+                    <Link
+                      href="/privacy-policy"
+                      target="_blank"
+                      className="font-bold text-orange-600 hover:underline"
+                    >
                       Privacy Policy
-                    </Link>.
+                    </Link>
+                    .
                   </p>
                 </div>
               </div>
@@ -1074,22 +1146,32 @@ setAddressVerificationError(null);
             </div>
 
             <button
-              onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
-              disabled={isPlacing || !selectedAddress || (Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible))}
+              onClick={
+                orderQuote && (!routeAvailable || realDistanceKm === null)
+                  ? refreshQuote
+                  : handlePlaceOrder
+              }
+              disabled={
+                isPlacing ||
+                !selectedAddress ||
+                Boolean(
+                  orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible,
+                )
+              }
               className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3.5 sm:py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
             >
               <span>
                 {isPlacing
                   ? 'Placing Order...'
                   : !selectedAddress
-                  ? 'Select Delivery Address'
-                  : orderQuote && (!routeAvailable || realDistanceKm === null)
-                  ? '⚠️ Distance Unavailable'
-                  : !isDeliveryEligible
-                  ? 'Outside Delivery Radius'
-                  : paymentMethod === 'COD'
-                  ? `Place Order • ₹${finalPayableTotal}`
-                  : `Place Order & Pay • ₹${finalPayableTotal}`}
+                    ? 'Select Delivery Address'
+                    : orderQuote && (!routeAvailable || realDistanceKm === null)
+                      ? '⚠️ Distance Unavailable'
+                      : !isDeliveryEligible
+                        ? 'Outside Delivery Radius'
+                        : paymentMethod === 'COD'
+                          ? `Place Order • ₹${finalPayableTotal}`
+                          : `Place Order & Pay • ₹${finalPayableTotal}`}
               </span>
               <ArrowRight className="h-4 w-4" />
             </button>
@@ -1097,54 +1179,51 @@ setAddressVerificationError(null);
         </div>
 
         {/* MANUAL ADDRESS MODAL */}
-          {showCustomAddressModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-              <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
-                  <h2 className="text-base font-black text-gray-900">Change Delivery Location</h2>
+        {showCustomAddressModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
+                <h2 className="text-base font-black text-gray-900">Change Delivery Location</h2>
+                <button
+                  onClick={() => setShowCustomAddressModal(false)}
+                  className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-4 pt-3 space-y-4">
+                {/* MANUAL TEXT ENTRY */}
+                <div className="space-y-2.5">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+                    Delivery Address
+                  </label>
+                  <textarea
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
+                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border h-[80px]"
+                  />
                   <button
-                    onClick={() => setShowCustomAddressModal(false)}
-                    className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                    onClick={handleConfirmManualAddress}
+                    disabled={!manualAddress.trim() || isVerifyingAddress}
+                    className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
                   >
-                    <X className="h-5 w-5" />
+                    {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
                   </button>
-                </div>
-  
-                <div className="p-4 pt-3 space-y-4">
-                  {/* MANUAL TEXT ENTRY */}
-                  <div className="space-y-2.5">
-                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
-                      Delivery Address
-                    </label>
-                    <textarea
-                      value={manualAddress}
-                      onChange={(e) => setManualAddress(e.target.value)}
-                      placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
-                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border h-[80px]"
-                    />
-                    <button
-                      onClick={handleConfirmManualAddress}
-                      disabled={!manualAddress.trim() || isVerifyingAddress}
-                      className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
-                    >
-                      {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
-                    </button>
-                    {addressVerificationError && (
-                      <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">{addressVerificationError}</p>
-                    )}
-                  </div>
+                  {addressVerificationError && (
+                    <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">
+                      {addressVerificationError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     </CustomerAuthGuard>
   );
 }
-
-
-
-
-
 
 // FORCE DEPLOY

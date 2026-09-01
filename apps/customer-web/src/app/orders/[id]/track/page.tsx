@@ -4,7 +4,17 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { OrderTimeline } from '../../../../components/tracking/OrderTimeline';
-import { Phone, ShieldCheck, Clock, MapPin, Store, Bike, ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Phone,
+  ShieldCheck,
+  Clock,
+  MapPin,
+  Store,
+  Bike,
+  ArrowLeft,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useAuthStore } from '../../../../stores/use-auth-store';
 import { io, Socket } from 'socket.io-client';
@@ -48,11 +58,11 @@ export default function LiveOrderTrackingPage() {
       if (trackingRes.ok) {
         const trackData = await trackingRes.json();
         if (trackData?.distanceKm) setDistanceKm(trackData.distanceKm);
-          if (trackData?.etaMins) setServerEtaMins(trackData.etaMins);
-          if (trackData?.driverLat && trackData?.driverLng) {
+        if (trackData?.etaMins) setServerEtaMins(trackData.etaMins);
+        if (trackData?.driverLat && trackData?.driverLng) {
           setDriverLoc({ lat: trackData.driverLat, lng: trackData.driverLng });
-            if (trackData.updatedAt) setLastUpdate(new Date(trackData.updatedAt));
-            else setLastUpdate(new Date());
+          if (trackData.updatedAt) setLastUpdate(new Date(trackData.updatedAt));
+          else setLastUpdate(new Date());
         }
         if (Array.isArray(trackData?.routeCoordinates) && trackData.routeCoordinates.length > 0) {
           setRouteCoords(trackData.routeCoordinates);
@@ -91,7 +101,7 @@ export default function LiveOrderTrackingPage() {
     socket.on('driver.location', (data: { lat: number; lng: number }) => {
       if (data?.lat && data?.lng) {
         setDriverLoc({ lat: data.lat, lng: data.lng });
-          setLastUpdate(new Date());
+        setLastUpdate(new Date());
       }
     });
 
@@ -111,13 +121,13 @@ export default function LiveOrderTrackingPage() {
     };
   }, [orderId, accessToken]);
 
-    const [timeAgoStr, setTimeAgoStr] = useState('LIVE');
+  const [timeAgoStr, setTimeAgoStr] = useState('LIVE');
   useEffect(() => {
     const interval = setInterval(() => {
       const diffSec = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
       if (diffSec < 10) setTimeAgoStr('LIVE');
       else if (diffSec < 60) setTimeAgoStr(`Updating location...`);
-      else setTimeAgoStr(`Last updated ${Math.floor(diffSec/60)} min ago`);
+      else setTimeAgoStr(`Last updated ${Math.floor(diffSec / 60)} min ago`);
     }, 5000);
     return () => clearInterval(interval);
   }, [lastUpdate]);
@@ -136,7 +146,9 @@ export default function LiveOrderTrackingPage() {
       <div className="mx-auto max-w-xl px-4 py-10 text-center space-y-4">
         <AlertCircle className="h-12 w-12 mx-auto text-rose-500" />
         <h2 className="text-2xl font-black text-gray-900">Order Not Found</h2>
-        <p className="text-xs text-gray-500">We couldn't locate this order or you do not have permission to view it.</p>
+        <p className="text-xs text-gray-500">
+          We couldn't locate this order or you do not have permission to view it.
+        </p>
         <button
           onClick={() => router.push('/orders')}
           className="inline-flex items-center gap-1.5 rounded-2xl bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-lg hover:bg-orange-700"
@@ -147,13 +159,10 @@ export default function LiveOrderTrackingPage() {
     );
   }
 
-
   const deliveryAddress = order.deliveryAddress || {};
   const restaurantLat = order.restaurant?.latitude ? Number(order.restaurant.latitude) : 0;
   const restaurantLng = order.restaurant?.longitude ? Number(order.restaurant.longitude) : 0;
 
-
-  
   const handleRecenter = () => {
     window.dispatchEvent(new Event('recenter-rider'));
   };
@@ -163,8 +172,6 @@ export default function LiveOrderTrackingPage() {
 
   const currentDriverLat = driverLoc?.lat;
   const currentDriverLng = driverLoc?.lng;
-
-  
 
   const isDriverAssigned = Boolean(order.assignedRestaurantDriver);
   const driverName = isDriverAssigned
@@ -181,10 +188,10 @@ export default function LiveOrderTrackingPage() {
           order.status === 'DELIVERED'
             ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
             : isDriverAssigned && driverLoc
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-            : isDriverAssigned
-            ? 'bg-blue-50 border-blue-200 text-blue-900'
-            : 'bg-amber-50 border-amber-200 text-amber-900'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : isDriverAssigned
+                ? 'bg-blue-50 border-blue-200 text-blue-900'
+                : 'bg-amber-50 border-amber-200 text-amber-900'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -193,10 +200,10 @@ export default function LiveOrderTrackingPage() {
               order.status === 'DELIVERED'
                 ? 'bg-emerald-600'
                 : isDriverAssigned && driverLoc
-                ? 'bg-emerald-600'
-                : isDriverAssigned
-                ? 'bg-blue-600'
-                : 'bg-amber-600'
+                  ? 'bg-emerald-600'
+                  : isDriverAssigned
+                    ? 'bg-blue-600'
+                    : 'bg-amber-600'
             }`}
           >
             {order.status === 'DELIVERED' ? '✓' : isDriverAssigned ? '🚴' : '⏳'}
@@ -207,19 +214,19 @@ export default function LiveOrderTrackingPage() {
               {order.status === 'DELIVERED'
                 ? 'Order Delivered'
                 : isDriverAssigned && driverLoc
-                ? `Out for delivery with ${driverName}`
-                : isDriverAssigned
-                ? `Delivery partner assigned (${driverName})`
-                : 'Waiting for delivery partner'}
+                  ? `Out for delivery with ${driverName}`
+                  : isDriverAssigned
+                    ? `Delivery partner assigned (${driverName})`
+                    : 'Waiting for delivery partner'}
             </p>
             <p className="text-xs mt-0.5 opacity-90">
               {order.status === 'DELIVERED'
                 ? 'Thank you for ordering with ZaykaFood!'
                 : isDriverAssigned && driverLoc
-                ? 'Live location active on map below.'
-                : isDriverAssigned
-                ? 'Delivery partner assigned. Live location will appear shortly.'
-                : 'Kitchen is preparing your order. Partner will be assigned soon.'}
+                  ? 'Live location active on map below.'
+                  : isDriverAssigned
+                    ? 'Delivery partner assigned. Live location will appear shortly.'
+                    : 'Kitchen is preparing your order. Partner will be assigned soon.'}
             </p>
           </div>
         </div>
@@ -245,8 +252,14 @@ export default function LiveOrderTrackingPage() {
               Order #{order.orderNumber}
             </span>
             <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
-              <span className={`h-2 w-2 rounded-full ${!isSocketConnected ? 'bg-amber-500 animate-pulse' : timeAgoStr === 'LIVE' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-              {!isSocketConnected ? 'Reconnecting...' : timeAgoStr === 'LIVE' ? 'Live Socket Connected' : 'Rider location updating...'}
+              <span
+                className={`h-2 w-2 rounded-full ${!isSocketConnected ? 'bg-amber-500 animate-pulse' : timeAgoStr === 'LIVE' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              />
+              {!isSocketConnected
+                ? 'Reconnecting...'
+                : timeAgoStr === 'LIVE'
+                  ? 'Live Socket Connected'
+                  : 'Rider location updating...'}
             </span>
           </div>
           <h1 className="text-2xl font-black text-gray-900 mt-1">Live Delivery Tracking</h1>
@@ -265,7 +278,9 @@ export default function LiveOrderTrackingPage() {
             <Clock className="h-5 w-5 animate-spin text-emerald-600" />
             <div>
               <p className="text-[10px] uppercase font-bold text-emerald-600">Estimated Arrival</p>
-              <p className="text-base font-black">{serverEtaMins ? `${serverEtaMins} Minutes` : 'Calculating...'}</p>
+              <p className="text-base font-black">
+                {serverEtaMins ? `${serverEtaMins} Minutes` : 'Calculating...'}
+              </p>
             </div>
           </div>
         ) : (
@@ -278,8 +293,6 @@ export default function LiveOrderTrackingPage() {
           </div>
         )}
       </div>
-
-
 
       {/* Main Grid: Interactive Map & Progress Timeline */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -307,10 +320,20 @@ export default function LiveOrderTrackingPage() {
               <div>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
-                    order.status === 'DELIVERED' ? 'bg-gray-100 text-gray-800' : isDriverAssigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    order.status === 'DELIVERED'
+                      ? 'bg-gray-100 text-gray-800'
+                      : isDriverAssigned
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
                   }`}
                 >
-                  {order.status === 'DELIVERED' ? 'Delivery Completed' : isDriverAssigned ? (distanceKm ? `${distanceKm.toFixed(1)} km away` : 'Active Courier') : 'Searching for Courier'}
+                  {order.status === 'DELIVERED'
+                    ? 'Delivery Completed'
+                    : isDriverAssigned
+                      ? distanceKm
+                        ? `${distanceKm.toFixed(1)} km away`
+                        : 'Active Courier'
+                      : 'Searching for Courier'}
                 </span>
                 <h3 className="text-base font-black text-gray-900 mt-1">{driverName}</h3>
                 <p className="text-xs text-gray-500">
@@ -350,11 +373,17 @@ export default function LiveOrderTrackingPage() {
             </div>
 
             <div className="space-y-2 text-xs">
-              <p className="font-bold text-gray-900 uppercase tracking-wider text-[10px]">Order Items</p>
+              <p className="font-bold text-gray-900 uppercase tracking-wider text-[10px]">
+                Order Items
+              </p>
               {(order.orderItems || []).map((item: any) => (
                 <div key={item.id} className="flex justify-between text-gray-700 font-medium">
-                  <span>{item.quantity}x {item.foodItem?.name || item.name}</span>
-                  <span className="font-bold text-gray-900">₹{Number(item.totalPrice).toFixed(2)}</span>
+                  <span>
+                    {item.quantity}x {item.foodItem?.name || item.name}
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    ₹{Number(item.totalPrice).toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>

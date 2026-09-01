@@ -30,7 +30,11 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getFinanceOverview(periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getFinanceOverview(
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Get(['weekly', 'restaurants'])
@@ -41,7 +45,11 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getWeeklyRestaurantSettlements(periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getWeeklyRestaurantSettlements(
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Get('restaurant/:restaurantId/detail')
@@ -55,12 +63,21 @@ export class SettlementsController {
     @CurrentUser() user?: any,
   ) {
     if (user?.role === 'RESTAURANT_OWNER') {
-      const owns = user.restaurantId === restaurantId || (user.id && await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id));
+      const owns =
+        user.restaurantId === restaurantId ||
+        (user.id && (await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id)));
       if (!owns) {
-        throw new ForbiddenException('Access denied. You can only view settlements for your own restaurant.');
+        throw new ForbiddenException(
+          'Access denied. You can only view settlements for your own restaurant.',
+        );
       }
     }
-    return this.settlementsService.getRestaurantSettlementDetail(restaurantId, periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getRestaurantSettlementDetail(
+      restaurantId,
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Post(['restaurant/:restaurantId/record-payment', 'restaurant/:restaurantId/payout'])
@@ -68,7 +85,8 @@ export class SettlementsController {
   @ApiOperation({ summary: 'Record manual settlement payment for a restaurant' })
   async recordRestaurantPayment(
     @Param('restaurantId') restaurantId: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       amount: number;
       paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
       transactionReference: string;
@@ -90,9 +108,13 @@ export class SettlementsController {
     @CurrentUser() user?: any,
   ) {
     if (user?.role === 'RESTAURANT_OWNER') {
-      const owns = user.restaurantId === restaurantId || (user.id && await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id));
+      const owns =
+        user.restaurantId === restaurantId ||
+        (user.id && (await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id)));
       if (!owns) {
-        throw new ForbiddenException('Access denied. You can only view settlement history for your own restaurant.');
+        throw new ForbiddenException(
+          'Access denied. You can only view settlement history for your own restaurant.',
+        );
       }
     }
     return this.settlementsService.getSettlementHistory(restaurantId);
@@ -106,7 +128,11 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getRiderSettlements(periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getRiderSettlements(
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Get('rider/:driverId/detail')
@@ -118,7 +144,12 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getRiderSettlementDetail(driverId, periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getRiderSettlementDetail(
+      driverId,
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Post('rider/:driverId/record-payment')
@@ -126,7 +157,8 @@ export class SettlementsController {
   @ApiOperation({ summary: 'Record manual settlement payment for a delivery partner' })
   async recordRiderPayment(
     @Param('driverId') driverId: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       amount: number;
       paymentMethod: 'BANK_TRANSFER' | 'UPI' | 'OTHER';
       transactionReference: string;
@@ -148,7 +180,11 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getUnifiedTransactions(periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getUnifiedTransactions(
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 
   @Get('audit-logs')
@@ -166,6 +202,10 @@ export class SettlementsController {
     @Query('customStart') customStart?: string,
     @Query('customEnd') customEnd?: string,
   ) {
-    return this.settlementsService.getReconciliationReport(periodType || 'current', customStart, customEnd);
+    return this.settlementsService.getReconciliationReport(
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
   }
 }

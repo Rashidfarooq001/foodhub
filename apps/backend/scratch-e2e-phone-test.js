@@ -42,7 +42,9 @@ async function testMatrix() {
   for (const t of testInputs) {
     const res = normalizeIndianPhone(t.input);
     const pass = res === t.expected;
-    console.log(`Input: "${t.input}" -> Normalized: "${res}" | Expected: "${t.expected}" | Result: ${pass ? 'PASS' : 'FAIL'}`);
+    console.log(
+      `Input: "${t.input}" -> Normalized: "${res}" | Expected: "${t.expected}" | Result: ${pass ? 'PASS' : 'FAIL'}`,
+    );
     if (!pass) throw new Error(`Normalization failed for ${t.input}`);
   }
 
@@ -132,7 +134,9 @@ async function testMatrix() {
     const isMatch = foundUser && foundUser.id === user.id;
     const isPass = await bcrypt.compare(rawPassword, foundUser.passwordHash);
 
-    console.log(`Login Attempt with "${input}" -> Found User ID: ${foundUser?.id} | Password Match: ${isPass} | Result: ${isMatch && isPass ? 'PASS' : 'FAIL'}`);
+    console.log(
+      `Login Attempt with "${input}" -> Found User ID: ${foundUser?.id} | Password Match: ${isPass} | Result: ${isMatch && isPass ? 'PASS' : 'FAIL'}`,
+    );
     if (!isMatch || !isPass) {
       throw new Error(`Login lookup failed for input "${input}"`);
     }

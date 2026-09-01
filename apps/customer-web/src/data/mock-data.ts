@@ -102,7 +102,14 @@ export interface ActiveOrderTrackingData {
   driverLat: number;
   driverLng: number;
   vehicleNumber: string;
-  status: 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP' | 'DRIVER_ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  status:
+    | 'PENDING'
+    | 'ACCEPTED'
+    | 'PREPARING'
+    | 'READY_FOR_PICKUP'
+    | 'DRIVER_ASSIGNED'
+    | 'OUT_FOR_DELIVERY'
+    | 'DELIVERED';
   etaMins: number;
   placedAt: string;
   items: { name: string; quantity: number; price: number }[];
@@ -110,7 +117,6 @@ export interface ActiveOrderTrackingData {
 }
 
 import { getImageUrl } from '@foodhub/config';
-
 
 export function safeNumber(val: any, defaultVal = 0): number {
   if (val === null || val === undefined) return defaultVal;
@@ -159,7 +165,13 @@ export function normalizeRestaurantData(
         ? item.variants.map((v: any) => ({
             id: String(v.id),
             variantName: String(v.variantName || v.name),
-            price: safeNumber(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : item.price)),
+            price: safeNumber(
+              v.price !== undefined
+                ? v.price
+                : v.priceModifier !== undefined
+                  ? v.priceModifier
+                  : item.price,
+            ),
             isAvailable: v.isAvailable !== false,
             displayOrder: safeNumber(v.displayOrder, 0),
           }))
@@ -187,13 +199,19 @@ export function normalizeRestaurantData(
           ? item.variants.map((v: any) => ({
               id: String(v.id),
               variantName: String(v.variantName || v.name),
-              price: safeNumber(v.price !== undefined ? v.price : (v.priceModifier !== undefined ? v.priceModifier : item.price)),
+              price: safeNumber(
+                v.price !== undefined
+                  ? v.price
+                  : v.priceModifier !== undefined
+                    ? v.priceModifier
+                    : item.price,
+              ),
               isAvailable: v.isAvailable !== false,
               displayOrder: safeNumber(v.displayOrder, 0),
             }))
           : [],
         addonGroups: Array.isArray(item.addonGroups) ? item.addonGroups : [],
-      }))
+      })),
     );
   }
 
@@ -201,13 +219,21 @@ export function normalizeRestaurantData(
   if (Array.isArray(r.cuisines) && r.cuisines.length > 0) {
     cuisines = r.cuisines;
   } else if (typeof r.cuisines === 'string' && r.cuisines.trim()) {
-    cuisines = r.cuisines.split(',').map((c: string) => c.trim()).filter(Boolean);
+    cuisines = r.cuisines
+      .split(',')
+      .map((c: string) => c.trim())
+      .filter(Boolean);
   } else if (typeof r.cuisine === 'string' && r.cuisine.trim()) {
-    cuisines = r.cuisine.split(',').map((c: string) => c.trim()).filter(Boolean);
+    cuisines = r.cuisine
+      .split(',')
+      .map((c: string) => c.trim())
+      .filter(Boolean);
   }
 
   const avgRatingVal = r.avgRating ? safeNumber(r.avgRating) : 0;
-  const ratingCountVal = r.ratingCount ? safeNumber(r.ratingCount) : (r._count?.reviews || (Array.isArray(r.reviews) ? r.reviews.length : 0));
+  const ratingCountVal = r.ratingCount
+    ? safeNumber(r.ratingCount)
+    : r._count?.reviews || (Array.isArray(r.reviews) ? r.reviews.length : 0);
 
   // 1. Calculate priceForTwo from backend or average food item prices
   let priceForTwo: number | undefined = undefined;
@@ -232,7 +258,11 @@ export function normalizeRestaurantData(
     distanceKm = Math.round(safeNumber(r.distanceKm) * 10) / 10;
   }
 
-  if (r.deliveryTimeMins !== undefined && r.deliveryTimeMins !== null && safeNumber(r.deliveryTimeMins) > 0) {
+  if (
+    r.deliveryTimeMins !== undefined &&
+    r.deliveryTimeMins !== null &&
+    safeNumber(r.deliveryTimeMins) > 0
+  ) {
     deliveryTimeMins = safeNumber(r.deliveryTimeMins);
   } else if (distanceKm !== undefined && distanceKm !== null) {
     deliveryTimeMins = Math.max(15, Math.round(20 + distanceKm * 3));
@@ -251,8 +281,12 @@ export function normalizeRestaurantData(
     deliveryRadius: r.deliveryRadius ? safeNumber(r.deliveryRadius) : 15.0,
     distanceKm,
     priceForTwo,
-    bannerUrl: r.bannerUrl ? getImageUrl(r.bannerUrl) : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=70',
-    logoUrl: r.logoUrl ? getImageUrl(r.logoUrl) : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=70',
+    bannerUrl: r.bannerUrl
+      ? getImageUrl(r.bannerUrl)
+      : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=70',
+    logoUrl: r.logoUrl
+      ? getImageUrl(r.logoUrl)
+      : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=70',
     isOpen: r.isOpen ?? true,
     fssaiLicense: r.licenseFssai || r.fssaiLicense || '',
     discountBadge: r.discountBadge || '',
@@ -261,4 +295,3 @@ export function normalizeRestaurantData(
     foodItems,
   };
 }
-

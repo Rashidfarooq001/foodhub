@@ -9,8 +9,15 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
 
   useEffect(() => {
     setMounted(true);
-    const saved = typeof window !== 'undefined' ? (localStorage.getItem('foodhub-theme') as 'light' | 'dark' | null) : null;
-    const initial = saved || (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const saved =
+      typeof window !== 'undefined'
+        ? (localStorage.getItem('foodhub-theme') as 'light' | 'dark' | null)
+        : null;
+    const initial =
+      saved ||
+      (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light');
     setTheme(initial);
     if (initial === 'dark') {
       document.documentElement.classList.add('dark');

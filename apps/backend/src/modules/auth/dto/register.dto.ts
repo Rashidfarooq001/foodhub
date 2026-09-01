@@ -27,12 +27,18 @@ export class RegisterDto {
   @IsString()
   email?: string;
 
-  @ApiPropertyOptional({ example: '123 Mg Road, Indiranagar, Bengaluru', description: 'Customer default delivery address' })
+  @ApiPropertyOptional({
+    example: '123 Mg Road, Indiranagar, Bengaluru',
+    description: 'Customer default delivery address',
+  })
   @IsOptional()
   @IsString()
   address?: string;
 
-  @ApiProperty({ example: true, description: 'Explicit acceptance of Terms & Conditions and Privacy Policy' })
+  @ApiProperty({
+    example: true,
+    description: 'Explicit acceptance of Terms & Conditions and Privacy Policy',
+  })
   @IsOptional()
   termsAccepted?: boolean;
 }

@@ -47,7 +47,10 @@ export class AdminResetPasswordDto {
 }
 
 export class AdminChangeSecurityQuestionsDto {
-  @ApiProperty({ example: '9999888877776666', description: 'Current Admin Password 1 for verification' })
+  @ApiProperty({
+    example: '9999888877776666',
+    description: 'Current Admin Password 1 for verification',
+  })
   @IsString()
   @IsNotEmpty()
   currentPassword1!: string;

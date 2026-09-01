@@ -13,7 +13,12 @@ async function runCommissionAuditTest() {
   const taxEngine = new TaxEngineService();
   const pricingService = new PricingService(prisma as any);
   const distanceService = new DistanceService(prisma as any);
-  const quoteService = new OrderQuoteService(prisma as any, taxEngine, pricingService, distanceService);
+  const quoteService = new OrderQuoteService(
+    prisma as any,
+    taxEngine,
+    pricingService,
+    distanceService,
+  );
 
   try {
     // 1. Ensure Global PricingConfig is configured with delivery ₹15, platform ₹3, and NULL commission fallback
@@ -127,7 +132,11 @@ async function runCommissionAuditTest() {
       customerTotal: quoteB.customerTotal,
       restaurantSettlement: quoteB.restaurantSettlement,
     });
-    if (quoteB.commissionStatus !== 'CONFIGURED' || quoteB.commissionRate !== 0 || quoteB.restaurantCommission !== 0) {
+    if (
+      quoteB.commissionStatus !== 'CONFIGURED' ||
+      quoteB.commissionRate !== 0 ||
+      quoteB.restaurantCommission !== 0
+    ) {
       throw new Error('FAIL: Restaurant B should be CONFIGURED (0%) with ₹0 commission');
     }
 
@@ -144,7 +153,11 @@ async function runCommissionAuditTest() {
       customerTotal: quoteC.customerTotal,
       restaurantSettlement: quoteC.restaurantSettlement,
     });
-    if (quoteC.commissionStatus !== 'CONFIGURED' || quoteC.commissionRate !== 15 || quoteC.restaurantCommission !== 75) {
+    if (
+      quoteC.commissionStatus !== 'CONFIGURED' ||
+      quoteC.commissionRate !== 15 ||
+      quoteC.restaurantCommission !== 75
+    ) {
       throw new Error('FAIL: Restaurant C should be CONFIGURED (15%) with ₹75 commission on ₹500');
     }
 
@@ -177,7 +190,9 @@ async function runCommissionAuditTest() {
         } as any,
       },
     });
-    console.log(`Order #1 Created with snapshot: Commission Rate = ${(order1.pricingSnapshot as any).commissionRate}%, Commission Amount = ₹${(order1.pricingSnapshot as any).commissionAmount}`);
+    console.log(
+      `Order #1 Created with snapshot: Commission Rate = ${(order1.pricingSnapshot as any).commissionRate}%, Commission Amount = ₹${(order1.pricingSnapshot as any).commissionAmount}`,
+    );
 
     // 7. Update Restaurant C to 20% in database
     console.log('\nSTEP 5: Admin changes Restaurant C commission from 15% to 20%...');
@@ -246,8 +261,12 @@ async function runCommissionAuditTest() {
     const snap1 = fetchedOrder1!.pricingSnapshot as any;
     const snap2 = fetchedOrder2!.pricingSnapshot as any;
 
-    console.log(`Historical Order #1 Snapshot: Commission Rate = ${snap1.commissionRate}%, Commission Amount = ₹${snap1.commissionAmount}`);
-    console.log(`New Order #2 Snapshot:        Commission Rate = ${snap2.commissionRate}%, Commission Amount = ₹${snap2.commissionAmount}`);
+    console.log(
+      `Historical Order #1 Snapshot: Commission Rate = ${snap1.commissionRate}%, Commission Amount = ₹${snap1.commissionAmount}`,
+    );
+    console.log(
+      `New Order #2 Snapshot:        Commission Rate = ${snap2.commissionRate}%, Commission Amount = ₹${snap2.commissionAmount}`,
+    );
 
     if (snap1.commissionRate !== 15 || snap1.commissionAmount !== 75) {
       throw new Error('FAIL: Historical Order #1 snapshot was corrupted or recalculated!');

@@ -59,21 +59,26 @@ export class PricingService {
         this.prisma.systemSetting.findUnique({ where: { key: 'PLATFORM_BRAND_TITLE' } }),
       ]);
 
-      const baseConfig = configRecord ? {
-        restaurantCommissionPercent: configRecord.restaurantCommissionPercent != null ? Number(configRecord.restaurantCommissionPercent) : null,
-        customerDeliveryPerKm: Number(configRecord.customerDeliveryPerKm),
-        minimumCustomerDeliveryFee: Number(configRecord.minimumCustomerDeliveryFee),
-        platformFee: Number(configRecord.platformFee),
-        smallOrderThreshold: Number(configRecord.smallOrderThreshold),
-        smallOrderFee: Number(configRecord.smallOrderFee),
-        riderBasePay: Number(configRecord.riderBasePay),
-        riderPerKmPay: Number(configRecord.riderPerKmPay),
-        riderWaitingPay: Number(configRecord.riderWaitingPay),
-        riderPeakBonus: Number(configRecord.riderPeakBonus),
-        riderLongDistanceBonus: Number(configRecord.riderLongDistanceBonus),
-        riderBatchBonus: Number(configRecord.riderBatchBonus),
-        paymentGatewayPlanningRate: Number(configRecord.paymentGatewayPlanningRate ?? 2.0),
-      } : DEFAULT_PRICING_CONFIG;
+      const baseConfig = configRecord
+        ? {
+            restaurantCommissionPercent:
+              configRecord.restaurantCommissionPercent != null
+                ? Number(configRecord.restaurantCommissionPercent)
+                : null,
+            customerDeliveryPerKm: Number(configRecord.customerDeliveryPerKm),
+            minimumCustomerDeliveryFee: Number(configRecord.minimumCustomerDeliveryFee),
+            platformFee: Number(configRecord.platformFee),
+            smallOrderThreshold: Number(configRecord.smallOrderThreshold),
+            smallOrderFee: Number(configRecord.smallOrderFee),
+            riderBasePay: Number(configRecord.riderBasePay),
+            riderPerKmPay: Number(configRecord.riderPerKmPay),
+            riderWaitingPay: Number(configRecord.riderWaitingPay),
+            riderPeakBonus: Number(configRecord.riderPeakBonus),
+            riderLongDistanceBonus: Number(configRecord.riderLongDistanceBonus),
+            riderBatchBonus: Number(configRecord.riderBatchBonus),
+            paymentGatewayPlanningRate: Number(configRecord.paymentGatewayPlanningRate ?? 2.0),
+          }
+        : DEFAULT_PRICING_CONFIG;
 
       this.cachedConfig = {
         ...baseConfig,
@@ -89,11 +94,14 @@ export class PricingService {
     }
   }
 
-  async updatePricingConfig(dto: Partial<PricingConfigDto>, userId?: string): Promise<PricingConfigDto> {
+  async updatePricingConfig(
+    dto: Partial<PricingConfigDto>,
+    userId?: string,
+  ): Promise<PricingConfigDto> {
     const current = await this.getActivePricingConfig();
     const updated: PricingConfigDto = {
       ...current,
-      ...dto
+      ...dto,
     };
 
     // 1. Save core pricing
@@ -132,16 +140,19 @@ export class PricingService {
     if (dto.foodGstRate !== undefined && dto.foodGstRate !== current.foodGstRate) {
       await this.prisma.taxRule.updateMany({
         where: { code: 'RESTAURANT_FOOD_SERVICE' },
-        data: { rate: dto.foodGstRate }
+        data: { rate: dto.foodGstRate },
       });
     }
 
     // 3. Save System Setting for Brand Title if changed
-    if (dto.platformBrandTitle !== undefined && dto.platformBrandTitle !== current.platformBrandTitle) {
+    if (
+      dto.platformBrandTitle !== undefined &&
+      dto.platformBrandTitle !== current.platformBrandTitle
+    ) {
       await this.prisma.systemSetting.upsert({
         where: { key: 'PLATFORM_BRAND_TITLE' },
         update: { value: dto.platformBrandTitle },
-        create: { key: 'PLATFORM_BRAND_TITLE', value: dto.platformBrandTitle }
+        create: { key: 'PLATFORM_BRAND_TITLE', value: dto.platformBrandTitle },
       });
     }
 

@@ -20,15 +20,15 @@ Frontends (Admin, Hotel, Delivery Dashboards)
 
 ### API Endpoints
 
-| Method | Endpoint | Description | Guard / Role |
-|---|---|---|---|
-| `GET` | `/api/v1/analytics/admin` | Full platform KPI dashboard & peak hour | `JwtAuthGuard` + `ADMIN` |
-| `GET` | `/api/v1/analytics/admin/revenue` | Daily revenue breakdown | `JwtAuthGuard` + `ADMIN` |
-| `GET` | `/api/v1/analytics/restaurant/:id` | Restaurant sales, top items & prep time | `JwtAuthGuard` |
-| `GET` | `/api/v1/analytics/driver/:id` | Driver earnings, acceptance & completion rates | `JwtAuthGuard` |
-| `GET` | `/api/v1/analytics/customer` | Customer order count, total spend & fav rest | `JwtAuthGuard` |
-| `GET` | `/api/v1/analytics/sales` | Filtered sales report by date range | `JwtAuthGuard` + `ADMIN` |
-| `GET` | `/api/v1/analytics/export` | Export CSV (`orders`, `revenue`, `customers`, `restaurants`) | `JwtAuthGuard` + `ADMIN` |
+| Method | Endpoint                           | Description                                                  | Guard / Role             |
+| ------ | ---------------------------------- | ------------------------------------------------------------ | ------------------------ |
+| `GET`  | `/api/v1/analytics/admin`          | Full platform KPI dashboard & peak hour                      | `JwtAuthGuard` + `ADMIN` |
+| `GET`  | `/api/v1/analytics/admin/revenue`  | Daily revenue breakdown                                      | `JwtAuthGuard` + `ADMIN` |
+| `GET`  | `/api/v1/analytics/restaurant/:id` | Restaurant sales, top items & prep time                      | `JwtAuthGuard`           |
+| `GET`  | `/api/v1/analytics/driver/:id`     | Driver earnings, acceptance & completion rates               | `JwtAuthGuard`           |
+| `GET`  | `/api/v1/analytics/customer`       | Customer order count, total spend & fav rest                 | `JwtAuthGuard`           |
+| `GET`  | `/api/v1/analytics/sales`          | Filtered sales report by date range                          | `JwtAuthGuard` + `ADMIN` |
+| `GET`  | `/api/v1/analytics/export`         | Export CSV (`orders`, `revenue`, `customers`, `restaurants`) | `JwtAuthGuard` + `ADMIN` |
 
 ---
 
@@ -80,12 +80,12 @@ Frontends (Admin, Hotel, Delivery Dashboards)
 
 ## SYSTEM HEALTH & MONITORING (`/health`)
 
-| Endpoint | Probe Type | Description |
-|---|---|---|
-| `GET /health` | Liveness | Basic API uptime, RSS & Heap memory stats |
-| `GET /health/db` | Sub-check | Executes `SELECT 1` on PostgreSQL via Prisma |
-| `GET /health/redis` | Sub-check | Sets and reads test key in Redis Cache |
-| `GET /health/ready` | Readiness | Combined DB + Redis readiness probe for Kubernetes |
+| Endpoint            | Probe Type | Description                                        |
+| ------------------- | ---------- | -------------------------------------------------- |
+| `GET /health`       | Liveness   | Basic API uptime, RSS & Heap memory stats          |
+| `GET /health/db`    | Sub-check  | Executes `SELECT 1` on PostgreSQL via Prisma       |
+| `GET /health/redis` | Sub-check  | Sets and reads test key in Redis Cache             |
+| `GET /health/ready` | Readiness  | Combined DB + Redis readiness probe for Kubernetes |
 
 ---
 

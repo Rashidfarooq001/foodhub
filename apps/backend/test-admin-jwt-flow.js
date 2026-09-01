@@ -39,8 +39,14 @@ async function main() {
 
   // Create valid JWT signed with backend secret
   const token = signJwt(
-    { sub: admin.id, phone: admin.phone, role: admin.role, sessionId: 'diag-session-123', exp: Math.floor(Date.now() / 1000) + 3600 },
-    JWT_SECRET
+    {
+      sub: admin.id,
+      phone: admin.phone,
+      role: admin.role,
+      sessionId: 'diag-session-123',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    },
+    JWT_SECRET,
   );
 
   console.log(`- Signed Admin JWT Token: ${token.slice(0, 30)}...`);
@@ -56,7 +62,7 @@ async function main() {
   // 2. Upload test image using native Blob & FormData
   const imgBuffer = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
   const blob = new Blob([imgBuffer], { type: 'image/png' });
   const form = new globalThis.FormData();
@@ -90,7 +96,9 @@ async function main() {
 
     // 4. Test image retrieval from live URL
     const imgFetch = await fetch(newAvatarUrl);
-    console.log(`- Image Fetch Status: ${imgFetch.status}, Content-Type: ${imgFetch.headers.get('content-type')}`);
+    console.log(
+      `- Image Fetch Status: ${imgFetch.status}, Content-Type: ${imgFetch.headers.get('content-type')}`,
+    );
   }
 }
 

@@ -13,7 +13,9 @@ export default function ForgotPasswordPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
         <div className="w-full max-w-md text-center space-y-6 rounded-3xl bg-white p-8 shadow-2xl">
           <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-900">Password Reset Temporarily Disabled</h1>
+            <h1 className="text-2xl font-black text-gray-900">
+              Password Reset Temporarily Disabled
+            </h1>
             <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
               Password reset workflows are temporarily hidden during active development.
             </p>
@@ -40,14 +42,9 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+        <h1 className="text-3xl font-bold text-center">Forgot Password</h1>
 
-        <h1 className="text-3xl font-bold text-center">
-          Forgot Password
-        </h1>
-
-        <p className="mt-2 text-center text-gray-500">
-          Reset your administrator password
-        </p>
+        <p className="mt-2 text-center text-gray-500">Reset your administrator password</p>
 
         {step === 1 && (
           <>
@@ -85,9 +82,7 @@ export default function ForgotPasswordPage() {
               Verify OTP
             </button>
 
-            <button className="mt-4 w-full text-sm text-purple-600">
-              Resend OTP
-            </button>
+            <button className="mt-4 w-full text-sm text-purple-600">Resend OTP</button>
           </>
         )}
 
@@ -109,9 +104,7 @@ export default function ForgotPasswordPage() {
               className="mt-4 w-full rounded-xl border p-3"
             />
 
-            <button
-              className="mt-6 w-full rounded-xl bg-purple-600 py-3 text-white"
-            >
+            <button className="mt-6 w-full rounded-xl bg-purple-600 py-3 text-white">
               Reset Password
             </button>
           </>
@@ -123,7 +116,6 @@ export default function ForgotPasswordPage() {
         >
           Back to Login
         </button>
-
       </div>
     </div>
   );

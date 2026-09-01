@@ -170,7 +170,9 @@ export default function AdminAnalyticsPage() {
         {/* Today Revenue */}
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">TODAY GMV</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">
+              TODAY GMV
+            </span>
             <DollarSign className="h-6 w-6 rounded-xl bg-purple-50 p-1.5 text-purple-600" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
@@ -184,12 +186,12 @@ export default function AdminAnalyticsPage() {
         {/* Today Orders */}
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">TODAY ORDERS</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">
+              TODAY ORDERS
+            </span>
             <ShoppingBag className="h-6 w-6 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
           </div>
-          <div className="text-lg sm:text-2xl font-black text-gray-900">
-            {kpis.todayOrders}
-          </div>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">{kpis.todayOrders}</div>
           <span className="text-[10px] text-gray-400 font-semibold block truncate">
             Platform volume
           </span>
@@ -198,7 +200,9 @@ export default function AdminAnalyticsPage() {
         {/* Commission */}
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800">COMMISSION ({timeRange})</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800">
+              COMMISSION ({timeRange})
+            </span>
             <TrendingUp className="h-6 w-6 rounded-xl bg-emerald-100 p-1.5 text-emerald-700" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
@@ -212,12 +216,16 @@ export default function AdminAnalyticsPage() {
         {/* Ecosystem */}
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800">ECOSYSTEM</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800">
+              ECOSYSTEM
+            </span>
             <Users className="h-6 w-6 rounded-xl bg-amber-100 p-1.5 text-amber-700" />
           </div>
           <div className="text-sm sm:text-base font-black text-amber-950 pt-0.5 space-y-0.5">
             <div>{kpis.activeRestaurants} Stores</div>
-            <div className="text-[11px] text-amber-800 font-bold">{kpis.onlineDrivers} Riders Online</div>
+            <div className="text-[11px] text-amber-800 font-bold">
+              {kpis.onlineDrivers} Riders Online
+            </div>
           </div>
         </div>
       </div>
@@ -240,23 +248,39 @@ export default function AdminAnalyticsPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
           <div className="p-3 rounded-xl bg-white border border-teal-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-gray-400 uppercase block">Gross Collections</span>
-            <span className="text-base sm:text-lg font-black text-gray-900">₹{kpis.periodRevenue.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] font-bold text-gray-400 uppercase block">
+              Gross Collections
+            </span>
+            <span className="text-base sm:text-lg font-black text-gray-900">
+              ₹{kpis.periodRevenue.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="p-3 rounded-xl bg-white border border-teal-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-teal-700 uppercase block">Statutory GST</span>
-            <span className="text-base sm:text-lg font-black text-teal-800">₹{kpis.statutoryGst.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] font-bold text-teal-700 uppercase block">
+              Statutory GST
+            </span>
+            <span className="text-base sm:text-lg font-black text-teal-800">
+              ₹{kpis.statutoryGst.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="p-3 rounded-xl bg-white border border-teal-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-purple-700 uppercase block">Net Revenue</span>
-            <span className="text-base sm:text-lg font-black text-purple-900">₹{kpis.foodhubNetRevenue.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] font-bold text-purple-700 uppercase block">
+              Net Revenue
+            </span>
+            <span className="text-base sm:text-lg font-black text-purple-900">
+              ₹{kpis.foodhubNetRevenue.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="p-3 rounded-xl bg-white border border-teal-100 space-y-0.5">
-            <span className="text-[9px] font-bold text-emerald-700 uppercase block">Contribution Margin</span>
-            <span className="text-base sm:text-lg font-black text-emerald-800">₹{kpis.platformContributionMargin.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] font-bold text-emerald-700 uppercase block">
+              Contribution Margin
+            </span>
+            <span className="text-base sm:text-lg font-black text-emerald-800">
+              ₹{kpis.platformContributionMargin.toLocaleString('en-IN')}
+            </span>
           </div>
         </div>
       </div>
@@ -269,7 +293,9 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-sm sm:text-base font-black text-gray-900">
               Gross Revenue &amp; Order Trend ({timeRange})
             </h3>
-            <p className="text-[10px] sm:text-xs text-gray-400">Daily gross turnover and completed order volume</p>
+            <p className="text-[10px] sm:text-xs text-gray-400">
+              Daily gross turnover and completed order volume
+            </p>
           </div>
           <div className="h-56 sm:h-72 w-full">
             {revenueTrend.length === 0 ? (
@@ -288,7 +314,14 @@ export default function AdminAnalyticsPage() {
                   <XAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
                   <YAxis stroke="#9ca3af" fontSize={10} />
                   <Tooltip />
-                  <Area type="monotone" dataKey="revenue" stroke="#9333ea" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#9333ea"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#colorRev)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -299,17 +332,29 @@ export default function AdminAnalyticsPage() {
         <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-3 flex flex-col justify-between">
           <div>
             <h3 className="text-sm sm:text-base font-black text-gray-900">Category Share</h3>
-            <p className="text-[10px] sm:text-xs text-gray-400">Order turnover across food categories</p>
+            <p className="text-[10px] sm:text-xs text-gray-400">
+              Order turnover across food categories
+            </p>
           </div>
           <div className="h-48 sm:h-56 w-full">
-            {categoryDistribution.length === 0 || categoryDistribution.every((c) => c.value === 0) ? (
+            {categoryDistribution.length === 0 ||
+            categoryDistribution.every((c) => c.value === 0) ? (
               <div className="h-full flex items-center justify-center text-xs font-bold text-gray-400">
                 No category sales recorded yet
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={categoryDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4}>
+                  <Pie
+                    data={categoryDistribution}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={4}
+                  >
                     {categoryDistribution.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -321,12 +366,20 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="space-y-1 pt-2">
             {categoryDistribution.slice(0, 4).map((cat) => (
-              <div key={cat.name} className="flex items-center justify-between text-xs font-semibold">
+              <div
+                key={cat.name}
+                className="flex items-center justify-between text-xs font-semibold"
+              >
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: cat.color }}
+                  />
                   <span className="text-gray-700 truncate">{cat.name}</span>
                 </div>
-                <span className="text-gray-900 font-bold">₹{cat.value.toLocaleString('en-IN')}</span>
+                <span className="text-gray-900 font-bold">
+                  ₹{cat.value.toLocaleString('en-IN')}
+                </span>
               </div>
             ))}
           </div>
@@ -337,7 +390,9 @@ export default function AdminAnalyticsPage() {
       <div className="rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-3">
         <div>
           <h3 className="text-sm sm:text-base font-black text-gray-900">Peak Ordering Hours</h3>
-          <p className="text-[10px] sm:text-xs text-gray-400">Hourly order load distribution across peak lunch and dinner hours</p>
+          <p className="text-[10px] sm:text-xs text-gray-400">
+            Hourly order load distribution across peak lunch and dinner hours
+          </p>
         </div>
         <div className="h-52 sm:h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">

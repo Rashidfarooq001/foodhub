@@ -18,7 +18,8 @@ async function checkUrl(url) {
 
 async function main() {
   console.log('=== CHECKING RENDER BACKEND UPLOADS ACCESSIBILITY ===\n');
-  const targetUrl = 'https://foodhub-backend-enq2.onrender.com/uploads/file-1786418341995-927432595.jpg';
+  const targetUrl =
+    'https://foodhub-backend-enq2.onrender.com/uploads/file-1786418341995-927432595.jpg';
   const status = await checkUrl(targetUrl);
 
   console.log(`\nFinal HTTP Status: ${status}`);

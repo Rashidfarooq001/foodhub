@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { Plus, Image, CheckCircle2, Trash2, X } from 'lucide-react';
 
 export default function AdminCmsPage() {
-  const [banners, setBanners] = useState<Array<{ id: string; title: string; subtitle: string; active: boolean }>>([]);
+  const [banners, setBanners] = useState<
+    Array<{ id: string; title: string; subtitle: string; active: boolean }>
+  >([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
@@ -24,7 +26,9 @@ export default function AdminCmsPage() {
     }
   }, []);
 
-  const saveBanners = (updated: Array<{ id: string; title: string; subtitle: string; active: boolean }>) => {
+  const saveBanners = (
+    updated: Array<{ id: string; title: string; subtitle: string; active: boolean }>,
+  ) => {
     setBanners(updated);
     try {
       localStorage.setItem('zaykafood-cms-banners', JSON.stringify(updated));
@@ -87,37 +91,40 @@ export default function AdminCmsPage() {
         <div className="rounded-3xl border border-gray-100 bg-white p-12 text-center space-y-3">
           <Image className="mx-auto h-12 w-12 text-gray-300" />
           <p className="text-base font-bold text-gray-700">No active hero banners</p>
-          <p className="text-xs text-gray-400">Click &quot;Add Hero Banner&quot; above to create a promotional banner for the customer app homepage.</p>
+          <p className="text-xs text-gray-400">
+            Click &quot;Add Hero Banner&quot; above to create a promotional banner for the customer
+            app homepage.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {banners.map((b) => (
-          <div
-            key={b.id}
-            className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3 flex flex-col justify-between"
-          >
-            <div className="space-y-1.5">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm sm:text-base font-black text-gray-900">{b.title}</h3>
-                <button
-                  onClick={() => handleDeleteBanner(b.id)}
-                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                  title="Remove Banner"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+            <div
+              key={b.id}
+              className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-3 flex flex-col justify-between"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm sm:text-base font-black text-gray-900">{b.title}</h3>
+                  <button
+                    onClick={() => handleDeleteBanner(b.id)}
+                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                    title="Remove Banner"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">{b.subtitle}</p>
               </div>
-              <p className="text-xs text-gray-500">{b.subtitle}</p>
-            </div>
 
-            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-              <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-xl">
-                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                Active on Home Feed
-              </span>
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-xl">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                  Active on Home Feed
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       )}
 
@@ -137,7 +144,9 @@ export default function AdminCmsPage() {
 
             <form onSubmit={handleAddBanner} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Banner Headline *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Banner Headline *
+                </label>
                 <input
                   type="text"
                   required
@@ -149,7 +158,9 @@ export default function AdminCmsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Subtitle / Offer Description</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Subtitle / Offer Description
+                </label>
                 <input
                   type="text"
                   value={subtitle}

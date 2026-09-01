@@ -9,11 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 import { MenusService } from './menus.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -48,12 +44,7 @@ export class MenusController {
   ) {
     const actor = this.getActor(req);
     const targetRestId = restaurantId || actor.restaurantId;
-    return this.menusService.createCategory(
-      targetRestId,
-      name,
-      displayOrder,
-      actor,
-    );
+    return this.menusService.createCategory(targetRestId, name, displayOrder, actor);
   }
 
   @Public()
@@ -66,9 +57,7 @@ export class MenusController {
   @Public()
   @Get('categories/restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get all categories for a restaurant' })
-  async getRestaurantCategories(
-    @Param('restaurantId') restaurantId: string,
-  ) {
+  async getRestaurantCategories(@Param('restaurantId') restaurantId: string) {
     return this.menusService.findCategoriesByRestaurant(restaurantId);
   }
 
@@ -84,13 +73,7 @@ export class MenusController {
     @Request() req?: any,
   ) {
     const actor = this.getActor(req);
-    return this.menusService.updateCategory(
-      id,
-      name,
-      displayOrder,
-      isActive,
-      actor,
-    );
+    return this.menusService.updateCategory(id, name, displayOrder, isActive, actor);
   }
 
   @Delete(['categories/:id', ':id'])
@@ -106,10 +89,7 @@ export class MenusController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Reorder categories' })
-  async reorderCategories(
-    @Body('categoryIds') categoryIds: string[],
-    @Request() req?: any,
-  ) {
+  async reorderCategories(@Body('categoryIds') categoryIds: string[], @Request() req?: any) {
     const actor = this.getActor(req);
     return this.menusService.reorderCategories(categoryIds, actor);
   }
@@ -133,9 +113,7 @@ export class MenusController {
   @Public()
   @Get('restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get restaurant menu' })
-  async getRestaurantMenu(
-    @Param('restaurantId') restaurantId: string,
-  ) {
+  async getRestaurantMenu(@Param('restaurantId') restaurantId: string) {
     return this.menusService.findMenuByRestaurant(restaurantId);
   }
 
@@ -143,11 +121,7 @@ export class MenusController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update food item' })
-  async updateItem(
-    @Param('id') id: string,
-    @Body() dto: any,
-    @Request() req?: any,
-  ) {
+  async updateItem(@Param('id') id: string, @Body() dto: any, @Request() req?: any) {
     const actor = this.getActor(req);
     return this.menusService.updateFoodItem(id, dto, actor);
   }
@@ -180,11 +154,7 @@ export class MenusController {
     @Request() req?: any,
   ) {
     const actor = this.getActor(req);
-    return this.menusService.toggleAvailability(
-      id,
-      isAvailable,
-      actor,
-    );
+    return this.menusService.toggleAvailability(id, isAvailable, actor);
   }
 
   // ==================================================
@@ -234,10 +204,7 @@ export class MenusController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete a variant' })
-  async deleteVariant(
-    @Param('variantId') variantId: string,
-    @Request() req?: any,
-  ) {
+  async deleteVariant(@Param('variantId') variantId: string, @Request() req?: any) {
     const actor = this.getActor(req);
     return this.menusService.deleteVariant(variantId, actor);
   }

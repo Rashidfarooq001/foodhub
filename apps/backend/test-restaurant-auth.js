@@ -12,7 +12,9 @@ async function main() {
   const testFssai = 'FSSAI-E2E-TEST-999';
 
   // Cleanup pre-existing test data if any
-  const preUser = await prisma.user.findFirst({ where: { OR: [{ phone: testPhone }, { email: testEmail }] } });
+  const preUser = await prisma.user.findFirst({
+    where: { OR: [{ phone: testPhone }, { email: testEmail }] },
+  });
   if (preUser) {
     await prisma.restaurantStaff.deleteMany({ where: { userId: preUser.id } });
     await prisma.restaurantDocument.deleteMany({ where: { restaurant: { ownerId: preUser.id } } });
@@ -67,7 +69,9 @@ async function main() {
     },
   });
 
-  console.log(`✓ Registration created: User ID=${newUser.id}, Restaurant ID=${restaurant.id}, Status=${restaurant.status}`);
+  console.log(
+    `✓ Registration created: User ID=${newUser.id}, Restaurant ID=${restaurant.id}, Status=${restaurant.status}`,
+  );
 
   // 2. Test Login BEFORE Admin Approval (Expected: Pending Approval Block)
   console.log('\n2. Testing Login BEFORE Admin Approval...');
@@ -85,7 +89,9 @@ async function main() {
       isOpen: true,
     },
   });
-  console.log(`✓ Restaurant Approved: Status=${updatedRest.status}, isOpen=${updatedRest.isOpen} ✅`);
+  console.log(
+    `✓ Restaurant Approved: Status=${updatedRest.status}, isOpen=${updatedRest.isOpen} ✅`,
+  );
 
   // 4. Test Login AFTER Admin Approval with SAME Registration Password
   console.log('\n4. Testing Login AFTER Admin Approval using Registration Password...');
@@ -102,7 +108,9 @@ async function main() {
   const activeRest = foundUser.restaurantStaff[0]?.restaurant;
   if (activeRest.status !== 'APPROVED') throw new Error('Restaurant is not approved!');
 
-  console.log(`✓ LOGIN SUCCESSFUL! Authorized Owner: ${foundUser.profile.firstName} ${foundUser.profile.lastName}`);
+  console.log(
+    `✓ LOGIN SUCCESSFUL! Authorized Owner: ${foundUser.profile.firstName} ${foundUser.profile.lastName}`,
+  );
   console.log(`  Linked Approved Restaurant: ${activeRest.name} (ID: ${activeRest.id}) ✅`);
 
   // 5. Test Password Persistence (Password remains unchanged after approval)

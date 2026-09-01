@@ -95,7 +95,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (res && res.ok) {
       const data = await res.json().catch(() => []);
-      const restaurants = Array.isArray(data) ? data : data?.restaurants ?? [];
+      const restaurants = Array.isArray(data) ? data : (data?.restaurants ?? []);
 
       dynamicRestaurantRoutes = restaurants
         .filter(

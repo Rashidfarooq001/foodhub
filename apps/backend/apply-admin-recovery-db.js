@@ -39,7 +39,9 @@ async function main() {
 
   console.log(`✓ Admin User ${updatedAdmin.id} security question hashes provisioned! ✅`);
   console.log(`  DOB ('2005-01-01') Hash: ${updatedAdmin.adminDobHash.substring(0, 15)}...`);
-  console.log(`  Favorite Person ('reshi') Hash: ${updatedAdmin.adminFavoritePersonHash.substring(0, 15)}...`);
+  console.log(
+    `  Favorite Person ('reshi') Hash: ${updatedAdmin.adminFavoritePersonHash.substring(0, 15)}...`,
+  );
 }
 
 main()

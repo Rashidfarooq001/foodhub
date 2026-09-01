@@ -32,7 +32,7 @@ export function useMapplsSdk() {
       sdkLoadPromise = new Promise((resolve, reject) => {
         // Check if a script already exists in the DOM
         const existingScript = document.querySelector('script[src*="sdk.mappls.com/map/sdk/web"]');
-        
+
         if (existingScript) {
           if (window.mappls) {
             resolve();

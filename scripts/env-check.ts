@@ -33,7 +33,9 @@ export function validateEnvironment(): void {
   if (missing.length > 0) {
     console.error('❌ CRITICAL ERROR: The following required environment variables are missing:');
     missing.forEach((varName) => console.error(`   - ${varName}`));
-    console.error('\nStartup aborted. Please populate required secrets before running production containers.\n');
+    console.error(
+      '\nStartup aborted. Please populate required secrets before running production containers.\n',
+    );
     process.exit(1);
   }
 

@@ -25,7 +25,8 @@ export default function DriverAnalyticsPage() {
   React.useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('foodhub_delivery_token') : null;
+        const token =
+          typeof window !== 'undefined' ? localStorage.getItem('foodhub_delivery_token') : null;
         const res = await fetch(`${getApiBase()}/delivery/stats`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -35,7 +36,9 @@ export default function DriverAnalyticsPage() {
             setAnalytics(data);
           }
         }
-      } catch { /* fallback */ }
+      } catch {
+        /* fallback */
+      }
     };
     fetchStats();
   }, []);
@@ -43,14 +46,18 @@ export default function DriverAnalyticsPage() {
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Performance & Earnings Analytics</h1>
-        <p className="text-xs text-gray-500">Track delivery stats, acceptance rate, customer ratings and distance covered</p>
+        <p className="text-xs text-gray-500">
+          Track delivery stats, acceptance rate, customer ratings and distance covered
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
           <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
             <span>Today Earnings</span>
-            <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-600"><DollarSign className="h-4 w-4" /></div>
+            <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-600">
+              <DollarSign className="h-4 w-4" />
+            </div>
           </div>
           <p className="text-2xl font-black text-gray-900">₹{analytics.todayEarnings}</p>
           <p className="text-xs text-gray-400">{analytics.todayDeliveries} completed trips</p>
@@ -59,9 +66,13 @@ export default function DriverAnalyticsPage() {
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2">
           <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
             <span>Monthly Earnings</span>
-            <div className="p-2 bg-purple-50 rounded-2xl text-purple-600"><Award className="h-4 w-4" /></div>
+            <div className="p-2 bg-purple-50 rounded-2xl text-purple-600">
+              <Award className="h-4 w-4" />
+            </div>
           </div>
-          <p className="text-2xl font-black text-gray-900">₹{analytics.monthlyEarnings.toLocaleString()}</p>
+          <p className="text-2xl font-black text-gray-900">
+            ₹{analytics.monthlyEarnings.toLocaleString()}
+          </p>
           <p className="text-xs text-gray-400">Includes ₹{analytics.tipsEarned} in tips</p>
         </div>
 
@@ -69,14 +80,20 @@ export default function DriverAnalyticsPage() {
           <div>
             <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
               <span>Completion Rate</span>
-              <div className="p-2 bg-blue-50 rounded-2xl text-blue-600 shrink-0"><CheckCircle2 className="h-4 w-4" /></div>
+              <div className="p-2 bg-blue-50 rounded-2xl text-blue-600 shrink-0">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
             </div>
             <p className="text-2xl font-black text-gray-900 mt-1">
-              {analytics.completionRate !== null && analytics.completionRate !== undefined ? `${analytics.completionRate}%` : 'N/A'}
+              {analytics.completionRate !== null && analytics.completionRate !== undefined
+                ? `${analytics.completionRate}%`
+                : 'N/A'}
             </p>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            {analytics.acceptanceRate !== null && analytics.acceptanceRate !== undefined ? `${analytics.acceptanceRate}% acceptance rate` : 'No deliveries yet'}
+            {analytics.acceptanceRate !== null && analytics.acceptanceRate !== undefined
+              ? `${analytics.acceptanceRate}% acceptance rate`
+              : 'No deliveries yet'}
           </p>
         </div>
 
@@ -84,14 +101,20 @@ export default function DriverAnalyticsPage() {
           <div>
             <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
               <span>Driver Rating</span>
-              <div className="p-2 bg-amber-50 rounded-2xl text-amber-500 shrink-0"><Star className="h-4 w-4 fill-amber-400" /></div>
+              <div className="p-2 bg-amber-50 rounded-2xl text-amber-500 shrink-0">
+                <Star className="h-4 w-4 fill-amber-400" />
+              </div>
             </div>
             <p className="text-2xl font-black text-gray-900 mt-1">
-              {analytics.avgRating !== null && analytics.avgRating !== undefined ? `${Number(analytics.avgRating).toFixed(1)} / 5.0` : 'N/A'}
+              {analytics.avgRating !== null && analytics.avgRating !== undefined
+                ? `${Number(analytics.avgRating).toFixed(1)} / 5.0`
+                : 'N/A'}
             </p>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            {analytics.distanceCoveredKm > 0 ? `${analytics.distanceCoveredKm} km total distance` : 'No distance recorded'}
+            {analytics.distanceCoveredKm > 0
+              ? `${analytics.distanceCoveredKm} km total distance`
+              : 'No distance recorded'}
           </p>
         </div>
       </div>

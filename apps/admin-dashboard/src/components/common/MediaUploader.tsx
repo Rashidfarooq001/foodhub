@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Image as ImageIcon, Video, Trash2, RefreshCw, Loader2, Eye } from 'lucide-react';
+import {
+  UploadCloud,
+  Image as ImageIcon,
+  Video,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  Eye,
+} from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
 import { getImageUrl } from '@foodhub/config';
-
 
 interface MediaUploaderProps {
   value?: string;
@@ -100,12 +107,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     if (e.target) e.target.value = '';
   };
 
-
   return (
     <div className="space-y-2">
       {label && (
         <label className="block text-xs font-bold text-gray-700">
-          {label} {value && <span className="text-emerald-600 text-[10px] font-black">✓ Uploaded</span>}
+          {label}{' '}
+          {value && <span className="text-emerald-600 text-[10px] font-black">✓ Uploaded</span>}
         </label>
       )}
 
@@ -135,10 +142,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 }}
                 className="h-16 w-16 shrink-0 rounded-xl object-cover border border-gray-200 bg-white"
               />
-
             )}
             <div className="truncate text-xs">
-              <span className="font-bold text-gray-900 block truncate">{value.split('/').pop()}</span>
+              <span className="font-bold text-gray-900 block truncate">
+                {value.split('/').pop()}
+              </span>
               <a
                 href={getImageUrl(value)}
                 target="_blank"
@@ -148,7 +156,6 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 <Eye className="h-3 w-3" /> View Media File
               </a>
             </div>
-
           </div>
 
           <div className="flex items-center gap-2">
@@ -197,7 +204,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 Click to upload or drag &amp; drop {isVideo ? 'video' : 'image'}
               </p>
               <p className="text-[10px] text-gray-400 mt-1">
-                {helperText || (isVideo ? 'MP4, MOV, WEBM up to 100MB' : 'JPG, PNG, WEBP up to 5MB')}
+                {helperText ||
+                  (isVideo ? 'MP4, MOV, WEBM up to 100MB' : 'JPG, PNG, WEBP up to 5MB')}
               </p>
             </>
           )}

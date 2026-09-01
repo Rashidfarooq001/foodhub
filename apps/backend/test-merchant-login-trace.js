@@ -6,10 +6,28 @@ const crypto = require('crypto');
 async function main() {
   console.log('=== MERCHANT REGISTRATION, APPROVAL & LOGIN TRACE ===\n');
 
-  function base64Url(str) { return Buffer.from(str).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_'); }
+  function base64Url(str) {
+    return Buffer.from(str)
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  }
   const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ sub: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5', role: 'SUPER_ADMIN', exp: Math.floor(Date.now() / 1000) + 3600 }));
-  const sig = crypto.createHmac('sha256', 'foodhub_jwt_super_secret_key_2026_production').update(`${header}.${payload}`).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const payload = base64Url(
+    JSON.stringify({
+      sub: '3f2a1b1b-c4d1-4318-8aee-dc67a99975a5',
+      role: 'SUPER_ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }),
+  );
+  const sig = crypto
+    .createHmac('sha256', 'foodhub_jwt_super_secret_key_2026_production')
+    .update(`${header}.${payload}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
   const adminToken = `${header}.${payload}.${sig}`;
 
   const testDigits = `${Math.floor(1000000000 + Math.random() * 9000000000)}`;

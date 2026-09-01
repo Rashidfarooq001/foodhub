@@ -63,9 +63,7 @@ export default function AdminCouponsPage() {
   };
 
   const toggleStatus = (id: string) => {
-    setCoupons((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c)),
-    );
+    setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c)));
   };
 
   const deleteCoupon = (id: string) => {
@@ -131,21 +129,31 @@ export default function AdminCouponsPage() {
                           : 'bg-gray-100 text-gray-600 border-gray-200'
                       }`}
                     >
-                      {c.isActive ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                      {c.isActive ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : (
+                        <AlertCircle className="h-3 w-3" />
+                      )}
                       <span>{c.isActive ? 'Active' : 'Disabled'}</span>
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Discount</span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                        Discount
+                      </span>
                       <span className="font-black text-purple-700">
-                        {c.discountType === 'FLAT' ? `₹${c.discountValue} FLAT` : `${c.discountValue}% OFF`}
+                        {c.discountType === 'FLAT'
+                          ? `₹${c.discountValue} FLAT`
+                          : `${c.discountValue}% OFF`}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Min Order</span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                        Min Order
+                      </span>
                       <span className="font-bold text-gray-800">₹{c.minOrderAmount}</span>
                     </div>
                   </div>
@@ -185,7 +193,9 @@ export default function AdminCouponsPage() {
                         <span>{c.code}</span>
                       </td>
                       <td className="py-3 font-bold text-purple-700">
-                        {c.discountType === 'FLAT' ? `₹${c.discountValue} FLAT` : `${c.discountValue}% OFF`}
+                        {c.discountType === 'FLAT'
+                          ? `₹${c.discountValue} FLAT`
+                          : `${c.discountValue}% OFF`}
                       </td>
                       <td className="py-3 text-gray-700">₹{c.minOrderAmount}</td>
                       <td className="py-3 text-gray-500">{c.validTill}</td>
@@ -198,7 +208,11 @@ export default function AdminCouponsPage() {
                               : 'bg-gray-100 text-gray-600 border-gray-200'
                           }`}
                         >
-                          {c.isActive ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                          {c.isActive ? (
+                            <CheckCircle2 className="h-3 w-3" />
+                          ) : (
+                            <AlertCircle className="h-3 w-3" />
+                          )}
                           <span>{c.isActive ? 'Active' : 'Disabled'}</span>
                         </button>
                       </td>
@@ -248,7 +262,9 @@ export default function AdminCouponsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Discount Type</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Discount Type
+                  </label>
                   <select
                     value={discountType}
                     onChange={(e: any) => setDiscountType(e.target.value)}
@@ -260,7 +276,9 @@ export default function AdminCouponsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Discount Value</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Discount Value
+                  </label>
                   <input
                     type="number"
                     required
@@ -273,7 +291,9 @@ export default function AdminCouponsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Minimum Order Amount (₹)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Minimum Order Amount (₹)
+                </label>
                 <input
                   type="number"
                   required

@@ -70,4 +70,3 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     deliveryFeePerExtraKm: fullQuote.deliveryFeePerExtraKm,
   };
 }
-

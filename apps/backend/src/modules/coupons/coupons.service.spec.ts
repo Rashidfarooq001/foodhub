@@ -3,16 +3,16 @@ import { CouponsService } from './coupons.service';
 import { PrismaService } from '../database/prisma.service';
 
 const mockActiveCoupon = {
-  id:          'coupon-1',
-  code:        'SAVE50',
-  couponType:  'FLAT' as const,
+  id: 'coupon-1',
+  code: 'SAVE50',
+  couponType: 'FLAT' as const,
   discountVal: 50,
   minOrderVal: 200,
   maxDiscount: null,
-  validFrom:   new Date('2026-01-01'),
-  validTill:   new Date('2026-12-31'),
-  usageLimit:  500,
-  status:      'ACTIVE',
+  validFrom: new Date('2026-01-01'),
+  validTill: new Date('2026-12-31'),
+  usageLimit: 500,
+  status: 'ACTIVE',
 };
 
 describe('CouponsService', () => {
@@ -21,10 +21,10 @@ describe('CouponsService', () => {
   const mockPrisma = {
     coupon: {
       findUnique: jest.fn().mockResolvedValue(mockActiveCoupon),
-      findFirst:  jest.fn().mockResolvedValue(mockActiveCoupon),
-      findMany:   jest.fn().mockResolvedValue([mockActiveCoupon]),
-      create:     jest.fn().mockResolvedValue(mockActiveCoupon),
-      update:     jest.fn().mockResolvedValue({ ...mockActiveCoupon, status: 'INACTIVE' }),
+      findFirst: jest.fn().mockResolvedValue(mockActiveCoupon),
+      findMany: jest.fn().mockResolvedValue([mockActiveCoupon]),
+      create: jest.fn().mockResolvedValue(mockActiveCoupon),
+      update: jest.fn().mockResolvedValue({ ...mockActiveCoupon, status: 'INACTIVE' }),
     },
     couponUsage: {
       count: jest.fn().mockResolvedValue(0),
@@ -36,10 +36,7 @@ describe('CouponsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CouponsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [CouponsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<CouponsService>(CouponsService);
@@ -81,7 +78,7 @@ describe('CouponsService', () => {
 
     it('should reject when global usage limit reached', async () => {
       mockPrisma.couponUsage.count
-        .mockResolvedValueOnce(0)  // per-user check
+        .mockResolvedValueOnce(0) // per-user check
         .mockResolvedValueOnce(500); // global check
       const result = await service.validateCoupon('SAVE50', 'user-1', 350);
       expect(result.valid).toBe(false);
@@ -91,8 +88,8 @@ describe('CouponsService', () => {
     it('should cap percentage discount at maxDiscount', async () => {
       mockPrisma.coupon.findFirst.mockResolvedValueOnce({
         ...mockActiveCoupon,
-        couponType:  'PERCENTAGE',
-        discountVal: 50,  // 50%
+        couponType: 'PERCENTAGE',
+        discountVal: 50, // 50%
         maxDiscount: 100, // capped at ₹100
         minOrderVal: 0,
       });

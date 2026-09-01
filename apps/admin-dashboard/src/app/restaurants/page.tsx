@@ -64,7 +64,11 @@ export default function AdminRestaurantsPage() {
       const res = await adminFetch('/restaurants?admin=true');
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (Array.isArray(data?.restaurants) ? data.restaurants : []);
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.restaurants)
+            ? data.restaurants
+            : [];
         setRestaurants(list);
       }
     } catch {
@@ -91,9 +95,7 @@ export default function AdminRestaurantsPage() {
       socket.on('restaurant.status_changed', (payload: { restaurantId: string; status: any }) => {
         if (payload?.restaurantId) {
           setRestaurants((prev) =>
-            prev.map((r) =>
-              r.id === payload.restaurantId ? { ...r, status: payload.status } : r,
-            ),
+            prev.map((r) => (r.id === payload.restaurantId ? { ...r, status: payload.status } : r)),
           );
         }
       });
@@ -227,7 +229,8 @@ export default function AdminRestaurantsPage() {
       !search ||
       r.name.toLowerCase().includes(search.toLowerCase()) ||
       r.phone.includes(search) ||
-      (r.owner?.profile?.firstName && r.owner.profile.firstName.toLowerCase().includes(search.toLowerCase()));
+      (r.owner?.profile?.firstName &&
+        r.owner.profile.firstName.toLowerCase().includes(search.toLowerCase()));
     return matchesStatus && matchesSearch;
   });
 
@@ -280,7 +283,11 @@ export default function AdminRestaurantsPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {st.replace(/_/g, ' ')} ({st === 'ALL' ? restaurants.filter((r) => r.status !== 'PENDING_APPROVAL').length : restaurants.filter((r) => r.status === st).length})
+              {st.replace(/_/g, ' ')} (
+              {st === 'ALL'
+                ? restaurants.filter((r) => r.status !== 'PENDING_APPROVAL').length
+                : restaurants.filter((r) => r.status === st).length}
+              )
             </button>
           ))}
         </div>
@@ -293,7 +300,9 @@ export default function AdminRestaurantsPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading restaurants...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading restaurants...
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No restaurants found matching filters.
@@ -317,14 +326,20 @@ export default function AdminRestaurantsPage() {
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase block">Owner</span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                        Owner
+                      </span>
                       <span className="font-bold text-gray-800">
-                        {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Partner'}
+                        {r.owner?.profile?.firstName
+                          ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}`
+                          : 'Partner'}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[9px] text-purple-700 font-bold uppercase block">Commission Rate</span>
+                      <span className="text-[9px] text-purple-700 font-bold uppercase block">
+                        Commission Rate
+                      </span>
                       <span className="font-black text-purple-900">{r.commissionRate ?? 13}%</span>
                     </div>
                   </div>
@@ -334,13 +349,25 @@ export default function AdminRestaurantsPage() {
                     {r.status === 'PENDING_APPROVAL' && (
                       <>
                         <button
-                          onClick={() => setActiveModal({ type: 'APPROVE', restaurantId: r.id, restaurantName: r.name })}
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'APPROVE',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            })
+                          }
                           className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-black text-white shadow-sm min-h-[40px]"
                         >
                           Approve
                         </button>
                         <button
-                          onClick={() => setActiveModal({ type: 'REJECT', restaurantId: r.id, restaurantName: r.name })}
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'REJECT',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            })
+                          }
                           className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
                         >
                           Reject
@@ -350,7 +377,13 @@ export default function AdminRestaurantsPage() {
 
                     {r.status === 'APPROVED' && (
                       <button
-                        onClick={() => setActiveModal({ type: 'SUSPEND', restaurantId: r.id, restaurantName: r.name })}
+                        onClick={() =>
+                          setActiveModal({
+                            type: 'SUSPEND',
+                            restaurantId: r.id,
+                            restaurantName: r.name,
+                          })
+                        }
                         className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2 text-xs font-bold min-h-[40px]"
                       >
                         Suspend Store
@@ -360,13 +393,25 @@ export default function AdminRestaurantsPage() {
                     {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
                       <div className="flex gap-2 w-full">
                         <button
-                          onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'REACTIVATE',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            })
+                          }
                           className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-black text-white min-h-[40px]"
                         >
                           Reactivate
                         </button>
                         <button
-                          onClick={() => setActiveModal({ type: 'DELETE', restaurantId: r.id, restaurantName: r.name })}
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'DELETE',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            })
+                          }
                           className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 py-2 text-xs font-black text-white min-h-[40px]"
                         >
                           Delete
@@ -377,7 +422,11 @@ export default function AdminRestaurantsPage() {
                     <button
                       onClick={() => {
                         setModalCommission(r.commissionRate ?? 13);
-                        setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
+                        setActiveModal({
+                          type: 'COMMISSION',
+                          restaurantId: r.id,
+                          restaurantName: r.name,
+                        });
                       }}
                       className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 min-h-[40px]"
                     >
@@ -407,7 +456,9 @@ export default function AdminRestaurantsPage() {
                       <td className="py-3 font-bold text-gray-900">{r.name}</td>
                       <td className="py-3 text-gray-600">{r.phone}</td>
                       <td className="py-3 text-gray-700">
-                        {r.owner?.profile?.firstName ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}` : 'Partner'}
+                        {r.owner?.profile?.firstName
+                          ? `${r.owner.profile.firstName} ${r.owner.profile.lastName || ''}`
+                          : 'Partner'}
                       </td>
                       <td className="py-3 font-bold text-purple-700">{r.commissionRate ?? 13}%</td>
                       <td className="py-3">{getStatusBadge(r.status)}</td>
@@ -415,13 +466,25 @@ export default function AdminRestaurantsPage() {
                         {r.status === 'PENDING_APPROVAL' && (
                           <>
                             <button
-                              onClick={() => setActiveModal({ type: 'APPROVE', restaurantId: r.id, restaurantName: r.name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'APPROVE',
+                                  restaurantId: r.id,
+                                  restaurantName: r.name,
+                                })
+                              }
                               className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => setActiveModal({ type: 'REJECT', restaurantId: r.id, restaurantName: r.name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'REJECT',
+                                  restaurantId: r.id,
+                                  restaurantName: r.name,
+                                })
+                              }
                               className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                             >
                               Reject
@@ -430,7 +493,13 @@ export default function AdminRestaurantsPage() {
                         )}
                         {r.status === 'APPROVED' && (
                           <button
-                            onClick={() => setActiveModal({ type: 'SUSPEND', restaurantId: r.id, restaurantName: r.name })}
+                            onClick={() =>
+                              setActiveModal({
+                                type: 'SUSPEND',
+                                restaurantId: r.id,
+                                restaurantName: r.name,
+                              })
+                            }
                             className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                           >
                             Suspend
@@ -439,13 +508,25 @@ export default function AdminRestaurantsPage() {
                         {(r.status === 'SUSPENDED' || r.status === 'REJECTED') && (
                           <>
                             <button
-                              onClick={() => setActiveModal({ type: 'REACTIVATE', restaurantId: r.id, restaurantName: r.name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'REACTIVATE',
+                                  restaurantId: r.id,
+                                  restaurantName: r.name,
+                                })
+                              }
                               className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white hover:bg-emerald-700"
                             >
                               Reactivate
                             </button>
                             <button
-                              onClick={() => setActiveModal({ type: 'DELETE', restaurantId: r.id, restaurantName: r.name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'DELETE',
+                                  restaurantId: r.id,
+                                  restaurantName: r.name,
+                                })
+                              }
                               className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white hover:bg-rose-700"
                             >
                               Delete
@@ -455,7 +536,11 @@ export default function AdminRestaurantsPage() {
                         <button
                           onClick={() => {
                             setModalCommission(r.commissionRate ?? 13);
-                            setActiveModal({ type: 'COMMISSION', restaurantId: r.id, restaurantName: r.name });
+                            setActiveModal({
+                              type: 'COMMISSION',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            });
                           }}
                           className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-50"
                         >
@@ -483,8 +568,10 @@ export default function AdminRestaurantsPage() {
                 {activeModal.type === 'REJECT' && `Reject ${activeModal.restaurantName}`}
                 {activeModal.type === 'SUSPEND' && `Suspend ${activeModal.restaurantName}`}
                 {activeModal.type === 'REACTIVATE' && `Reactivate ${activeModal.restaurantName}`}
-                {activeModal.type === 'DELETE' && `Permanently Delete ${activeModal.restaurantName}`}
-                {activeModal.type === 'COMMISSION' && `Set Commission % for ${activeModal.restaurantName}`}
+                {activeModal.type === 'DELETE' &&
+                  `Permanently Delete ${activeModal.restaurantName}`}
+                {activeModal.type === 'COMMISSION' &&
+                  `Set Commission % for ${activeModal.restaurantName}`}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -503,7 +590,9 @@ export default function AdminRestaurantsPage() {
             {activeModal.type === 'DELETE' && (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-900">
-                  Are you sure you want to permanently delete this restaurant? This action cannot be undone. It will permanently remove the restaurant and its active operational data from the platform.
+                  Are you sure you want to permanently delete this restaurant? This action cannot be
+                  undone. It will permanently remove the restaurant and its active operational data
+                  from the platform.
                 </div>
               </div>
             )}
@@ -557,15 +646,15 @@ export default function AdminRestaurantsPage() {
                     activeModal.type === 'DELETE'
                       ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20 disabled:bg-rose-300'
                       : activeModal.type === 'REJECT' || activeModal.type === 'SUSPEND'
-                      ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20 disabled:bg-red-300'
-                      : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 disabled:bg-emerald-300'
+                        ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20 disabled:bg-red-300'
+                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 disabled:bg-emerald-300'
                   }`}
                 >
                   {isProcessing
                     ? 'Processing...'
                     : activeModal.type === 'DELETE'
-                    ? 'DELETE PERMANENTLY'
-                    : 'Confirm Action'}
+                      ? 'DELETE PERMANENTLY'
+                      : 'Confirm Action'}
                 </button>
               </div>
             </form>

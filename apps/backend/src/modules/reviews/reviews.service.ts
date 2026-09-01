@@ -22,10 +22,11 @@ import { OrderStatus } from '@prisma/client';
  */
 function wilsonScore(rating: number, count: number): number {
   if (count === 0) return 0;
-  const z     = 1.96; // 95% confidence
-  const phat  = rating / 5;
+  const z = 1.96; // 95% confidence
+  const phat = rating / 5;
   const lower =
-    (phat + (z * z) / (2 * count) -
+    (phat +
+      (z * z) / (2 * count) -
       z * Math.sqrt((phat * (1 - phat) + (z * z) / (4 * count)) / count)) /
     (1 + (z * z) / count);
   return Math.round(lower * 5 * 100) / 100;
@@ -42,10 +43,7 @@ export class ReviewsService {
   private async assertOrderDelivered(orderId: string, userIdOrCustomerId: string): Promise<void> {
     const customer = await this.prisma.customer.findFirst({
       where: {
-        OR: [
-          { userId: userIdOrCustomerId },
-          { id: userIdOrCustomerId },
-        ],
+        OR: [{ userId: userIdOrCustomerId }, { id: userIdOrCustomerId }],
       },
     });
     if (!customer) throw new NotFoundException('Customer not found');
@@ -81,11 +79,11 @@ export class ReviewsService {
     const review = await this.prisma.restaurantReview.create({
       data: {
         restaurantId: dto.restaurantId,
-        customerId:   customer.id,
-        orderId:      dto.orderId,
-        rating:       dto.rating,
-        comment:      dto.comment,
-        isAnonymous:  dto.isAnonymous ?? false,
+        customerId: customer.id,
+        orderId: dto.orderId,
+        rating: dto.rating,
+        comment: dto.comment,
+        isAnonymous: dto.isAnonymous ?? false,
       },
     });
 
@@ -97,7 +95,7 @@ export class ReviewsService {
 
   private async updateRestaurantRating(restaurantId: string): Promise<void> {
     const reviews = await this.prisma.restaurantReview.findMany({
-      where:  { restaurantId, isHidden: false },
+      where: { restaurantId, isHidden: false },
       select: { rating: true },
     });
     if (reviews.length === 0) {
@@ -113,7 +111,7 @@ export class ReviewsService {
 
     await this.prisma.restaurant.update({
       where: { id: restaurantId },
-      data:  { avgRating: Math.min(roundedAvg, 5.0) },
+      data: { avgRating: Math.min(roundedAvg, 5.0) },
     });
   }
 
@@ -138,9 +136,9 @@ export class ReviewsService {
       data: {
         foodItemId: dto.foodItemId,
         customerId: customer.id,
-        orderId:    dto.orderId,
-        rating:     dto.rating,
-        comment:    dto.comment,
+        orderId: dto.orderId,
+        rating: dto.rating,
+        comment: dto.comment,
       },
     });
   }
@@ -160,27 +158,28 @@ export class ReviewsService {
     const existing = await this.prisma.driverReview.findFirst({
       where: { orderId: dto.orderId, driverId: dto.driverId },
     });
-    if (existing) throw new ConflictException('You have already reviewed this driver for this order');
+    if (existing)
+      throw new ConflictException('You have already reviewed this driver for this order');
 
     const review = await this.prisma.driverReview.create({
       data: {
-        driverId:   dto.driverId,
+        driverId: dto.driverId,
         customerId: customer.id,
-        orderId:    dto.orderId,
-        rating:     dto.rating,
-        comment:    dto.comment,
+        orderId: dto.orderId,
+        rating: dto.rating,
+        comment: dto.comment,
       },
     });
 
     // Update driver avgRating
     const driverReviews = await this.prisma.driverReview.findMany({
-      where:  { driverId: dto.driverId },
+      where: { driverId: dto.driverId },
       select: { rating: true },
     });
     const avg = driverReviews.reduce((s, r) => s + r.rating, 0) / driverReviews.length;
     await this.prisma.driver.update({
       where: { id: dto.driverId },
-      data:  { avgRating: Math.min(avg, 5.0) },
+      data: { avgRating: Math.min(avg, 5.0) },
     });
 
     return review;
@@ -194,7 +193,7 @@ export class ReviewsService {
     const skip = (page - 1) * limit;
     const [reviews, total] = await this.prisma.$transaction([
       this.prisma.restaurantReview.findMany({
-        where:   { restaurantId, isHidden: false },
+        where: { restaurantId, isHidden: false },
         include: {
           images: true,
           votes: true,
@@ -209,7 +208,7 @@ export class ReviewsService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take:    limit,
+        take: limit,
       }),
       this.prisma.restaurantReview.count({ where: { restaurantId, isHidden: false } }),
     ]);
@@ -219,10 +218,7 @@ export class ReviewsService {
   async getMyReviews(userIdOrCustomerId: string) {
     const customer = await this.prisma.customer.findFirst({
       where: {
-        OR: [
-          { userId: userIdOrCustomerId },
-          { id: userIdOrCustomerId },
-        ],
+        OR: [{ userId: userIdOrCustomerId }, { id: userIdOrCustomerId }],
       },
     });
     if (!customer) return [];
@@ -248,7 +244,11 @@ export class ReviewsService {
       restaurantName: r.restaurant?.name || 'Restaurant',
       rating: r.rating,
       comment: r.comment || '',
-      date: new Date(r.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      date: new Date(r.createdAt).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }),
       helpful: r.votes?.filter((v) => v.isHelpful)?.length || 0,
     }));
   }
@@ -259,7 +259,7 @@ export class ReviewsService {
 
   async voteReview(reviewId: string, userId: string, isHelpful: boolean) {
     return this.prisma.reviewVote.upsert({
-      where:  { reviewId_userId: { reviewId, userId } },
+      where: { reviewId_userId: { reviewId, userId } },
       create: { reviewId, userId, isHelpful },
       update: { isHelpful },
     });
@@ -289,7 +289,9 @@ export class ReviewsService {
           where: { restaurantId: review.restaurantId, userId: replierId },
         });
         if (!restaurant && !isStaff) {
-          throw new ForbiddenException('You do not have permission to reply on behalf of this restaurant');
+          throw new ForbiddenException(
+            'You do not have permission to reply on behalf of this restaurant',
+          );
         }
       }
     }
@@ -298,7 +300,7 @@ export class ReviewsService {
       data: {
         reviewId,
         replierId,
-        role:      dto.role,
+        role: dto.role,
         replyText: dto.replyText,
       },
     });
@@ -320,7 +322,7 @@ export class ReviewsService {
 
     const updated = await this.prisma.restaurantReview.update({
       where: { id: reviewId },
-      data:  { isHidden: true },
+      data: { isHidden: true },
     });
     await this.updateRestaurantRating(review.restaurantId);
     return updated;

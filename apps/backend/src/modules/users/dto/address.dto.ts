@@ -32,11 +32,11 @@ export class CreateAddressDto {
   @IsNotEmpty()
   postalCode!: string;
 
-  @ApiProperty({ example: 12.9780 })
+  @ApiProperty({ example: 12.978 })
   @IsNumber()
   latitude!: number;
 
-  @ApiProperty({ example: 77.6400 })
+  @ApiProperty({ example: 77.64 })
   @IsNumber()
   longitude!: number;
 
@@ -77,12 +77,12 @@ export class UpdateAddressDto {
   @IsOptional()
   postalCode?: string;
 
-  @ApiPropertyOptional({ example: 12.9780 })
+  @ApiPropertyOptional({ example: 12.978 })
   @IsNumber()
   @IsOptional()
   latitude?: number;
 
-  @ApiPropertyOptional({ example: 77.6400 })
+  @ApiPropertyOptional({ example: 77.64 })
   @IsNumber()
   @IsOptional()
   longitude?: number;

@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param,
-  UseGuards, Request, UnauthorizedException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CartService, CartItem } from './cart.service';
@@ -27,10 +35,7 @@ export class CartController {
 
   @Post('items')
   @ApiOperation({ summary: 'Add item to cart' })
-  async addItem(
-    @Request() req: any,
-    @Body() body: { restaurantId: string; item: CartItem },
-  ) {
+  async addItem(@Request() req: any, @Body() body: { restaurantId: string; item: CartItem }) {
     return this.cartService.addItem(this.getUserId(req), body.restaurantId, body.item);
   }
 
@@ -46,10 +51,7 @@ export class CartController {
 
   @Delete('items/:foodItemId')
   @ApiOperation({ summary: 'Remove item from cart' })
-  async removeItem(
-    @Request() req: any,
-    @Param('foodItemId') foodItemId: string,
-  ) {
+  async removeItem(@Request() req: any, @Param('foodItemId') foodItemId: string) {
     return this.cartService.removeItem(this.getUserId(req), foodItemId);
   }
 

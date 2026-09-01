@@ -21,7 +21,7 @@ export default function AllRestaurantsPage() {
         const res = await fetch(`${API_BASE}/restaurants`);
         if (res.ok) {
           const data = await res.json();
-          const list = Array.isArray(data) ? data : data.restaurants ?? [];
+          const list = Array.isArray(data) ? data : (data.restaurants ?? []);
           setRestaurants(list.map(normalizeRestaurantData));
         }
       } catch {
@@ -39,18 +39,23 @@ export default function AllRestaurantsPage() {
   const allCuisines = ['All', ...Array.from(new Set(restaurants.flatMap((r) => r.cuisines)))];
 
   // Filter & Sort logic
-  const filtered = restaurants.filter((r) => {
-    const matchesSearch =
-      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.cuisines.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCuisine = selectedCuisine === 'All' || (Array.isArray(r.cuisines) && r.cuisines.includes(selectedCuisine));
-    return matchesSearch && matchesCuisine;
-  }).sort((a, b) => {
-    if (sortBy === 'rating') return b.avgRating - a.avgRating;
-    if (sortBy === 'deliveryTime') return (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999);
-    if (sortBy === 'price') return (a.priceForTwo || 9999) - (b.priceForTwo || 9999);
-    return 0;
-  });
+  const filtered = restaurants
+    .filter((r) => {
+      const matchesSearch =
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.cuisines.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCuisine =
+        selectedCuisine === 'All' ||
+        (Array.isArray(r.cuisines) && r.cuisines.includes(selectedCuisine));
+      return matchesSearch && matchesCuisine;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'rating') return b.avgRating - a.avgRating;
+      if (sortBy === 'deliveryTime')
+        return (a.deliveryTimeMins || 999) - (b.deliveryTimeMins || 999);
+      if (sortBy === 'price') return (a.priceForTwo || 9999) - (b.priceForTwo || 9999);
+      return 0;
+    });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
@@ -131,7 +136,9 @@ export default function AllRestaurantsPage() {
       ) : (
         <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
           {filtered.map((r) => (
-            <div className="snap-start"><RestaurantCard key={r.id} restaurant={r} /></div>
+            <div className="snap-start">
+              <RestaurantCard key={r.id} restaurant={r} />
+            </div>
           ))}
         </div>
       )}

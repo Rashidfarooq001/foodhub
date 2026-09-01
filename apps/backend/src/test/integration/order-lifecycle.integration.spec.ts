@@ -4,7 +4,7 @@ import { AppModule } from '../../app.module';
 import { Logger } from 'nestjs-pino';
 import { PrismaService } from '../../modules/database/prisma.service';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const request = require('supertest');
 
 describe('Order Lifecycle & Payment Integration', () => {
@@ -47,9 +47,7 @@ describe('Order Lifecycle & Payment Integration', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, transform: true }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
   });
 
@@ -66,13 +64,11 @@ describe('Order Lifecycle & Payment Integration', () => {
   });
 
   it('2. POST /api/v1/geo/validate-radius — should check delivery radius', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/geo/validate-radius')
-      .send({
-        restaurantId: '00000000-0000-0000-0000-000000000001',
-        deliveryLat: 12.9716,
-        deliveryLng: 77.5946,
-      });
+    const res = await request(app.getHttpServer()).post('/api/v1/geo/validate-radius').send({
+      restaurantId: '00000000-0000-0000-0000-000000000001',
+      deliveryLat: 12.9716,
+      deliveryLng: 77.5946,
+    });
 
     expect(res.status).toBeDefined();
   });

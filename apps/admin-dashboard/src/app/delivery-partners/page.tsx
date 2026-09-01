@@ -82,21 +82,25 @@ export default function AdminDeliveryPartnersPage() {
         socket.emit('joinAdmin');
       });
 
-      socket.on('driver.status_changed', (payload: { driverId: string; status?: string; isApproved?: boolean }) => {
-        if (payload?.driverId) {
-          setDrivers((prev) =>
-            prev.map((d) =>
-              d.id === payload.driverId
-                ? {
-                    ...d,
-                    status: payload.status || d.status,
-                    isApproved: payload.isApproved !== undefined ? payload.isApproved : d.isApproved,
-                  }
-                : d,
-            ),
-          );
-        }
-      });
+      socket.on(
+        'driver.status_changed',
+        (payload: { driverId: string; status?: string; isApproved?: boolean }) => {
+          if (payload?.driverId) {
+            setDrivers((prev) =>
+              prev.map((d) =>
+                d.id === payload.driverId
+                  ? {
+                      ...d,
+                      status: payload.status || d.status,
+                      isApproved:
+                        payload.isApproved !== undefined ? payload.isApproved : d.isApproved,
+                    }
+                  : d,
+              ),
+            );
+          }
+        },
+      );
 
       return () => {
         socket.disconnect();
@@ -192,7 +196,9 @@ export default function AdminDeliveryPartnersPage() {
       (statusFilter === 'APPROVED' && isApproved) ||
       (statusFilter === 'SUSPENDED' && isSuspended);
 
-    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim().toLowerCase();
+    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`
+      .trim()
+      .toLowerCase();
     const phone = d.user?.phone || '';
     const vehicle = d.vehicles?.[0]?.vehicleNumber || '';
 
@@ -246,9 +252,12 @@ export default function AdminDeliveryPartnersPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {['ALL', 'APPROVED', 'SUSPENDED'].map((st) => {
             let count = 0;
-            if (st === 'ALL') count = drivers.filter(d => !(!d.isApproved && d.status === 'PENDING')).length;
-            else if (st === 'APPROVED') count = drivers.filter(d => d.isApproved && d.status !== 'SUSPENDED').length;
-            else if (st === 'SUSPENDED') count = drivers.filter(d => d.status === 'SUSPENDED').length;
+            if (st === 'ALL')
+              count = drivers.filter((d) => !(!d.isApproved && d.status === 'PENDING')).length;
+            else if (st === 'APPROVED')
+              count = drivers.filter((d) => d.isApproved && d.status !== 'SUSPENDED').length;
+            else if (st === 'SUSPENDED')
+              count = drivers.filter((d) => d.status === 'SUSPENDED').length;
 
             return (
               <button
@@ -274,7 +283,9 @@ export default function AdminDeliveryPartnersPage() {
         </h2>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs font-bold text-gray-400">Loading delivery fleet...</div>
+          <div className="py-12 text-center text-xs font-bold text-gray-400">
+            Loading delivery fleet...
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No delivery partners found matching filters.
@@ -284,7 +295,9 @@ export default function AdminDeliveryPartnersPage() {
             {/* Mobile View: Cards */}
             <div className="block lg:hidden space-y-3">
               {filtered.map((d) => {
-                const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() || 'Courier Driver';
+                const name =
+                  `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() ||
+                  'Courier Driver';
                 const phone = d.user?.phone || '—';
                 const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
 
@@ -308,12 +321,18 @@ export default function AdminDeliveryPartnersPage() {
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block">Vehicle</span>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                          Vehicle
+                        </span>
                         <span className="font-bold text-gray-800">{vehicle}</span>
                       </div>
                       <div>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block">License</span>
-                        <span className="font-mono text-gray-700">{d.licenseNumber || 'DL-2024-8921'}</span>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase block">
+                          License
+                        </span>
+                        <span className="font-mono text-gray-700">
+                          {d.licenseNumber || 'DL-2024-8921'}
+                        </span>
                       </div>
                     </div>
 
@@ -321,7 +340,9 @@ export default function AdminDeliveryPartnersPage() {
                     <div className="pt-2 border-t border-gray-100 flex gap-2">
                       {!d.isApproved && (
                         <button
-                          onClick={() => setActiveModal({ type: 'APPROVE', driverId: d.id, driverName: name })}
+                          onClick={() =>
+                            setActiveModal({ type: 'APPROVE', driverId: d.id, driverName: name })
+                          }
                           className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white shadow-sm min-h-[40px]"
                         >
                           Approve Driver
@@ -330,7 +351,9 @@ export default function AdminDeliveryPartnersPage() {
 
                       {d.isApproved && d.status !== 'SUSPENDED' && (
                         <button
-                          onClick={() => setActiveModal({ type: 'SUSPEND', driverId: d.id, driverName: name })}
+                          onClick={() =>
+                            setActiveModal({ type: 'SUSPEND', driverId: d.id, driverName: name })
+                          }
                           className="flex-1 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 py-2.5 text-xs font-bold min-h-[40px]"
                         >
                           Suspend
@@ -339,7 +362,9 @@ export default function AdminDeliveryPartnersPage() {
 
                       {d.status === 'SUSPENDED' && (
                         <button
-                          onClick={() => setActiveModal({ type: 'REACTIVATE', driverId: d.id, driverName: name })}
+                          onClick={() =>
+                            setActiveModal({ type: 'REACTIVATE', driverId: d.id, driverName: name })
+                          }
                           className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 py-2.5 text-xs font-black text-white min-h-[40px]"
                         >
                           Reactivate
@@ -347,7 +372,9 @@ export default function AdminDeliveryPartnersPage() {
                       )}
 
                       <button
-                        onClick={() => setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })}
+                        onClick={() =>
+                          setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })
+                        }
                         className="rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2.5 text-xs font-bold min-h-[40px] flex items-center justify-center gap-1 shrink-0"
                         title="Delete Driver"
                       >
@@ -375,7 +402,9 @@ export default function AdminDeliveryPartnersPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50 font-medium">
                   {filtered.map((d) => {
-                    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() || 'Courier Driver';
+                    const name =
+                      `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() ||
+                      'Courier Driver';
                     const phone = d.user?.phone || '—';
                     const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
 
@@ -384,12 +413,20 @@ export default function AdminDeliveryPartnersPage() {
                         <td className="py-3 font-bold text-gray-900">{name}</td>
                         <td className="py-3 text-gray-600">{phone}</td>
                         <td className="py-3 text-gray-700">{vehicle}</td>
-                        <td className="py-3 font-mono text-gray-500">{d.licenseNumber || 'DL-2024-8921'}</td>
+                        <td className="py-3 font-mono text-gray-500">
+                          {d.licenseNumber || 'DL-2024-8921'}
+                        </td>
                         <td className="py-3">{getStatusBadge(d)}</td>
                         <td className="py-3 text-right space-x-1.5">
                           {!d.isApproved && (
                             <button
-                              onClick={() => setActiveModal({ type: 'APPROVE', driverId: d.id, driverName: name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'APPROVE',
+                                  driverId: d.id,
+                                  driverName: name,
+                                })
+                              }
                               className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-black text-white hover:bg-teal-700"
                             >
                               Approve
@@ -397,7 +434,13 @@ export default function AdminDeliveryPartnersPage() {
                           )}
                           {d.isApproved && d.status !== 'SUSPENDED' && (
                             <button
-                              onClick={() => setActiveModal({ type: 'SUSPEND', driverId: d.id, driverName: name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'SUSPEND',
+                                  driverId: d.id,
+                                  driverName: name,
+                                })
+                              }
                               className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                             >
                               Suspend
@@ -405,14 +448,22 @@ export default function AdminDeliveryPartnersPage() {
                           )}
                           {d.status === 'SUSPENDED' && (
                             <button
-                              onClick={() => setActiveModal({ type: 'REACTIVATE', driverId: d.id, driverName: name })}
+                              onClick={() =>
+                                setActiveModal({
+                                  type: 'REACTIVATE',
+                                  driverId: d.id,
+                                  driverName: name,
+                                })
+                              }
                               className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-black text-white hover:bg-teal-700"
                             >
                               Reactivate
                             </button>
                           )}
                           <button
-                            onClick={() => setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })}
+                            onClick={() =>
+                              setActiveModal({ type: 'DELETE', driverId: d.id, driverName: name })
+                            }
                             className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50"
                             title="Delete Delivery Partner"
                           >
@@ -458,8 +509,13 @@ export default function AdminDeliveryPartnersPage() {
             <form onSubmit={handleExecuteAction} className="space-y-4">
               {activeModal.type === 'DELETE' && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
-                  <p className="font-bold">Are you sure you want to permanently delete this delivery partner?</p>
-                  <p className="text-[11px] text-rose-600">This action cannot be undone. The rider account and operational rider data will be permanently removed from the platform.</p>
+                  <p className="font-bold">
+                    Are you sure you want to permanently delete this delivery partner?
+                  </p>
+                  <p className="text-[11px] text-rose-600">
+                    This action cannot be undone. The rider account and operational rider data will
+                    be permanently removed from the platform.
+                  </p>
                 </div>
               )}
 
@@ -496,7 +552,11 @@ export default function AdminDeliveryPartnersPage() {
                       : 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20'
                   }`}
                 >
-                  {isProcessing ? 'Processing...' : activeModal.type === 'DELETE' ? 'DELETE PERMANENTLY' : 'Confirm Action'}
+                  {isProcessing
+                    ? 'Processing...'
+                    : activeModal.type === 'DELETE'
+                      ? 'DELETE PERMANENTLY'
+                      : 'Confirm Action'}
                 </button>
               </div>
             </form>

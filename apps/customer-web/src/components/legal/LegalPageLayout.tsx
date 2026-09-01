@@ -45,7 +45,10 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
     <div className="min-h-[100dvh] bg-gradient-to-b from-gray-50 via-white to-gray-50 py-10 sm:py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-5">
         {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb" className="mb-6 flex items-center space-x-2 text-xs font-semibold text-gray-500">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-6 flex items-center space-x-2 text-xs font-semibold text-gray-500"
+        >
           <Link href="/" className="hover:text-orange-600 transition">
             Home
           </Link>
@@ -109,7 +112,9 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
                             : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600'
                         }`}
                       >
-                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                        <Icon
+                          className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`}
+                        />
                         <span>{item.label}</span>
                       </Link>
                     );
@@ -127,7 +132,8 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
                     <strong className="text-gray-900">Brand / Platform:</strong> Zayka Food
                   </p>
                   <p>
-                    <strong className="text-gray-900">Legal Structure:</strong> Individual / Proprietorship
+                    <strong className="text-gray-900">Legal Structure:</strong> Individual /
+                    Proprietorship
                   </p>
                   <p className="flex items-start gap-1.5 pt-1">
                     <MapPin className="h-3.5 w-3.5 text-orange-600 shrink-0 mt-0.5" />
@@ -147,7 +153,9 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
 
               {/* Statutory Note */}
               <div className="rounded-2xl bg-amber-50/70 border border-amber-200/60 p-4 text-[11px] text-amber-900 leading-relaxed">
-                <strong>Legal Notice:</strong> Zayka Food operates as a technology-driven, multi-vendor marketplace connecting customers, independent restaurants, and courier partners. All contracts and policies are governed by the laws of India.
+                <strong>Legal Notice:</strong> Zayka Food operates as a technology-driven,
+                multi-vendor marketplace connecting customers, independent restaurants, and courier
+                partners. All contracts and policies are governed by the laws of India.
               </div>
             </div>
           </aside>

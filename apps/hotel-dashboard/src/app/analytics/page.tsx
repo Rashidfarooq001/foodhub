@@ -38,7 +38,7 @@ export default function RestaurantAnalyticsPage() {
   const [stats, setStats] = useState<RestaurantStats | null>(null);
   const [foodNames, setFoodNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'7D' | '30D' | 'ALL'>('7D');
+  const [timeRange, setTimeRange] = useState<'7D' | '30D'>('7D');
 
   const fetchAnalytics = async () => {
     if (!restaurantId) return;
@@ -79,17 +79,13 @@ export default function RestaurantAnalyticsPage() {
 
   const activeRevenue =
     timeRange === '7D'
-      ? stats?.week?.sales ?? 0
-      : timeRange === '30D'
-      ? stats?.month?.sales ?? 0
-      : (stats?.month?.sales ?? 0) * 1.5;
+      ? (stats?.week?.sales ?? 0)
+      : (stats?.month?.sales ?? 0);
 
   const activeOrdersCount =
     timeRange === '7D'
-      ? stats?.week?.orders ?? 0
-      : timeRange === '30D'
-      ? stats?.month?.orders ?? 0
-      : stats?.completedOrders ?? 0;
+      ? (stats?.week?.orders ?? 0)
+      : (stats?.month?.orders ?? 0);
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -106,7 +102,7 @@ export default function RestaurantAnalyticsPage() {
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl shrink-0">
-            {(['7D', '30D', 'ALL'] as const).map((range) => (
+            {(['7D', '30D'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
@@ -137,7 +133,9 @@ export default function RestaurantAnalyticsPage() {
         {/* Period Turnover */}
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">GROSS SALES ({timeRange})</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">
+              GROSS SALES ({timeRange})
+            </span>
             <DollarSign className="h-6 w-6 rounded-xl bg-orange-50 p-1.5 text-orange-600" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
@@ -151,12 +149,12 @@ export default function RestaurantAnalyticsPage() {
         {/* Orders Volume */}
         <div className="rounded-2xl border border-gray-100 bg-white p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">ORDERS ({timeRange})</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400">
+              ORDERS ({timeRange})
+            </span>
             <ShoppingBag className="h-6 w-6 rounded-xl bg-blue-50 p-1.5 text-blue-600" />
           </div>
-          <div className="text-lg sm:text-2xl font-black text-gray-900">
-            {activeOrdersCount}
-          </div>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">{activeOrdersCount}</div>
           <span className="text-[10px] text-gray-400 font-semibold block truncate">
             Completed kitchen orders
           </span>
@@ -165,7 +163,9 @@ export default function RestaurantAnalyticsPage() {
         {/* Today Sales */}
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800">TODAY SALES</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-800">
+              TODAY SALES
+            </span>
             <TrendingUp className="h-6 w-6 rounded-xl bg-emerald-100 p-1.5 text-emerald-700" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
@@ -179,14 +179,16 @@ export default function RestaurantAnalyticsPage() {
         {/* Customer Rating */}
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3.5 sm:p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800">STORE RATING</span>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800">
+              STORE RATING
+            </span>
             <Star className="h-6 w-6 rounded-xl bg-amber-100 p-1.5 text-amber-700 fill-amber-500" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-amber-950">
-            {stats?.avgRating ? stats.avgRating.toFixed(1) : '4.8'} ★
+            {stats?.avgRating ? stats.avgRating.toFixed(1) : '-'} ★
           </div>
           <span className="text-[10px] text-amber-800 font-bold block truncate">
-            {stats?.reviewCount ?? 12} customer reviews
+            {stats?.reviewCount ?? 0} customer reviews
           </span>
         </div>
       </div>
@@ -198,14 +200,17 @@ export default function RestaurantAnalyticsPage() {
           <span>Top Ordered Menu Items</span>
         </h2>
 
-        {(!stats?.topItems || stats.topItems.length === 0) ? (
+        {!stats?.topItems || stats.topItems.length === 0 ? (
           <div className="py-8 text-center text-xs font-bold text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
             No top items data available yet.
           </div>
         ) : (
           <div className="space-y-2.5">
             {stats.topItems.map((item, idx) => {
-              const name = item.foodName || foodNames[item.foodItemId] || `Menu Dish #${item.foodItemId.slice(0, 6)}`;
+              const name =
+                item.foodName ||
+                foodNames[item.foodItemId] ||
+                `Menu Dish #${item.foodItemId.slice(0, 6)}`;
               return (
                 <div
                   key={item.foodItemId || idx}
@@ -217,9 +222,7 @@ export default function RestaurantAnalyticsPage() {
                     </span>
                     <span className="font-bold text-gray-900">{name}</span>
                   </div>
-                  <span className="font-black text-orange-700 text-sm">
-                    {item.qty} units sold
-                  </span>
+                  <span className="font-black text-orange-700 text-sm">{item.qty} units sold</span>
                 </div>
               );
             })}

@@ -19,10 +19,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CategoriesLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CategoriesLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

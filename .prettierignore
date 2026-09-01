@@ -1,0 +1,10 @@
+.next
+dist
+node_modules
+build
+coverage
+*.config.js
+*.tsbuildinfo
+pnpm-lock.yaml
+
+_archive-scripts

@@ -68,7 +68,9 @@ export const useHotelAuthStore = create<HotelAuthState>()(
     }),
     {
       name: 'foodhub-hotel-auth',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : dummyStorage)),
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? localStorage : dummyStorage,
+      ),
     },
   ),
 );

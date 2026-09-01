@@ -21,7 +21,9 @@ export async function fetchPricingConfig() {
         if (res.ok) {
             const data = await res.json();
             return {
-                restaurantCommissionPercent: data.restaurantCommissionPercent != null ? Number(data.restaurantCommissionPercent) : null,
+                restaurantCommissionPercent: data.restaurantCommissionPercent != null
+                    ? Number(data.restaurantCommissionPercent)
+                    : null,
                 customerDeliveryPerKm: Number(data.customerDeliveryPerKm ?? 0),
                 minimumCustomerDeliveryFee: Number(data.minimumCustomerDeliveryFee ?? 15),
                 platformFee: Number(data.platformFee ?? 3),

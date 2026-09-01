@@ -14,9 +14,12 @@ interface Props {
 }
 
 export const DeliveryMap: React.FC<Props> = ({
-  driverLat, driverLng,
-  restaurantLat, restaurantLng,
-  customerLat, customerLng,
+  driverLat,
+  driverLng,
+  restaurantLat,
+  restaurantLng,
+  customerLat,
+  customerLng,
 }) => {
   const mapToken = process.env.NEXT_PUBLIC_MAPPLS_MAP_TOKEN || '';
   const mapRef = useRef<HTMLDivElement>(null);
@@ -113,7 +116,9 @@ export const DeliveryMap: React.FC<Props> = ({
     return (
       <div className="flex flex-col h-[400px] items-center justify-center bg-gray-50 rounded-3xl border border-gray-100 shadow-inner text-sm text-gray-500 p-6 text-center">
         <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Mappls map configuration is missing. Please configure NEXT_PUBLIC_MAPPLS_MAP_TOKEN.</span>
+        <span>
+          Mappls map configuration is missing. Please configure NEXT_PUBLIC_MAPPLS_MAP_TOKEN.
+        </span>
       </div>
     );
   }

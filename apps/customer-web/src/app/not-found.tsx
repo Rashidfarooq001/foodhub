@@ -24,7 +24,8 @@ export default function NotFound() {
             Page Not Found
           </h1>
           <p className="text-sm text-gray-500 max-w-sm mx-auto">
-            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+            The page you are looking for might have been removed, had its name changed, or is
+            temporarily unavailable.
           </p>
         </div>
 

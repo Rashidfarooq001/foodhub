@@ -24,7 +24,7 @@ export class DistanceService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly geoService: GeolocationService
+    private readonly geoService: GeolocationService,
   ) {}
 
   /**
@@ -51,9 +51,13 @@ export class DistanceService {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
     });
-    const hasRestCoords = restaurant ? this.validateCoordinates(restaurant.latitude, restaurant.longitude) : false;
+    const hasRestCoords = restaurant
+      ? this.validateCoordinates(restaurant.latitude, restaurant.longitude)
+      : false;
 
-    this.logger.log(`[Mappls Route] restaurantId: ${restaurantId} | customer coordinates present: ${hasCustomerCoords} | restaurant coordinates present: ${hasRestCoords}`);
+    this.logger.log(
+      `[Mappls Route] restaurantId: ${restaurantId} | customer coordinates present: ${hasCustomerCoords} | restaurant coordinates present: ${hasRestCoords}`,
+    );
 
     if (!hasCustomerCoords) {
       return {
@@ -108,7 +112,9 @@ export class DistanceService {
         reason: serviceable ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
       };
     } catch (error: any) {
-      this.logger.error(`Distance calculation failed for restaurant ${restaurantId}: ${error?.message || error}`);
+      this.logger.error(
+        `Distance calculation failed for restaurant ${restaurantId}: ${error?.message || error}`,
+      );
       return {
         valid: false,
         serviceable: false,

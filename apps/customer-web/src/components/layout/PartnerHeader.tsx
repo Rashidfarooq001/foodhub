@@ -46,7 +46,9 @@ export const PartnerHeader: React.FC = () => {
             {isLoginOpen && (
               <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50">
                 <div className="border-b border-gray-100 p-3">
-                  <p className="text-xs font-black uppercase text-gray-400 tracking-wider">Partner Access Portals</p>
+                  <p className="text-xs font-black uppercase text-gray-400 tracking-wider">
+                    Partner Access Portals
+                  </p>
                 </div>
                 <div className="py-1 space-y-1">
                   <a
@@ -58,7 +60,9 @@ export const PartnerHeader: React.FC = () => {
                     <Building2 className="h-4 w-4 text-orange-600" />
                     <div>
                       <span className="block">Restaurant Merchant Dashboard</span>
-                      <span className="block text-[10px] font-normal text-gray-400">Order queue &amp; store settings</span>
+                      <span className="block text-[10px] font-normal text-gray-400">
+                        Order queue &amp; store settings
+                      </span>
                     </div>
                   </a>
                   <a
@@ -70,7 +74,9 @@ export const PartnerHeader: React.FC = () => {
                     <Bike className="h-4 w-4 text-emerald-600" />
                     <div>
                       <span className="block">Delivery Fleet Dashboard</span>
-                      <span className="block text-[10px] font-normal text-gray-400">Duty dispatches &amp; earnings</span>
+                      <span className="block text-[10px] font-normal text-gray-400">
+                        Duty dispatches &amp; earnings
+                      </span>
                     </div>
                   </a>
                 </div>

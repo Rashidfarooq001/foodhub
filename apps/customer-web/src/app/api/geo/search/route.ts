@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
 
   const backendUrl = getApiBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/geolocation/autosuggest?query=${encodeURIComponent(query)}`);
+    const res = await fetch(
+      `${backendUrl}/geolocation/autosuggest?query=${encodeURIComponent(query)}`,
+    );
     const data = await res.json();
     return NextResponse.json(data);
   } catch {

@@ -90,9 +90,13 @@ export const GoogleMapPicker: React.FC<Props> = ({
 
   if (!mapToken || error) {
     return (
-      <div className={`${className} flex flex-col items-center justify-center bg-gray-100 text-sm text-gray-500 p-6 text-center`}>
+      <div
+        className={`${className} flex flex-col items-center justify-center bg-gray-100 text-sm text-gray-500 p-6 text-center`}
+      >
         <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Mappls map configuration is missing. Please set NEXT_PUBLIC_MAPPLS_MAP_TOKEN in Vercel.</span>
+        <span>
+          Mappls map configuration is missing. Please set NEXT_PUBLIC_MAPPLS_MAP_TOKEN in Vercel.
+        </span>
       </div>
     );
   }
@@ -110,7 +114,11 @@ export const GoogleMapPicker: React.FC<Props> = ({
         onLoad={initMap}
         onError={() => setError(true)}
       />
-      <div id="mappls-hotel-picker" ref={mapRef} style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }} />
+      <div
+        id="mappls-hotel-picker"
+        ref={mapRef}
+        style={{ width: '100%', height: '100%', display: isLoaded ? 'block' : 'none' }}
+      />
     </div>
   );
 };

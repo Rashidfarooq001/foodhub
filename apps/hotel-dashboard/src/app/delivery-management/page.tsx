@@ -39,7 +39,7 @@ export default function HotelDeliveryManagementPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const rawOrders = Array.isArray(data) ? data : data.orders ?? [];
+        const rawOrders = Array.isArray(data) ? data : (data.orders ?? []);
         const activeOnly = rawOrders.filter((ord: any) =>
           [
             'READY_FOR_PICKUP',
@@ -79,24 +79,27 @@ export default function HotelDeliveryManagementPage() {
 
     socket.on('order.status_updated', handleUpdate);
 
-    socket.on('driver.location_updated', (payload: { orderId: string; lat: number; lng: number }) => {
-      setActiveDeliveries((prev) =>
-        prev.map((ord) => {
-          if (ord.id === payload.orderId) {
-            return {
-              ...ord,
-              tracking: {
-                ...(ord.tracking || {}),
-                currentLat: payload.lat,
-                currentLng: payload.lng,
-                lastPingAt: new Date().toISOString(),
-              },
-            };
-          }
-          return ord;
-        }),
-      );
-    });
+    socket.on(
+      'driver.location_updated',
+      (payload: { orderId: string; lat: number; lng: number }) => {
+        setActiveDeliveries((prev) =>
+          prev.map((ord) => {
+            if (ord.id === payload.orderId) {
+              return {
+                ...ord,
+                tracking: {
+                  ...(ord.tracking || {}),
+                  currentLat: payload.lat,
+                  currentLng: payload.lng,
+                  lastPingAt: new Date().toISOString(),
+                },
+              };
+            }
+            return ord;
+          }),
+        );
+      },
+    );
 
     return () => {
       socket.disconnect();
@@ -166,7 +169,8 @@ export default function HotelDeliveryManagementPage() {
           <Bike className="h-10 w-10 mx-auto text-gray-300 mb-1" />
           <p className="text-sm font-black text-gray-700">No Orders in Transit</p>
           <p className="text-gray-400 max-w-sm mx-auto">
-            When kitchen orders are marked ready and assigned to courier partners, live GPS tracking cards will appear here.
+            When kitchen orders are marked ready and assigned to courier partners, live GPS tracking
+            cards will appear here.
           </p>
         </div>
       ) : (
@@ -196,7 +200,9 @@ export default function HotelDeliveryManagementPage() {
                       </p>
                     </div>
 
-                    <span className={`rounded-xl px-2.5 py-1 text-[10px] font-black uppercase border ${statusInfo.badgeClass}`}>
+                    <span
+                      className={`rounded-xl px-2.5 py-1 text-[10px] font-black uppercase border ${statusInfo.badgeClass}`}
+                    >
                       {statusInfo.label}
                     </span>
                   </div>
@@ -209,7 +215,9 @@ export default function HotelDeliveryManagementPage() {
                       </div>
                       <div>
                         <span className="text-xs font-black text-gray-900 block truncate max-w-[140px]">
-                          {driver?.user?.profile?.firstName ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}` : driver?.name || 'Assigned Rider'}
+                          {driver?.user?.profile?.firstName
+                            ? `${driver.user.profile.firstName} ${driver.user.profile.lastName || ''}`
+                            : driver?.name || 'Assigned Rider'}
                         </span>
                         <span className="text-[10px] text-emerald-700 font-bold block">
                           {driver?.vehicleNumber || 'KA-01-HA-9821'}
@@ -233,7 +241,9 @@ export default function HotelDeliveryManagementPage() {
                     <div className="flex items-start gap-1.5 text-gray-700 font-medium">
                       <MapPin className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
                       <span className="line-clamp-2">
-                        {customerAddress?.formattedAddress || customerAddress?.street || 'Delivery Address specified by customer'}
+                        {customerAddress?.formattedAddress ||
+                          customerAddress?.street ||
+                          'Delivery Address specified by customer'}
                       </span>
                     </div>
                   </div>
@@ -245,7 +255,8 @@ export default function HotelDeliveryManagementPage() {
                       <span>Items in Package ({delivery.items?.length || 1}):</span>
                     </div>
                     <p className="text-[11px] text-gray-600 truncate">
-                      {delivery.items?.map((it: any) => `${it.quantity}× ${it.name}`).join(', ') || 'Food order items'}
+                      {delivery.items?.map((it: any) => `${it.quantity}× ${it.name}`).join(', ') ||
+                        'Food order items'}
                     </p>
                   </div>
                 </div>

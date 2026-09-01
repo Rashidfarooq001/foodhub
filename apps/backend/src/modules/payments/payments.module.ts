@@ -5,9 +5,9 @@ import { DatabaseModule } from '../database/database.module';
 import { OrdersModule } from '../orders/orders.module';
 
 @Module({
-  imports:     [DatabaseModule, OrdersModule],
+  imports: [DatabaseModule, OrdersModule],
   controllers: [PaymentsController],
-  providers:   [PaymentsService],
-  exports:     [PaymentsService],
+  providers: [PaymentsService],
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}

@@ -20,9 +20,10 @@ async function main() {
 
   console.log('--- RESTAURANTS IN NEON POSTGRESQL DB ---');
   restaurants.forEach((r, idx) => {
-    const avgPrice = r.foodItems.length > 0
-      ? r.foodItems.reduce((acc, item) => acc + Number(item.price), 0) / r.foodItems.length
-      : 0;
+    const avgPrice =
+      r.foodItems.length > 0
+        ? r.foodItems.reduce((acc, item) => acc + Number(item.price), 0) / r.foodItems.length
+        : 0;
     const estCostForTwo = Math.round((avgPrice * 2) / 50) * 50;
 
     console.log(`\n[Restaurant ${idx + 1}]`);
@@ -31,7 +32,9 @@ async function main() {
     console.log(`Delivery Radius: ${r.deliveryRadius} km`);
     console.log(`Status: ${r.status}`);
     console.log(`Food Items Count: ${r.foodItems.length}`);
-    console.log(`Calculated Avg Price: ₹${avgPrice.toFixed(2)} -> Estimated Cost For Two: ₹${estCostForTwo}`);
+    console.log(
+      `Calculated Avg Price: ₹${avgPrice.toFixed(2)} -> Estimated Cost For Two: ₹${estCostForTwo}`,
+    );
   });
 }
 

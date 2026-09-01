@@ -13,7 +13,11 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
     const t1 = setTimeout(() => setPhase('hold'), 120);
     const t2 = setTimeout(() => setPhase('exit'), 450);
     const t3 = setTimeout(() => onComplete(), 700);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [onComplete]);
 
   return (
@@ -34,12 +38,20 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
         pointerEvents: 'none',
         background: 'linear-gradient(135deg, #14532d 0%, #166534 40%, #15803d 70%, #ea580c 100%)',
         opacity: phase === 'exit' ? 0 : 1,
-        transition: phase === 'exit' ? 'opacity 0.5s ease-out' : phase === 'enter' ? 'opacity 0.4s ease-in' : 'none',
+        transition:
+          phase === 'exit'
+            ? 'opacity 0.5s ease-out'
+            : phase === 'enter'
+              ? 'opacity 0.4s ease-in'
+              : 'none',
       }}
     >
       <div
         style={{
-          transform: phase === 'hold' || phase === 'exit' ? 'scale(1) translateY(0)' : 'scale(0.85) translateY(20px)',
+          transform:
+            phase === 'hold' || phase === 'exit'
+              ? 'scale(1) translateY(0)'
+              : 'scale(0.85) translateY(20px)',
           opacity: phase === 'hold' || phase === 'exit' ? 1 : 0,
           transition: 'transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease',
           display: 'flex',
@@ -51,16 +63,23 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
         <img
           src="/zaykafood-logo.png"
           alt="ZaykaFood"
-          style={{ height: '100px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+          style={{
+            height: '100px',
+            width: 'auto',
+            objectFit: 'contain',
+            filter: 'brightness(0) invert(1)',
+          }}
         />
         <div style={{ textAlign: 'center' }}>
-          <p style={{
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '0.75rem',
-            fontWeight: 800,
-            letterSpacing: '0.25em',
-            fontFamily: 'sans-serif',
-          }}>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              letterSpacing: '0.25em',
+              fontFamily: 'sans-serif',
+            }}
+          >
             ORDER • DELIVER • ENJOY
           </p>
         </div>

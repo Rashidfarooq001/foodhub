@@ -11,8 +11,8 @@ function StarRating({
   value,
   onChange,
 }: {
-  label:    string;
-  value:    number;
+  label: string;
+  value: number;
   onChange: (n: number) => void;
 }) {
   const [hover, setHover] = useState(0);
@@ -31,9 +31,7 @@ function StarRating({
           >
             <Star
               className={`h-6 w-6 transition-colors ${
-                n <= (hover || value)
-                  ? 'fill-amber-400 text-amber-400'
-                  : 'text-gray-200'
+                n <= (hover || value) ? 'fill-amber-400 text-amber-400' : 'text-gray-200'
               }`}
             />
           </button>
@@ -44,17 +42,17 @@ function StarRating({
 }
 
 export default function OrderReviewPage() {
-  const params  = useParams<{ id: string }>();
-  const router  = useRouter();
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
 
   const [restaurantRating, setRestaurantRating] = useState(0);
   const [restaurantComment, setRestaurantComment] = useState('');
-  const [foodRating, setFoodRating]   = useState(0);
+  const [foodRating, setFoodRating] = useState(0);
   const [driverRating, setDriverRating] = useState(0);
   const [driverComment, setDriverComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [submitted,  setSubmitted]    = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
     if (!restaurantRating || !foodRating || !driverRating) {
@@ -64,7 +62,9 @@ export default function OrderReviewPage() {
     setSubmitting(true);
     try {
       const apiBase = getApiBaseUrl();
-      const token = useAuthStore.getState().accessToken || (typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null);
+      const token =
+        useAuthStore.getState().accessToken ||
+        (typeof window !== 'undefined' ? localStorage.getItem('foodhub_customer_token') : null);
 
       if (!token) {
         alert('Please log in to submit a review.');
@@ -86,7 +86,8 @@ export default function OrderReviewPage() {
 
       const order = await orderRes.json();
       const restaurantId = order?.restaurantId || order?.restaurant?.id;
-      const driverId = order?.assignedFoodhubDriverId || order?.assignedRestaurantDriverId || order?.driver?.id;
+      const driverId =
+        order?.assignedFoodhubDriverId || order?.assignedRestaurantDriverId || order?.driver?.id;
 
       // 2. Submit Restaurant Review
       let reviewSuccess = false;
@@ -163,18 +164,25 @@ export default function OrderReviewPage() {
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 sm:p-4">
       <div className="mx-auto max-w-lg space-y-4">
-
         <div className="pb-2">
           <h1 className="text-2xl font-black text-gray-900">Rate Your Experience</h1>
-          <p className="mt-1 text-xs text-gray-500">Order #{params.id?.slice(0, 8).toUpperCase()}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Order #{params.id?.slice(0, 8).toUpperCase()}
+          </p>
         </div>
 
         {/* Restaurant Review Card */}
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
-          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-purple-600">🍽 Restaurant</h3>
+          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-purple-600">
+            🍽 Restaurant
+          </h3>
 
           <div className="space-y-3">
-            <StarRating label="Overall Experience" value={restaurantRating} onChange={setRestaurantRating} />
+            <StarRating
+              label="Overall Experience"
+              value={restaurantRating}
+              onChange={setRestaurantRating}
+            />
           </div>
 
           <div className="relative">
@@ -203,17 +211,21 @@ export default function OrderReviewPage() {
 
         {/* Food Review Card */}
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-3">
-          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-amber-600">🍱 Food Items</h3>
+          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-amber-600">
+            🍱 Food Items
+          </h3>
           <div className="space-y-3">
-            <StarRating label="Taste & Quality"     value={foodRating} onChange={setFoodRating} />
+            <StarRating label="Taste & Quality" value={foodRating} onChange={setFoodRating} />
           </div>
         </div>
 
         {/* Driver Review Card */}
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
-          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-blue-600">🛵 Delivery Partner</h3>
+          <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide text-blue-600">
+            🛵 Delivery Partner
+          </h3>
           <div className="space-y-3">
-            <StarRating label="Behaviour & Speed"    value={driverRating} onChange={setDriverRating} />
+            <StarRating label="Behaviour & Speed" value={driverRating} onChange={setDriverRating} />
           </div>
 
           <div className="relative">
@@ -238,7 +250,6 @@ export default function OrderReviewPage() {
         >
           {submitting ? 'Submitting…' : 'Submit Review'}
         </button>
-
       </div>
     </div>
   );

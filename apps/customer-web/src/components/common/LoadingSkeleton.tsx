@@ -6,7 +6,10 @@ export const LoadingSkeleton: React.FC = () => {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 space-y-4">
+        <div
+          key={i}
+          className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 space-y-4"
+        >
           <div className="h-44 w-full rounded-2xl bg-gray-200" />
           <div className="h-5 w-3/4 rounded-lg bg-gray-200" />
           <div className="h-4 w-1/2 rounded-lg bg-gray-200" />
@@ -43,7 +46,12 @@ export const ErrorState: React.FC<{ message?: string; onRetry?: () => void }> = 
   );
 };
 
-export const EmptyState: React.FC<{ title?: string; subtitle?: string; actionText?: string; onAction?: () => void }> = ({
+export const EmptyState: React.FC<{
+  title?: string;
+  subtitle?: string;
+  actionText?: string;
+  onAction?: () => void;
+}> = ({
   title = 'No items found',
   subtitle = 'Try adjusting your search queries or filters.',
   actionText,

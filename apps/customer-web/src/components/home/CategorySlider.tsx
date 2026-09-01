@@ -16,9 +16,11 @@ export const CategorySlider: React.FC = () => {
         const res = await fetch(`${API_BASE}/categories`);
         if (res.ok) {
           const data = await res.json();
-          setCategories(Array.isArray(data) ? data : data.categories ?? []);
+          setCategories(Array.isArray(data) ? data : (data.categories ?? []));
         }
-      } catch { /* backend offline */ }
+      } catch {
+        /* backend offline */
+      }
     };
     fetchCategories();
   }, []);
@@ -29,10 +31,15 @@ export const CategorySlider: React.FC = () => {
     <div className="space-y-4 w-full max-w-full min-w-0">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">What&apos;s on your mind?</h2>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
+            What&apos;s on your mind?
+          </h2>
           <p className="text-xs text-gray-500">Explore dishes by popularity and cuisine</p>
         </div>
-        <Link href="/categories" className="text-xs font-bold text-orange-600 hover:underline shrink-0">
+        <Link
+          href="/categories"
+          className="text-xs font-bold text-orange-600 hover:underline shrink-0"
+        >
           View All →
         </Link>
       </div>

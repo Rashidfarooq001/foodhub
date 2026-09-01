@@ -24,17 +24,21 @@ function SearchPageInner() {
         const res = await fetch(`${API_BASE}/restaurants`);
         if (res.ok) {
           const data = await res.json();
-          const list = Array.isArray(data) ? data : data.restaurants ?? [];
+          const list = Array.isArray(data) ? data : (data.restaurants ?? []);
           setRestaurants(list.map(normalizeRestaurantData));
         }
-      } catch { /* offline */ }
+      } catch {
+        /* offline */
+      }
     };
     fetchRestaurants();
     const interval = setInterval(fetchRestaurants, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const allFoodItems: FoodItemData[] = restaurants.flatMap((r: RestaurantData) => r.foodItems ?? []);
+  const allFoodItems: FoodItemData[] = restaurants.flatMap(
+    (r: RestaurantData) => r.foodItems ?? [],
+  );
 
   const filteredRestaurants = query.trim()
     ? restaurants.filter((r: any) => {
@@ -53,7 +57,14 @@ function SearchPageInner() {
     ? allFoodItems.filter((f: FoodItemData) => f.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
-  const popularTags = ['Biryani', 'Paneer Butter Masala', 'Pizza', 'Garlic Naan', 'Burger', 'Chinese'];
+  const popularTags = [
+    'Biryani',
+    'Paneer Butter Masala',
+    'Pizza',
+    'Garlic Naan',
+    'Burger',
+    'Chinese',
+  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 md:space-y-8 pb-10">
@@ -112,7 +123,13 @@ function SearchPageInner() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {tab} ({tab === 'all' ? filteredRestaurants.length + filteredFood.length : tab === 'restaurants' ? filteredRestaurants.length : filteredFood.length})
+                {tab} (
+                {tab === 'all'
+                  ? filteredRestaurants.length + filteredFood.length
+                  : tab === 'restaurants'
+                    ? filteredRestaurants.length
+                    : filteredFood.length}
+                )
               </button>
             ))}
           </div>
@@ -124,23 +141,28 @@ function SearchPageInner() {
             />
           ) : (
             <div className="space-y-5">
-              {(activeTab === 'all' || activeTab === 'restaurants') && filteredRestaurants.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-gray-900">Matching Restaurants</h3>
-                  <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
-                    {filteredRestaurants.map((r: RestaurantData) => (
-                      <div className="snap-start"><RestaurantCard key={r.id} restaurant={r} /></div>
-                    ))}
+              {(activeTab === 'all' || activeTab === 'restaurants') &&
+                filteredRestaurants.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900">Matching Restaurants</h3>
+                    <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
+                      {filteredRestaurants.map((r: RestaurantData) => (
+                        <div className="snap-start">
+                          <RestaurantCard key={r.id} restaurant={r} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {(activeTab === 'all' || activeTab === 'dishes') && filteredFood.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">Matching Dishes</h3>
                   <div className="grid grid-rows-2 grid-flow-col gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-[calc(24vw)] lg:auto-cols-[calc(20vw)] xl:auto-cols-[calc(16vw)]">
                     {filteredFood.map((f: FoodItemData) => (
-                      <div className="snap-start"><FoodCard key={f.id} food={f} /></div>
+                      <div className="snap-start">
+                        <FoodCard key={f.id} food={f} />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -155,7 +177,13 @@ function SearchPageInner() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-10 text-center text-gray-400 text-sm">Loading search...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-7xl px-4 py-10 text-center text-gray-400 text-sm">
+          Loading search...
+        </div>
+      }
+    >
       <SearchPageInner />
     </Suspense>
   );

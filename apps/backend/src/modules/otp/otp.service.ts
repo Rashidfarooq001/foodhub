@@ -10,9 +10,7 @@ export class OtpService {
   private readonly OTP_EXPIRY_MINS = 10;
   private readonly usedAccessTokens = new Set<string>();
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
     const cleanDigits = (phone || '').replace(/\D/g, '');
@@ -66,7 +64,6 @@ export class OtpService {
     };
   }
 
-
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const cleanDigits = (phone || '').replace(/\D/g, '');
     const normalizedDbPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
@@ -98,7 +95,6 @@ export class OtpService {
     return true;
   }
 
-
   async verifyAccessToken(accessToken: string): Promise<any> {
     if (!accessToken) {
       throw new BadRequestException('Access token is required');
@@ -106,21 +102,38 @@ export class OtpService {
 
     // SINGLE-USE ACCESS TOKEN ENFORCEMENT: Reject previously consumed MSG91 widget tokens
     if (this.usedAccessTokens.has(accessToken)) {
-      this.logger.warn(`[Backend MSG91] Access token re-use attempt rejected for token len=${accessToken.length}`);
-      throw new BadRequestException('MSG91 access token has already been used. Please request a new OTP.');
+      this.logger.warn(
+        `[Backend MSG91] Access token re-use attempt rejected for token len=${accessToken.length}`,
+      );
+      throw new BadRequestException(
+        'MSG91 access token has already been used. Please request a new OTP.',
+      );
     }
 
     const authKey = process.env.MSG91_AUTH_KEY;
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
-    this.logger.log(`[Backend MSG91] MSG91_AUTH_KEY_PRESENT=${!!authKey}, KeyLength=${authKey?.length || 0}`);
-    this.logger.log(`[Backend MSG91] Token present=${!!accessToken}, TokenLength=${accessToken.length}`);
+    this.logger.log(
+      `[Backend MSG91] MSG91_AUTH_KEY_PRESENT=${!!authKey}, KeyLength=${authKey?.length || 0}`,
+    );
+    this.logger.log(
+      `[Backend MSG91] Token present=${!!accessToken}, TokenLength=${accessToken.length}`,
+    );
 
-    if ((!authKey || authKey === 'dummy_auth_key') && isDevOrTest && accessToken?.startsWith('dev_')) {
+    if (
+      (!authKey || authKey === 'dummy_auth_key') &&
+      isDevOrTest &&
+      accessToken?.startsWith('dev_')
+    ) {
       this.logger.log('[Backend MSG91] Bypassing MSG91 API in local test mode for dev_ token');
       const devPhone = accessToken.replace('dev_widget_token_', '').replace('dev_', '');
-      const formattedDevPhone = devPhone.length === 10 ? `+91${devPhone}` : (devPhone.startsWith('+') ? devPhone : `+${devPhone}`);
-      
+      const formattedDevPhone =
+        devPhone.length === 10
+          ? `+91${devPhone}`
+          : devPhone.startsWith('+')
+            ? devPhone
+            : `+${devPhone}`;
+
       this.usedAccessTokens.add(accessToken);
       return {
         type: 'success',
@@ -134,21 +147,20 @@ export class OtpService {
     }
 
     try {
-      this.logger.log('[Backend MSG91] Requesting https://control.msg91.com/api/v5/widget/verifyAccessToken...');
-      const response = await fetch(
-        'https://control.msg91.com/api/v5/widget/verifyAccessToken',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            authkey: authKey,
-            'access-token': accessToken,
-          }),
-        },
+      this.logger.log(
+        '[Backend MSG91] Requesting https://control.msg91.com/api/v5/widget/verifyAccessToken...',
       );
+      const response = await fetch('https://control.msg91.com/api/v5/widget/verifyAccessToken', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          authkey: authKey,
+          'access-token': accessToken,
+        }),
+      });
 
       this.logger.log(`[Backend MSG91] HTTP status from MSG91 server: ${response.status}`);
       const msg91Data = await response.json();
@@ -166,9 +178,10 @@ export class OtpService {
       if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error(`[Backend MSG91] Exception during MSG91 verifyAccessToken: ${error?.message || error}`);
+      this.logger.error(
+        `[Backend MSG91] Exception during MSG91 verifyAccessToken: ${error?.message || error}`,
+      );
       throw new UnauthorizedException(error?.message || 'MSG91 token verification failed.');
     }
   }
-
 }

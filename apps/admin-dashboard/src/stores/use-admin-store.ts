@@ -1,10 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import {
-  PendingRestaurantApproval,
-  PendingDriverApproval,
-} from '../data/admin-mock-data';
+import { PendingRestaurantApproval, PendingDriverApproval } from '../data/admin-mock-data';
 
 interface AdminState {
   pendingRestaurants: PendingRestaurantApproval[];
@@ -60,8 +57,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
       ),
     })),
 
-  toggleMaintenanceMode: () =>
-    set((state) => ({ isMaintenanceMode: !state.isMaintenanceMode })),
+  toggleMaintenanceMode: () => set((state) => ({ isMaintenanceMode: !state.isMaintenanceMode })),
 
   setCommissionRate: (rate) => set({ platformCommissionRate: rate }),
 }));

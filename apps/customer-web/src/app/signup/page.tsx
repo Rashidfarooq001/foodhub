@@ -3,7 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Phone, ArrowRight, ShieldCheck, Lock, User, MapPin, CheckCircle2, RotateCcw, X } from 'lucide-react';
+import {
+  Sparkles,
+  Phone,
+  ArrowRight,
+  ShieldCheck,
+  Lock,
+  User,
+  MapPin,
+  CheckCircle2,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 
@@ -76,7 +87,9 @@ export default function SignupPage() {
       return;
     }
     if (!termsAccepted) {
-      setError('You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.');
+      setError(
+        'You must agree to the Terms & Conditions and acknowledge the Privacy Policy before creating an account.',
+      );
       return;
     }
 
@@ -98,7 +111,10 @@ export default function SignupPage() {
 
       // Phone available -> Trigger MSG91 OTP without creating account
       const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '556022TLShucwZ86a6d8a7bP1';
+      const tokenAuth =
+        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
+        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
+        '556022TLShucwZ86a6d8a7bP1';
       const identifier = formatIdentifier(phone);
 
       const configuration = {
@@ -108,7 +124,10 @@ export default function SignupPage() {
         exposeMethods: true,
         captchaRenderId: '',
         success: (msgData: any) => {
-          const token = typeof msgData === 'string' ? msgData : (msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token);
+          const token =
+            typeof msgData === 'string'
+              ? msgData
+              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
           if (token) {
             handleCompleteSignupWithWidgetToken(token);
           } else {
@@ -117,7 +136,7 @@ export default function SignupPage() {
           }
         },
         failure: (err: any) => {
-          setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
+          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
           setIsLoading(false);
         },
       };
@@ -126,7 +145,11 @@ export default function SignupPage() {
         try {
           (window as any).initSendOTP(configuration);
           if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(identifier, () => {}, (err: any) => console.error('[MSG91 Signup] sendOtp error:', err));
+            (window as any).sendOtp(
+              identifier,
+              () => {},
+              (err: any) => console.error('[MSG91 Signup] sendOtp error:', err),
+            );
           }
         } catch (widgetErr: any) {
           console.warn('[MSG91 Signup] initSendOTP exception:', widgetErr);
@@ -205,10 +228,14 @@ export default function SignupPage() {
 
     if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
       try {
-        (window as any).verifyOtp(enteredOtp, () => {}, (err: any) => {
-          setError(typeof err === 'string' ? err : (err?.message || 'OTP verification failed'));
-          setIsLoading(false);
-        });
+        (window as any).verifyOtp(
+          enteredOtp,
+          () => {},
+          (err: any) => {
+            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
+            setIsLoading(false);
+          },
+        );
         return;
       } catch (verifyErr: any) {
         console.warn('[MSG91 Signup] verifyOtp exception:', verifyErr);
@@ -424,7 +451,8 @@ export default function SignupPage() {
                     className="font-bold text-orange-600 hover:underline"
                   >
                     Privacy Policy
-                  </Link>.
+                  </Link>
+                  .
                 </span>
               </label>
             </div>
@@ -449,16 +477,22 @@ export default function SignupPage() {
           <form onSubmit={handleVerifySignupOtpManual} className="space-y-5">
             <div className="rounded-2xl bg-orange-50 p-3 text-center border border-orange-100">
               <p className="text-xs font-bold text-orange-900">Verify Mobile Number</p>
-              <p className="text-[11px] text-orange-700 mt-0.5">OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span></p>
+              <p className="text-[11px] text-orange-700 mt-0.5">
+                OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">Enter 4-Digit MSG91 OTP</label>
+              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">
+                Enter 4-Digit MSG91 OTP
+              </label>
               <div className="flex justify-center gap-3">
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => { otpInputsRef.current[idx] = el; }}
+                    ref={(el) => {
+                      otpInputsRef.current[idx] = el;
+                    }}
                     type="text"
                     maxLength={1}
                     value={digit}
@@ -492,7 +526,10 @@ export default function SignupPage() {
             <div className="flex items-center justify-between text-xs pt-1">
               <button
                 type="button"
-                onClick={() => { setSignupStep('FORM'); setError(''); }}
+                onClick={() => {
+                  setSignupStep('FORM');
+                  setError('');
+                }}
                 className="flex items-center gap-1 font-bold text-gray-500 hover:text-orange-600"
               >
                 <X className="h-3.5 w-3.5" /> Cancel / Edit Details
@@ -518,7 +555,9 @@ export default function SignupPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-black text-gray-900">Phone Number Verified!</h3>
-              <p className="text-xs text-emerald-700 font-bold">Creating your customer account...</p>
+              <p className="text-xs text-emerald-700 font-bold">
+                Creating your customer account...
+              </p>
             </div>
           </div>
         )}

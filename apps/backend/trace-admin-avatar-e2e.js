@@ -72,14 +72,14 @@ async function main() {
       role: adminUser.role,
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
-    JWT_SECRET
+    JWT_SECRET,
   );
 
   // Step 2-5: Upload a brand-new image
   const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
   const sampleImageBytes = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-    'base64'
+    'base64',
   );
 
   let body = '';
@@ -91,14 +91,18 @@ async function main() {
   const payloadFooter = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf-8');
   const fullMultipart = Buffer.concat([payloadHeader, sampleImageBytes, payloadFooter]);
 
-  const uploadRes = await makeRequest(`${BASE_URL}/storage/upload?type=image`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
-      'Content-Length': fullMultipart.length,
+  const uploadRes = await makeRequest(
+    `${BASE_URL}/storage/upload?type=image`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': fullMultipart.length,
+      },
     },
-  }, fullMultipart);
+    fullMultipart,
+  );
 
   // Step 6-7: Profile Save Request
   const uploadedUrl = uploadRes.data?.url;
@@ -108,19 +112,23 @@ async function main() {
     avatarUrl: uploadedUrl,
   };
 
-  const saveRes = await makeRequest(`${BASE_URL}/auth/profile`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const saveRes = await makeRequest(
+    `${BASE_URL}/auth/profile`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     },
-  }, JSON.stringify(savePayload));
+    JSON.stringify(savePayload),
+  );
 
   // Step 8-9: GET /auth/profile
   const getProfileRes = await makeRequest(`${BASE_URL}/auth/profile`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -177,7 +185,9 @@ async function main() {
   } else if (imageFetchRes.statusCode !== 200) {
     console.log('E');
   } else {
-    console.log('D (Database & GET /auth/profile return exact updated avatarUrl and image GET returns 200 OK. Frontend Zustand store state sync / localStorage hydration in AdminHeader needs verification)');
+    console.log(
+      'D (Database & GET /auth/profile return exact updated avatarUrl and image GET returns 200 OK. Frontend Zustand store state sync / localStorage hydration in AdminHeader needs verification)',
+    );
   }
 }
 

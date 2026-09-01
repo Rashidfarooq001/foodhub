@@ -27,7 +27,7 @@ export const HeroBanner: React.FC = () => {
         const res = await fetch(`${API_BASE}/coupons`);
         if (res.ok) {
           const data = await res.json();
-          const list = Array.isArray(data) ? data : data.coupons ?? [];
+          const list = Array.isArray(data) ? data : (data.coupons ?? []);
           setCoupons(list);
         }
       } catch {
@@ -95,7 +95,8 @@ export const HeroBanner: React.FC = () => {
             {discountLabel} on Orders above ₹{activeCoupon.minOrderVal || 0}
           </h2>
           <p className="text-xs sm:text-sm text-rose-100 max-w-xl">
-            {activeCoupon.description || 'Apply this promo code at checkout to enjoy instant savings on your order.'}
+            {activeCoupon.description ||
+              'Apply this promo code at checkout to enjoy instant savings on your order.'}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
@@ -105,7 +106,12 @@ export const HeroBanner: React.FC = () => {
               Order Now <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <div className="flex items-center gap-1.5 rounded-2xl border border-white/30 bg-black/20 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
-              <span>Code: <span className="font-mono text-yellow-300 font-black tracking-wider">{activeCoupon.code}</span></span>
+              <span>
+                Code:{' '}
+                <span className="font-mono text-yellow-300 font-black tracking-wider">
+                  {activeCoupon.code}
+                </span>
+              </span>
             </div>
           </div>
         </div>

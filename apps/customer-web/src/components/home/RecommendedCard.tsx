@@ -50,9 +50,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
   };
 
   const rating =
-    restaurant.avgRating && restaurant.avgRating > 0
-      ? restaurant.avgRating.toFixed(1)
-      : null;
+    restaurant.avgRating && restaurant.avgRating > 0 ? restaurant.avgRating.toFixed(1) : null;
 
   const deliveryTime =
     restaurant.deliveryTimeMins && restaurant.deliveryTimeMins > 0
@@ -60,7 +58,9 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       : null;
 
   const distanceText =
-    restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && restaurant.distanceKm > 0
+    restaurant.distanceKm !== undefined &&
+    restaurant.distanceKm !== null &&
+    restaurant.distanceKm > 0
       ? `${restaurant.distanceKm.toFixed(1)} km`
       : null;
 
@@ -74,15 +74,19 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       ? restaurant.cuisines.slice(0, 2).join(', ')
       : null;
 
-  const imageSrc = restaurant.bannerUrl || restaurant.logoUrl
-    ? getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)
-    : '/zaykafood-logo.png';
+  const imageSrc =
+    restaurant.bannerUrl || restaurant.logoUrl
+      ? getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)
+      : '/zaykafood-logo.png';
 
   const isOpen = restaurant.isOpen !== false;
 
   return (
     <div className="group relative flex flex-col rounded-2xl bg-white transition-all duration-200 hover:-translate-y-0.5 border border-gray-100/80 shadow-sm hover:shadow-md">
-      <Link href={`/restaurant/${restaurant.slug || restaurant.id}`} className="flex flex-col flex-1">
+      <Link
+        href={`/restaurant/${restaurant.slug || restaurant.id}`}
+        className="flex flex-col flex-1"
+      >
         {/* Image Container */}
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl bg-gray-100">
           <img
@@ -156,9 +160,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
           </div>
 
           {cuisineText && (
-            <p className="text-[11px] text-gray-400 truncate font-medium">
-              {cuisineText}
-            </p>
+            <p className="text-[11px] text-gray-400 truncate font-medium">{cuisineText}</p>
           )}
         </div>
       </Link>

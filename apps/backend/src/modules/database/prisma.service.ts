@@ -11,7 +11,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     if (!dbUrl || dbUrl.trim() === '') {
       throw new Error(
         'CRITICAL CONFIGURATION ERROR: DATABASE_URL environment variable is missing. ' +
-        'Specify a valid DATABASE_URL in environment configuration.',
+          'Specify a valid DATABASE_URL in environment configuration.',
       );
     }
 
@@ -46,13 +46,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       } catch (err: any) {
         this.logger.warn(
           `Database connection attempt ${attempt}/${maxRetries} failed: ${err?.message || err}. ` +
-          `Retrying in ${retryDelayMs / 1000}s (serverless DB may be waking up)...`,
+            `Retrying in ${retryDelayMs / 1000}s (serverless DB may be waking up)...`,
         );
 
         if (attempt === maxRetries) {
           this.logger.error(
             'CRITICAL: Unable to reach PostgreSQL database after multiple retries. ' +
-            'Please verify in your Neon Console (https://console.neon.tech) that your project is active and copy the latest DATABASE_URL into Render Environment Variables.',
+              'Please verify in your Neon Console (https://console.neon.tech) that your project is active and copy the latest DATABASE_URL into Render Environment Variables.',
           );
           throw err;
         }
@@ -65,7 +65,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Safely ensure new schema columns exist in production PostgreSQL
     try {
-        await this.$executeRawUnsafe(`
+      await this.$executeRawUnsafe(`
           DO $$
           BEGIN
             -- Ensure all food_variants columns exist
@@ -273,10 +273,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             END IF;
           END $$;
         `);
-        this.logger.log('Database schema self-heal check completed.');
-      } catch (migrationErr: any) {
-        this.logger.warn(`Schema self-heal warning: ${migrationErr?.message || migrationErr}`);
-      }
+      this.logger.log('Database schema self-heal check completed.');
+    } catch (migrationErr: any) {
+      this.logger.warn(`Schema self-heal warning: ${migrationErr?.message || migrationErr}`);
+    }
   }
 
   async onModuleDestroy() {

@@ -68,7 +68,7 @@ const rest2 = {
 const rest3 = {
   name: 'New Unpriced Kitchen',
   latitude: 13.0358,
-  longitude: 77.5970,
+  longitude: 77.597,
   foodItems: [],
 };
 
@@ -78,16 +78,28 @@ const customerCoords = { lat: 12.9716, lng: 77.5946 };
 [rest1, rest2, rest3].forEach((r) => {
   const norm = normalizeRestaurantData(r, customerCoords);
   console.log(`\nRestaurant: "${norm.name}"`);
-  console.log(`Distance: ${norm.distanceKm !== undefined ? `${norm.distanceKm} km away` : 'Distance unavailable'}`);
-  console.log(`Time: ${norm.deliveryTimeMins !== undefined ? `${norm.deliveryTimeMins} mins` : 'Time unavailable'}`);
-  console.log(`Price: ${norm.priceForTwo !== undefined ? `₹${norm.priceForTwo} for two` : 'Price not available'}`);
+  console.log(
+    `Distance: ${norm.distanceKm !== undefined ? `${norm.distanceKm} km away` : 'Distance unavailable'}`,
+  );
+  console.log(
+    `Time: ${norm.deliveryTimeMins !== undefined ? `${norm.deliveryTimeMins} mins` : 'Time unavailable'}`,
+  );
+  console.log(
+    `Price: ${norm.priceForTwo !== undefined ? `₹${norm.priceForTwo} for two` : 'Price not available'}`,
+  );
 });
 
 console.log('\n=== TEST WITHOUT CUSTOMER LOCATION (UNKNOWN GPS) ===');
 [rest1, rest2, rest3].forEach((r) => {
   const norm = normalizeRestaurantData(r, null);
   console.log(`\nRestaurant: "${norm.name}"`);
-  console.log(`Distance: ${norm.distanceKm !== undefined ? `${norm.distanceKm} km away` : 'Distance unavailable'}`);
-  console.log(`Time: ${norm.deliveryTimeMins !== undefined ? `${norm.deliveryTimeMins} mins` : 'Time unavailable'}`);
-  console.log(`Price: ${norm.priceForTwo !== undefined ? `₹${norm.priceForTwo} for two` : 'Price not available'}`);
+  console.log(
+    `Distance: ${norm.distanceKm !== undefined ? `${norm.distanceKm} km away` : 'Distance unavailable'}`,
+  );
+  console.log(
+    `Time: ${norm.deliveryTimeMins !== undefined ? `${norm.deliveryTimeMins} mins` : 'Time unavailable'}`,
+  );
+  console.log(
+    `Price: ${norm.priceForTwo !== undefined ? `₹${norm.priceForTwo} for two` : 'Price not available'}`,
+  );
 });

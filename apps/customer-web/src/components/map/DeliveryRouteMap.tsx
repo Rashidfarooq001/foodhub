@@ -7,10 +7,10 @@ import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 interface DeliveryRouteMapProps {
   restaurantLat: number;
   restaurantLng: number;
-  customerLat:   number;
-  customerLng:   number;
-  driverLat?:    number;
-  driverLng?:    number;
+  customerLat: number;
+  customerLng: number;
+  driverLat?: number;
+  driverLng?: number;
   restaurantName?: string;
   routeCoordinates?: [number, number][];
 }
@@ -33,7 +33,12 @@ export default function DeliveryRouteMap({
   const [errorDetails, setErrorDetails] = useState<string>('');
 
   const hasValidCoords = (lat?: number, lng?: number) =>
-    typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat !== 0 &&
+    lng !== 0;
 
   const initMap = useCallback(() => {
     if (mapInstanceRef.current) {
@@ -65,12 +70,12 @@ export default function DeliveryRouteMap({
       const driverValid = hasValidCoords(driverLat, driverLng);
 
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
-      const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.5220;
+      const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.522;
 
       const map = new window.mappls.Map(containerId, {
         center: {
           lat: Number(centerLat),
-          lng: Number(centerLng)
+          lng: Number(centerLng),
         },
         zoom: 13,
         zoomControl: true,
@@ -137,14 +142,22 @@ export default function DeliveryRouteMap({
       };
 
       map.addListener('load', addOverlays);
-
     } catch (err: any) {
       console.error('[Mappls DeliveryRouteMap] error:', err);
       const errStr = err?.message || String(err);
       setErrorDetails(`Init Error: ${errStr}`);
       setMapState('ERROR');
     }
-  }, [restaurantLat, restaurantLng, customerLat, customerLng, driverLat, driverLng, restaurantName, routeCoordinates]);
+  }, [
+    restaurantLat,
+    restaurantLng,
+    customerLat,
+    customerLng,
+    driverLat,
+    driverLng,
+    restaurantName,
+    routeCoordinates,
+  ]);
 
   useEffect(() => {
     if (sdkError) {
@@ -160,7 +173,11 @@ export default function DeliveryRouteMap({
       {mapState === 'LOADING' && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-gray-900/80">
           <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-          {!mapKey && <span className="text-xs text-red-400">Warning: NEXT_PUBLIC_MAPPLS_WEB_KEY is missing!</span>}
+          {!mapKey && (
+            <span className="text-xs text-red-400">
+              Warning: NEXT_PUBLIC_MAPPLS_WEB_KEY is missing!
+            </span>
+          )}
         </div>
       )}
       {mapState === 'ERROR' && (
@@ -168,7 +185,9 @@ export default function DeliveryRouteMap({
           <AlertCircle className="h-6 w-6 text-rose-500 mx-auto shrink-0" />
           <p className="text-xs text-gray-300 font-semibold">Mappls map failed to load</p>
           <div className="bg-red-950/50 p-3 rounded-lg text-left max-w-full overflow-x-auto border border-red-900">
-             <code className="text-[10px] text-red-200 whitespace-pre-wrap">{errorDetails || 'Unknown error'}</code>
+            <code className="text-[10px] text-red-200 whitespace-pre-wrap">
+              {errorDetails || 'Unknown error'}
+            </code>
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -178,7 +197,12 @@ export default function DeliveryRouteMap({
           </button>
         </div>
       )}
-      <div id="mappls-delivery-route-map" ref={mapContainerRef} className="flex-1 w-full" style={{ zIndex: 1 }} />
+      <div
+        id="mappls-delivery-route-map"
+        ref={mapContainerRef}
+        className="flex-1 w-full"
+        style={{ zIndex: 1 }}
+      />
     </div>
   );
 }

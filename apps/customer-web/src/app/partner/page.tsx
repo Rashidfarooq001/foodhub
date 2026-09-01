@@ -15,9 +15,12 @@ export default function PartnerLandingPage() {
         <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-4 py-1.5 text-xs font-bold text-orange-400 border border-orange-500/20">
           <ShieldCheck className="h-4 w-4" /> ZaykaFood Partner Network
         </div>
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tight">Become a ZaykaFood Partner</h1>
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
+          Become a ZaykaFood Partner
+        </h1>
         <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto">
-          Choose how you want to partner with ZaykaFood. Expand your food business or earn on flexible hours as a delivery partner.
+          Choose how you want to partner with ZaykaFood. Expand your food business or earn on
+          flexible hours as a delivery partner.
         </p>
       </div>
 
@@ -30,17 +33,21 @@ export default function PartnerLandingPage() {
             </div>
             <h2 className="text-2xl font-black text-white">Restaurant Partner</h2>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Register your restaurant, hotel, or cloud kitchen. Get listed on ZaykaFood, manage live KDS orders, and grow your customer base.
+              Register your restaurant, hotel, or cloud kitchen. Get listed on ZaykaFood, manage
+              live KDS orders, and grow your customer base.
             </p>
             <ul className="space-y-2 text-xs font-semibold text-gray-300 pt-2">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Live Kitchen Display System (KDS)
+                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Live Kitchen Display
+                System (KDS)
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Menu &amp; Price Item Controls
+                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Menu &amp; Price Item
+                Controls
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Automated Revenue Settlements
+                <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" /> Automated Revenue
+                Settlements
               </li>
             </ul>
           </div>
@@ -64,17 +71,21 @@ export default function PartnerLandingPage() {
             </div>
             <h2 className="text-2xl font-black text-white">Delivery Partner</h2>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Join ZaykaFood as a delivery courier. Deliver meals on your own schedule with weekly payouts, insurance &amp; trip bonuses.
+              Join ZaykaFood as a delivery courier. Deliver meals on your own schedule with weekly
+              payouts, insurance &amp; trip bonuses.
             </p>
             <ul className="space-y-2 text-xs font-semibold text-gray-300 pt-2">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Flexible Work Hours &amp; Duty Toggles
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Flexible Work Hours
+                &amp; Duty Toggles
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Real-time GPS Trip Dispatches
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Real-time GPS Trip
+                Dispatches
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Direct Bank Payouts &amp; Weekly Settlements
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Direct Bank Payouts
+                &amp; Weekly Settlements
               </li>
             </ul>
           </div>
