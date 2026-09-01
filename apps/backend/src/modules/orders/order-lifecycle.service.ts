@@ -978,7 +978,7 @@ export class OrderLifecycleService {
 
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
-      ACCEPTED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+      ACCEPTED: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
       PREPARING: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
       READY_FOR_PICKUP: [], // Removed from lifecycle â€“ kept in map to avoid exhaustiveness error
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],

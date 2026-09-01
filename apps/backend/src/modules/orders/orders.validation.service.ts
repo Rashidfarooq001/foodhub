@@ -199,7 +199,7 @@ export class OrdersValidationService {
   validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus): void {
     const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
       PENDING: ['ACCEPTED', 'REJECTED', 'CANCELLED'],
-      ACCEPTED: ['PREPARING', 'CANCELLED'],
+      ACCEPTED: ['PREPARING', 'DRIVER_ASSIGNED', 'CANCELLED'],
       PREPARING: ['DRIVER_ASSIGNED', 'CANCELLED'],
       DRIVER_ASSIGNED: ['ARRIVED_AT_RESTAURANT', 'CANCELLED'],
       ARRIVED_AT_RESTAURANT: ['PICKED_UP', 'CANCELLED'],
