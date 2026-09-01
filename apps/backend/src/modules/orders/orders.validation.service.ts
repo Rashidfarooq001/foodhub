@@ -148,10 +148,7 @@ export class OrdersValidationService {
   }
 
   async validateMinimumOrder(restaurantId: string, subtotal: number): Promise<void> {
-    const setting = await this.prisma.restaurantSetting.findUnique({
-      where: { restaurantId },
-    });
-    const minOrder = 50; // Platform default ₹50
+    const minOrder = 1; // Platform default ₹1
     if (subtotal < minOrder) {
       throw new BadRequestException(`Minimum order value is ₹${minOrder}`);
     }
