@@ -475,6 +475,19 @@ export class AuthService {
         },
       });
 
+      
+      if (dto.accountNumber && dto.ifscCode && dto.accountHolder) {
+        await tx.restaurantBankAccount.create({
+          data: {
+            restaurantId: restaurant.id,
+            accountHolder: dto.accountHolder.trim(),
+            accountNumber: dto.accountNumber.trim(),
+            ifscCode: dto.ifscCode.trim(),
+            bankName: dto.bankName?.trim() || 'Unknown Bank',
+          },
+        });
+      }
+
       await tx.restaurantStaff.create({
         data: {
           restaurantId: restaurant.id,

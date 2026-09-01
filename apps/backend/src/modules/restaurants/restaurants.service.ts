@@ -208,6 +208,19 @@ export class RestaurantsService {
         });
       }
 
+      // Save Bank Details if provided
+      if (dto.accountNumber && dto.ifsc && dto.accountHolder) {
+        await tx.restaurantBankAccount.create({
+          data: {
+            restaurantId: restaurant.id,
+            accountHolder: dto.accountHolder.trim(),
+            accountNumber: dto.accountNumber.trim(),
+            ifscCode: dto.ifsc.trim(),
+            bankName: dto.bankName?.trim() || 'Unknown Bank',
+          },
+        });
+      }
+
       // Link owner in RestaurantStaff table
       await tx.restaurantStaff.upsert({
         where: {

@@ -174,6 +174,12 @@ export class CreateRestaurantDto {
   @IsOptional()
   bannerUrl?: string;
 
+  @ApiPropertyOptional({ description: 'Bank account holder name' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
+  @IsString()
+  @IsOptional()
+  accountHolder?: string;
+
   @ApiPropertyOptional({ description: 'Bank name for settlements' })
   @Transform(({ value }) => (value === null || value === '' ? undefined : value))
   @IsString()

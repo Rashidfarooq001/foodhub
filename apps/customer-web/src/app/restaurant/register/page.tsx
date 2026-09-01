@@ -92,20 +92,21 @@ export default function RestaurantRegisterPage() {
 
     if (res) {
       const { coords, address } = res;
+      
+      const addrText = address.formattedAddress || address.address || address.displayName || address.street || '';
+      const city = address.city || address.village || address.district || address.locality || '';
+      const state = address.state || '';
+      const pin = address.pincode || address.postalCode || '';
+      
       setForm((prev) => ({
         ...prev,
         latitude: coords.latitude,
         longitude: coords.longitude,
+        address: addrText || prev.address,
+        city: city || prev.city,
+        state: state || prev.state,
+        pin: pin || prev.pin,
       }));
-
-      const addrText =
-        address.formattedAddress ||
-        address.address ||
-        address.displayName ||
-        `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
-      if (addrText && !form.address) {
-        setForm((prev) => ({ ...prev, address: addrText }));
-      }
 
       setLocationStatusMsg(
         `GPS captured successfully: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`,

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { GoogleMapPicker } from '../../../components/map/GoogleMapPicker';
 import {
   UtensilsCrossed,
   Store,
@@ -56,6 +55,7 @@ export default function RestaurantPartnerRegisterPage() {
     menuUrl: '',
     fssaiUrl: '',
     panUrl: '',
+    accountHolder: '',
     bankName: '',
     accountNumber: '',
     ifsc: '',
@@ -125,12 +125,17 @@ export default function RestaurantPartnerRegisterPage() {
           );
           if (geoRes.ok) {
             const geoData = await geoRes.json();
-            const addrText =
-              typeof geoData === 'string' ? geoData : geoData.address || geoData.displayName || '';
-            if (addrText) {
+            if (typeof geoData !== 'string') {
+              const address = geoData.formattedAddress || geoData.address || geoData.displayName || geoData.street || '';
+              const city = geoData.city || geoData.village || geoData.district || geoData.locality || '';
+              const state = geoData.state || '';
+              const pin = geoData.pincode || geoData.postalCode || '';
               setForm((prev) => ({
                 ...prev,
-                address: addrText,
+                address,
+                city,
+                state,
+                pin
               }));
             }
           }
@@ -446,6 +451,10 @@ export default function RestaurantPartnerRegisterPage() {
         longitude: form.longitude ?? 0,
         fssaiNumber: form.fssaiLicense.trim() || undefined,
         gstin: form.panNumber.trim() || undefined,
+        accountHolder: form.accountHolder.trim() || undefined,
+        accountNumber: form.accountNumber.trim() || undefined,
+        ifscCode: form.ifsc.trim() || undefined,
+        bankName: form.bankName.trim() || undefined,
       };
 
       const res = await fetch(`${API_BASE}/auth/register/restaurant-owner`, {
@@ -903,30 +912,7 @@ export default function RestaurantPartnerRegisterPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Select Store Location
-                </label>
-                <p className="text-[10px] text-gray-500 mb-3">
-                  Drag the pin to exactly where your store is located.
-                </p>
 
-                <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200">
-                  <GoogleMapPicker
-                    initialLat={form.latitude ?? 0}
-                    initialLng={form.longitude ?? 74.5221}
-                    onLocationChange={(lat, lng) =>
-                      setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }))
-                    }
-                  />
-                </div>
-
-                {form.latitude && form.longitude && (
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
-                    <CheckCircle2 className="h-4 w-4" /> Location Captured
-                  </div>
-                )}
-              </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
@@ -965,6 +951,75 @@ export default function RestaurantPartnerRegisterPage() {
                     className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none text-center"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: BANK & SETTLEMENT DETAILS */}
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-xl space-y-6">
+            <div className="flex items-center gap-2 text-base font-black text-gray-900 border-b border-gray-100 pb-4">
+              <CreditCard className="h-5 w-5 text-orange-600" /> 4. Bank &amp; Settlement Details
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Account Holder Name *
+                </label>
+                <input
+                  type="text"
+                  name="accountHolder"
+                  required
+                  value={form.accountHolder}
+                  onChange={handleChange}
+                  placeholder="Rahul Sharma"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Bank Name *
+                </label>
+                <input
+                  type="text"
+                  name="bankName"
+                  required
+                  value={form.bankName}
+                  onChange={handleChange}
+                  placeholder="HDFC Bank"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Account Number *
+                </label>
+                <input
+                  type="text"
+                  name="accountNumber"
+                  required
+                  value={form.accountNumber}
+                  onChange={handleChange}
+                  placeholder="123456789012"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  IFSC Code *
+                </label>
+                <input
+                  type="text"
+                  name="ifsc"
+                  required
+                  value={form.ifsc}
+                  onChange={handleChange}
+                  placeholder="HDFC0001234"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                />
               </div>
             </div>
           </div>

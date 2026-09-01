@@ -71,4 +71,25 @@ export class RegisterRestaurantOwnerDto {
   @IsOptional()
   @IsString()
   gstin?: string;
+
+  @ApiPropertyOptional({ example: 'Rahul Sharma', description: 'Bank account holder name' })
+  @IsOptional()
+  @IsString()
+  accountHolder?: string;
+
+  @ApiPropertyOptional({ example: '123456789012', description: 'Bank account number' })
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @ApiPropertyOptional({ example: 'HDFC0001234', description: 'Bank IFSC Code' })
+  @IsOptional()
+  @IsString()
+  ifscCode?: string;
+
+  @ApiPropertyOptional({ example: 'HDFC Bank', description: 'Bank Name' })
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
 }
