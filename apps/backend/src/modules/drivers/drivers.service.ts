@@ -122,7 +122,7 @@ export class DriversService {
           profile: {
             create: {
               firstName,
-              lastName: lastName || undefined,
+              lastName: lastName || '',
             },
           },
         },

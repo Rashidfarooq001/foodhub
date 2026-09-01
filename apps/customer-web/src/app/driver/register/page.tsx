@@ -205,7 +205,7 @@ export default function DriverRegisterPage() {
 
         {errorMsg && (
           <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-700 text-center">
-            ?? {errorMsg}
+            {errorMsg}
           </div>
         )}
 
