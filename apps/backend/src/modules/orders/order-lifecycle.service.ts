@@ -765,11 +765,11 @@ export class OrderLifecycleService {
           );
         }
 
-        if (options?.deliveryJobPayload) {
+        if (extraData?.deliveryJobPayload) {
           updatedJob = await tx.deliveryJob.upsert({
             where: { orderId: order.id },
-            create: options.deliveryJobPayload.create,
-            update: options.deliveryJobPayload.update
+            create: extraData.deliveryJobPayload.create,
+            update: extraData.deliveryJobPayload.update
           });
         } else {
           const existingJob = await tx.deliveryJob.findUnique({
