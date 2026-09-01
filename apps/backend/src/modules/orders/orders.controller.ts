@@ -382,7 +382,7 @@ export class OrdersController {
   }
 
   @Post(':id/ready')
-  @ApiOperation({ summary: 'Restaurant marks order ready for pickup (creates DeliveryJob)' })
+  @ApiOperation({ summary: 'Restaurant marks order ready — triggers driver dispatch (PREPARING → DRIVER_ASSIGNED)' })
   async markOrderReady(@Param('id') id: string, @Request() req: any) {
     try {
       const actor = {
@@ -390,7 +390,7 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.stateMachineService.transition(id, OrderStatus.READY_FOR_PICKUP, actor);
+      return await this.stateMachineService.transition(id, OrderStatus.DRIVER_ASSIGNED, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       this.logger.error(`READY ORDER TRANSITION FAILED for order ${id}: ${err?.message}`, err?.stack);

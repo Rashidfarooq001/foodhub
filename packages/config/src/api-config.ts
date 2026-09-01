@@ -7,7 +7,7 @@
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL;
 
-  if (envUrl && envUrl.trim() && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  if (envUrl && envUrl.trim()) {
     let url = envUrl.trim().replace(/\/+$/, '');
     url = url.replace(/(\/api\/v1)+$/g, '/api/v1');
     if (!url.endsWith('/api/v1')) {
@@ -16,7 +16,16 @@ export function getApiBaseUrl(): string {
     return url;
   }
 
-  return 'https://foodhub-backend-enq2.onrender.com/api/v1';
+  // In local development, fall back to localhost backend
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://localhost:4000/api/v1';
+  }
+
+  // Server-side (SSR): use PORT-based fallback
+  return `http://localhost:${process.env.PORT || 4000}/api/v1`;
 }
 
 export function getWsBaseUrl(): string {

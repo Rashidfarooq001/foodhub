@@ -404,7 +404,6 @@ export class OrdersService {
       const allowed: OrderStatus[] = [
         OrderStatus.PREPARING,
         OrderStatus.CANCELLED,
-        OrderStatus.READY_FOR_PICKUP,
       ];
       
       if (!allowed.includes(dto.status as OrderStatus)) {
@@ -655,7 +654,6 @@ export class OrdersService {
               OrderStatus.PENDING,
               OrderStatus.ACCEPTED,
               OrderStatus.PREPARING,
-              OrderStatus.READY_FOR_PICKUP,
               OrderStatus.DRIVER_ASSIGNED,
               OrderStatus.ARRIVED_AT_RESTAURANT,
               OrderStatus.PICKED_UP,
@@ -762,7 +760,6 @@ export class OrdersService {
             OrderStatus.PENDING,
             OrderStatus.ACCEPTED,
             OrderStatus.PREPARING,
-            OrderStatus.READY_FOR_PICKUP,
             OrderStatus.DRIVER_ASSIGNED,
             OrderStatus.ARRIVED_AT_RESTAURANT,
             OrderStatus.PICKED_UP,

@@ -907,7 +907,7 @@ export class OrderStateMachineService {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
       ACCEPTED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
       PREPARING: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-      READY_FOR_PICKUP: [], // Deprecated
+      READY_FOR_PICKUP: [], // Removed from lifecycle – kept in map to avoid exhaustiveness error
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
       ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
@@ -997,7 +997,7 @@ export class OrderStateMachineService {
       if (activeDriverId) this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
-      // 2. We keep the job broadcast for available drivers when it hits READY_FOR_PICKUP
+      // 2. Broadcast to available drivers when order reaches DRIVER_ASSIGNED state (driver dispatch triggered at PREPARING)
       if (toStatus === OrderStatus.PREPARING && !activeDriverId) {
         this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
           orderId: order.id,

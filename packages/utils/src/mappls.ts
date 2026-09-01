@@ -45,11 +45,11 @@ export function validateCoordinates(lat?: number | null, lng?: number | null): b
  * Calls backend API or direct Mappls REST endpoint safely.
  */
 export function getMapplsSearchEndpoint(apiBaseUrl?: string): string {
-  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://foodhub-backend-enq2.onrender.com/api/v1';
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.PORT || 4000}/api/v1`;
   return `${base.replace(/\/+$/, '')}/geolocation/search`;
 }
 
 export function getMapplsReverseGeocodeEndpoint(apiBaseUrl?: string): string {
-  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://foodhub-backend-enq2.onrender.com/api/v1';
+  const base = apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.PORT || 4000}/api/v1`;
   return `${base.replace(/\/+$/, '')}/geolocation/reverse-geocode`;
 }

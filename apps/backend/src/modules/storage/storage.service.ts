@@ -173,10 +173,16 @@ export class StorageService {
       host = process.env.PUBLIC_URL.trim();
     } else if (process.env.NODE_ENV === 'production') {
       host = (
+        process.env.BACKEND_URL ||
         process.env.PUBLIC_API_URL ||
         process.env.NEXT_PUBLIC_API_URL ||
-        'https://foodhub-backend-enq2.onrender.com'
+        process.env.RENDER_EXTERNAL_URL || // Render auto-sets this
+        ''
       );
+      if (!host) {
+        // Last resort: derive from PORT so media still works on any host
+        host = `http://0.0.0.0:${process.env.PORT || 4000}`;
+      }
     } else {
       host = `http://localhost:${process.env.PORT || 4000}`;
     }

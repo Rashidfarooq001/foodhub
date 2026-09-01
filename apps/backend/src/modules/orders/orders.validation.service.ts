@@ -184,19 +184,18 @@ export class OrdersValidationService {
     newStatus: OrderStatus,
   ): void {
     const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      PENDING:          ['ACCEPTED', 'REJECTED', 'CANCELLED'],
-      ACCEPTED:         ['PREPARING', 'CANCELLED'],
-      PREPARING:        ['READY_FOR_PICKUP', 'CANCELLED'],
-      READY_FOR_PICKUP: ['DRIVER_ASSIGNED', 'CANCELLED'],
-      DRIVER_ASSIGNED:  ['ARRIVED_AT_RESTAURANT', 'CANCELLED'],
-      ARRIVED_AT_RESTAURANT: ['PICKED_UP', 'CANCELLED'],
-      PICKED_UP:        ['OUT_FOR_DELIVERY', 'CANCELLED'],
-      OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
-      DELIVERED:        ['REFUNDED'],
-      REJECTED:         [],
-      CANCELLED:        [],
-      FAILED:           [],
-      REFUNDED:         [],
+      PENDING:              ['ACCEPTED', 'REJECTED', 'CANCELLED'],
+      ACCEPTED:             ['PREPARING', 'CANCELLED'],
+      PREPARING:            ['DRIVER_ASSIGNED', 'CANCELLED'],
+      DRIVER_ASSIGNED:      ['ARRIVED_AT_RESTAURANT', 'CANCELLED'],
+      ARRIVED_AT_RESTAURANT:['PICKED_UP', 'CANCELLED'],
+      PICKED_UP:            ['OUT_FOR_DELIVERY', 'CANCELLED'],
+      OUT_FOR_DELIVERY:     ['DELIVERED', 'CANCELLED'],
+      DELIVERED:            ['REFUNDED'],
+      REJECTED:             [],
+      CANCELLED:            [],
+      FAILED:               [],
+      REFUNDED:             [],
     };
 
     const allowed = allowedTransitions[currentStatus] ?? [];

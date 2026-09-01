@@ -365,7 +365,7 @@ export class DriversService {
             where: { id: job.orderId },
             data: {
               assignedFoodHubDriverId: null,
-              status: OrderStatus.READY_FOR_PICKUP, // safe generic state for unassigned orders
+              status: OrderStatus.PREPARING, // order reverts to PREPARING so a new driver can be dispatched
             },
           });
         }

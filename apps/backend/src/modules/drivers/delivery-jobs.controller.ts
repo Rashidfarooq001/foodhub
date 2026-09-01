@@ -326,7 +326,7 @@ export class DeliveryJobsController {
         status: DeliveryJobStatus.AVAILABLE,
         driverId: null,
         order: {
-          status: OrderStatus.READY_FOR_PICKUP,
+          status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
         },
         id: {
           notIn: rejectedJobIds
@@ -1059,7 +1059,7 @@ export class DeliveryJobsController {
       await tx.order.update({
         where: { id: job.orderId },
         data: {
-          status: OrderStatus.READY_FOR_PICKUP,
+          status: OrderStatus.PREPARING,
           assignedRestaurantDriverId: null,
         },
       });
@@ -1097,7 +1097,7 @@ export class DeliveryJobsController {
         await tx.order.update({
           where: { id: job.orderId },
           data: {
-            status: OrderStatus.READY_FOR_PICKUP,
+            status: OrderStatus.PREPARING,
             assignedRestaurantDriverId: null,
           },
         });
@@ -1132,7 +1132,7 @@ export class DeliveryJobsController {
         await tx.order.update({
           where: { id: job.orderId },
           data: {
-            status: OrderStatus.READY_FOR_PICKUP,
+            status: OrderStatus.PREPARING,
             assignedRestaurantDriverId: null,
           },
         });
