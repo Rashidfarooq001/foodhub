@@ -23,7 +23,11 @@ export default function ReviewDriverModal({ driverId, onClose, onApprove, onReje
       try {
         setLoading(true);
         const res = await adminFetch(`/drivers/${driverId}`);
-        setData(res);
+        if (res.ok) {
+          setData(await res.json());
+        } else {
+          throw new Error('Failed to fetch details');
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to fetch full application details.');
       } finally {
