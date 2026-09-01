@@ -145,8 +145,8 @@ export class OrderQuoteService {
     // After 3 km: Additional charge = ₹5.00 per additional KM
     // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
     const deliveryFeeBaseKm = 3.0; // Wait, I'll keep this hardcoded as it's not in DB
-    const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee || 15.0;
-    const deliveryFeePerExtraKm = config.customerDeliveryPerKm || 5.0;
+    const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee ?? 15.0;
+    const deliveryFeePerExtraKm = config.customerDeliveryPerKm ?? 5.0;
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
