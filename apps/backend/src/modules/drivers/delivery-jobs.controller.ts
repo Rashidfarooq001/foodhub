@@ -487,8 +487,8 @@ export class DeliveryJobsController {
 
     const jobs = await this.prisma.deliveryJob.findMany({
       where: {
+        driverId: driver.id,
         order: {
-          assignedFoodHubDriverId: driver.id,
           status: {
             in: [
               OrderStatus.DRIVER_ASSIGNED,
@@ -524,8 +524,8 @@ export class DeliveryJobsController {
 
     const job = await this.prisma.deliveryJob.findFirst({
       where: {
+        driverId: driver.id,
         order: {
-          assignedFoodHubDriverId: driver.id,
           status: {
             in: [
               OrderStatus.DRIVER_ASSIGNED,

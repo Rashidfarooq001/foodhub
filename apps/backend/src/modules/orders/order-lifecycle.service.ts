@@ -797,12 +797,7 @@ export class OrderLifecycleService {
           });
         }
 
-        // Also stamp the order with the assigned driver ID so the rider's dashboard can find it
-        await tx.order.update({
-          where: { id: order.id },
-          data: { assignedFoodHubDriverId: actor.driverId },
-        });
-      } else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
+} else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
         if (order.deliveryJob) {
           updatedJob = await tx.deliveryJob.update({
             where: { id: order.deliveryJob.id },
@@ -908,6 +903,7 @@ export class OrderLifecycleService {
           status: targetStatus,
           version: { increment: 1 },
           ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any } : {}),
+          ...(targetStatus === OrderStatus.DRIVER_ASSIGNED ? { assignedFoodHubDriverId: actor.driverId } : {}),
         },
         include: {
           restaurant: true,
