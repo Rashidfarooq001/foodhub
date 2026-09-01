@@ -285,6 +285,9 @@ export class RestaurantsService {
         },
         documents: true,
         galleries: true,
+        bankAccount: true,
+        timings: true,
+        settings: true,
         staff: {
           include: {
             user: {
@@ -324,6 +327,9 @@ export class RestaurantsService {
         },
         documents: true,
         galleries: true,
+        bankAccount: true,
+        timings: true,
+        settings: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -398,6 +404,9 @@ export class RestaurantsService {
         },
         documents: true,
         galleries: true,
+        bankAccount: true,
+        timings: true,
+        settings: true,
         staff: {
           include: {
             user: {

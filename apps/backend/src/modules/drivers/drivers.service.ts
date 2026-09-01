@@ -210,6 +210,21 @@ export class DriversService {
     ];
   }
 
+  
+  async findOneDriver(id: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id },
+      include: {
+        user: { include: { profile: true } },
+        vehicles: true,
+        documents: true,
+        locations: true,
+      },
+    });
+    if (!driver) throw new NotFoundException('Driver not found');
+    return driver;
+  }
+
   async findAllDrivers() {
     return this.prisma.driver.findMany({
       where: {

@@ -16,6 +16,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
+import ReviewDriverModal from '../../components/modals/ReviewDriverModal';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -45,7 +46,7 @@ export default function AdminDeliveryPartnersPage() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
-    type: 'APPROVE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE';
+    type: 'APPROVE' | 'SUSPEND' | 'REACTIVATE' | 'DELETE' | 'REVIEW';
     driverId: string;
     driverName: string;
   } | null>(null);
@@ -418,6 +419,18 @@ export default function AdminDeliveryPartnersPage() {
                         </td>
                         <td className="py-3">{getStatusBadge(d)}</td>
                         <td className="py-3 text-right space-x-1.5">
+                          <button
+                            onClick={() =>
+                              setActiveModal({
+                                type: 'REVIEW',
+                                driverId: d.id,
+                                driverName: name,
+                              })
+                            }
+                            className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100"
+                          >
+                            Review
+                          </button>
                           {!d.isApproved && (
                             <button
                               onClick={() =>
@@ -482,7 +495,39 @@ export default function AdminDeliveryPartnersPage() {
       </div>
 
       {/* Action Bottom Sheet / Modal */}
-      {activeModal && (
+      {activeModal && activeModal.type === 'REVIEW' && (
+        <ReviewDriverModal
+          driverId={activeModal.driverId}
+          onClose={() => setActiveModal(null)}
+          onApprove={async (id) => {
+            try {
+              const res = await adminFetch(`/drivers/${id}/approval`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
+              });
+              if (res.ok) {
+                setActiveModal(null);
+                fetchDrivers();
+              } else alert('Failed to approve');
+            } catch { alert('Network error'); }
+          }}
+          onReject={async (id, reason) => {
+             try {
+              const res = await adminFetch(`/drivers/${id}/suspend`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason }),
+              });
+              if (res.ok) {
+                setActiveModal(null);
+                fetchDrivers();
+              } else alert('Failed to suspend');
+            } catch { alert('Network error'); }
+          }}
+        />
+      )}
+      {activeModal && activeModal.type !== 'REVIEW' && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
           <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">

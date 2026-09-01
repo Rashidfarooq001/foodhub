@@ -80,6 +80,16 @@ export class DriversController {
     return this.driversService.findPendingApplications();
   }
 
+  
+  @Get(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Get delivery partner details by ID (Admin Only)' })
+  async findOne(@Param('id') id: string) {
+    return this.driversService.findOneDriver(id);
+  }
+
   @Patch(':id/approval')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)

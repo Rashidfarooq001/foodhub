@@ -18,6 +18,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
+import ReviewRestaurantModal from '../../components/modals/ReviewRestaurantModal';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -49,7 +50,7 @@ export default function AdminRestaurantsPage() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
-    type: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE' | 'COMMISSION' | 'DELETE';
+    type: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE' | 'COMMISSION' | 'DELETE' | 'REVIEW';
     restaurantId: string;
     restaurantName: string;
   } | null>(null);
@@ -463,6 +464,18 @@ export default function AdminRestaurantsPage() {
                       <td className="py-3 font-bold text-purple-700">{r.commissionRate ?? 13}%</td>
                       <td className="py-3">{getStatusBadge(r.status)}</td>
                       <td className="py-3 text-right space-x-1.5">
+                        <button
+                          onClick={() =>
+                            setActiveModal({
+                              type: 'REVIEW',
+                              restaurantId: r.id,
+                              restaurantName: r.name,
+                            })
+                          }
+                          className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100"
+                        >
+                          Review
+                        </button>
                         {r.status === 'PENDING_APPROVAL' && (
                           <>
                             <button
@@ -559,7 +572,39 @@ export default function AdminRestaurantsPage() {
       {/* ===================================================================== */}
       {/* ACTION BOTTOM SHEET / MODAL                                           */}
       {/* ===================================================================== */}
-      {activeModal && (
+      {activeModal && activeModal.type === 'REVIEW' && (
+        <ReviewRestaurantModal
+          restaurantId={activeModal.restaurantId}
+          onClose={() => setActiveModal(null)}
+          onApprove={async (id) => {
+             try {
+              const res = await adminFetch(`/restaurants/${id}/approval`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isApproved: true, status: 'APPROVED' }),
+              });
+              if (res.ok) {
+                setActiveModal(null);
+                fetchRestaurants();
+              } else alert('Failed to approve');
+            } catch { alert('Network error'); }
+          }}
+          onReject={async (id, reason) => {
+             try {
+              const res = await adminFetch(`/restaurants/${id}/suspend`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason }),
+              });
+              if (res.ok) {
+                setActiveModal(null);
+                fetchRestaurants();
+              } else alert('Failed to reject');
+            } catch { alert('Network error'); }
+          }}
+        />
+      )}
+      {activeModal && activeModal.type !== 'REVIEW' && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
           <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto pb-safe">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
