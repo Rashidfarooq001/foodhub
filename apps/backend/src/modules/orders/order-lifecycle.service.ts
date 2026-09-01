@@ -765,29 +765,37 @@ export class OrderLifecycleService {
           );
         }
 
-        const existingJob = await tx.deliveryJob.findUnique({
-          where: { orderId: order.id },
-        });
+        if (options?.deliveryJobPayload) {
+          updatedJob = await tx.deliveryJob.upsert({
+            where: { orderId: order.id },
+            create: options.deliveryJobPayload.create,
+            update: options.deliveryJobPayload.update
+          });
+        } else {
+          const existingJob = await tx.deliveryJob.findUnique({
+            where: { orderId: order.id },
+          });
 
-        if (!existingJob) {
-          throw new BadRequestException('No active delivery job exists for this order.');
+          if (!existingJob) {
+            throw new BadRequestException('No active delivery job exists for this order.');
+          }
+
+          if (existingJob.status !== DeliveryJobStatus.AVAILABLE || existingJob.driverId) {
+            throw new ConflictException(
+              'This delivery job has already been claimed by another delivery partner.',
+            );
+          }
+
+          updatedJob = await tx.deliveryJob.update({
+            where: { id: existingJob.id },
+            data: {
+              driverId: actor.driverId,
+              status: DeliveryJobStatus.ASSIGNED,
+              acceptedAt: now,
+            },
+            select: { id: true, status: true },
+          });
         }
-
-        if (existingJob.status !== DeliveryJobStatus.AVAILABLE || existingJob.driverId) {
-          throw new ConflictException(
-            'This delivery job has already been claimed by another delivery partner.',
-          );
-        }
-
-        updatedJob = await tx.deliveryJob.update({
-          where: { id: existingJob.id },
-          data: {
-            driverId: actor.driverId,
-            status: DeliveryJobStatus.ASSIGNED,
-            acceptedAt: now,
-          },
-          select: { id: true, status: true },
-        });
 
         // Also stamp the order with the assigned driver ID so the rider's dashboard can find it
         await tx.order.update({
