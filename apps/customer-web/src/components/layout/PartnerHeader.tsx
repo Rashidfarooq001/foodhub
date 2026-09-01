@@ -29,7 +29,7 @@ export const PartnerHeader: React.FC = () => {
             className="flex items-center gap-2 rounded-xl bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"
           >
             <HelpCircle className="h-4 w-4 text-orange-600" />
-            <span>Help / Contact Support</span>
+            <span className="hidden sm:inline">Help / Contact Support</span>
           </Link>
 
           {/* Partner Login Menu */}
@@ -39,7 +39,7 @@ export const PartnerHeader: React.FC = () => {
               className="flex items-center gap-2 rounded-2xl bg-gray-900 px-5 py-2.5 text-xs font-bold text-white shadow-lg hover:bg-gray-800 transition"
             >
               <LogIn className="h-4 w-4 text-orange-400" />
-              <span>Partner Login</span>
+              <span className="hidden sm:inline">Partner Login</span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
             </button>
 

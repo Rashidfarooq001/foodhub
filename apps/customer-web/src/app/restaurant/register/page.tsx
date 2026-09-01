@@ -453,14 +453,14 @@ export default function RestaurantRegisterPage() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">State / PIN Code</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <input
                   type="text"
                   name="state"
                   value={form.state}
                   onChange={handleChange}
                   placeholder="State"
-                  className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full sm:w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
                 <input
                   type="text"
@@ -468,7 +468,7 @@ export default function RestaurantRegisterPage() {
                   value={form.pin}
                   onChange={handleChange}
                   placeholder="PIN Code"
-                  className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                  className="w-full sm:w-1/2 rounded-2xl border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                 />
               </div>
             </div>
