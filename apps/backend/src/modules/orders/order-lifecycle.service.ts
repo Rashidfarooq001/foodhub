@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -787,6 +787,12 @@ export class OrderLifecycleService {
             acceptedAt: now,
           },
           select: { id: true, status: true },
+        });
+
+        // Also stamp the order with the assigned driver ID so the rider's dashboard can find it
+        await tx.order.update({
+          where: { id: order.id },
+          data: { assignedFoodHubDriverId: actor.driverId },
         });
       } else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
         if (order.deliveryJob) {
