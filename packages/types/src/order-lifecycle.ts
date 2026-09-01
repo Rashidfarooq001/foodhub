@@ -2,7 +2,7 @@ import { OrderStatus } from './enums.js';
 
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.PENDING]: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
-  [OrderStatus.ACCEPTED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.ACCEPTED]: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
   [OrderStatus.PREPARING]: [
     OrderStatus.DRIVER_ASSIGNED,
     OrderStatus.OUT_FOR_DELIVERY,
@@ -52,3 +52,18 @@ export const getCustomerOrderStage = (status: OrderStatus) => {
   if ([OrderStatus.DELIVERED].includes(status)) return 4;
   return -1;
 };
+
+export const RESTAURANT_ORDER_FILTERS = {
+  NEW_ORDERS: [OrderStatus.PENDING],
+  ACCEPTED: [OrderStatus.ACCEPTED],
+  PREPARING: [OrderStatus.PREPARING],
+  READY_FOR_PICKUP: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.ARRIVED_AT_RESTAURANT],
+  OUT_FOR_DELIVERY: [OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY],
+  COMPLETED: [OrderStatus.DELIVERED],
+  CANCELLED: [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED],
+} as const;
+
+export const RIDER_ORDER_FILTERS = {
+  ACTIVE: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY],
+  HISTORY: [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.FAILED],
+} as const;

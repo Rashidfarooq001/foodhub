@@ -25,6 +25,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
+import { RESTAURANT_ORDER_FILTERS } from '@foodhub/types';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { io } from 'socket.io-client';
 
@@ -413,27 +414,24 @@ export default function HotelOrdersPage() {
 
   const getFilteredOrders = () => {
     return orders.filter((o) => {
+      let matchesStatus = false;
+      
       if (filter === 'NEW_ORDERS') {
-        if (o.status !== 'PENDING') return false;
-        // SECURITY: Hide online-payment orders that have not yet been payment-verified.
-        // COD orders are always immediately actionable.
-        // This is the client-side safety net — the server already enforces this via the REST query
-        // and only emits ORDER_CREATED after payment confirmation.
-        if (o.paymentMethod !== 'COD' && o.paymentStatus !== 'COMPLETED') return false;
+        matchesStatus = RESTAURANT_ORDER_FILTERS.NEW_ORDERS.includes(o.status as any);
+        if (o.paymentMethod !== 'COD' && o.paymentStatus !== 'COMPLETED') matchesStatus = false;
+      } else if (filter === 'ACCEPTED') {
+        matchesStatus = RESTAURANT_ORDER_FILTERS.ACCEPTED.includes(o.status as any);
+      } else if (filter === 'PREPARING') {
+        matchesStatus = RESTAURANT_ORDER_FILTERS.PREPARING.includes(o.status as any);
+      } else if (filter === 'OUT_FOR_DELIVERY') {
+        matchesStatus = RESTAURANT_ORDER_FILTERS.OUT_FOR_DELIVERY.includes(o.status as any) || RESTAURANT_ORDER_FILTERS.READY_FOR_PICKUP.includes(o.status as any);
+      } else if (filter === 'COMPLETED') {
+        matchesStatus = RESTAURANT_ORDER_FILTERS.COMPLETED.includes(o.status as any);
+      } else if (filter === 'REJECTED_CANCELLED') {
+        matchesStatus = RESTAURANT_ORDER_FILTERS.CANCELLED.includes(o.status as any);
       }
-      if (filter === 'ACCEPTED' && o.status !== 'ACCEPTED') return false;
-      if (filter === 'PREPARING' && o.status !== 'PREPARING') return false;
 
-      if (
-        filter === 'OUT_FOR_DELIVERY' &&
-        !['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(
-          o.status,
-        )
-      )
-        return false;
-      if (filter === 'COMPLETED' && o.status !== 'DELIVERED') return false;
-      if (filter === 'REJECTED_CANCELLED' && !['REJECTED', 'CANCELLED'].includes(o.status))
-        return false;
+      if (!matchesStatus) return false;
 
       if (search.trim()) {
         const s = search.toLowerCase();
