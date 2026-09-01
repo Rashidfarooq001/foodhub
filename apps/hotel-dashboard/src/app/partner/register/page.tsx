@@ -582,7 +582,7 @@ export default function RestaurantPartnerRegisterPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Phone Number <span className="text-rose-600 font-bold">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <div className="relative flex-1">
                     <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <input
@@ -601,12 +601,12 @@ export default function RestaurantPartnerRegisterPage() {
                       type="button"
                       onClick={handleVerifyPhoneWithWidget}
                       disabled={isVerifyingPhone}
-                      className="rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 shrink-0"
+                      className="w-full sm:w-auto shrink-0 flex items-center justify-center rounded-2xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50"
                     >
                       {isVerifyingPhone ? 'Verifying...' : 'Verify Phone Number'}
                     </button>
                   ) : (
-                    <span className="flex items-center gap-1 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 border border-emerald-200 shrink-0">
+                    <span className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 border border-emerald-200">
                       <Check className="h-4 w-4" /> Verified
                     </span>
                   )}
@@ -892,14 +892,14 @@ export default function RestaurantPartnerRegisterPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   State / PIN Code
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <input
                     type="text"
                     name="state"
                     value={form.state}
                     onChange={handleChange}
                     placeholder="State"
-                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-full sm:w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                   <input
                     type="text"
@@ -907,7 +907,7 @@ export default function RestaurantPartnerRegisterPage() {
                     value={form.pin}
                     onChange={handleChange}
                     placeholder="PIN Code"
-                    className="w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
+                    className="w-full sm:w-1/2 rounded-2xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
