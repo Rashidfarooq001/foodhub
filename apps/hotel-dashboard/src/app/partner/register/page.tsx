@@ -443,10 +443,10 @@ export default function RestaurantPartnerRegisterPage() {
         password: form.password,
         confirmPassword: form.confirmPassword,
         restaurantName: form.name.trim(),
-        addressLine: form.address.trim() || 'Restaurant Address',
-        city: form.city || 'Bandipora',
-        state: form.state || 'Jammu & Kashmir',
-        postalCode: form.pin || '193502',
+        addressLine: form.address.trim(),
+        city: form.city,
+        state: form.state,
+        postalCode: form.pin,
         latitude: form.latitude ?? 0,
         longitude: form.longitude ?? 0,
         fssaiNumber: form.fssaiLicense.trim() || undefined,
@@ -544,7 +544,7 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="space-y-4">
             <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <Store className="h-5 w-5 text-orange-600" /> 1. Owner &amp; Restaurant Basic Info
-            </div>
+            </h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -755,7 +755,7 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="space-y-4">
             <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <FileText className="h-5 w-5 text-orange-600" /> 2. Mandatory Documents &amp; Visuals
-            </div>
+            </h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -832,7 +832,7 @@ export default function RestaurantPartnerRegisterPage() {
               <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider">
                 <MapPin className="h-5 w-5 text-orange-600" /> 3. Store Physical Location &amp; GPS
                 Coordinates
-              </div>
+              </h2>
 
               <button
                 type="button"
@@ -959,7 +959,7 @@ export default function RestaurantPartnerRegisterPage() {
           <div className="space-y-4">
             <h2 className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-2">
               <CreditCard className="h-5 w-5 text-orange-600" /> 4. Bank &amp; Settlement Details
-            </div>
+            </h2>
             
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>

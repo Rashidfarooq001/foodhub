@@ -1,4 +1,5 @@
-
+const fs = require("fs");
+const content = `
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -47,13 +48,13 @@ export default function DriverRegisterPage() {
     document.body.appendChild(script);
   }, []);
 
-  const formatIdentifier = (raw: string) => {
-    const cleaned = raw.replace(/D/g, "");
+  const formatIdentifier = (raw) => {
+    const cleaned = raw.replace(/\D/g, "");
     return cleaned.length === 10 ? "91" + cleaned : cleaned;
   };
 
   const handleVerifyPhoneWithWidget = async () => {
-    const cleanDigits = form.phone.replace(/D/g, "");
+    const cleanDigits = form.phone.replace(/\D/g, "");
     if (cleanDigits.length < 10) {
       setErrorMsg("Please enter a valid 10-digit mobile number");
       return;
@@ -68,15 +69,15 @@ export default function DriverRegisterPage() {
         widgetId,
         tokenAuth,
         identifier,
-        success: (data: any) => { setIsPhoneVerified(true); setIsVerifyingPhone(false); },
-        failure: (error: any) => { setErrorMsg(error.message || "OTP Verification failed"); setIsVerifyingPhone(false); }
+        success: (data) => { setIsPhoneVerified(true); setIsVerifyingPhone(false); },
+        failure: (error) => { setErrorMsg(error.message || "OTP Verification failed"); setIsVerifyingPhone(false); }
       };
-      if ((window as any).initSendOTP) {
-        (window as any).initSendOTP(configuration);
+      if (window.initSendOTP) {
+        window.initSendOTP(configuration);
       } else {
         throw new Error("OTP service unavailable");
       }
-    } catch (err: any) {
+    } catch (err) {
       setErrorMsg(err.message || "Connection error");
       setIsVerifyingPhone(false);
     }
@@ -121,14 +122,14 @@ export default function DriverRegisterPage() {
     );
   };
 
-  const handleChange = (e: any) => {
+  const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === "phone") {
       setIsPhoneVerified(false);
     }
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     if (!isPhoneVerified) {
@@ -139,7 +140,7 @@ export default function DriverRegisterPage() {
     try {
       const payload = {
         name: form.name.trim(),
-        phone: "+91" + form.phone.replace(/D/g, ""),
+        phone: "+91" + form.phone.replace(/\D/g, ""),
         email: form.email.trim() || undefined,
         password: form.password,
         licenseNumber: form.licenseNumber.trim(),
@@ -337,3 +338,8 @@ export default function DriverRegisterPage() {
     </div>
   );
 }
+`
+
+fs.writeFileSync("apps/customer-web/src/app/driver/register/page.tsx", content);
+console.log("Updated driver registration page completely");
+
