@@ -787,7 +787,6 @@ model Order {
   deliveryOtpAttempts        Int           @default(0) @map("delivery_otp_attempts")
   deliveryOtpVerifiedAt      DateTime?     @map("delivery_otp_verified_at")
   specialInstruction         String?       @map("special_instruction")
-  assignedFoodHubDriverId    String?       @map("assigned_foodhub_driver_id") @db.Uuid
   assignedRestaurantDriverId String?       @map("assigned_restaurant_driver_id") @db.Uuid
   createdAt                  DateTime      @default(now()) @map("created_at")
   updatedAt                  DateTime      @updatedAt @map("updated_at")

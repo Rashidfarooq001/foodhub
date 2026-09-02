@@ -31,7 +31,7 @@ export default function DeliveryNotificationsPage() {
           fetch(`${apiBase}/delivery/history`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
-          fetch(`${apiBase}/delivery/current`, {
+          fetch(`${apiBase}/delivery/active-jobs`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
         ]);

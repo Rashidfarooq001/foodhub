@@ -389,7 +389,6 @@ export class DriversService {
           await tx.order.update({
             where: { id: job.orderId },
             data: {
-              assignedFoodHubDriverId: null,
               status: OrderStatus.PREPARING, // order reverts to PREPARING so a new driver can be dispatched
             },
           });
@@ -413,12 +412,6 @@ export class DriversService {
       await tx.riderSettlement.updateMany({
         where: { driverId },
         data: { driverId: null, driverSnapshot },
-      });
-
-      // Also nullify from Orders where completed
-      await tx.order.updateMany({
-        where: { assignedFoodHubDriverId: driverId },
-        data: { assignedFoodHubDriverId: null },
       });
 
       // 3. Clean up operational relations (Cascades automatically, but let's be explicit for safety)

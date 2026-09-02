@@ -897,20 +897,12 @@ export class OrderLifecycleService {
         }
       }
 
-      const assignedDriverId =
-        extraData?.deliveryJobPayload?.create?.driverId ||
-        extraData?.deliveryJobPayload?.update?.driverId ||
-        actor.driverId;
-
       const updatedOrderRecord = await tx.order.update({
         where: { id: order.id },
         data: {
           status: targetStatus,
           version: { increment: 1 },
           ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any } : {}),
-          ...(targetStatus === OrderStatus.DRIVER_ASSIGNED && assignedDriverId
-            ? { assignedFoodHubDriverId: assignedDriverId }
-            : {}),
         },
         include: {
           restaurant: true,

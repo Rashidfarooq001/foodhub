@@ -557,7 +557,6 @@ export class OrdersService {
         where: { id: orderId },
         data: {
           assignedRestaurantDriverId: riderId,
-          assignedFoodHubDriverId: null,
           status: OrderStatus.DRIVER_ASSIGNED,
         },
       }),

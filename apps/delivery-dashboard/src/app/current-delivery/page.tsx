@@ -48,7 +48,7 @@ export default function CurrentDeliveryPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, {
+      const res = await fetch(`${API_BASE}/delivery/active-jobs?_t=${Date.now()}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -64,7 +64,18 @@ export default function CurrentDeliveryPage() {
       const text = await res.text();
       try {
         const parsed = text ? JSON.parse(text) : null;
-        setCurrentJob(parsed?.data || parsed);
+        const jobs = parsed?.data || parsed || [];
+        
+        if (Array.isArray(jobs) && jobs.length > 0) {
+          if (targetJobId) {
+            const found = jobs.find((j: any) => j.id === targetJobId);
+            setCurrentJob(found || jobs[0]);
+          } else {
+            setCurrentJob(jobs[0]);
+          }
+        } else {
+          setCurrentJob(null);
+        }
       } catch {
         setCurrentJob(null);
       }
@@ -280,13 +291,17 @@ export default function CurrentDeliveryPage() {
 
   if (!currentJob) {
     return (
-      <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-gray-200 p-6 space-y-3">
-        <Navigation className="h-10 w-10 mx-auto text-gray-300 mb-1" />
-        <h2 className="text-base font-black text-gray-900">No Active Delivery Job</h2>
-        <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          You do not have any active delivery assigned. Head over to available orders to pick up a
-          delivery request.
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4 space-y-4">
+        <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center">
+          <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+        </div>
+        <h2 className="text-xl font-black text-gray-900">No Active Delivery</h2>
+        <p className="text-sm font-bold text-gray-500 max-w-xs">
+          You are not currently assigned to any delivery job.
         </p>
+        <button onClick={() => router.push('/')} className="mt-4 rounded-xl bg-orange-600 px-6 py-2.5 text-xs font-black text-white hover:bg-orange-700">
+          Back to Dashboard
+        </button>
       </div>
     );
   }

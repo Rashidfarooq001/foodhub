@@ -519,44 +519,6 @@ export class DeliveryJobsController {
     return jobs.map((job) => this.formatJobPayload(job));
   }
 
-  @Get('current')
-  @ApiOperation({ summary: 'Get current active delivery job for authenticated driver' })
-  async getCurrentJob(@Request() req: any) {
-    const driver = await this.getDriverFromReq(req);
-    if (!driver) {
-      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
-    }
-
-    const job = await this.prisma.deliveryJob.findFirst({
-      where: {
-        driverId: driver.id,
-        order: {
-          status: {
-            in: [
-              OrderStatus.DRIVER_ASSIGNED,
-              OrderStatus.ARRIVED_AT_RESTAURANT,
-              OrderStatus.PICKED_UP,
-              OrderStatus.OUT_FOR_DELIVERY,
-            ],
-          },
-        },
-      },
-      include: {
-        order: {
-          include: {
-            restaurant: true,
-            orderItems: { include: { foodItem: true } },
-            customer: { include: { user: { include: { profile: true } } } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!job) return null;
-    return this.formatJobPayload(job);
-  }
-
   @Get('stats')
   @ApiOperation({ summary: 'Get earnings & delivery statistics for driver' })
   async getDriverStats(@Request() req: any) {
@@ -593,7 +555,7 @@ export class DeliveryJobsController {
     // Fetch all completed orders with their delivery jobs (for total + daily breakdown)
     const allCompletedOrders = await this.prisma.order.findMany({
       where: {
-        assignedFoodHubDriverId: driver.id,
+        deliveryJob: { driverId: driver.id },
         status: 'DELIVERED',
       },
       include: {
@@ -704,7 +666,7 @@ export class DeliveryJobsController {
 
     const completedOrders = await this.prisma.order.findMany({
       where: {
-        assignedFoodHubDriverId: driver.id,
+        deliveryJob: { driverId: driver.id },
         status: 'DELIVERED',
       },
       include: {
