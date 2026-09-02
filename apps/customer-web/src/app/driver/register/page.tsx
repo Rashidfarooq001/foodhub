@@ -33,19 +33,12 @@ export default function DriverRegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const isPhoneVerified = true;
+  const isVerifyingPhone = false;
+  const setIsPhoneVerified = (v: any) => {};
+  const setIsVerifyingPhone = (v: any) => {};
 
-  // MSG91 widget logic
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (document.getElementById("msg91-verify-script")) return;
-    const script = document.createElement("script");
-    script.id = "msg91-verify-script";
-    script.src = "https://verify.msg91.com/otp-provider.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
+
 
   const formatIdentifier = (raw: string) => {
     const cleaned = raw.replace(/D/g, "");
@@ -131,10 +124,7 @@ export default function DriverRegisterPage() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setErrorMsg("");
-    if (!isPhoneVerified) {
-      setErrorMsg("Phone number must be verified via OTP.");
-      return;
-    }
+
     setIsSubmitting(true);
     try {
       const payload = {
