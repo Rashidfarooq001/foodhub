@@ -104,8 +104,7 @@ export default function ReviewDriverModal({ driverId, onClose, onApprove, onReje
                   <span className="text-gray-500 font-medium">Phone</span>
                   <span className="col-span-2 font-mono text-gray-900 flex items-center gap-2">
                     {user?.phone} 
-                    <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded-md font-bold">Verified</span>
-                  </span>
+                    </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-b pb-2">
                   <span className="text-gray-500 font-medium">Email</span>
