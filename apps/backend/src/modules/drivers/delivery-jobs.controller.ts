@@ -40,6 +40,11 @@ export class DeliveryJobsController {
     const userId = req.user?.id || req.user?.sub;
     if (!userId) return null;
 
+    const role = (req.user?.role || '').toUpperCase();
+    if (role !== 'DELIVERY_PARTNER' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
     try {
       return await this.prisma.driver.findUnique({
         where: { userId },
