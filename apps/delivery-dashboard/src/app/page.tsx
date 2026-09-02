@@ -284,7 +284,7 @@ export default function DeliveryDashboardPage() {
               className={`h-2.5 w-2.5 rounded-full ${isOnDuty ? 'bg-emerald-300 animate-pulse' : 'bg-gray-400'}`}
             />
             <span className="text-xs font-black uppercase tracking-wider">
-              {isOnDuty ? 'YOU ARE ON DUTY (ONLINE)' : 'YOU ARE OFF DUTY (OFFLINE)'}
+              {isOnDuty ? 'YOU ARE ON DUTY (ONLINE)' : 'YOU ARE OFF DUTY (OFFLINE)'} - v2.1
             </span>
           </div>
           <p className="text-[11px] text-white/80">
