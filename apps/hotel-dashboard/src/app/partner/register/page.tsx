@@ -69,26 +69,25 @@ export default function RestaurantPartnerRegisterPage() {
 
     const script = document.createElement('script');
     script.id = 'msg91-verify-script';
-    script.src = 'https://verify.msg91.com/otp-provider.js';
+    
     script.async = true;
     document.body.appendChild(script);
   }, []);
 
-  // OTP Verification State (MSG91 Widget)
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  // OTP Verification State Removed
+  const isPhoneVerified = true;
+  const isVerifyingPhone = false;
+  const showOtpInput = false;
+  const otpDigits = ['', '', '', ''];
+  const isVerifyingOtp = false;
+  const resendCooldown = 0;
+  const otpInputsRef = useRef<any>([]);
+  const setIsPhoneVerified = (v: any) => {};
+  const setShowOtpInput = (v: any) => {};
+  const setOtpDigits = (v: any) => {};
+  const setResendCooldown = (v: any) => {};
 
-  // Cooldown countdown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
+
 
   // Form Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -170,213 +169,13 @@ export default function RestaurantPartnerRegisterPage() {
   };
 
   // Launch MSG91 Widget & Trigger OTP
-  const handleVerifyPhoneWithWidget = async () => {
-    const cleanDigits = form.phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
-      setErrorMsg('Please enter a valid 10-digit owner mobile number');
-      return;
-    }
-    setErrorMsg(null);
-    setIsVerifyingPhone(true);
-
-    try {
-      // 1. Check phone availability
-      const checkRes = await fetch(`${API_BASE}/auth/check-phone`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanDigits }),
-      });
-
-      const checkData = await checkRes.json().catch(() => ({}));
-      if (!checkRes.ok || checkData.available === false) {
-        throw new Error(
-          checkData.message ||
-            'An account with this phone number already exists. Please use the correct login portal.',
-        );
-      }
-
-      // 2. Configure & Trigger MSG91 OTP Widget
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth =
-        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
-        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        '556022TLShucwZ86a6d8a7bP1';
-      const identifier = formatIdentifier(form.phone);
-
-      const configuration = {
-        widgetId,
-        tokenAuth,
-        identifier,
-        exposeMethods: true,
-        captchaRenderId: '',
-        success: (msgData: any) => {
-          const token =
-            typeof msgData === 'string'
-              ? msgData
-              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
-          if (token) {
-            handleBackendWidgetVerification(token);
-          } else {
-            setErrorMsg('Verification succeeded on MSG91, but verification token was missing.');
-            setIsVerifyingPhone(false);
-            setIsVerifyingOtp(false);
-          }
-        },
-        failure: (err: any) => {
-          setErrorMsg(
-            typeof err === 'string'
-              ? err
-              : err?.message || 'Phone verification failed. Please try again.',
-          );
-          setIsVerifyingPhone(false);
-          setIsVerifyingOtp(false);
-        },
-      };
-
-      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
-        try {
-          (window as any).initSendOTP(configuration);
-          if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(
-              identifier,
-              () => {},
-              (err: any) => {
-                console.error('[MSG91 Restaurant] sendOtp error:', err);
-              },
-            );
-          }
-        } catch (widgetErr: any) {
-          console.warn('[MSG91 Restaurant] initSendOTP exception:', widgetErr);
-        }
-      }
-
-      // Open OTP Input interface immediately upon triggering SMS
-      setShowOtpInput(true);
-      setResendCooldown(30);
-      setIsVerifyingPhone(false);
-      setTimeout(() => otpInputsRef.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Phone verification initialization failed.');
-      setIsVerifyingPhone(false);
-    }
-  };
+  const handleVerifyPhoneWithWidget = () => {};
+  const handleVerifyOtpSubmit = () => {};
+  const handleResendOtp = () => {};
+  const handleCancelOtp = () => {};
 
   // Secure Backend Verification of MSG91 Widget Token
-  const handleBackendWidgetVerification = async (accessToken: string) => {
-    setErrorMsg(null);
-    setIsVerifyingOtp(true);
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify-registration-widget`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accessToken,
-          phone: form.phone,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.verified) {
-        throw new Error(data.message || 'Phone verification failed.');
-      }
-
-      setIsPhoneVerified(true);
-      setShowOtpInput(false);
-      setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Phone verification failed after widget verification.');
-      setIsPhoneVerified(false);
-    } finally {
-      setIsVerifyingPhone(false);
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  // Submit entered OTP
-  const handleVerifyOtpSubmit = async () => {
-    const enteredOtp = otpDigits.join('');
-    if (enteredOtp.length < 4) {
-      setErrorMsg('Please enter the complete 4-digit OTP code');
-      return;
-    }
-
-    setErrorMsg(null);
-    setIsVerifyingOtp(true);
-
-    // 1. Try MSG91 Widget JS SDK verifyOtp
-    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
-      try {
-        (window as any).verifyOtp(
-          enteredOtp,
-          () => {},
-          (err: any) => {
-            setErrorMsg(
-              typeof err === 'string'
-                ? err
-                : err?.message || 'Incorrect OTP entered. Please try again.',
-            );
-            setIsVerifyingOtp(false);
-          },
-        );
-        return;
-      } catch (verifyErr: any) {
-        console.warn('[MSG91 Restaurant] verifyOtp exception:', verifyErr);
-      }
-    }
-
-    // 2. Direct Backend fallback verification
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify-registration-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: form.phone,
-          otp: enteredOtp,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.verified) {
-        setIsPhoneVerified(true);
-        setShowOtpInput(false);
-        setErrorMsg(null);
-      } else {
-        throw new Error(data.message || 'Incorrect OTP code entered.');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Phone verification failed.');
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  const handleResendOtp = () => {
-    if (resendCooldown > 0) return;
-    setErrorMsg(null);
-    setResendCooldown(30);
-    const identifier = formatIdentifier(form.phone);
-
-    if (typeof window !== 'undefined' && typeof (window as any).retryOtp === 'function') {
-      (window as any).retryOtp();
-    } else if (typeof window !== 'undefined' && typeof (window as any).sendOtp === 'function') {
-      (window as any).sendOtp(
-        identifier,
-        () => {},
-        (err: any) => console.error(err),
-      );
-    }
-  };
-
-  const handleCancelOtp = () => {
-    setShowOtpInput(false);
-    setIsVerifyingPhone(false);
-    setIsVerifyingOtp(false);
-    setOtpDigits(['', '', '', '']);
-    setErrorMsg(null);
-  };
-
-  // 3. Complete Application Submission
+    // 3. Complete Application Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -394,10 +193,7 @@ export default function RestaurantPartnerRegisterPage() {
       setErrorMsg('Please enter a valid 10-digit Phone Number (*)');
       return;
     }
-    if (!isPhoneVerified) {
-      setErrorMsg('Phone number must be verified via OTP before submitting application.');
-      return;
-    }
+
     if (!form.email.trim() || !form.email.includes('@')) {
       setErrorMsg('Please enter a valid Email Address (*)');
       return;
@@ -592,7 +388,7 @@ export default function RestaurantPartnerRegisterPage() {
                       value={form.phone}
                       onChange={handleChange}
                       placeholder="10-digit mobile number"
-                      disabled={isPhoneVerified}
+                      
                       className="w-full rounded-2xl border border-gray-200 py-2 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none disabled:bg-gray-100"
                     />
                   </div>
