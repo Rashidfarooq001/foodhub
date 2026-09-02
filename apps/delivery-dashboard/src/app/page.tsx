@@ -61,28 +61,14 @@ export default function DeliveryDashboardPage() {
                 const jobsPayload = parsed?.data || parsed || [];
                 setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
               } catch (e) {
-                console.error("Failed to parse active jobs:", text);
-                setActiveDeliveries([]);
+                setLocationError(`Parse Error: ${e.message}`);
               }
             } else {
-              setActiveDeliveries([]);
+              setLocationError(`API Error: ${r.status} on active-jobs`);
             }
           }).catch(e => {
-            console.error("Network error fetching active jobs:", e);
-            setActiveDeliveries([]);
+            setLocationError(`Network Error: ${e.message}`);
           });
-
-        const fetchJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
-          .catch(() => fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' }))
-          .then(async r => {
-            if (r && r.ok) {
-              const text = await r.text();
-              if (text) {
-                const data = JSON.parse(text);
-                setAvailableJobs(Array.isArray(data) ? data : data.jobs || []);
-              }
-            }
-          }).catch(console.error);
 
         const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
           .then(async r => {

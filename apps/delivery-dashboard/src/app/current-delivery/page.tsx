@@ -57,6 +57,7 @@ export default function CurrentDeliveryPage() {
       });
 
       if (!res.ok) {
+        setError(`API Error: ${res.status} ${res.statusText}`);
         setCurrentJob(null);
         return;
       }
@@ -76,11 +77,13 @@ export default function CurrentDeliveryPage() {
         } else {
           setCurrentJob(null);
         }
-      } catch {
+      } catch (e: any) {
+        setError(`Parse Error: ${e.message}`);
         setCurrentJob(null);
       }
-    } catch {
-      /* offline */
+    } catch (e: any) {
+      setError(`Network Error: ${e.message}. Base: ${API_BASE}`);
+      setCurrentJob(null);
     } finally {
       setLoading(false);
     }
