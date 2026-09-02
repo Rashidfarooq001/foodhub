@@ -24,7 +24,7 @@ const API_BASE = getApiBaseUrl();
 export default function DeliveryDashboardPage() {
   const { user, accessToken } = useDeliveryAuthStore();
   const [stats, setStats] = useState<any>(null);
-  const [currentDelivery, setCurrentDelivery] = useState<any>(null);
+  const [activeDeliveries, setActiveDeliveries] = useState<any[]>([]);
   const [availableJobs, setAvailableJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnDuty, setIsOnDuty] = useState(true);
@@ -52,25 +52,24 @@ export default function DeliveryDashboardPage() {
             }
           }).catch(console.error);
 
-        const fetchCurrent = fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, { headers, cache: 'no-store' })
+        const fetchActiveJobs = fetch(`${API_BASE}/delivery/active-jobs?_t=${Date.now()}`, { headers, cache: 'no-store' })
           .then(async r => {
             if (r.ok) {
               const text = await r.text();
               try {
                 const parsed = text ? JSON.parse(text) : null;
-                // If the backend wraps it in data (e.g. { data: {...} }), extract it
-                const jobPayload = parsed?.data || parsed;
-                setCurrentDelivery(jobPayload);
+                const jobsPayload = parsed?.data || parsed || [];
+                setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
               } catch (e) {
-                console.error("Failed to parse current delivery:", text);
-                setCurrentDelivery(null);
+                console.error("Failed to parse active jobs:", text);
+                setActiveDeliveries([]);
               }
             } else {
-              setCurrentDelivery(null);
+              setActiveDeliveries([]);
             }
           }).catch(e => {
-            console.error("Network error fetching current delivery:", e);
-            setCurrentDelivery(null);
+            console.error("Network error fetching active jobs:", e);
+            setActiveDeliveries([]);
           });
 
         const fetchJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
@@ -96,7 +95,7 @@ export default function DeliveryDashboardPage() {
             }
           }).catch(console.error);
 
-        await Promise.all([fetchStats, fetchCurrent, fetchJobs, fetchStatus]);
+        await Promise.all([fetchStats, fetchActiveJobs, fetchJobs, fetchStatus]);
       } catch (e) {
         console.error("fetchDashboardData top-level error:", e);
       } finally {
@@ -296,9 +295,9 @@ export default function DeliveryDashboardPage() {
 
         <button
           onClick={toggleDuty}
-          disabled={isTogglingDuty || (isOnDuty && !!currentDelivery)}
+          disabled={isTogglingDuty || (isOnDuty && activeDeliveries.length > 0)}
           className={`flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-black transition min-h-[44px] shrink-0 ${
-            isOnDuty && !!currentDelivery
+            isOnDuty && activeDeliveries.length > 0
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : isOnDuty
                 ? 'bg-white text-emerald-800 hover:bg-emerald-50'
@@ -329,18 +328,18 @@ export default function DeliveryDashboardPage() {
         </div>
       )}
 
-      {/* ACTIVE DELIVERY IN PROGRESS BANNER (If job active) */}
-      {currentDelivery && (
-        <div className="rounded-2xl sm:rounded-3xl border-2 border-orange-500 bg-orange-50/50 p-4 sm:p-5 shadow-lg space-y-3">
+      {/* ACTIVE DELIVERIES */}
+      {activeDeliveries.map((delivery, index) => (
+        <div key={delivery.id} className="rounded-2xl sm:rounded-3xl border-2 border-orange-500 bg-orange-50/50 p-4 sm:p-5 shadow-lg space-y-3 mb-4">
           <div className="flex items-center justify-between border-b border-orange-200 pb-2.5">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-orange-600 animate-ping" />
               <span className="text-xs font-black text-orange-950 uppercase">
-                ACTIVE DELIVERY IN PROGRESS
+                {index === 0 ? "ACTIVE DELIVERY IN PROGRESS" : "ADDITIONAL ACTIVE DELIVERY"}
               </span>
             </div>
             <span className="rounded-xl bg-orange-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase">
-              #{currentDelivery.orderNumber || currentDelivery.id?.slice(0, 8)}
+              #{delivery.orderNumber || delivery.id?.slice(0, 8)}
             </span>
           </div>
 
@@ -350,7 +349,7 @@ export default function DeliveryDashboardPage() {
                 Pickup Restaurant
               </span>
               <span className="font-black text-gray-900">
-                {currentDelivery.restaurantName || 'Restaurant Kitchen'}
+                {delivery.restaurantName || 'Restaurant Kitchen'}
               </span>
             </div>
             <div>
@@ -358,13 +357,13 @@ export default function DeliveryDashboardPage() {
                 Customer Area
               </span>
               <span className="font-black text-gray-900">
-                {currentDelivery.customerAddress || 'Customer Destination'}
+                {delivery.customerAddress || 'Customer Destination'}
               </span>
             </div>
           </div>
 
           <Link
-            href="/current-delivery"
+            href={`/current-delivery?jobId=${delivery.id}`}
             className="w-full flex items-center justify-center gap-2 rounded-2xl bg-orange-600 hover:bg-orange-700 py-3 text-xs font-black text-white shadow-md shadow-orange-500/25 transition min-h-[44px]"
           >
             <Navigation className="h-4 w-4" />
@@ -372,7 +371,7 @@ export default function DeliveryDashboardPage() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-      )}
+      ))}
 
       {/* Daily Metrics: 2-col on Mobile, 4-col on Desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">

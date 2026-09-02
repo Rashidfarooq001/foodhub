@@ -20,10 +20,14 @@ import {
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { io } from 'socket.io-client';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const API_BASE = getApiBaseUrl();
 
 export default function CurrentDeliveryPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const targetJobId = searchParams.get('jobId');
   const { user, accessToken } = useDeliveryAuthStore();
 
   const [currentJob, setCurrentJob] = useState<any>(null);
