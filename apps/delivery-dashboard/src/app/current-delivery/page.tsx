@@ -58,7 +58,12 @@ export default function CurrentDeliveryPage() {
       }
 
       const text = await res.text();
-      setCurrentJob(text ? JSON.parse(text) : null);
+      try {
+        const parsed = text ? JSON.parse(text) : null;
+        setCurrentJob(parsed?.data || parsed);
+      } catch {
+        setCurrentJob(null);
+      }
     } catch {
       /* offline */
     } finally {

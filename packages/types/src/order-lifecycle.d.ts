@@ -11,3 +11,16 @@ export declare const ADMIN_ORDER_FILTERS: {
     readonly CANCELLED: readonly [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED];
 };
 export declare const getCustomerOrderStage: (status: OrderStatus) => 1 | 2 | 4 | 0 | 3 | -1;
+export declare const RESTAURANT_ORDER_FILTERS: {
+    readonly NEW_ORDERS: readonly [OrderStatus.PENDING];
+    readonly ACCEPTED: readonly [OrderStatus.ACCEPTED];
+    readonly PREPARING: readonly [OrderStatus.PREPARING];
+    readonly READY_FOR_PICKUP: readonly [OrderStatus.DRIVER_ASSIGNED, OrderStatus.ARRIVED_AT_RESTAURANT];
+    readonly OUT_FOR_DELIVERY: readonly [OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY];
+    readonly COMPLETED: readonly [OrderStatus.DELIVERED];
+    readonly CANCELLED: readonly [OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.FAILED, OrderStatus.REFUNDED];
+};
+export declare const RIDER_ORDER_FILTERS: {
+    readonly ACTIVE: readonly [OrderStatus.DRIVER_ASSIGNED, OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY];
+    readonly HISTORY: readonly [OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.FAILED];
+};

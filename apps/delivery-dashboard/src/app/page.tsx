@@ -37,52 +37,72 @@ export default function DeliveryDashboardPage() {
       return;
     }
 
-    try {
-      const headers = {
-        Authorization: `Bearer ${accessToken}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      };
-      const [statsRes, currentRes, jobsRes, statusRes] = await Promise.all([
-        fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' }),
-        fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, { headers, cache: 'no-store' }),
-        fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, {
-          headers,
-          cache: 'no-store',
-        }).catch(() =>
-          fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' }),
-        ),
-        fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' }),
-      ]);
+      try {
+        const headers = {
+          Authorization: `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        };
+        
+        // Fetch individually so one failure doesn't block the rest
+        const fetchStats = fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' })
+          .then(async r => {
+            if (r.ok) {
+              const text = await r.text();
+              if (text) setStats(JSON.parse(text));
+            }
+          }).catch(console.error);
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
+        const fetchCurrent = fetch(`${API_BASE}/delivery/current?_t=${Date.now()}`, { headers, cache: 'no-store' })
+          .then(async r => {
+            if (r.ok) {
+              const text = await r.text();
+              try {
+                const parsed = text ? JSON.parse(text) : null;
+                // If the backend wraps it in data (e.g. { data: {...} }), extract it
+                const jobPayload = parsed?.data || parsed;
+                setCurrentDelivery(jobPayload);
+              } catch (e) {
+                console.error("Failed to parse current delivery:", text);
+                setCurrentDelivery(null);
+              }
+            } else {
+              setCurrentDelivery(null);
+            }
+          }).catch(e => {
+            console.error("Network error fetching current delivery:", e);
+            setCurrentDelivery(null);
+          });
 
-      if (currentRes.ok) {
-        const text = await currentRes.text();
-        setCurrentDelivery(text ? JSON.parse(text) : null);
-      } else {
-        setCurrentDelivery(null);
-      }
+        const fetchJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
+          .catch(() => fetch(`${API_BASE}/delivery/available?_t=${Date.now()}`, { headers, cache: 'no-store' }))
+          .then(async r => {
+            if (r && r.ok) {
+              const text = await r.text();
+              if (text) {
+                const data = JSON.parse(text);
+                setAvailableJobs(Array.isArray(data) ? data : data.jobs || []);
+              }
+            }
+          }).catch(console.error);
 
-      if (jobsRes && jobsRes.ok) {
-        const jobsData = await jobsRes.json();
-        setAvailableJobs(Array.isArray(jobsData) ? jobsData : jobsData.jobs || []);
-      }
+        const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
+          .then(async r => {
+            if (r.ok) {
+              const text = await r.text();
+              if (text) {
+                const data = JSON.parse(text);
+                setIsOnDuty(data.dutyStatus === 'ONLINE' || data.operationalStatus === 'ONLINE');
+              }
+            }
+          }).catch(console.error);
 
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        setIsOnDuty(
-          statusData.dutyStatus === 'ONLINE' || statusData.operationalStatus === 'ONLINE',
-        );
+        await Promise.all([fetchStats, fetchCurrent, fetchJobs, fetchStatus]);
+      } catch (e) {
+        console.error("fetchDashboardData top-level error:", e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      /* offline */
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
   useEffect(() => {
     fetchDashboardData();
