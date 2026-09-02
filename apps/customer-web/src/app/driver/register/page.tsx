@@ -216,19 +216,7 @@ export default function DriverRegisterPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Number *</label>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <input type="tel" name="phone" required value={form.phone} onChange={handleChange} readOnly={isPhoneVerified} className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none" />
-                  {!isPhoneVerified && (
-                    <button type="button" onClick={handleVerifyPhoneWithWidget} disabled={isVerifyingPhone || form.phone.length < 10} className="w-full sm:w-auto shrink-0 flex items-center justify-center rounded-2xl bg-orange-100 px-4 py-2 text-xs font-bold text-orange-700 hover:bg-orange-200 transition disabled:opacity-50">
-                      {isVerifyingPhone ? "Sending..." : "Verify"}
-                    </button>
-                  )}
-                  {isPhoneVerified && (
-                    <div className="w-full sm:w-auto shrink-0 flex items-center justify-center rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700">
-                      <CheckCircle2 className="h-4 w-4 mr-1" /> Verified
-                    </div>
-                  )}
-                </div>
+                <input type="tel" name="phone" required value={form.phone} onChange={handleChange} className="w-full rounded-2xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Password *</label>
