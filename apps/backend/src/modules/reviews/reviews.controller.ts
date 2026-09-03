@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
   Param,
   Body,
   UseGuards,
@@ -15,14 +14,8 @@ import {
   CreateRestaurantReviewDto,
   CreateFoodReviewDto,
   CreateDriverReviewDto,
-  ReportReviewDto,
-  ReplyReviewDto,
-  ModerateReviewDto,
 } from './dto/reviews.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-
 import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Reviews (Phase 16)')
@@ -71,34 +64,5 @@ export class ReviewsController {
     @Query('limit') limit = 10,
   ) {
     return this.reviewsService.getRestaurantReviews(restaurantId, +page, +limit);
-  }
-
-  @Post(':id/vote')
-  @ApiOperation({ summary: 'Vote a review as helpful or not helpful' })
-  async vote(@Param('id') id: string, @Request() req: any, @Body('isHelpful') isHelpful: boolean) {
-    const userId = req.user?.id;
-    return this.reviewsService.voteReview(id, userId, isHelpful);
-  }
-
-  @Post(':id/report')
-  @ApiOperation({ summary: 'Report a review for moderation' })
-  async report(@Param('id') id: string, @Request() req: any, @Body() dto: ReportReviewDto) {
-    const userId = req.user?.id;
-    return this.reviewsService.reportReview(id, userId, dto);
-  }
-
-  @Post(':id/reply')
-  @ApiOperation({ summary: 'Reply to a review (restaurant owner or admin)' })
-  async reply(@Param('id') id: string, @Request() req: any, @Body() dto: ReplyReviewDto) {
-    const userId = req.user?.id;
-    return this.reviewsService.replyToReview(id, userId, dto);
-  }
-
-  @Patch(':id/moderate')
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN')
-  @ApiOperation({ summary: 'Admin: hide or delete a review' })
-  async moderate(@Param('id') id: string, @Body() dto: ModerateReviewDto) {
-    return this.reviewsService.moderateReview(id, dto);
   }
 }

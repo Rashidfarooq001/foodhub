@@ -1225,29 +1225,30 @@ export class DeliveryJobsController {
   }
 
   @Get('ratings')
-  @ApiOperation({ summary: 'Get canonical ratings and reviews for driver' })
+  @ApiOperation({ summary: 'Get canonical ratings distribution for driver' })
   async getDriverRatings(@Request() req: any) {
     const driver = await this.getDriverFromReq(req);
-    if (!driver) return [];
+    if (!driver) return { average: 0, total: 0, distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 } };
 
     const reviews = await this.prisma.driverReview.findMany({
       where: { driverId: driver.id },
-      include: {
-        order: { select: { orderNumber: true } },
-        customer: { include: { user: { include: { profile: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
+      select: { rating: true },
     });
 
-    return reviews.map(r => ({
-      id: r.id,
-      rating: r.rating,
-      comment: r.comment || '',
-      customerName: r.customer?.user?.profile?.firstName || 'Customer',
-      orderNumber: r.order?.orderNumber,
-      createdAt: r.createdAt,
-    }));
+    const total = reviews.length;
+    let sum = 0;
+    const distribution = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+
+    for (const r of reviews) {
+      sum += r.rating;
+      if (distribution[r.rating.toString()] !== undefined) {
+        distribution[r.rating.toString()]++;
+      }
+    }
+
+    const average = total > 0 ? Number((sum / total).toFixed(1)) : 0;
+
+    return { average, total, distribution };
   }
 
   @Get('notifications')

@@ -1081,31 +1081,20 @@ export class OrdersService {
     return serializePrisma(tracking);
   }
 
-  async submitOrderReview(orderId: string, rating: number, comment: string, userId: string) {
+  async submitOrderReview(orderId: string, rating: number, userId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { customer: true },
     });
-
-    if (!order) throw new BadRequestException(`Order ${orderId} not found`);
-    if (order.status !== OrderStatus.DELIVERED) {
-      throw new BadRequestException('Reviews can only be submitted for delivered orders.');
-    }
-
-    const existingReview = await this.prisma.restaurantReview.findFirst({
-      where: { orderId },
-    });
-    if (existingReview) {
-      throw new BadRequestException('A review has already been submitted for this order.');
-    }
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'DELIVERED') throw new ForbiddenException('Order not delivered yet');
 
     const review = await this.prisma.restaurantReview.create({
       data: {
-        orderId,
+        orderId: order.id,
         restaurantId: order.restaurantId,
         customerId: order.customerId,
         rating: Math.min(5, Math.max(1, rating)),
-        comment: comment || 'Great food and fast delivery!',
       },
     });
 

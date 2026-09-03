@@ -474,11 +474,11 @@ export class OrdersController {
   async submitReview(
     @Param('id') id: string,
     @Body('rating') rating: number,
-    @Body('comment') comment: string,
+
     @Request() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.submitOrderReview(id, rating, comment, userId);
+    return this.ordersService.submitOrderReview(id, rating, userId);
   }
 
   @Post(':id/review')
@@ -486,11 +486,11 @@ export class OrdersController {
   async submitReviewAlias(
     @Param('id') id: string,
     @Body('rating') rating: number,
-    @Body('comment') comment: string,
+
     @Request() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.ordersService.submitOrderReview(id, rating, comment, userId);
+    return this.ordersService.submitOrderReview(id, rating, userId);
   }
 
   @Post(':id/repeat')

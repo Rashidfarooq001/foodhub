@@ -49,7 +49,7 @@ export default function OrderDetailsPage() {
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
+  
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -112,7 +112,7 @@ export default function OrderDetailsPage() {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+        body: JSON.stringify({ rating: reviewRating }),
       });
       if (res.ok) {
         setShowReviewModal(false);
@@ -496,7 +496,7 @@ export default function OrderDetailsPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setShowReviewModal(true)}
+                        onClick={() => window.location.href = `/orders/${order.id}/review`}
                         className="w-full flex items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 py-3 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
                       >
                         <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Rate &amp; Review
@@ -624,17 +624,7 @@ export default function OrderDetailsPage() {
                     />
                   </button>
                 ))}
-              </div>
-
-              <textarea
-                rows={3}
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                placeholder="How was the food quality &amp; delivery experience?"
-                className="w-full rounded-2xl border border-gray-200 p-3 text-xs font-bold text-gray-900 focus:outline-none"
-              />
-
-              <div className="flex justify-end gap-2">
+              </div><div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowReviewModal(false)}
                   className="px-4 py-2 text-xs font-bold text-gray-600"
@@ -687,3 +677,4 @@ export default function OrderDetailsPage() {
     </CustomerAuthGuard>
   );
 }
+

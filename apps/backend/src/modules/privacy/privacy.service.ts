@@ -571,7 +571,7 @@ export class PrivacyService {
           id: true,
           orderId: true,
           rating: true,
-          comment: true,
+
           createdAt: true,
         },
       });
