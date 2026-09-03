@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -68,6 +68,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'COD'>('UPI');
   const [instructions, setInstructions] = useState('');
+  const [alwaysSendCutlery, setAlwaysSendCutlery] = useState(false);
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
   const [showCustomTipInput, setShowCustomTipInput] = useState(false);
@@ -116,7 +117,7 @@ export default function CheckoutPage() {
 
   const [orderQuote, setOrderQuote] = useState<OrderQuoteData | null>(null);
 
-  // On mount, always start with null orderQuote � never trust any rehydrated/stale value.
+  // On mount, always start with null orderQuote ï¿½ never trust any rehydrated/stale value.
   // The quote will be freshly fetched by the useEffect below.
   // This guards against any stale distanceKm (e.g. -1) surviving a page refresh.
   const _rawDistanceKm = orderQuote?.distanceKm ?? null;
@@ -195,7 +196,7 @@ export default function CheckoutPage() {
     ? orderQuote.customerTotal
     : Math.max(0, baseGrandTotal) + tipAmount;
 
-  // Custom Address Modal Form state (Manual Text Address — Text Form ONLY)
+  // Custom Address Modal Form state (Manual Text Address â€” Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
@@ -208,7 +209,7 @@ export default function CheckoutPage() {
   const [matchedAddressResult, setMatchedAddressResult] = useState<any>(null);
   const [addressVerificationError, setAddressVerificationError] = useState<string | null>(null);
 
-  // MODE 1 — Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
+  // MODE 1 â€” Real-Time Geolocation Handler (Triggers ONLY on explicit user click)
   const { status: gpsStatus, error: gpsError, requestLocation } = useGeolocation();
   const isLocatingUser = gpsStatus === 'requesting';
 
@@ -408,7 +409,7 @@ export default function CheckoutPage() {
         items: itemsPayload,
         deliveryAddress: addressPayload,
         paymentMethod: validPaymentMethod,
-        specialInstruction: instructions.trim() || undefined,
+        specialInstruction: [instructions.trim(), alwaysSendCutlery ? 'Always send cutlery' : ''].filter(Boolean).join(' | ') || undefined,
         tipAmount: tipAmount > 0 ? tipAmount : undefined,
       };
 
@@ -647,9 +648,9 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="bg-gray-50/50 pb-8">
+      <div className="bg-gray-50 min-h-screen pb-[350px] lg:pb-12">
         {/* Mobile Header & Progress Bar */}
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
             <button
               onClick={() => router.push('/cart')}
@@ -662,12 +663,9 @@ export default function CheckoutPage() {
             <div className="w-8" />
           </div>
 
-          {/* Stepper Progress: Cart > Payment */}
+          {/* Stepper Progress */}
           <div className="mx-auto max-w-4xl mt-2 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-400">
-            <Link
-              href="/cart"
-              className="text-gray-500 hover:text-gray-900 transition hover:underline"
-            >
+            <Link href="/cart" className="text-gray-500 hover:text-gray-900 transition hover:underline">
               Cart
             </Link>
             <span>&gt;</span>
@@ -680,153 +678,52 @@ export default function CheckoutPage() {
         <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-4 lg:px-5 space-y-4">
           {paymentError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 shadow-xs">
-              ⚠️ {paymentError}
+              ⚠ {paymentError}
             </div>
           )}
 
-          {/* Main 2-Column Responsive Container */}
+          {locationError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-700 shadow-xs flex justify-between">
+              <span>⚠ {locationError}</span>
+              <button onClick={() => setLocationError(null)}><X className="h-4 w-4" /></button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* LEFT COLUMN: Delivery Location & Options */}
+            {/* LEFT COLUMN: Order Details & Price */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Delivery Address Card */}
+              {/* Order Items */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3">
-                  <div className="flex items-center gap-2 text-sm font-black text-gray-900">
-                    <MapPin className="h-4 w-4 text-orange-600" />
-                    <span>Delivery Address</span>
-                  </div>
-                  {addresses.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomAddressModal(true)}
-                      className="text-xs font-bold text-orange-600 hover:underline"
-                    >
-                      Change
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 text-sm font-black text-gray-900 mb-3 pb-3 border-b border-gray-100">
+                  <Store className="h-4 w-4 text-orange-600" />
+                  <span>Order Items</span>
                 </div>
-
-                <div className="flex gap-2 pb-4">
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={isLocatingUser}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50 border border-orange-100"
-                  >
-                    <MapPin className={`h-3.5 w-3.5 ${isLocatingUser ? 'animate-spin' : ''}`} />
-                    <span>{isLocatingUser ? 'Locating...' : 'Use Current Location'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setManualAddress('');
-                      setMatchedAddressResult(null);
-                      setAddressVerificationError(null);
-
-                      setShowCustomAddressModal(true);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2.5 text-[11px] sm:text-xs font-bold text-gray-700 hover:bg-gray-200 transition border border-gray-200"
-                  >
-                    <Search className="h-3.5 w-3.5 text-gray-500" />
-                    <span>Change Location</span>
-                  </button>
-                </div>
-
-                {locationError && (
-                  <div className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-2 text-[11px] font-bold text-rose-700 flex items-center justify-between">
-                    <span>⚠️ {locationError}</span>
-                    <button
-                      type="button"
-                      onClick={() => setLocationError(null)}
-                      className="text-rose-500"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                {addresses.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-4 text-center">
-                    <p className="text-xs font-bold text-gray-900">No Saved Delivery Address</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">
-                      Please select a location above.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {addresses.map((addr) => {
-                      const isSelected = selectedAddressId === addr.id;
-                      if (!isSelected) return null; // ONLY SHOW SELECTED ADDRESS TO SAVE SPACE
-
-                      const hasCoords =
-                        addr.latitude !== null &&
-                        addr.latitude !== undefined &&
-                        addr.longitude !== null &&
-                        addr.longitude !== undefined;
-                      const addrDist =
-                        hasCoords &&
-                        isSelected &&
-                        orderQuote?.distanceKm !== null &&
-                        orderQuote?.distanceKm !== undefined &&
-                        orderQuote.distanceKm >= 0
-                          ? orderQuote.distanceKm
-                          : null;
-                      const addrRouteAvailable = isSelected
-                        ? (orderQuote?.routeAvailable ?? true)
-                        : true;
-                      const addrEligible = isSelected
-                        ? (orderQuote?.deliveryEligible ??
-                          (addrDist !== null && addrDist <= maxRadiusKm))
-                        : true;
-
-                      return (
-                        <div key={addr.id} className="pt-2 border-t border-gray-100 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                            <span className="font-black text-gray-900 uppercase tracking-wide">
-                              {addr.label}
-                            </span>
-                            {hasCoords && (
-                              <span className="font-bold text-emerald-700 flex items-center gap-0.5">
-                                <Check className="h-3 w-3" /> Address location verified
-                              </span>
-                            )}
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-10 w-10 rounded-lg object-cover shrink-0 border border-gray-100"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-orange-50 text-orange-600 font-bold flex items-center justify-center text-xs shrink-0">
+                            {item.name[0]}
                           </div>
-
-                          {addrRouteAvailable && addrDist !== null ? (
-                            <div className="text-[10px] font-bold text-gray-600 flex items-center gap-1">
-                              <span>{addrDist} km away</span>
-                              <span>·</span>
-                              <span className={addrEligible ? 'text-emerald-700' : 'text-rose-700'}>
-                                {addrEligible
-                                  ? `✓ Inside delivery radius (${maxRadiusKm} km)`
-                                  : `✕ Outside delivery radius (${maxRadiusKm} km)`}
-                              </span>
-                            </div>
-                          ) : !addrRouteAvailable || addrDist === null ? (
-                            <div className="text-[10px] font-bold text-amber-700">
-                              ⚠️ Unable to calculate delivery distance.
-                            </div>
-                          ) : null}
-
-                          <div className="pt-1 text-[11px] leading-snug text-gray-800">
-                            <p className="font-bold text-gray-900">{addr.addressLine1}</p>
-                            {addr.addressLine2 && addr.addressLine2 !== addr.addressLine1 && (
-                              <p>{addr.addressLine2}</p>
-                            )}
-                            {(addr.city || addr.state || addr.postalCode) && (
-                              <p className="text-gray-500">
-                                {[addr.city, addr.state].filter(Boolean).join(', ')}
-                                {addr.postalCode && addr.postalCode !== 'India'
-                                  ? ` - ${addr.postalCode}`
-                                  : ''}
-                              </p>
-                            )}
-                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{item.name}</p>
+                          <p className="text-[10px] text-gray-500 font-medium">Qty: {item.quantity}</p>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                      <span className="font-black text-gray-900 shrink-0">
+                        ₹{item.price * item.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Delivery Instructions */}
@@ -887,301 +784,187 @@ export default function CheckoutPage() {
                     Custom
                   </button>
                 </div>
-
                 {showCustomTipInput && (
-                  <div className="flex gap-2 mt-3">
+                  <div className="mt-3 flex gap-2">
                     <input
                       type="number"
-                      placeholder="Enter tip ₹"
                       value={customTip}
                       onChange={(e) => setCustomTip(e.target.value)}
-                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold focus:border-orange-500 focus:outline-none"
+                      placeholder="Enter amount"
+                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-900 focus:border-orange-500 focus:outline-none"
                     />
                     <button
                       type="button"
-                      onClick={handleApplyCustomTip}
-                      className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white hover:bg-orange-700"
+                      onClick={() => handleSelectTip(parseInt(customTip) || 0)}
+                      className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white hover:bg-black transition"
                     >
-                      Add
+                      Apply
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Payment Method Selector */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-sm font-black text-gray-900 mb-3">
-                  <CreditCard className="h-4 w-4 text-orange-600" />
-                  <span>Payment Method</span>
+              {/* Price Breakdown */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-2 text-xs font-medium text-gray-600">
+                <div className="flex items-center gap-2 text-sm font-black text-gray-900 mb-3 pb-3 border-b border-gray-100">
+                  <Banknote className="h-4 w-4 text-orange-600" />
+                  <span>Price Breakdown</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Item Total</span>
+                  <span className="font-bold text-gray-900">₹{subtotal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee</span>
+                  <span>
+                    {dynamicDeliveryFee !== null ? (
+                      <span className="font-bold text-gray-900">₹{dynamicDeliveryFee}</span>
+                    ) : (
+                      <span className="text-amber-700 font-bold text-[11px]">Pending distance</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Platform Fee</span>
+                  <span className="font-bold text-gray-900">₹{platformFee ?? 3}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Taxes</span>
+                  <span className="font-bold text-gray-900">₹{tax}</span>
+                </div>
+                {tipAmount > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span>Driver Tip</span>
+                    <span className="font-bold">+₹{tipAmount}</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <div className="space-y-2.5">
-                  <div
-                    onClick={() => setPaymentMethod('UPI')}
-                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
-                      paymentMethod === 'UPI'
-                        ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-white hover:border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 shrink-0">
-                        <Smartphone className="h-4 w-4" />
+            {/* RIGHT COLUMN / STICKY BOTTOM BAR: Checkout Actions */}
+            <div className="lg:col-span-5 relative">
+              <div className="fixed bottom-0 left-0 right-0 z-40 lg:static lg:block bg-white rounded-t-3xl lg:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:shadow-sm border-t lg:border border-gray-100 p-4 sm:p-5 space-y-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-5">
+                
+                {/* 1. DELIVERY ADDRESS */}
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-3 min-w-0 pr-2">
+                    <div className="mt-1">
+                      <MapPin className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide truncate">{selectedAddress?.label || 'Delivery Address'}</h3>
                       </div>
-                      <div>
-                        <p className="text-[13px] font-bold text-gray-900">UPI Instant Pay</p>
-                        <p className="text-[10px] text-gray-500">
-                          Google Pay, PhonePe, Paytm, BHIM
+                      <p className="text-xs text-gray-500 font-medium truncate mt-0.5 max-w-[240px]">
+                        {selectedAddress ? `${selectedAddress.addressLine1}, ${selectedAddress.city}` : 'No address selected'}
+                      </p>
+                      
+                      {selectedAddress ? (
+                        <p className="text-xs font-bold text-gray-800 mt-1 flex items-center gap-1">
+                          {orderQuote && routeAvailable && realDistanceKm !== null ? (
+                            <>
+                              <span className={isDeliveryEligible ? 'text-emerald-700' : 'text-rose-700'}>
+                                {realDistanceKm} km
+                              </span>
+                              <span className="text-gray-300">•</span>
+                              <span>{orderQuote.etaMinutes ? `${orderQuote.etaMinutes} MINS` : ''}</span>
+                            </>
+                          ) : (
+                            <span className="text-amber-600 flex items-center gap-1">Calculating ETA...</span>
+                          )}
                         </p>
-                      </div>
-                    </div>
-                    <div
-                      className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
-                        paymentMethod === 'UPI'
-                          ? 'border-orange-600 bg-orange-600 text-white'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {paymentMethod === 'UPI' && <Check className="h-3 w-3 stroke-[3]" />}
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setPaymentMethod('CARD')}
-                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
-                      paymentMethod === 'CARD'
-                        ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-white hover:border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shrink-0">
-                        <CreditCard className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-bold text-gray-900">Credit / Debit Card</p>
-                        <p className="text-[10px] text-gray-500">Visa, Mastercard, RuPay Cards</p>
-                      </div>
-                    </div>
-                    <div
-                      className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
-                        paymentMethod === 'CARD'
-                          ? 'border-orange-600 bg-orange-600 text-white'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {paymentMethod === 'CARD' && <Check className="h-3 w-3 stroke-[3]" />}
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`cursor-pointer rounded-xl border p-3 transition flex items-center justify-between ${
-                      paymentMethod === 'COD'
-                        ? 'border-orange-500 bg-orange-50/40 ring-1 ring-orange-500/20'
-                        : 'border-gray-100 bg-white hover:border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0">
-                        <Banknote className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-bold text-gray-900">Cash on Delivery</p>
-                        <p className="text-[10px] text-gray-500">Pay cash upon order arrival</p>
-                      </div>
-                    </div>
-                    <div
-                      className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
-                        paymentMethod === 'COD'
-                          ? 'border-orange-600 bg-orange-600 text-white'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {paymentMethod === 'COD' && <Check className="h-3 w-3 stroke-[3]" />}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN: Order Summary Card & Coupon */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs space-y-3">
-                {/* Restaurant Name & Real Distance */}
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Store className="h-4 w-4 text-orange-600 shrink-0" />
-                    <span className="text-xs font-black text-gray-900 truncate">
-                      {restaurantName || 'Selected Kitchen'}
-                    </span>
-                  </div>
-                  {realDistanceKm !== null ? (
-                    <span className="text-[10px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full shrink-0">
-                      {realDistanceKm} km away
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
-                      Distance unavailable
-                    </span>
-                  )}
-                </div>
-
-                {/* Items Breakdown */}
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between text-xs py-1">
-                      <div className="flex items-center gap-2 min-w-0 pr-2">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="h-8 w-8 rounded-lg object-cover shrink-0 border border-gray-100"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-lg bg-orange-50 text-orange-600 font-bold flex items-center justify-center text-[10px] shrink-0">
-                            {item.name[0]}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-bold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-[10px] text-gray-400">Qty: {item.quantity}</p>
-                        </div>
-                      </div>
-                      <span className="font-black text-gray-900 shrink-0">
-                        ₹{item.price * item.quantity}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Fee Breakdown */}
-                <div className="border-t border-gray-100 pt-3 space-y-1.5 text-xs">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Food Subtotal</span>
-                    <span>&#x20B9;{subtotal}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Delivery Fee</span>
-                    <span>
-                      {dynamicDeliveryFee !== null ? (
-                        `₹${dynamicDeliveryFee}`
                       ) : (
-                        <span className="text-amber-700 font-semibold text-[11px]">
-                          Pending distance
-                        </span>
+                        <p className="text-xs font-bold text-rose-600 mt-1">Select an address to continue</p>
                       )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Platform Fee</span>
-                    <span>&#x20B9;{platformFee ?? 3}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>GST &amp; Taxes</span>
-                    <span>&#x20B9;{tax}</span>
-                  </div>
-                  {tipAmount > 0 && (
-                    <div className="flex justify-between text-orange-600 font-bold">
-                      <span>Rider Tip (100% to rider)</span>
-                      <span>+₹{tipAmount}</span>
                     </div>
-                  )}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setManualAddress('');
+                      setMatchedAddressResult(null);
+                      setAddressVerificationError(null);
+                      setShowCustomAddressModal(true);
+                    }} 
+                    className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1.5 bg-orange-50 hover:bg-orange-100 transition rounded-lg shrink-0 border border-orange-100"
+                  >
+                    CHANGE
+                  </button>
+                </div>
 
-                  <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center text-sm font-black text-gray-900">
-                    <span>Total</span>
-                    <span className="text-orange-600 text-base">₹{finalPayableTotal}</span>
+                {/* 2. CUTLERY PREFERENCE */}
+                <div className="flex items-center gap-2 border-y border-gray-100 py-3">
+                  <input 
+                    type="checkbox" 
+                    id="cutlery" 
+                    checked={alwaysSendCutlery} 
+                    onChange={(e) => setAlwaysSendCutlery(e.target.checked)} 
+                    className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500" 
+                  />
+                  <label htmlFor="cutlery" className="text-xs font-bold text-gray-700 cursor-pointer">
+                    Always send cutlery to this address
+                  </label>
+                </div>
+
+                {/* 3. PAYMENT METHOD */}
+                <div className="flex flex-col gap-2 pt-1 pb-2">
+                  <span className="text-[10px] font-black text-gray-400 tracking-wider">PAY USING</span>
+                  <div className="flex gap-2 mt-1">
+                    {['UPI', 'CARD', 'COD'].map((method) => (
+                      <button 
+                        key={method} 
+                        onClick={() => setPaymentMethod(method as any)} 
+                        className={`flex-1 py-3 rounded-xl text-xs font-black border transition-colors ${
+                          paymentMethod === method 
+                            ? 'border-orange-500 bg-orange-50 text-orange-700' 
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          {method === 'UPI' && <Smartphone className="w-3.5 h-3.5" />}
+                          {method === 'CARD' && <CreditCard className="w-3.5 h-3.5" />}
+                          {method === 'COD' && <Banknote className="w-3.5 h-3.5" />}
+                          {method === 'CARD' ? 'Card' : method}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Legal & Policy Acknowledgment */}
-                <div className="border-t border-gray-100 pt-3 text-[11px] text-gray-500 leading-relaxed">
-                  <p>
-                    By placing this order, you agree to Zayka Food&apos;s{' '}
-                    <Link
-                      href="/terms-and-conditions"
-                      target="_blank"
-                      className="font-bold text-orange-600 hover:underline"
-                    >
-                      Terms &amp; Conditions
-                    </Link>{' '}
-                    and acknowledge our{' '}
-                    <Link
-                      href="/refund-policy"
-                      target="_blank"
-                      className="font-bold text-orange-600 hover:underline"
-                    >
-                      Refund Policy
-                    </Link>
-                    ,{' '}
-                    <Link
-                      href="/delivery-policy"
-                      target="_blank"
-                      className="font-bold text-orange-600 hover:underline"
-                    >
-                      Delivery Policy
-                    </Link>
-                    , and{' '}
-                    <Link
-                      href="/privacy-policy"
-                      target="_blank"
-                      className="font-bold text-orange-600 hover:underline"
-                    >
-                      Privacy Policy
-                    </Link>
-                    .
-                  </p>
+                {/* 4. TOTAL & PLACE ORDER CTA */}
+                <div className="flex gap-3 pt-1">
+                  <div className="flex flex-col justify-center bg-gray-50 px-4 rounded-2xl border border-gray-200 min-w-[110px] shadow-inner">
+                    <span className="text-[10px] font-black text-gray-500">TOTAL</span>
+                    <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
+                  </div>
+                  
+                  <button
+                    onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
+                    disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-2xl py-4 flex items-center justify-between px-5 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    <span>
+                      {isPlacing 
+                        ? 'Placing Order...' 
+                        : !selectedAddress 
+                          ? 'Select Address' 
+                          : orderQuote && (!routeAvailable || realDistanceKm === null)
+                            ? 'Check Distance'
+                            : !isDeliveryEligible 
+                              ? 'Out of Range' 
+                              : 'Place Order'}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Floating/Fixed Bottom Payment Button for Mobile & Desktop */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-md px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg">
-          <div className="mx-auto max-w-4xl flex items-center justify-between gap-4">
-            <div className="hidden sm:block">
-              <span className="text-[11px] font-semibold text-gray-500 block">Total Payable</span>
-              <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
-            </div>
-
-            <button
-              onClick={
-                orderQuote && (!routeAvailable || realDistanceKm === null)
-                  ? refreshQuote
-                  : handlePlaceOrder
-              }
-              disabled={
-                isPlacing ||
-                !selectedAddress ||
-                Boolean(
-                  orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible,
-                )
-              }
-              className="w-full sm:w-auto flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3.5 sm:py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25 hover:bg-orange-700 active:scale-[0.99] transition disabled:opacity-50"
-            >
-              <span>
-                {isPlacing
-                  ? 'Placing Order...'
-                  : !selectedAddress
-                    ? 'Select Delivery Address'
-                    : orderQuote && (!routeAvailable || realDistanceKm === null)
-                      ? '⚠️ Distance Unavailable'
-                      : !isDeliveryEligible
-                        ? 'Outside Delivery Radius'
-                        : paymentMethod === 'COD'
-                          ? `Place Order • ₹${finalPayableTotal}`
-                          : `Place Order & Pay • ₹${finalPayableTotal}`}
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
           </div>
         </div>
 
         {/* MANUAL ADDRESS MODAL */}
         {showCustomAddressModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="w-full max-w-[420px] overflow-hidden rounded-3xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
                 <h2 className="text-base font-black text-gray-900">Change Delivery Location</h2>
                 <button
@@ -1193,23 +976,57 @@ export default function CheckoutPage() {
               </div>
 
               <div className="p-4 pt-3 space-y-4">
-                {/* MANUAL TEXT ENTRY */}
-                <div className="space-y-2.5">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={isLocatingUser}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-3 py-3 text-xs font-bold text-orange-700 hover:bg-orange-100 transition disabled:opacity-50 border border-orange-100"
+                  >
+                    <MapPin className={`h-4 w-4 ${isLocatingUser ? 'animate-spin' : ''}`} />
+                    <span>{isLocatingUser ? 'Locating...' : 'Use Current GPS'}</span>
+                  </button>
+                </div>
+                
+                {addresses.length > 0 && (
+                  <div className="space-y-2 mt-4 border-t border-gray-100 pt-4">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+                      Saved Addresses
+                    </label>
+                    <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
+                      {addresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          onClick={() => {
+                            setSelectedAddress(addr.id);
+                            setShowCustomAddressModal(false);
+                          }}
+                          className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          <p className="text-xs font-black text-gray-900 uppercase">{addr.label}</p>
+                          <p className="text-[11px] text-gray-600 truncate mt-0.5">{addr.addressLine1}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2.5 border-t border-gray-100 pt-4">
                   <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
-                    Delivery Address
+                    Enter Custom Address
                   </label>
                   <textarea
                     value={manualAddress}
                     onChange={(e) => setManualAddress(e.target.value)}
-                    placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla, Jammu & Kashmir - 193201"
-                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all shadow-sm box-border h-[80px]"
+                    placeholder="e.g. House No 24, Kenusa, Dangarpora, Baramulla..."
+                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none shadow-sm box-border h-[80px]"
                   />
                   <button
                     onClick={handleConfirmManualAddress}
                     disabled={!manualAddress.trim() || isVerifyingAddress}
-                    className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
+                    className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 shadow-sm"
                   >
-                    {isVerifyingAddress ? 'Verifying location...' : 'Save Location'}
+                    {isVerifyingAddress ? 'Verifying location...' : 'Save & Select Location'}
                   </button>
                   {addressVerificationError && (
                     <p className="mt-1.5 text-[11px] font-bold text-red-500 text-center leading-tight">
@@ -1225,5 +1042,3 @@ export default function CheckoutPage() {
     </CustomerAuthGuard>
   );
 }
-
-// FORCE DEPLOY
