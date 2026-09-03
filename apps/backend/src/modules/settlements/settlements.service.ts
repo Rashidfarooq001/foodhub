@@ -281,14 +281,14 @@ export class SettlementsService {
       const pendingSettlements = await tx.restaurantSettlement.findMany({
         where: {
           restaurantId,
-          status: 'PENDING',
+          status: { in: ['PENDING', 'ELIGIBLE'] },
           periodStart: { gte: period.periodStart },
           periodEnd: { lte: period.periodEnd },
         },
       });
 
       if (pendingSettlements.length === 0) {
-        throw new Error('No pending settlements found for this period.');
+        throw new BadRequestException('No pending settlements found for this period.');
       }
 
       // 2. Calculate total pending
@@ -298,14 +298,14 @@ export class SettlementsService {
       }
 
       if (totalPending <= 0) {
-        throw new Error('Total payable amount must be greater than zero.');
+        throw new BadRequestException('Total payable amount must be greater than zero.');
       }
 
       // 3. Mark as PAID atomically
       await tx.restaurantSettlement.updateMany({
         where: {
           id: { in: pendingSettlements.map((s) => s.id) },
-          status: 'PENDING', // concurrency check
+          status: { in: ['PENDING', 'ELIGIBLE'] }, // concurrency check
         },
         data: {
           status: 'PAID',
@@ -467,14 +467,14 @@ export class SettlementsService {
       const pendingSettlements = await tx.riderSettlement.findMany({
         where: {
           driverId,
-          status: 'PENDING',
+          status: { in: ['PENDING', 'ELIGIBLE'] },
           periodStart: { gte: period.periodStart },
           periodEnd: { lte: period.periodEnd },
         },
       });
 
       if (pendingSettlements.length === 0) {
-        throw new Error('No pending settlements found for this period.');
+        throw new BadRequestException('No pending settlements found for this period.');
       }
 
       // 2. Calculate total pending
@@ -484,14 +484,14 @@ export class SettlementsService {
       }
 
       if (totalPending <= 0) {
-        throw new Error('Total payable amount must be greater than zero.');
+        throw new BadRequestException('Total payable amount must be greater than zero.');
       }
 
       // 3. Mark as PAID atomically
       await tx.riderSettlement.updateMany({
         where: {
           id: { in: pendingSettlements.map((s) => s.id) },
-          status: 'PENDING', // concurrency check
+          status: { in: ['PENDING', 'ELIGIBLE'] }, // concurrency check
         },
         data: {
           status: 'PAID',
@@ -593,5 +593,8 @@ export class SettlementsService {
     return { data: [] };
   }
 }
+
+
+
 
 

@@ -111,7 +111,7 @@ export default function AdminFinancePage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Amount Payable:</span>
-                <span className="font-bold text-purple-700">?{paymentModal.amount.toFixed(2)}</span>
+                <span className="font-bold text-purple-700">₹{paymentModal.amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Period:</span>
@@ -156,28 +156,28 @@ export default function AdminFinancePage() {
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Food Sales</span>
             <TrendingUp size={16} className="text-green-500" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900">?{Number(stats.totalGrossSales || 0).toFixed(2)}</h2>
+          <h2 className="text-2xl font-black text-slate-900">₹{Number(stats.totalGrossSales || 0).toFixed(2)}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Platform Revenue</span>
             <CreditCard size={16} className="text-purple-500" />
           </div>
-          <h2 className="text-2xl font-black text-purple-700">?{Number(stats.totalCommission || 0).toFixed(2)}</h2>
+          <h2 className="text-2xl font-black text-purple-700">₹{Number(stats.totalCommission || 0).toFixed(2)}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Restaurants</span>
             <Store size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">?{Number(stats.totalRestaurantPending || 0).toFixed(2)}</h2>
+          <h2 className="text-2xl font-black text-amber-600">₹{Number(stats.totalRestaurantPending || 0).toFixed(2)}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Riders</span>
             <Bike size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">?{Number(stats.totalRiderPending || 0).toFixed(2)}</h2>
+          <h2 className="text-2xl font-black text-amber-600">₹{Number(stats.totalRiderPending || 0).toFixed(2)}</h2>
         </div>
       </div>
 
@@ -287,16 +287,16 @@ export default function AdminFinancePage() {
                   >
                     <td className="p-4 font-bold">{r.restaurant.name}</td>
                     <td className="p-4 text-slate-600">{r.orderCount}</td>
-                    <td className="p-4 font-medium">?{Number(r.grossSales || 0).toFixed(2)}</td>
-                    <td className="p-4 text-slate-500">?{Number(r.commissionAmount || 0).toFixed(2)}</td>
+                    <td className="p-4 font-medium">₹{Number(r.grossSales || 0).toFixed(2)}</td>
+                    <td className="p-4 text-slate-500">₹{Number(r.commissionAmount || 0).toFixed(2)}</td>
                     <td className="p-4 font-bold text-slate-900">
-                      ?{Number(r.netPayable || 0).toFixed(2)}
+                      ₹{Number(r.netPayable || 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-green-600 font-medium">
-                      ?{Number(r.paidAmount || 0).toFixed(2)}
+                      ₹{Number(r.paidAmount || 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-red-600 font-bold">
-                      ?{Number(r.pendingAmount || 0).toFixed(2)}
+                      ₹{Number(r.pendingAmount || 0).toFixed(2)}
                     </td>
                     <td className="p-4">
                       <span
@@ -318,7 +318,7 @@ export default function AdminFinancePage() {
                         href={`/finance/restaurant/${r.restaurant.id}`}
                         className="text-purple-600 font-medium hover:text-purple-800 text-sm whitespace-nowrap"
                       >
-                        View Details ?
+                        View Details →
                       </Link>
                     </td>
                   </tr>
@@ -333,15 +333,15 @@ export default function AdminFinancePage() {
                       {`${r.driver.user?.profile?.firstName || ''} ${r.driver.user?.profile?.lastName || ''}`.trim()}
                     </td>
                     <td className="p-4 text-slate-600">{r.completedDeliveries}</td>
-                    <td className="p-4 font-medium">?{Number(r.totalEarnings || 0).toFixed(2)}</td>
+                    <td className="p-4 font-medium">₹{Number(r.totalEarnings || 0).toFixed(2)}</td>
                     <td className="p-4 font-bold text-slate-900">
-                      ?{Number(r.totalEarnings || 0).toFixed(2)}
+                      ₹{Number(r.totalEarnings || 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-green-600 font-medium">
-                      ?{Number(r.paidAmount || 0).toFixed(2)}
+                      ₹{Number(r.paidAmount || 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-red-600 font-bold">
-                      ?{Number(r.pendingAmount || 0).toFixed(2)}
+                      ₹{Number(r.pendingAmount || 0).toFixed(2)}
                     </td>
                     <td className="p-4">
                       <span
@@ -363,7 +363,7 @@ export default function AdminFinancePage() {
                         href={`/finance/rider/${r.driver.id}`}
                         className="text-purple-600 font-medium hover:text-purple-800 text-sm whitespace-nowrap"
                       >
-                        View Details ?
+                        View Details →
                       </Link>
                     </td>
                   </tr>
