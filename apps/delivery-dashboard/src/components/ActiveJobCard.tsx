@@ -1,10 +1,11 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
 import { io } from 'socket.io-client';
-import { MapPin, Clock, Phone, CheckCircle2, AlertCircle, Navigation, Package, ShieldCheck, ExternalLink, User, Utensils, Ban } from 'lucide-react';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { DeliveryMap } from './navigation/DeliveryMap';
 
 const API_BASE = getApiBaseUrl();
 
@@ -15,8 +16,12 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  const [driverLat, setDriverLat] = useState<number | null>(null);
+  const [driverLng, setDriverLng] = useState<number | null>(null);
+  const lastEmitTime = useRef(0);
+
   useEffect(() => {
-    if (!currentJob || currentJob.status !== 'OUT_FOR_DELIVERY') return;
+    if (!currentJob) return;
     if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
 
     const socketUrl = API_BASE.replace('/api/v1', '');
@@ -26,129 +31,130 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        socket.emit('driverLocationUpdate', {
-          orderId: currentJob.orderId,
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          driverId: currentJob.driverId,
-        });
+        const { latitude, longitude } = position.coords;
+        setDriverLat(latitude);
+        setDriverLng(longitude);
+
+        // Throttle emission to once every 10 seconds
+        const now = Date.now();
+        if (now - lastEmitTime.current > 10000) {
+          socket.emit('driverLocationUpdate', {
+            orderId: currentJob.orderId,
+            lat: latitude,
+            lng: longitude,
+            driverId: currentJob.driverId,
+          });
+          lastEmitTime.current = now;
+        }
       },
-      () => {},
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      (err) => {
+        console.warn('Geolocation error:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
       socket.disconnect();
     };
-  }, [currentJob?.id, currentJob?.orderId, currentJob?.status, currentJob?.driverId]);
+  }, [currentJob?.id, currentJob?.orderId, currentJob?.driverId]);
 
-  const handleArrived = async () => {
+  const executeAction = async (endpoint: string, method: string = 'POST', body?: any) => {
     if (!currentJob) return;
-    setError(''); setIsSubmitting(true);
+    setError(''); setIsSubmitting(true); setSuccessMessage('');
     try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/arrived`, {
-        method: 'POST',
+      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/${endpoint}`, {
+        method,
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
       });
-      if (!res.ok) throw new Error((await res.json()).message || 'Failed to update arrival status');
-      setSuccessMessage('Arrived at restaurant!');
+      if (!res.ok) throw new Error((await res.json()).message || `Failed to execute ${endpoint}`);
       await onReload();
     } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
   };
 
-  const handleVerifyPickup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentJob || !pickupOtp) return;
-    setError(''); setIsSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/verify-pickup`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp: pickupOtp }),
-      });
-      if (!res.ok) throw new Error((await res.json()).message || 'Invalid pickup code');
-      setSuccessMessage('Pickup verified!');
-      await onReload();
-    } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
-  };
-
-  const handleStartDelivery = async () => {
-    if (!currentJob) return;
-    setError(''); setIsSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/start-delivery`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) throw new Error((await res.json()).message || 'Failed to start delivery trip');
-      setSuccessMessage('Delivery trip started!');
-      await onReload();
-    } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
-  };
-
-  const handleVerifyDelivery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentJob) return;
-    setError(''); setIsSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/delivered`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) throw new Error((await res.json()).message || 'Failed to complete delivery');
-      setSuccessMessage('Delivery completed!');
-      await onReload();
-    } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
-  };
-
-  const handleUnassignJob = async () => {
-    if (!currentJob || !confirm('Are you sure you want to release this order back to the pool?')) return;
-    setError(''); setIsSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/delivery/jobs/${currentJob.id}/unassign`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) throw new Error((await res.json()).message || 'Failed to unassign job');
-      alert('Order released.');
-      await onReload();
-    } catch (err: any) { setError(err.message); setIsSubmitting(false); }
-  };
-
-  const targetLat = ['ARRIVED_AT_RESTAURANT', 'OUT_FOR_DELIVERY', 'PICKED_UP'].includes(currentJob.status) ? (currentJob.deliveryLat || currentJob.deliveryAddress?.latitude) : (currentJob.pickupLat || currentJob.restaurant?.latitude);
-  const targetLng = ['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(currentJob.status) ? (currentJob.deliveryLng || currentJob.deliveryAddress?.longitude) : (currentJob.pickupLng || currentJob.restaurant?.longitude);
+  const isBeforePickup = ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(currentJob.status);
+  const destLat = isBeforePickup ? currentJob.restaurantLat : currentJob.customerLat;
+  const destLng = isBeforePickup ? currentJob.restaurantLng : currentJob.customerLng;
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-6 border-b-4 border-gray-100 mb-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b pb-3">
-          <div><h1 className="text-xl font-black">#{currentJob.orderNumber || currentJob.id.slice(0, 8)}</h1></div>
+          <div>
+            <h1 className="text-xl font-black">#{currentJob.orderNumber || currentJob.id.slice(0, 8)}</h1>
+          </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleUnassignJob} disabled={isSubmitting} className="rounded bg-rose-50 px-2 py-1 text-[10px] text-rose-700 font-bold">Release</button>
+            <button onClick={() => {
+              if (confirm('Are you sure you want to release this order?')) {
+                executeAction('unassign');
+              }
+            }} disabled={isSubmitting} className="rounded bg-rose-50 px-2 py-1 text-[10px] text-rose-700 font-bold">Release</button>
             <div className="rounded bg-orange-100 px-2 py-1 text-[10px] font-bold text-orange-800">{currentJob.status.replace(/_/g, ' ')}</div>
           </div>
         </div>
         <div className="flex justify-between text-xs font-bold pt-2">
           <span>Payout: ₹{currentJob.riderPayout || currentJob.estimatedEarnings || currentJob.deliveryFee || 65}</span>
+          <span className="text-gray-500">{currentJob.distanceKm ? `${currentJob.distanceKm.toFixed(1)} km` : 'Calculating...'}</span>
         </div>
       </div>
+
+      {error && <div className="text-sm font-bold text-rose-600 bg-rose-50 p-3 rounded-xl">{error}</div>}
       
+      {/* MAP CONTROLS & MAP */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center px-1">
+          <div className="text-sm font-black text-gray-900 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-600" />
+            {isBeforePickup ? 'Navigate to Restaurant' : 'Navigate to Customer'}
+          </div>
+          {destLat && destLng && (
+            <a 
+              href={`https://mappls.com/direction?start=${driverLat || ''},${driverLng || ''}&end=${destLat},${destLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold bg-gray-900 text-white px-3 py-1.5 rounded-lg"
+            >
+              <Navigation className="w-3 h-3" />
+              External Nav
+            </a>
+          )}
+        </div>
+        
+        {(!driverLat || !driverLng) ? (
+          <div className="h-[300px] flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400 mb-2" />
+            <span className="text-xs font-bold text-gray-500">Waiting for GPS signal...</span>
+          </div>
+        ) : (
+          <DeliveryMap
+            driverLat={driverLat}
+            driverLng={driverLng}
+            restaurantLat={currentJob.restaurantLat}
+            restaurantLng={currentJob.restaurantLng}
+            customerLat={currentJob.customerLat}
+            customerLng={currentJob.customerLng}
+            status={currentJob.status}
+          />
+        )}
+      </div>
+      
+      {/* ACTION BUTTONS */}
       {currentJob.status === 'DRIVER_ASSIGNED' && (
-        <button onClick={handleArrived} disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold p-3 rounded-xl">ARRIVED AT RESTAURANT</button>
+        <button onClick={() => executeAction('arrived')} disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold p-3 rounded-xl">ARRIVED AT RESTAURANT</button>
       )}
       {currentJob.status === 'ARRIVED_AT_RESTAURANT' && (
-        <form onSubmit={handleVerifyPickup} className="space-y-3">
-          <input type="text" value={pickupOtp} onChange={(e) => setPickupOtp(e.target.value)} className="w-full text-center border p-3 rounded-xl" placeholder="Pickup OTP" />
+        <form onSubmit={(e) => { e.preventDefault(); executeAction('verify-pickup', 'POST', { otp: pickupOtp }); }} className="space-y-3">
+          <input type="text" value={pickupOtp} onChange={(e) => setPickupOtp(e.target.value)} className="w-full text-center border p-3 rounded-xl font-bold tracking-widest text-lg" placeholder="Enter Pickup OTP" />
           <button type="submit" disabled={isSubmitting || !pickupOtp} className="w-full bg-amber-600 text-white font-bold p-3 rounded-xl">VERIFY PICKUP</button>
         </form>
       )}
       {currentJob.status === 'PICKED_UP' && (
-        <button onClick={handleStartDelivery} disabled={isSubmitting} className="w-full bg-orange-600 text-white font-bold p-3 rounded-xl">START DELIVERY</button>
+        <button onClick={() => executeAction('start-delivery')} disabled={isSubmitting} className="w-full bg-orange-600 text-white font-bold p-3 rounded-xl">START DELIVERY</button>
       )}
       {currentJob.status === 'OUT_FOR_DELIVERY' && (
-        <form onSubmit={handleVerifyDelivery} className="space-y-3">
-          <button type="submit" disabled={isSubmitting} className="w-full bg-emerald-600 text-white font-bold p-3 rounded-xl">COMPLETE ORDER</button>
+        <form onSubmit={(e) => { e.preventDefault(); executeAction('delivered'); }} className="space-y-3">
+          <button type="submit" disabled={isSubmitting} className="w-full bg-emerald-600 text-white font-bold p-3 rounded-xl">COMPLETE DELIVERY</button>
         </form>
       )}
     </div>
