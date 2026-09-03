@@ -59,7 +59,7 @@ export default function DriverAnalyticsPage() {
               <DollarSign className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-gray-900">₹{analytics.todayEarnings}</p>
+          <p className="text-2xl font-black text-gray-900">?{analytics.todayEarnings}</p>
           <p className="text-xs text-gray-400">{analytics.todayDeliveries} completed trips</p>
         </div>
 
@@ -71,9 +71,9 @@ export default function DriverAnalyticsPage() {
             </div>
           </div>
           <p className="text-2xl font-black text-gray-900">
-            ₹{analytics.monthlyEarnings.toLocaleString()}
+            ?{analytics.monthlyEarnings.toLocaleString()}
           </p>
-          <p className="text-xs text-gray-400">Includes ₹{analytics.tipsEarned} in tips</p>
+          <p className="text-xs text-gray-400">Includes ?{analytics.tipsEarned} in tips</p>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm space-y-2 flex flex-col justify-between">

@@ -69,7 +69,7 @@ export default function DeliveryEarningsPage() {
             TODAY EARNINGS
           </span>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
-            ₹{stats?.todayEarnings ?? 0}
+            ?{stats?.todayEarnings ?? 0}
           </div>
           <span className="text-[10px] text-emerald-700 font-bold block truncate">
             {stats?.todayDeliveries ?? 0} trips delivered
@@ -81,7 +81,7 @@ export default function DeliveryEarningsPage() {
             THIS WEEK TOTAL
           </span>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
-            ₹{stats?.weeklyEarnings ?? 0}
+            ?{stats?.weeklyEarnings ?? 0}
           </div>
           <span className="text-[10px] text-emerald-600 font-bold block truncate">
             Scheduled Monday payout
@@ -93,7 +93,7 @@ export default function DeliveryEarningsPage() {
             LIFETIME DISBURSED
           </span>
           <div className="text-lg sm:text-2xl font-black text-blue-950">
-            ₹{stats?.totalEarnings ?? stats?.monthlyEarnings ?? 0}
+            ?{stats?.totalEarnings ?? stats?.monthlyEarnings ?? 0}
           </div>
           <span className="text-[10px] text-blue-700 font-bold block truncate">
             Transferred via NEFT / IMPS

@@ -86,7 +86,7 @@ export default function DeliverySettlementPage() {
           <span className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 block">
             LIFETIME EARNINGS
           </span>
-          <div className="text-lg sm:text-2xl font-black text-gray-900">₹{totalEarnings}</div>
+          <div className="text-lg sm:text-2xl font-black text-gray-900">?{totalEarnings}</div>
           <span className="text-[10px] text-gray-500 font-semibold block">
             From all completed trips
           </span>
@@ -96,7 +96,7 @@ export default function DeliverySettlementPage() {
           <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-800 block">
             PENDING SETTLEMENT
           </span>
-          <div className="text-lg sm:text-2xl font-black text-amber-900">₹{pendingSettlement}</div>
+          <div className="text-lg sm:text-2xl font-black text-amber-900">?{pendingSettlement}</div>
           <span className="text-[10px] text-amber-700 font-semibold block">
             Scheduled Monday payout
           </span>
@@ -107,7 +107,7 @@ export default function DeliverySettlementPage() {
             AVAILABLE PAYOUT
           </span>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
-            ₹{pendingSettlement}
+            ?{pendingSettlement}
           </div>
           <span className="text-[10px] text-emerald-700 font-semibold block">
             Eligible for bank transfer
@@ -118,7 +118,7 @@ export default function DeliverySettlementPage() {
           <span className="text-[9px] sm:text-[10px] font-black uppercase text-blue-800 block">
             SETTLED TO BANK
           </span>
-          <div className="text-lg sm:text-2xl font-black text-blue-900">₹{settledAmount}</div>
+          <div className="text-lg sm:text-2xl font-black text-blue-900">?{settledAmount}</div>
           <span className="text-[10px] text-blue-700 font-semibold block">
             IMPS / NEFT transfer
           </span>
@@ -172,7 +172,7 @@ export default function DeliverySettlementPage() {
                       #{trip.orderNumber || trip.id.slice(0, 8)}
                     </span>
                     <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-                      +₹{trip.payout || trip.deliveryFee || 0}
+                      +?{trip.payout || trip.deliveryFee || 0}
                     </span>
                   </div>
 
@@ -227,7 +227,7 @@ export default function DeliverySettlementPage() {
                       </td>
                       <td className="py-3 font-bold text-emerald-600">{trip.status || 'COMPLETED'}</td>
                       <td className="py-3 font-black text-emerald-700 text-right">
-                        +₹{trip.payout || trip.deliveryFee || 0}
+                        +?{trip.payout || trip.deliveryFee || 0}
                       </td>
                     </tr>
                   ))}

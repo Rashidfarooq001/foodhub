@@ -51,7 +51,7 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
               ? 'scale(1) translateY(0)'
               : 'scale(0.85) translateY(20px)',
           opacity: phase === 'hold' || phase === 'exit' ? 1 : 0,
-          transition: 'transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease',
+          transition: 'transform 0.5s cubic-bezier(0.34?.56,0.64?), opacity 0.4s ease',
         }}
       >
         <img
@@ -104,7 +104,7 @@ export const ZaykaFoodSplash: React.FC<ZaykaFoodSplashProps> = ({ onComplete }) 
           ))}
         </div>
       </div>
-      <style>{`@keyframes splashDot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
+      <style>{`@keyframes splashDot{0%,80%?00%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
     </div>
   );
 };

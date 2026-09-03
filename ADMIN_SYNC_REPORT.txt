@@ -1,0 +1,131 @@
+============================================================
+1. PAYMENTS & SETTLEMENTS
+============================================================
+
+ROOT CAUSE:
+The frontend `adminFetch` returned a `Response` object, but the `settlements/page.tsx` component was incorrectly accessing `res.data` instead of calling `await res.json()`. This caused `setRestaurants(undefined)` and resulted in "No restaurants found."
+
+CANONICAL DATA SOURCE:
+`RestaurantSettlement` and `RiderSettlement` models, generated via `order-lifecycle.service.ts`
+
+API:
+`GET /settlements/restaurants`
+`GET /settlements/riders`
+`GET /settlements/overview`
+
+DATABASE:
+PASS
+
+API:
+PASS
+
+UI:
+PASS
+
+============================================================
+2. ANALYTICS & REPORTS
+============================================================
+
+ROOT CAUSE:
+No root cause found; the analytics and reports architecture was already correctly parsing `.json()` from `adminFetch` and the backend `analytics.service.ts` successfully aggregates via Prisma.
+
+CANONICAL DATA SOURCE:
+`Order`, `Restaurant`, `Driver`, `Customer` (aggregated in `analytics.service.ts`)
+
+AGGREGATION:
+Aggregates sales, orders, and KPIs using Prisma grouping and math across the specified period range.
+
+DATE FILTER:
+PASS
+
+DATABASE:
+PASS
+
+API:
+PASS
+
+UI:
+PASS
+
+============================================================
+3. AUDIT LOGS & SECURITY
+============================================================
+
+ROOT CAUSE:
+The `GET /audit-logs` endpoint did not exist in the backend (aside from financial reconciliation logs) and the frontend was hardcoding a static mock `logs` array.
+
+CANONICAL DATA SOURCE:
+`AuditLog` table (created by `users.service.ts`, `drivers.service.ts`, etc.)
+
+AUDIT CREATION:
+PASS
+
+ADMIN ACCESS CONTROL:
+PASS
+
+UI:
+PASS
+
+============================================================
+4. FINANCIAL RECONCILIATION
+============================================================
+
+Payment:
+PASS
+
+Restaurant settlement:
+PASS
+
+Rider settlement:
+PASS
+
+Platform revenue:
+PASS
+
+Analytics:
+PASS
+
+============================================================
+5. REALTIME
+============================================================
+
+PASS
+
+============================================================
+6. SECURITY
+============================================================
+
+PASS
+
+============================================================
+7. MOCK DATA
+============================================================
+
+REMOVED:
+- Hardcoded `logs` array in `apps/admin-dashboard/src/app/audit-logs/page.tsx`
+
+============================================================
+8. TESTS
+============================================================
+
+PASS
+
+============================================================
+9. BUILDS
+============================================================
+
+Backend:
+PASS
+
+Admin Dashboard:
+PASS
+
+============================================================
+10. CHANGED FILES
+============================================================
+
+- apps/admin-dashboard/src/app/settlements/page.tsx
+- apps/admin-dashboard/src/app/audit-logs/page.tsx
+- apps/backend/src/modules/users/audit-logs.controller.ts
+- apps/backend/src/modules/users/users.module.ts
+============================================================
