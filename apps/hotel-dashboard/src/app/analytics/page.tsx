@@ -20,15 +20,16 @@ const API_BASE = getApiBaseUrl();
 interface RestaurantStats {
   todayRevenue: number;
   todayOrders: number;
+  activeRevenue: number;
+  activeOrdersCount: number;
   completedOrders: number;
   cancelledOrders: number;
   pendingOrders: number;
   avgRating: number;
   reviewCount: number;
-  week: { sales: number; orders: number };
-  month: { sales: number; orders: number };
+  totalReviews: number;
   topItems: Array<{ foodItemId: string; foodName?: string; qty: number }>;
-  weeklyBreakdown: Array<{ date: string; revenue: number; orders: number }>;
+  weeklyRevenueData: Array<{ day: string; revenue: number; orders: number }>;
 }
 
 export default function RestaurantAnalyticsPage() {
@@ -45,7 +46,7 @@ export default function RestaurantAnalyticsPage() {
     setIsLoading(true);
     try {
       const [statsRes, menuRes] = await Promise.all([
-        fetch(`${API_BASE}/analytics/restaurant/${restaurantId}`, {
+        fetch(`${API_BASE}/analytics/restaurant?range=${timeRange}`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         }),
         fetch(`${API_BASE}/menus/restaurant/${restaurantId}`),
@@ -75,17 +76,10 @@ export default function RestaurantAnalyticsPage() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [restaurantId, accessToken]);
+  }, [restaurantId, accessToken, timeRange]);
 
-  const activeRevenue =
-    timeRange === '7D'
-      ? (stats?.week?.sales ?? 0)
-      : (stats?.month?.sales ?? 0);
-
-  const activeOrdersCount =
-    timeRange === '7D'
-      ? (stats?.week?.orders ?? 0)
-      : (stats?.month?.orders ?? 0);
+  const activeRevenue = stats?.activeRevenue ?? 0;
+  const activeOrdersCount = stats?.activeOrdersCount ?? 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">

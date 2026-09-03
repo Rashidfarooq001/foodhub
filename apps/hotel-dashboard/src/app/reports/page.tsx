@@ -1,28 +1,39 @@
-'use client';
+  import { useState } from 'react';
+  import { Download, FileText, CheckCircle2 } from 'lucide-react';
+  import { getApiBaseUrl } from '@foodhub/config';
+  import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 
-import React, { useState } from 'react';
-import { Download, FileText, CheckCircle2 } from 'lucide-react';
+  export default function HotelReportsPage() {
+    const { accessToken } = useHotelAuthStore();
+    const [downloading, setDownloading] = useState<string | null>(null);
 
-export default function HotelReportsPage() {
-  const [downloading, setDownloading] = useState<string | null>(null);
-
-  const downloadReport = (format: string) => {
-    setDownloading(format);
-    setTimeout(() => {
-      const csvContent =
-        'data:text/csv;charset=utf-8,Date,OrderNo,GrossSales,Commission,NetPayout\n' +
-        `2026-08-17,ORD-101,450,67.5,382.5\n` +
-        `2026-08-17,ORD-102,620,93.0,527.0\n`;
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Restaurant_Report_${format}_${Date.now()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setDownloading(null);
-    }, 600);
-  };
+    const downloadReport = async (format: string) => {
+      if (format !== 'CSV') {
+        alert('Only CSV format is supported at this time.');
+        return;
+      }
+      setDownloading(format);
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/analytics/restaurant/export?type=orders`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+        if (!res.ok) throw new Error('Failed to generate report');
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Restaurant_Report_${format}_${Date.now()}.${format.toLowerCase()}`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+      } catch (err) {
+        console.error('Download error:', err);
+        alert('Could not download report.');
+      } finally {
+        setDownloading(null);
+      }
+    };
 
   const reports = [
     {

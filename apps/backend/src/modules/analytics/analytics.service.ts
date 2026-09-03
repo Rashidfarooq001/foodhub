@@ -307,15 +307,15 @@ export class AnalyticsService {
 
   // ── RESTAURANT ANALYTICS ───────────────────────────────────────────────────
 
-  async getRestaurantStats(restaurantId: string) {
+      async getRestaurantStats(restaurantId: string, range: string = '7D') {
     const today = startOfDay(new Date());
-    const week = daysAgo(7);
-    const month = daysAgo(30);
+    let fromDate = daysAgo(7);
+    if (range === '30D') fromDate = daysAgo(30);
+    else if (range === '90D') fromDate = daysAgo(90);
 
     const [
+      activeSales,
       todaySales,
-      weekSales,
-      monthSales,
       completedOrdersCount,
       cancelledOrdersCount,
       pendingOrdersCount,
@@ -323,33 +323,27 @@ export class AnalyticsService {
       reviews,
     ] = await Promise.all([
       this.prisma.order.aggregate({
-        where: { restaurantId, createdAt: { gte: today }, paymentStatus: PaymentStatus.COMPLETED },
+        where: { restaurantId, createdAt: { gte: fromDate }, paymentStatus: 'COMPLETED' },
         _sum: { totalAmount: true },
         _count: { id: true },
       }),
       this.prisma.order.aggregate({
-        where: { restaurantId, createdAt: { gte: week }, paymentStatus: PaymentStatus.COMPLETED },
+        where: { restaurantId, createdAt: { gte: today }, paymentStatus: 'COMPLETED' },
         _sum: { totalAmount: true },
         _count: { id: true },
       }),
-      this.prisma.order.aggregate({
-        where: { restaurantId, createdAt: { gte: month }, paymentStatus: PaymentStatus.COMPLETED },
-        _sum: { totalAmount: true },
-        _count: { id: true },
-      }),
-      this.prisma.order.count({ where: { restaurantId, status: OrderStatus.DELIVERED } }),
-      this.prisma.order.count({ where: { restaurantId, status: OrderStatus.CANCELLED } }),
+      this.prisma.order.count({ where: { restaurantId, status: 'DELIVERED', createdAt: { gte: fromDate } } }),
+      this.prisma.order.count({ where: { restaurantId, status: 'CANCELLED', createdAt: { gte: fromDate } } }),
       this.prisma.order.count({
-        where: { restaurantId, status: { in: [OrderStatus.PENDING, OrderStatus.PREPARING] } },
+        where: { restaurantId, status: { in: ['PENDING', 'PREPARING'] } },
       }),
       this.prisma.orderItem.groupBy({
         by: ['foodItemId'],
-        where: { order: { restaurantId, createdAt: { gte: month } } },
+        where: { order: { restaurantId, createdAt: { gte: fromDate } } },
         _sum: { quantity: true },
         orderBy: { _sum: { quantity: 'desc' } },
         take: 5,
       }),
-
       this.prisma.restaurantReview.aggregate({
         where: { restaurantId },
         _avg: { rating: true },
@@ -357,42 +351,45 @@ export class AnalyticsService {
       }),
     ]);
 
-    const weeklyBreakdown = await this.getRevenueBreakdown(7);
-    const todayRev = Number(todaySales._sum.totalAmount ?? 0);
-    const todayOrds = todaySales._count.id;
+    // Build the weekly breakdown for the chart, adjusted to the range
+    const days = range === '30D' ? 30 : range === '90D' ? 90 : 7;
+    const weeklyBreakdown = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const dStart = daysAgo(i);
+      const dEnd = new Date(dStart);
+      dEnd.setHours(23, 59, 59, 999);
+      
+      const dayData = await this.prisma.order.aggregate({
+        where: { restaurantId, createdAt: { gte: dStart, lte: dEnd }, paymentStatus: 'COMPLETED' },
+        _sum: { totalAmount: true },
+        _count: { id: true },
+      });
+      weeklyBreakdown.push({
+        day: dStart.toISOString().slice(0, 10),
+        revenue: Number(dayData._sum.totalAmount || 0),
+        orders: dayData._count.id,
+      });
+    }
+
     const avgRat = Math.round(Number(reviews._avg.rating ?? 4.5) * 100) / 100;
+    const activeRevenue = Number(activeSales._sum.totalAmount || 0);
 
     return {
-      todayRevenue: todayRev,
-      todayOrders: todayOrds,
+      activeRevenue,
+      activeOrdersCount: activeSales._count.id,
+      todayRevenue: Number(todaySales._sum.totalAmount || 0),
+      todayOrders: todaySales._count.id,
       completedOrders: completedOrdersCount,
       cancelledOrders: cancelledOrdersCount,
       pendingOrders: pendingOrdersCount,
       avgRating: avgRat,
-      weeklyRevenueData: weeklyBreakdown.map((b) => ({
-        day: b.date,
-        revenue: b.revenue,
-        orders: b.orders,
-      })),
-      todaySales: todayRev,
-      today: {
-        sales: todayRev,
-        revenue: todayRev,
-        orders: todayOrds,
-      },
-      week: {
-        sales: Number(weekSales._sum.totalAmount ?? 0),
-        orders: weekSales._count.id,
-      },
-      month: {
-        sales: Number(monthSales._sum.totalAmount ?? 0),
-        orders: monthSales._count.id,
-      },
-      topItems: topItems.map((i) => ({ foodItemId: i.foodItemId, qty: i._sum.quantity })),
+      totalReviews: reviews._count.id,
       reviewCount: reviews._count.id,
-      weeklyBreakdown,
+      topItems: topItems.map((i) => ({ foodItemId: i.foodItemId, qty: i._sum.quantity })),
+      weeklyRevenueData: weeklyBreakdown,
     };
   }
+
 
   // ── DRIVER ANALYTICS ───────────────────────────────────────────────────────
 
@@ -518,6 +515,30 @@ export class AnalyticsService {
   }
 
   // ── CSV EXPORT ─────────────────────────────────────────────────────────────
+
+    async exportRestaurantCsv(restaurantId: string, type: string, from: Date, to: Date): Promise<string> {
+    const orders = await this.prisma.order.findMany({
+      where: { restaurantId, createdAt: { gte: from, lte: to } },
+      include: {
+        customer: { include: { user: { include: { profile: true } } } },
+        restaurantSettlement: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const rows = orders.map((o) => ({
+      OrderNo: o.orderNumber,
+      Date: o.createdAt.toISOString().slice(0, 10),
+      Status: o.status,
+      Customer: o.customer?.user?.profile?.firstName || 'Guest',
+      GrossSales: Number(o.totalAmount),
+      Commission: o.restaurantSettlement ? Number(o.restaurantSettlement.commissionAmount) : 0,
+      NetPayout: o.restaurantSettlement ? Number(o.restaurantSettlement.netPayable) : 0,
+    }));
+
+    return formatCsv(rows);
+  }
+
 
   async exportCsv(type: string, from: Date, to: Date): Promise<string> {
     if (type === 'orders' || type === 'revenue') {

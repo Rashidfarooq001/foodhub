@@ -49,10 +49,13 @@ export class AnalyticsController {
   }
 
   // ── RESTAURANT ─────────────────────────────────────────────────────────────
-  @Get('restaurant')
-  async restaurantStats(@Request() req: any) {
-    return this.analyticsService.getRestaurantStats(req.user.restaurantId);
+    @Get('restaurant')
+  @ApiOperation({ summary: 'Restaurant personal analytics dashboard' })
+  @ApiQuery({ name: 'range', required: false, description: 'Time range period (7D, 30D, 90D)' })
+  async restaurantStats(@Request() req: any, @Query('range') range: string = '7D') {
+    return this.analyticsService.getRestaurantStats(req.user.restaurantId, range);
   }
+
 
   // ── DRIVER ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +95,33 @@ export class AnalyticsController {
   }
 
   // ── CSV EXPORT ─────────────────────────────────────────────────────────────
+
+    @Get('restaurant/export')
+  @ApiOperation({ summary: 'Export restaurant report as CSV' })
+  @ApiQuery({ name: 'type', description: 'Report type: orders' })
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  async exportRestaurantCsv(
+    @Request() req: any,
+    @Query('type') type: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: Response,
+  ) {
+    const fromDate = new Date(from || new Date(Date.now() - 30 * 86400000).toISOString());
+    const toDate = new Date(to || new Date().toISOString());
+    
+    // We pass req.user.restaurantId to a new service method
+    const csv = await this.analyticsService.exportRestaurantCsv(req.user.restaurantId, type ?? 'orders', fromDate, toDate);
+
+    res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${type ?? 'restaurant_report'}-${Date.now()}.csv"`,
+      );
+    res.send(csv);
+  }
+
 
   @Get('export')
   @UseGuards(RolesGuard)

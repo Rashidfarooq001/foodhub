@@ -329,7 +329,7 @@ export default function MerchantSettlementsPage() {
                   No completed orders in this settlement cycle.
                 </div>
               ) : (
-                detail.orders.map((ord) => (
+                detail.orders.map((ord: any) => (
                   <div
                     key={ord.orderId}
                     className="p-3 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-1.5"
@@ -339,18 +339,13 @@ export default function MerchantSettlementsPage() {
                         #{ord.orderNumber || ord.orderId.slice(0, 8)}
                       </span>
                       <span className="text-xs font-black text-emerald-700">
-                        Net: ₹{ord.restaurantNet}
+                        Net: ₹{ord.netPayable}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
-                      <span>Customer: {ord.customerName}</span>
-                      <span>Subtotal: ₹{ord.foodSubtotal}</span>
-                    </div>
-
-                    <div className="text-[10px] text-orange-700 font-semibold border-t border-gray-200/60 pt-1 flex justify-between">
-                      <span>Commission ({ord.commissionRate}%):</span>
-                      <span>-₹{ord.commissionAmount}</span>
+                      <span>Customer: {ord.customerName || 'Guest'}</span>
+                      <span>{new Date(ord.deliveredAt).toLocaleString()}</span>
                     </div>
                   </div>
                 ))
@@ -365,25 +360,29 @@ export default function MerchantSettlementsPage() {
                     <th className="pb-3">Order #</th>
                     <th className="pb-3">Customer</th>
                     <th className="pb-3">Date</th>
-                    <th className="pb-3">Gross Subtotal</th>
+                    <th className="pb-3">Total Bill</th>
                     <th className="pb-3">Commission</th>
-                    <th className="pb-3 text-right">Net Payable</th>
+                    <th className="pb-3 text-right">Net Payout</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 font-medium">
-                  {detail?.orders?.map((ord) => (
+                  {detail?.orders?.map((ord: any) => (
                     <tr key={ord.orderId} className="hover:bg-gray-50/50">
-                      <td className="py-3 font-bold text-gray-900">#{ord.orderNumber}</td>
-                      <td className="py-3 text-gray-600">{ord.customerName}</td>
-                      <td className="py-3 text-gray-400">
-                        {new Date(ord.createdAt).toLocaleDateString()}
+                      <td className="py-3 font-bold text-gray-900">
+                        #{ord.orderNumber || ord.orderId.slice(0, 8)}
                       </td>
-                      <td className="py-3 font-bold text-gray-900">₹{ord.foodSubtotal}</td>
+                      <td className="py-3 text-gray-600">{ord.customerName || 'Guest'}</td>
+                      <td className="py-3 text-gray-400">
+                        {new Date(ord.deliveredAt).toLocaleString()}
+                      </td>
+                      <td className="py-3 font-bold text-gray-900">
+                        ₹{Number(ord.totalAmount).toLocaleString()}
+                      </td>
                       <td className="py-3 text-orange-600 font-semibold">
-                        -₹{ord.commissionAmount} ({ord.commissionRate}%)
+                        -₹{Number(ord.commissionAmount).toLocaleString()}
                       </td>
                       <td className="py-3 font-black text-emerald-700 text-right">
-                        ₹{ord.restaurantNet}
+                        ₹{Number(ord.netPayable).toLocaleString()}
                       </td>
                     </tr>
                   ))}
