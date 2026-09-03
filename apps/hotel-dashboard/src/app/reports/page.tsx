@@ -1,3 +1,4 @@
+'use client';
   import { useState } from 'react';
   import { Download, FileText, CheckCircle2 } from 'lucide-react';
   import { getApiBaseUrl } from '@foodhub/config';
