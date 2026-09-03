@@ -648,7 +648,11 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="bg-gray-50 min-h-screen pb-[350px] lg:pb-12">
+      {/* 
+        Changed pb-[350px] to pb-[120px] 
+        This prevents massive blank scrolling areas while allowing enough space for the Place Order CTA 
+      */}
+      <div className="bg-gray-50 min-h-screen pb-[120px] lg:pb-12">
         {/* Mobile Header & Progress Bar */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
@@ -841,9 +845,10 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN / STICKY BOTTOM BAR: Checkout Actions */}
-            <div className="lg:col-span-5 relative">
-              <div className="fixed bottom-0 left-0 right-0 z-40 lg:static lg:block bg-white rounded-t-3xl lg:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:shadow-sm border-t lg:border border-gray-100 p-4 sm:p-5 space-y-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-5">
+            {/* RIGHT COLUMN: Natural Flow Action Area */}
+            <div className="lg:col-span-5 relative space-y-4">
+              {/* Delivery Address & Payment Container (No longer fixed bottom) */}
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-4">
                 
                 {/* 1. DELIVERY ADDRESS */}
                 <div className="flex justify-between items-start">
@@ -906,7 +911,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* 3. PAYMENT METHOD */}
-                <div className="flex flex-col gap-2 pt-1 pb-2">
+                <div className="flex flex-col gap-2 pt-1 pb-1">
                   <span className="text-[10px] font-black text-gray-400 tracking-wider">PAY USING</span>
                   <div className="flex gap-2 mt-1">
                     {['UPI', 'CARD', 'COD'].map((method) => (
@@ -929,35 +934,65 @@ export default function CheckoutPage() {
                     ))}
                   </div>
                 </div>
-
-                {/* 4. TOTAL & PLACE ORDER CTA */}
-                <div className="flex gap-3 pt-1">
-                  <div className="flex flex-col justify-center bg-gray-50 px-4 rounded-2xl border border-gray-200 min-w-[110px] shadow-inner">
-                    <span className="text-[10px] font-black text-gray-500">TOTAL</span>
-                    <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
-                  </div>
-                  
-                  <button
-                    onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
-                    disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-2xl py-4 flex items-center justify-between px-5 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:active:scale-100"
-                  >
-                    <span>
-                      {isPlacing 
-                        ? 'Placing Order...' 
-                        : !selectedAddress 
-                          ? 'Select Address' 
-                          : orderQuote && (!routeAvailable || realDistanceKm === null)
-                            ? 'Check Distance'
-                            : !isDeliveryEligible 
-                              ? 'Out of Range' 
-                              : 'Place Order'}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
+              
+              {/* DESKTOP TOTAL (Only visible on lg+ screens because mobile uses sticky) */}
+              <div className="hidden lg:flex gap-3 pt-1">
+                <div className="flex flex-col justify-center bg-gray-50 px-4 rounded-2xl border border-gray-200 min-w-[110px] shadow-inner">
+                  <span className="text-[10px] font-black text-gray-500">TOTAL</span>
+                  <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
+                </div>
+                
+                <button
+                  onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
+                  disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-2xl py-4 flex items-center justify-between px-5 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:active:scale-100"
+                >
+                  <span>
+                    {isPlacing 
+                      ? 'Placing Order...' 
+                      : !selectedAddress 
+                        ? 'Select Address' 
+                        : orderQuote && (!routeAvailable || realDistanceKm === null)
+                          ? 'Check Distance'
+                          : !isDeliveryEligible 
+                            ? 'Out of Range' 
+                            : 'Place Order'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
             </div>
+          </div>
+        </div>
+
+        {/* MOBILE STICKY CTA (Only visible on < lg screens) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="flex gap-3">
+            <div className="flex flex-col justify-center bg-gray-50 px-4 rounded-xl border border-gray-200 min-w-[100px] shadow-inner">
+              <span className="text-[10px] font-black text-gray-500">TOTAL</span>
+              <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
+            </div>
+            
+            <button
+              onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
+              disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-xl py-4 flex items-center justify-between px-5 shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:active:scale-100"
+            >
+              <span>
+                {isPlacing 
+                  ? 'Placing Order...' 
+                  : !selectedAddress 
+                    ? 'Select Address' 
+                    : orderQuote && (!routeAvailable || realDistanceKm === null)
+                      ? 'Check Distance'
+                      : !isDeliveryEligible 
+                        ? 'Out of Range' 
+                        : 'Place Order'}
+              </span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
