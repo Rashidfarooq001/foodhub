@@ -1154,28 +1154,13 @@ export class DeliveryJobsController {
       throw new ForbiddenException('You do not have permission to unassign this delivery job.');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.deliveryJob.update({
-        where: { id: job.id },
-        data: {
-          driverId: null,
-          status: DeliveryJobStatus.AVAILABLE,
-          acceptedAt: null,
-          arrivedAt: null,
-          pickedAt: null,
-        },
-      });
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      driverId: driver?.id,
+    };
 
-      await tx.order.update({
-        where: { id: job.orderId },
-        data: {
-          status: OrderStatus.PREPARING,
-          assignedRestaurantDriverId: null,
-        },
-      });
-    });
-
-    return { success: true, message: 'Delivery job unassigned successfully.' };
+    return this.lifecycleService.unassignRiderFromOrder(job.orderId, actor);
   }
 
   @Post('jobs/reset-my-active')
