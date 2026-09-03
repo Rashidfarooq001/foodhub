@@ -60,13 +60,13 @@ export default function DeliveryDashboardPage() {
                 const parsed = text ? JSON.parse(text) : null;
                 const jobsPayload = parsed?.data || parsed || [];
                 setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
-              } catch (e) {
+              } catch (e: any) {
                 setLocationError(`Parse Error: ${e.message}`);
               }
             } else {
               setLocationError(`API Error: ${r.status} on active-jobs`);
             }
-          }).catch(e => {
+          }).catch((e: any) => {
             setLocationError(`Network Error: ${e.message}`);
           });
 
@@ -81,8 +81,8 @@ export default function DeliveryDashboardPage() {
             }
           }).catch(console.error);
 
-        await Promise.all([fetchStats, fetchActiveJobs, fetchJobs, fetchStatus]);
-      } catch (e) {
+        await Promise.all([fetchStats, fetchActiveJobs, fetchStatus]);
+      } catch (e: any) {
         console.error("fetchDashboardData top-level error:", e);
       } finally {
         setIsLoading(false);

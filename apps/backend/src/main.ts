@@ -129,7 +129,7 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Request-ID'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Request-ID', 'Cache-Control', 'Pragma'],
   });
 
   // Validation
