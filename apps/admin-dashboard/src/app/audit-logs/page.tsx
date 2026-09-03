@@ -1,35 +1,34 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Clock, ShieldCheck, Activity } from 'lucide-react';
+import { adminFetch } from '../../utils/admin-fetch';
 
 export default function AdminAuditLogsPage() {
-  const logs = [
-    {
-      id: 'l1',
-      user: 'SuperAdmin Operator',
-      action: 'Approved Merchant Verification #REST-94810',
-      ip: '192.168.1.1',
-      time: '10 mins ago',
-      category: 'MERCHANT_APPROVAL',
-    },
-    {
-      id: 'l2',
-      user: 'Finance Controller',
-      action: 'Initiated Weekly Bank Payout Disbursement',
-      ip: '192.168.1.4',
-      time: '1 hour ago',
-      category: 'SETTLEMENT',
-    },
-    {
-      id: 'l3',
-      user: 'SuperAdmin Operator',
-      action: 'Updated Delivery Pricing Engine Base Configuration',
-      ip: '192.168.1.1',
-      time: '3 hours ago',
-      category: 'PRICING_CONFIG',
-    },
-  ];
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await adminFetch('/audit-logs?limit=50');
+      if (!res.ok) throw new Error('Failed to load audit logs');
+      const data = await res.json();
+      setLogs(data.data || []);
+    } catch (err: any) {
+      setError(err.message || 'Unable to load audit logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (ts: string) => new Date(ts).toLocaleString();
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -55,32 +54,35 @@ export default function AdminAuditLogsPage() {
         </div>
       </div>
 
-      {/* Audit Log Stream (Dual Mobile Card / Desktop Table) */}
+      {/* Audit Log Stream */}
       <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
         <h2 className="text-sm sm:text-base font-black text-gray-900">
           Recent Activity Logs ({logs.length})
         </h2>
+        
+        {error && <div className="text-red-500 text-sm font-medium">{error}</div>}
+        {loading && <div className="text-gray-500 text-sm">Loading audit logs...</div>}
 
         {/* Mobile View: Cards */}
         <div className="block md:hidden space-y-3">
-          {logs.map((l) => (
+          {logs.map((l: any) => (
             <div
               key={l.id}
               className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-2 text-xs"
             >
               <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                <span className="font-black text-gray-900">{l.user}</span>
-                <span className="text-[10px] text-gray-400 font-medium">{l.time}</span>
+                <span className="font-black text-gray-900">{l.user?.profile?.firstName || 'System'} {l.user?.profile?.lastName || ''} ({l.user?.role || 'SYSTEM'})</span>
+                <span className="text-[10px] text-gray-400 font-medium">{formatTime(l.createdAt)}</span>
               </div>
 
-              <p className="font-bold text-purple-900">{l.action}</p>
+              <p className="font-bold text-purple-900">{l.action} on {l.entityName}</p>
 
               <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
                 <span className="font-mono bg-white px-2 py-0.5 rounded-lg border border-gray-200">
-                  {l.ip}
+                  {l.ipAddress || 'Internal'}
                 </span>
                 <span className="font-bold uppercase tracking-wider text-purple-700">
-                  {l.category}
+                  {l.entityId}
                 </span>
               </div>
             </div>
@@ -99,12 +101,12 @@ export default function AdminAuditLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 font-medium">
-              {logs.map((l) => (
+              {logs.map((l: any) => (
                 <tr key={l.id} className="hover:bg-gray-50/50">
-                  <td className="py-3 font-bold text-gray-900">{l.user}</td>
-                  <td className="py-3 text-purple-700 font-semibold">{l.action}</td>
-                  <td className="py-3 text-gray-400 font-mono">{l.ip}</td>
-                  <td className="py-3 text-gray-500 text-right">{l.time}</td>
+                  <td className="py-3 font-bold text-gray-900">{l.user?.profile?.firstName || 'System'} {l.user?.profile?.lastName || ''} ({l.user?.role || 'SYSTEM'})</td>
+                  <td className="py-3 text-purple-700 font-semibold">{l.action} on {l.entityName} ({l.entityId})</td>
+                  <td className="py-3 text-gray-400 font-mono">{l.ipAddress || 'Internal'}</td>
+                  <td className="py-3 text-gray-500 text-right">{formatTime(l.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -114,3 +116,4 @@ export default function AdminAuditLogsPage() {
     </div>
   );
 }
+

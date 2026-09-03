@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { CreditCard, TrendingUp, Search, Store, Bike } from 'lucide-react';
@@ -22,22 +22,26 @@ export default function AdminFinancePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch aggregate stats from backend
-      const resStats: any = await adminFetch(`/settlements/overview?periodType=${period}`);
-      if (resStats && !resStats.error) {
-        setStats(resStats.overview || {});
+      
+      const [resStats, resRest, resRider] = await Promise.all([
+        adminFetch(`/settlements/overview?periodType=${period}`),
+        adminFetch(`/settlements/restaurants?periodType=${period}`),
+        adminFetch(`/settlements/riders?periodType=${period}`)
+      ]);
+
+      if (resStats.ok) {
+        const data = await resStats.json();
+        setStats(data.overview || {});
       }
 
-      // Fetch restaurant settlements
-      const resData: any = await adminFetch(`/settlements/restaurants?periodType=${period}`);
-      if (resData && resData.data) {
-        setRestaurants(resData.data);
+      if (resRest.ok) {
+        const data = await resRest.json();
+        setRestaurants(data.data || []);
       }
 
-      // Fetch rider settlements
-      const riderData: any = await adminFetch(`/settlements/riders?periodType=${period}`);
-      if (riderData && riderData.data) {
-        setRiders(riderData.data);
+      if (resRider.ok) {
+        const data = await resRider.json();
+        setRiders(data.data || []);
       }
     } catch (err) {
       console.error(err);
