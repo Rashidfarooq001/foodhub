@@ -37,15 +37,7 @@ export default function DeliveryEarningsPage() {
           day: d.day,
           pay: d.pay,
         }))
-      : [
-          { day: 'Mon', pay: 0 },
-          { day: 'Tue', pay: 0 },
-          { day: 'Wed', pay: 0 },
-          { day: 'Thu', pay: 0 },
-          { day: 'Fri', pay: 0 },
-          { day: 'Sat', pay: 0 },
-          { day: 'Sun', pay: 0 },
-        ];
+      : [];
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">

@@ -519,7 +519,7 @@ export class DeliveryJobsController {
     return jobs.map((job) => this.formatJobPayload(job));
   }
 
-  @Get('stats')
+    @Get('stats')
   @ApiOperation({ summary: 'Get earnings & delivery statistics for driver' })
   async getDriverStats(@Request() req: any) {
     const driver = await this.getDriverFromReq(req);
@@ -537,6 +537,9 @@ export class DeliveryJobsController {
         walletBalance: 0,
         dutyStatus: 'ONLINE',
         dailyEarningsBreakdown: [],
+        pendingSettlement: 0,
+        availableForSettlement: 0,
+        settledAmount: 0,
       };
     }
 
@@ -552,40 +555,19 @@ export class DeliveryJobsController {
     monthStart.setDate(monthStart.getDate() - 30);
     monthStart.setHours(0, 0, 0, 0);
 
-    // Fetch all completed orders with their delivery jobs (for total + daily breakdown)
-    const allCompletedOrders = await this.prisma.order.findMany({
-      where: {
-        deliveryJob: { driverId: driver.id },
-        status: 'DELIVERED',
-      },
-      include: {
-        deliveryJob: { select: { riderPayout: true, deliveredAt: true } },
-      },
-      orderBy: { updatedAt: 'desc' },
+    // Canonical source of earnings is RiderSettlement
+    const allSettlements = await this.prisma.riderSettlement.findMany({
+      where: { driverId: driver.id },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Today's orders
-    const todayOrders = allCompletedOrders.filter(
-      (o) => o.updatedAt && o.updatedAt >= todayStart,
-    );
-    // Weekly orders (last 7 days)
-    const weeklyOrders = allCompletedOrders.filter(
-      (o) => o.updatedAt && o.updatedAt >= weekStart,
-    );
-    // Monthly orders (last 30 days)
-    const monthlyOrders = allCompletedOrders.filter(
-      (o) => o.updatedAt && o.updatedAt >= monthStart,
-    );
+    const sumPayout = (settlements: typeof allSettlements) =>
+      settlements.reduce((sum, s) => sum + Number(s.netPayable || 0), 0);
 
-    const sumPayout = (orders: typeof allCompletedOrders) =>
-      orders.reduce((sum, o) => sum + Number(o.deliveryJob?.riderPayout || 0), 0);
+    const todaySettlements = allSettlements.filter(s => s.createdAt >= todayStart);
+    const weeklySettlements = allSettlements.filter(s => s.createdAt >= weekStart);
+    const monthlySettlements = allSettlements.filter(s => s.createdAt >= monthStart);
 
-    const todayEarnings = sumPayout(todayOrders);
-    const weeklyEarnings = sumPayout(weeklyOrders);
-    const monthlyEarnings = sumPayout(monthlyOrders);
-    const totalEarnings = sumPayout(allCompletedOrders);
-
-    // Build daily breakdown for last 7 days (for chart)
     const dailyEarningsBreakdown: { date: string; day: string; pay: number }[] = [];
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     for (let i = 6; i >= 0; i--) {
@@ -595,58 +577,50 @@ export class DeliveryJobsController {
       const dayEnd = new Date(dayStart);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const dayOrders = allCompletedOrders.filter(
-        (o) => o.updatedAt && o.updatedAt >= dayStart && o.updatedAt <= dayEnd,
+      const daySettlements = allSettlements.filter(
+        s => s.createdAt >= dayStart && s.createdAt <= dayEnd,
       );
-      const dayPay = sumPayout(dayOrders);
       dailyEarningsBreakdown.push({
         date: dayStart.toISOString().slice(0, 10),
         day: DAY_NAMES[dayStart.getDay()],
-        pay: Math.round(dayPay),
+        pay: Math.round(sumPayout(daySettlements)),
       });
     }
-
-    const pendingSettlement = weeklyEarnings;
-    const availableForSettlement = weeklyEarnings;
-    const settledAmount = 0;
 
     const acceptedJobsCount = await this.prisma.deliveryJob.count({
       where: { driverId: driver.id },
     });
-
     const rejectedJobsCount = await this.prisma.deliveryJobRejection.count({
       where: { driverId: driver.id },
     });
-
     const totalOfferedJobs = acceptedJobsCount + rejectedJobsCount;
-    const acceptanceRate =
-      totalOfferedJobs > 0 ? Math.round((acceptedJobsCount / totalOfferedJobs) * 100) : null;
+    const acceptanceRate = totalOfferedJobs > 0 ? Math.round((acceptedJobsCount / totalOfferedJobs) * 100) : null;
+    const completionRate = acceptedJobsCount > 0 ? Math.round((allSettlements.length / acceptedJobsCount) * 100) : null;
 
-    const completionRate =
-      acceptedJobsCount > 0 ? Math.round((allCompletedOrders.length / acceptedJobsCount) * 100) : null;
-
-    const totalRatings = await this.prisma.driverReview.count({
+    const ratings = await this.prisma.driverReview.findMany({
       where: { driverId: driver.id },
     });
+    const totalRatings = ratings.length;
+    const avgRating = totalRatings > 0 
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings
+      : null;
 
-    const avgRating = totalRatings > 0 ? Number(driver.avgRating) : null;
-
-    // Read actual wallet balance
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { userId: driver.userId },
-      select: { balance: true },
+    const userWallet = await this.prisma.wallet.findUnique({
+      where: { userId: driver.userId }
     });
-    const walletBalance = Number(wallet?.balance ?? 0);
+    const walletBalance = Number(userWallet?.balance || 0);
+
+    const pendingSettlement = sumPayout(allSettlements.filter(s => s.status === 'ELIGIBLE' || s.status === 'PENDING'));
+    const settledAmount = sumPayout(allSettlements.filter(s => s.status === 'PAID'));
 
     return {
-      todayEarnings,
-      completedDeliveries: allCompletedOrders.length,
-      todayDeliveries: todayOrders.length,
-      weeklyEarnings,
-      monthlyEarnings,
-      totalEarnings,
+      todayEarnings: sumPayout(todaySettlements),
+      completedDeliveries: allSettlements.length,
+      weeklyEarnings: sumPayout(weeklySettlements),
+      monthlyEarnings: sumPayout(monthlySettlements),
+      totalEarnings: sumPayout(allSettlements),
       pendingSettlement,
-      availableForSettlement,
+      availableForSettlement: pendingSettlement,
       settledAmount,
       acceptanceRate,
       completionRate,
@@ -659,32 +633,32 @@ export class DeliveryJobsController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get completed delivery history for driver' })
+  @ApiOperation({ summary: 'Get canonical settlement ledger history for driver' })
   async getDriverHistory(@Request() req: any) {
     const driver = await this.getDriverFromReq(req);
     if (!driver) return [];
 
-    const completedOrders = await this.prisma.order.findMany({
-      where: {
-        deliveryJob: { driverId: driver.id },
-        status: 'DELIVERED',
-      },
+    const settlements = await this.prisma.riderSettlement.findMany({
+      where: { driverId: driver.id },
       include: {
-        restaurant: { select: { name: true } },
-        deliveryJob: true,
+        order: {
+          select: { orderNumber: true, restaurant: { select: { name: true } }, deliveryAddress: true }
+        }
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
-    return completedOrders.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      restaurantName: o.restaurant?.name || '',
-      distanceKm: o.deliveryJob?.distanceKm || 0,
-      riderPayout: Number(o.deliveryJob?.riderPayout || 0),
-      deliveredAt: o.updatedAt,
-      status: 'DELIVERED',
+    return settlements.map(s => ({
+      id: s.id,
+      orderId: s.orderId,
+      orderNumber: s.order?.orderNumber,
+      restaurantName: s.order?.restaurant?.name,
+      customerAddress: (s.order?.deliveryAddress as any)?.addressLine1 || 'Customer Address',
+      payout: Number(s.netPayable),
+      deliveryFee: Number(s.netPayable),
+      status: s.status,
+      createdAt: s.createdAt,
     }));
   }
 
@@ -1249,4 +1223,72 @@ export class DeliveryJobsController {
       count: assignedJobs.length,
     };
   }
+
+  @Get('ratings')
+  @ApiOperation({ summary: 'Get canonical ratings and reviews for driver' })
+  async getDriverRatings(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) return [];
+
+    const reviews = await this.prisma.driverReview.findMany({
+      where: { driverId: driver.id },
+      include: {
+        order: { select: { orderNumber: true } },
+        customer: { include: { user: { include: { profile: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return reviews.map(r => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment || '',
+      customerName: r.customer?.user?.profile?.firstName || 'Customer',
+      orderNumber: r.order?.orderNumber,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  @Get('notifications')
+  @ApiOperation({ summary: 'Get canonical notifications for driver' })
+  async getDriverNotifications(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver || !driver.userId) return [];
+
+    const notifications = await this.prisma.notification.findMany({
+      where: { userId: driver.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return notifications.map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      status: n.status,
+      createdAt: n.createdAt,
+    }));
+  }
+
+  @Patch('notifications/:id/read')
+  @ApiOperation({ summary: 'Mark a notification as read' })
+  async markNotificationRead(@Param('id') id: string, @Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver || !driver.userId) throw new ForbiddenException();
+
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId: driver.userId },
+    });
+    if (!notification) throw new NotFoundException('Notification not found');
+
+    await this.prisma.notification.update({
+      where: { id },
+      data: { status: 'READ' },
+    });
+
+    return { success: true };
+  }
+
 }

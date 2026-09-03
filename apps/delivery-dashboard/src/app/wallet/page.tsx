@@ -172,7 +172,7 @@ export default function DeliverySettlementPage() {
                       #{trip.orderNumber || trip.id.slice(0, 8)}
                     </span>
                     <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-                      +₹{trip.deliveryFee || trip.payout || 65}
+                      +₹{trip.payout || trip.deliveryFee || 0}
                     </span>
                   </div>
 
@@ -184,18 +184,16 @@ export default function DeliverySettlementPage() {
                       </strong>
                     </div>
                     <div>
-                      Destination:{' '}
+                      Drop:{' '}
                       <strong className="text-gray-800">
                         {trip.customerAddress || 'Customer Area'}
                       </strong>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 border-t border-gray-200/60 pt-1">
-                    <span>
-                      {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}
-                    </span>
-                    <span className="font-bold text-emerald-600">SETTLED</span>
+                    <div className="pt-1 text-[10px] text-gray-400 font-medium">
+                      {trip.createdAt ? new Date(trip.createdAt).toLocaleString() : 'Today'}
+                      {' • '}
+                      <span className="font-bold text-emerald-600">{trip.status || 'COMPLETED'}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -225,11 +223,11 @@ export default function DeliverySettlementPage() {
                         {trip.customerAddress || 'Customer Area'}
                       </td>
                       <td className="py-3 text-gray-400">
-                        {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : 'Today'}
+                        {trip.createdAt ? new Date(trip.createdAt).toLocaleString() : 'Today'}
                       </td>
-                      <td className="py-3 font-bold text-emerald-600">COMPLETED</td>
+                      <td className="py-3 font-bold text-emerald-600">{trip.status || 'COMPLETED'}</td>
                       <td className="py-3 font-black text-emerald-700 text-right">
-                        +₹{trip.deliveryFee || trip.payout || 65}
+                        +₹{trip.payout || trip.deliveryFee || 0}
                       </td>
                     </tr>
                   ))}

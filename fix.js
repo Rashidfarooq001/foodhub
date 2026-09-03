@@ -1,4 +1,5 @@
-
+const fs = require('fs');
+const content = `
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -30,8 +31,8 @@ export default function DeliveryNotificationsPage() {
 
     try {
       setIsLoading(true);
-      const res = await fetch(`${API_BASE}/delivery/notifications`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const res = await fetch(\`\${API_BASE}/delivery/notifications\`, {
+        headers: { Authorization: \`Bearer \${accessToken}\` },
       });
 
       if (res.ok) {
@@ -53,9 +54,9 @@ export default function DeliveryNotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, status: 'READ' } : n))
       );
-      await fetch(`${API_BASE}/delivery/notifications/${id}/read`, {
+      await fetch(\`\${API_BASE}/delivery/notifications/\${id}/read\`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: \`Bearer \${accessToken}\` },
       });
     } catch {
       // ignore
@@ -79,7 +80,7 @@ export default function DeliveryNotificationsPage() {
           disabled={isLoading}
           className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 min-h-[40px]"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={\`h-3.5 w-3.5 \${isLoading ? 'animate-spin' : ''}\`} />
         </button>
       </div>
 
@@ -101,17 +102,17 @@ export default function DeliveryNotificationsPage() {
               onClick={() => {
                 if (n.status !== 'READ') markRead(n.id);
               }}
-              className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-colors cursor-pointer ${
+              className={\`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-colors cursor-pointer \${
                 n.status !== 'READ'
                   ? 'bg-emerald-50/30 border-emerald-100'
                   : 'bg-white border-gray-200 hover:bg-gray-50'
-              }`}
+              }\`}
             >
               <div className="flex items-start gap-3">
                 <div
-                  className={`mt-1 p-2 rounded-xl ${
+                  className={\`mt-1 p-2 rounded-xl \${
                     n.status !== 'READ' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                  }`}
+                  }\`}
                 >
                   {n.status !== 'READ' ? (
                     <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -123,9 +124,9 @@ export default function DeliveryNotificationsPage() {
                 <div className="flex-1 space-y-1">
                   <div className="flex flex-wrap items-center justify-between gap-1">
                     <h3
-                      className={`text-sm sm:text-base font-bold ${
+                      className={\`text-sm sm:text-base font-bold \${
                         n.status !== 'READ' ? 'text-gray-900' : 'text-gray-700'
-                      }`}
+                      }\`}
                     >
                       {n.title}
                     </h3>
@@ -146,3 +147,5 @@ export default function DeliveryNotificationsPage() {
     </div>
   );
 }
+`;
+fs.writeFileSync('apps/delivery-dashboard/src/app/notifications/page.tsx', content);

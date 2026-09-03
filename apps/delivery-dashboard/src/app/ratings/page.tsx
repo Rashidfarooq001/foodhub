@@ -10,15 +10,20 @@ const API_BASE = getApiBaseUrl();
 export default function DeliveryRatingsPage() {
   const { accessToken } = useDeliveryAuthStore();
   const [stats, setStats] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/delivery/stats`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      });
-      if (res.ok) setStats(await res.json());
+      const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      const [statsRes, reviewsRes] = await Promise.all([
+        fetch(`${API_BASE}/delivery/stats`, { headers }),
+        fetch(`${API_BASE}/delivery/ratings`, { headers })
+      ]);
+      
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (reviewsRes.ok) setReviews(await reviewsRes.json());
     } catch {
       /* backend offline */
     } finally {
@@ -27,25 +32,8 @@ export default function DeliveryRatingsPage() {
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, [accessToken]);
-
-  const reviews = [
-    {
-      id: 'r1',
-      customer: 'Rahul Sharma',
-      rating: 5,
-      comment: 'Polite driver, delivered piping hot food in 15 mins!',
-      time: 'Yesterday',
-    },
-    {
-      id: 'r2',
-      customer: 'Priya Patel',
-      rating: 5,
-      comment: 'Handled packaging with great care.',
-      time: '3 days ago',
-    },
-  ];
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -61,7 +49,7 @@ export default function DeliveryRatingsPage() {
         </div>
 
         <button
-          onClick={fetchStats}
+          onClick={fetchData}
           disabled={isLoading}
           className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
         >
@@ -97,21 +85,29 @@ export default function DeliveryRatingsPage() {
       <div className="space-y-3">
         <h2 className="text-sm sm:text-base font-black text-gray-900">Recent Delivery Feedback</h2>
 
-        {reviews.map((rev) => (
-          <div
-            key={rev.id}
-            className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-2"
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <span className="text-xs font-black text-gray-900">{rev.customer}</span>
-              <span className="flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-black text-amber-800">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {rev.rating}.0
+        {reviews.length === 0 ? (
+          <div className="p-4 rounded-2xl border border-gray-100 bg-gray-50 text-center text-xs text-gray-500 font-bold">
+            No ratings yet
+          </div>
+        ) : (
+          reviews.map((rev) => (
+            <div
+              key={rev.id}
+              className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-2"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="text-xs font-black text-gray-900">{rev.customerName || 'Customer'}</span>
+                <span className="flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-black text-amber-800">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {rev.rating}.0
+                </span>
+              </div>
+              <p className="text-xs text-gray-700 font-medium">{rev.comment}</p>
+              <span className="text-[10px] text-gray-400 font-medium block">
+                {new Date(rev.createdAt).toLocaleString()} {rev.orderNumber ? ` • Order #${rev.orderNumber}` : ''}
               </span>
             </div>
-            <p className="text-xs text-gray-700 font-medium">{rev.comment}</p>
-            <span className="text-[10px] text-gray-400 font-medium block">{rev.time}</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

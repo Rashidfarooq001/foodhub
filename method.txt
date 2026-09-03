@@ -1,0 +1,83 @@
+  /**
+   * Rider unassigns themselves from the delivery job
+   */
+  async unassignRiderFromOrder(orderId: string, actor: AuthenticatedActor) {
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { orderId },
+      include: { order: true },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Delivery job not found.');
+    }
+
+    const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
+    if (!isAdmin && job.driverId !== actor.driverId) {
+      throw new ForbiddenException('You are not the assigned delivery partner for this job.');
+    }
+
+    if (job.status === DeliveryJobStatus.AVAILABLE || !job.driverId) {
+      throw new BadRequestException('Job is already unassigned.');
+    }
+
+    // Determine correct previous state
+    let targetStatus = OrderStatus.PREPARING;
+    // If order was READY_FOR_PICKUP before, we ideally go back to it, but PREPARING is the canonical pre-dispatch state.
+
+    // Atomically release the job
+    await this.prisma.$transaction(async (tx) => {
+      await tx.deliveryJob.update({
+        where: { id: job.id },
+        data: {
+          driverId: null,
+          status: DeliveryJobStatus.AVAILABLE,
+          acceptedAt: null,
+          arrivedAt: null,
+          pickedAt: null,
+        },
+      });
+
+      await tx.order.update({
+        where: { id: job.orderId },
+        data: {
+          status: targetStatus,
+        },
+      });
+    });
+
+    this.logger.log([STATE MACHINE EVENT] Order # + job.order.orderNumber +  unassigned by driver  + actor.driverId);
+
+    // Emit Realtime Events
+    if (this.gateway) {
+      const sanitizedPayload = {
+        orderId: job.order.id,
+        orderNumber: job.order.orderNumber,
+        status: targetStatus,
+        driverId: null,
+        driverName: undefined,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.gateway.emitToOrder(job.order.id, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      
+      const customerUserId = job.order.customerId;
+      if (customerUserId) {
+        this.gateway.emitToUser(customerUserId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      }
+      
+      if (job.order.restaurantId) {
+        this.gateway.emitToRestaurant(job.order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+      }
+      
+      this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+
+      // Re-broadcast to available drivers
+      this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
+        orderId: job.order.id,
+        orderNumber: job.order.orderNumber,
+        jobId: job.id,
+      });
+    }
+
+    return { success: true, message: 'Delivery job unassigned successfully.' };
+  }
