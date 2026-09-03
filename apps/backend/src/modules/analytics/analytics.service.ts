@@ -128,7 +128,7 @@ export class AnalyticsService {
 
     for (const ord of periodOrders) {
       if (ord.status === OrderStatus.DELIVERED || ord.paymentStatus === PaymentStatus.COMPLETED) {
-        grossCustomerCollections += Number(ord.totalAmount || 0);
+        grossCustomerCollections += Number(ord.subtotal || 0);
         completedOrdersCount++;
         totalDeliveryFees += Number(ord.deliveryFee || 0);
         totalTaxCollected += Number(ord.taxAmount || 0);
@@ -153,11 +153,8 @@ export class AnalyticsService {
       (o) => o.paymentStatus === PaymentStatus.COMPLETED,
     );
 
-    const todayRevenue = todayCompleted.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
-    const yesterdayRevenue = yesterdayCompleted.reduce(
-      (sum, o) => sum + Number(o.totalAmount || 0),
-      0,
-    );
+    const todayRevenue = await this.prisma.restaurantSettlement.aggregate({ where: { periodStart: { gte: today } }, _sum: { grossAmount: true } }).then(res => Number(res._sum.grossAmount || 0));
+    const yesterdayRevenue = await this.prisma.restaurantSettlement.aggregate({ where: { periodStart: { gte: yesterday, lt: today } }, _sum: { grossAmount: true } }).then(res => Number(res._sum.grossAmount || 0));
 
     const todayRevenueGrowth =
       yesterdayRevenue > 0
@@ -271,9 +268,9 @@ export class AnalyticsService {
       const to = new Date(from);
       to.setDate(to.getDate() + 1);
 
-      const agg = await this.prisma.order.aggregate({
-        where: { createdAt: { gte: from, lt: to }, paymentStatus: PaymentStatus.COMPLETED },
-        _sum: { totalAmount: true },
+      const agg = await this.prisma.restaurantSettlement.aggregate({
+        where: { periodStart: { gte: from, lt: to } },
+        _sum: { grossAmount: true },
         _count: { id: true },
       });
 
@@ -284,7 +281,7 @@ export class AnalyticsService {
 
       result.push({
         date: dayLabel,
-        revenue: Math.round(Number(agg._sum.totalAmount ?? 0) * 100) / 100,
+        revenue: Math.round(Number(agg._sum.grossAmount ?? 0) * 100) / 100,
         orders: agg._count.id,
       });
     }
@@ -370,14 +367,14 @@ export class AnalyticsService {
       const dEnd = new Date(dStart);
       dEnd.setHours(23, 59, 59, 999);
       
-      const dayData = await this.prisma.order.aggregate({
-        where: { restaurantId, createdAt: { gte: dStart, lte: dEnd }, paymentStatus: 'COMPLETED' },
-        _sum: { totalAmount: true },
-        _count: { id: true },
-      });
+      const dayData = await this.prisma.restaurantSettlement.aggregate({
+          where: { restaurantId, periodStart: { gte: dStart, lte: dEnd } },
+          _sum: { grossAmount: true },
+          _count: { id: true },
+        });
       weeklyBreakdown.push({
         day: dStart.toISOString().slice(0, 10),
-        revenue: Number(dayData._sum.totalAmount || 0),
+        revenue: Number(dayData._sum.grossAmount || 0),
         orders: dayData._count.id,
       });
     }
@@ -634,6 +631,10 @@ export class AnalyticsService {
     return '';
   }
 }
+
+
+
+
 
 
 
