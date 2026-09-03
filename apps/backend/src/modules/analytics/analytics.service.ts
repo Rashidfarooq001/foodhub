@@ -51,6 +51,8 @@ export class AnalyticsService {
       activeRestaurants,
       approvedDrivers,
       onlineDrivers,
+      pendingRestaurantsCount,
+      pendingDriversCount,
       pendingSettlementsCount,
       refundTotalAgg,
       categories,
@@ -104,6 +106,8 @@ export class AnalyticsService {
       this.prisma.restaurant.count({ where: { status: 'APPROVED', deletedAt: null } }),
       this.prisma.driver.count({ where: { isApproved: true, deletedAt: null } }),
       this.prisma.driver.count({ where: { isApproved: true, status: 'ONLINE', deletedAt: null } }),
+      this.prisma.restaurant.count({ where: { status: 'PENDING_APPROVAL', deletedAt: null } }),
+      this.prisma.driver.count({ where: { isApproved: false, deletedAt: null } }),
       this.prisma.order.count({
         where: { status: OrderStatus.DELIVERED, paymentStatus: PaymentStatus.COMPLETED },
       }),
@@ -240,6 +244,8 @@ export class AnalyticsService {
         activeRestaurants,
         activeDrivers: approvedDrivers,
         onlineDrivers,
+        pendingApprovals: pendingRestaurantsCount,
+        pendingDriverApprovals: pendingDriversCount,
         avgOrderValue,
         avgDeliveryTime: 25,
         totalOrders: periodOrders.length,
@@ -621,3 +627,4 @@ export class AnalyticsService {
     return '';
   }
 }
+

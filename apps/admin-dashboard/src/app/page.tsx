@@ -62,14 +62,14 @@ export default function AdminDashboardPage() {
   }, []);
 
   const kpi = {
-    todayRevenue: stats?.todayRevenue ?? 0,
-    todayOrders: stats?.todayOrders ?? 0,
-    activeRestaurants: stats?.activeRestaurants ?? 0,
-    onlineDrivers: stats?.onlineDrivers ?? 0,
-    totalCustomers: stats?.totalCustomers ?? 0,
-    pendingApprovals: stats?.pendingApprovals ?? 0,
-    pendingDriverApprovals: stats?.pendingDriverApprovals ?? 0,
-    weeklyRevenueData: stats?.weeklyRevenueData ?? [
+    todayRevenue: stats?.kpis?.todayRevenue ?? 0,
+    todayOrders: stats?.kpis?.todayOrders ?? 0,
+    activeRestaurants: stats?.kpis?.activeRestaurants ?? 0,
+    onlineDrivers: stats?.kpis?.onlineDrivers ?? 0,
+    totalCustomers: stats?.kpis?.activeCustomers ?? 0,
+    pendingApprovals: stats?.kpis?.pendingApprovals ?? 0,
+    pendingDriverApprovals: stats?.kpis?.pendingDriverApprovals ?? 0,
+    weeklyRevenueData: stats?.revenueTrend?.map((r: any) => ({ day: r.date, revenue: r.revenue })) ?? [
       { day: 'Mon', revenue: 0 },
       { day: 'Tue', revenue: 0 },
       { day: 'Wed', revenue: 0 },

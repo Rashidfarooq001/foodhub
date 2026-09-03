@@ -19,23 +19,35 @@ function getWeeklyPeriod(type = 'current', customStart?: string, customEnd?: str
       periodLabel: 'Custom Range',
     };
   }
-  const day = now.getDay() || 7;
-  if (type === 'last') {
-    now.setDate(now.getDate() - 7);
+
+  let periodStart = new Date(now);
+  let periodEnd = new Date(now);
+  let periodLabel = 'Current Period';
+
+  if (type === 'today') {
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setHours(23, 59, 59, 999);
+    periodLabel = 'Today';
+  } else if (type === 'yesterday') {
+    periodStart.setDate(now.getDate() - 1);
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setDate(now.getDate() - 1);
+    periodEnd.setHours(23, 59, 59, 999);
+    periodLabel = 'Yesterday';
+  } else if (type === 'monthly') {
+    periodStart.setDate(now.getDate() - 30);
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setHours(23, 59, 59, 999);
+    periodLabel = 'Last 30 Days';
+  } else {
+    // current defaults to Last 7 Days instead of a calendar week
+    periodStart.setDate(now.getDate() - 7);
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setHours(23, 59, 59, 999);
+    periodLabel = 'Last 7 Days';
   }
-  const periodStart = new Date(now);
-  periodStart.setDate(now.getDate() - day + 1);
-  periodStart.setHours(0, 0, 0, 0);
 
-  const periodEnd = new Date(periodStart);
-  periodEnd.setDate(periodStart.getDate() + 6);
-  periodEnd.setHours(23, 59, 59, 999);
-
-  return {
-    periodStart,
-    periodEnd,
-    periodLabel: `${periodStart.toDateString()} - ${periodEnd.toDateString()}`,
-  };
+  return { periodStart, periodEnd, periodLabel };
 }
 
 @Injectable()
@@ -263,22 +275,66 @@ export class SettlementsService {
     customEnd?: string,
   ) {
     const period = getWeeklyPeriod(periodType, customStart, customEnd);
-    await this.prisma.restaurantSettlement.updateMany({
-      where: {
-        restaurantId,
-        status: 'PENDING',
-        periodStart: { gte: period.periodStart },
-        periodEnd: { lte: period.periodEnd },
-      },
-      data: {
-        status: 'PAID',
-        utrNumber: dto.transactionReference,
-        settledAt: new Date(),
-        adminId: adminUserId,
-        notes: dto.notes,
-      },
+    
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Find pending settlements
+      const pendingSettlements = await tx.restaurantSettlement.findMany({
+        where: {
+          restaurantId,
+          status: 'PENDING',
+          periodStart: { gte: period.periodStart },
+          periodEnd: { lte: period.periodEnd },
+        },
+      });
+
+      if (pendingSettlements.length === 0) {
+        throw new Error('No pending settlements found for this period.');
+      }
+
+      // 2. Calculate total pending
+      let totalPending = 0;
+      for (const s of pendingSettlements) {
+        totalPending += Number(s.netPayable || 0);
+      }
+
+      if (totalPending <= 0) {
+        throw new Error('Total payable amount must be greater than zero.');
+      }
+
+      // 3. Mark as PAID atomically
+      await tx.restaurantSettlement.updateMany({
+        where: {
+          id: { in: pendingSettlements.map((s) => s.id) },
+          status: 'PENDING', // concurrency check
+        },
+        data: {
+          status: 'PAID',
+          utrNumber: dto.transactionReference || 'MANUAL',
+          settledAt: new Date(),
+          adminId: adminUserId,
+          notes: dto.notes,
+        },
+      });
+
+      // 4. Create Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: 'UPDATE',
+          entityName: 'RestaurantSettlement', entityId: restaurantId, newValue: {
+            restaurantId,
+            period,
+            amount: totalPending,
+            settlementIds: pendingSettlements.map(s => s.id),
+            method: dto.paymentMethod,
+            reference: dto.transactionReference
+          },
+          ipAddress: '127.0.0.1',
+        },
+      });
+
+      return { success: true, message: 'Settlement marked as paid.', amount: totalPending };
     });
-    return { success: true, message: 'Settlement marked as paid.' };
   }
 
   async getRiderSettlements(
@@ -405,22 +461,66 @@ export class SettlementsService {
     customEnd?: string,
   ) {
     const period = getWeeklyPeriod(periodType, customStart, customEnd);
-    await this.prisma.riderSettlement.updateMany({
-      where: {
-        driverId,
-        status: 'PENDING',
-        periodStart: { gte: period.periodStart },
-        periodEnd: { lte: period.periodEnd },
-      },
-      data: {
-        status: 'PAID',
-        utrNumber: dto.transactionReference,
-        settledAt: new Date(),
-        adminId: adminUserId,
-        notes: dto.notes,
-      },
+    
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Find pending settlements
+      const pendingSettlements = await tx.riderSettlement.findMany({
+        where: {
+          driverId,
+          status: 'PENDING',
+          periodStart: { gte: period.periodStart },
+          periodEnd: { lte: period.periodEnd },
+        },
+      });
+
+      if (pendingSettlements.length === 0) {
+        throw new Error('No pending settlements found for this period.');
+      }
+
+      // 2. Calculate total pending
+      let totalPending = 0;
+      for (const s of pendingSettlements) {
+        totalPending += Number(s.netPayable || 0);
+      }
+
+      if (totalPending <= 0) {
+        throw new Error('Total payable amount must be greater than zero.');
+      }
+
+      // 3. Mark as PAID atomically
+      await tx.riderSettlement.updateMany({
+        where: {
+          id: { in: pendingSettlements.map((s) => s.id) },
+          status: 'PENDING', // concurrency check
+        },
+        data: {
+          status: 'PAID',
+          utrNumber: dto.transactionReference || 'MANUAL',
+          settledAt: new Date(),
+          adminId: adminUserId,
+          notes: dto.notes,
+        },
+      });
+
+      // 4. Create Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: 'UPDATE',
+          entityName: 'RiderSettlement', entityId: driverId, newValue: {
+            driverId,
+            period,
+            amount: totalPending,
+            settlementIds: pendingSettlements.map(s => s.id),
+            method: dto.paymentMethod,
+            reference: dto.transactionReference
+          },
+          ipAddress: '127.0.0.1',
+        },
+      });
+
+      return { success: true, message: 'Rider settlement marked as paid.', amount: totalPending };
     });
-    return { success: true, message: 'Rider settlement marked as paid.' };
   }
 
   async getUnifiedTransactions(p1?: any, p2?: any, p3?: any) {
@@ -493,3 +593,5 @@ export class SettlementsService {
     return { data: [] };
   }
 }
+
+
