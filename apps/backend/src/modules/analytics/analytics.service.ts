@@ -327,6 +327,7 @@ export class AnalyticsService {
       pendingOrdersCount,
       topItems,
       reviews,
+      activeSettlements,
     ] = await Promise.all([
       this.prisma.order.aggregate({
         where: { restaurantId, createdAt: { gte: fromDate }, paymentStatus: 'COMPLETED' },
@@ -355,6 +356,10 @@ export class AnalyticsService {
         _avg: { rating: true },
         _count: { id: true },
       }),
+      this.prisma.restaurantSettlement.aggregate({
+        where: { restaurantId, periodStart: { gte: fromDate } },
+        _sum: { netPayable: true, commissionAmount: true },
+      }),
     ]);
 
     // Build the weekly breakdown for the chart, adjusted to the range
@@ -382,6 +387,8 @@ export class AnalyticsService {
 
     return {
       activeRevenue,
+      activeNetPayout: Number(activeSettlements?._sum?.netPayable || 0),
+      activeCommission: Number(activeSettlements?._sum?.commissionAmount || 0),
       activeOrdersCount: activeSales._count.id,
       todayRevenue: Number(todaySales._sum.totalAmount || 0),
       todayOrders: todaySales._count.id,
@@ -627,4 +634,7 @@ export class AnalyticsService {
     return '';
   }
 }
+
+
+
 
