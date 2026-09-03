@@ -37,7 +37,7 @@ export default function RiderFinanceDetailPage() {
   if (!data) return <div className="p-8 text-gray-500">No data found</div>;
 
   const rider = data.driver || {};
-  const stats = data.summary || {};
+  const stats = data.financialSummary || {};
   const deliveries = data.deliveries || [];
 
   return (
@@ -58,19 +58,19 @@ export default function RiderFinanceDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Deliveries</p>
-          <p className="text-2xl font-black text-gray-900">{stats.totalDeliveries || 0}</p>
+          <p className="text-2xl font-black text-gray-900">{stats.totalDeliveries || deliveries.length || 0}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gross Payout</p>
-          <p className="text-2xl font-black text-gray-900">?{stats.totalPayout?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-gray-900">?{Number(stats.totalEarnings || 0).toFixed(2)}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Amount Paid</p>
-          <p className="text-2xl font-black text-green-600">?{stats.totalPaid?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-green-600">?{Number(stats.paidAmount || 0).toFixed(2)}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
-          <p className="text-2xl font-black text-red-600">?{stats.totalPending?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-red-600">?{Number(stats.pendingAmount || 0).toFixed(2)}</p>
         </div>
       </div>
 
@@ -97,11 +97,11 @@ export default function RiderFinanceDetailPage() {
               ) : (
                 deliveries.map((d: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50/50">
-                    <td className="p-4 font-mono text-xs">{d.order?.orderNumber || d.orderId?.slice(0, 8)}</td>
-                    <td className="p-4 text-gray-500">{new Date(d.periodStart).toLocaleDateString()}</td>
-                    <td className="p-4 text-gray-900">?{d.basePayoutAmount?.toFixed(2)}</td>
-                    <td className="p-4 text-gray-900">?{d.distancePayout?.toFixed(2)}</td>
-                    <td className="p-4 text-purple-700 font-bold text-right">?{d.netPayable?.toFixed(2)}</td>
+                    <td className="p-4 font-mono text-xs">{d.orderNumber || d.orderId?.slice(0, 8)}</td>
+                    <td className="p-4 text-gray-500">{d.deliveredAt ? new Date(d.deliveredAt).toLocaleDateString() : '-'}</td>
+                    <td className="p-4 text-gray-900">?{Number(d.basePayout || 0).toFixed(2)}</td>
+                    <td className="p-4 text-gray-900">?{Number(d.distancePayout || 0).toFixed(2)}</td>
+                    <td className="p-4 text-purple-700 font-bold text-right">?{Number(d.totalEarning || 0).toFixed(2)}</td>
                   </tr>
                 ))
               )}

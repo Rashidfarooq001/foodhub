@@ -37,7 +37,7 @@ export default function RestaurantFinanceDetailPage() {
   if (!data) return <div className="p-8 text-gray-500">No data found</div>;
 
   const restaurant = data.restaurant || {};
-  const stats = data.summary || {};
+  const stats = data.financialSummary || {};
   const orders = data.orders || [];
 
   return (
@@ -58,19 +58,19 @@ export default function RestaurantFinanceDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Orders</p>
-          <p className="text-2xl font-black text-gray-900">{stats.totalOrders || 0}</p>
+          <p className="text-2xl font-black text-gray-900">{stats.orderCount || orders.length || 0}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gross Sales</p>
-          <p className="text-2xl font-black text-gray-900">?{stats.totalGrossSales?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-gray-900">?{Number(stats.grossSales || 0).toFixed(2)}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Net Payable</p>
-          <p className="text-2xl font-black text-purple-600">?{stats.totalPayable?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-purple-600">?{Number(stats.netPayable || 0).toFixed(2)}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Amount Paid</p>
-          <p className="text-2xl font-black text-green-600">?{stats.totalPaid?.toFixed(2) || '0.00'}</p>
+          <p className="text-2xl font-black text-green-600">?{Number(stats.paidAmount || 0).toFixed(2)}</p>
         </div>
       </div>
 
@@ -97,11 +97,11 @@ export default function RestaurantFinanceDetailPage() {
               ) : (
                 orders.map((o: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50/50">
-                    <td className="p-4 font-mono text-xs">{o.order?.orderNumber || o.orderId?.slice(0, 8)}</td>
-                    <td className="p-4 text-gray-900">?{o.grossSalesAmount?.toFixed(2)}</td>
-                    <td className="p-4 text-red-600">-?{o.commissionAmount?.toFixed(2)}</td>
-                    <td className="p-4 text-red-600">-?{o.commissionGstAmount?.toFixed(2)}</td>
-                    <td className="p-4 text-purple-700 font-bold text-right">?{o.netPayable?.toFixed(2)}</td>
+                    <td className="p-4 font-mono text-xs">{o.orderNumber || o.orderId?.slice(0, 8)}</td>
+                    <td className="p-4 text-gray-900">?{Number(o.totalAmount || 0).toFixed(2)}</td>
+                    <td className="p-4 text-red-600">-?{Number(o.commissionAmount || 0).toFixed(2)}</td>
+                    <td className="p-4 text-red-600">-?{Number((Number(o.commissionAmount || 0) * 0.18)).toFixed(2)}</td>
+                    <td className="p-4 text-purple-700 font-bold text-right">?{Number(o.netPayable || 0).toFixed(2)}</td>
                   </tr>
                 ))
               )}
