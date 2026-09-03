@@ -188,7 +188,11 @@ export class OrderLifecycleService {
       contactName: delAddr.name || 'Customer',
     };
 
-    const riderPayout = Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+    const snap: any = order.pricingSnapshot || {};
+    const snapRiderPayout = snap.riderPayout;
+    const riderPayout = snapRiderPayout != null 
+      ? Number(snapRiderPayout) 
+      : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
 
     const deliveryJobPayload = {
       create: {
@@ -815,7 +819,11 @@ export class OrderLifecycleService {
           contactName: order.deliveryAddress ? delAddr?.name || 'Customer' : 'Customer',
         };
 
-        const riderPayout = Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+        const snap: any = order.pricingSnapshot || {};
+      const snapRiderPayout = snap.riderPayout;
+      const riderPayout = snapRiderPayout != null 
+        ? Number(snapRiderPayout) 
+        : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
 
         updatedJob = await tx.deliveryJob.upsert({
           where: { orderId: order.id },
@@ -1257,7 +1265,7 @@ export class OrderLifecycleService {
             Math.max(0, (snap.deliveryDistanceKm || 0) - (snap.deliveryFeeBaseKm || 3))
           : 0;
       const netPayout = Number(
-        order.deliveryJob.riderPayout ||
+        order.deliveryJob.riderPayout ??
           Math.max(30, Math.round(Number(order.deliveryJob.deliveryFee || 40) * 0.8)),
       );
 
