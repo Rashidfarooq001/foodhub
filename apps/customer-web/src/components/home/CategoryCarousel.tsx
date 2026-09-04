@@ -141,8 +141,8 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
               <div
                 className={`relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full p-0.5 transition-all duration-200 ${
                   isSelected
-                    ? 'ring-2 ring-rose-600 ring-offset-2 scale-105 shadow-md shadow-rose-500/20'
-                    : 'hover:scale-105 shadow-sm border border-gray-100 bg-gray-50'
+                    ? 'ring-2 ring-rose-600 ring-offset-2 shadow-md shadow-rose-500/20'
+                    : 'shadow-sm border border-gray-100 bg-gray-50'
                 }`}
               >
                 {cat.image ? (
@@ -165,13 +165,18 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
               <span
                 className={`text-[11px] sm:text-xs text-center transition-colors max-w-[70px] truncate ${
                   isSelected
-                    ? 'font-black text-rose-600'
+                    ? 'font-bold text-rose-600'
                     : 'font-bold text-gray-700 group-hover:text-gray-900'
                 }`}
               >
                 {cat.name}
               </span>
-              {isSelected && <div className="h-0.5 w-6 rounded-full bg-rose-600 -mt-1" />}
+              {/* Unconditionally render the underline to reserve exact vertical space */}
+              <div 
+                className={`h-0.5 w-6 rounded-full transition-colors -mt-1 ${
+                  isSelected ? 'bg-rose-600' : 'bg-transparent'
+                }`} 
+              />
             </button>
           );
         })}
