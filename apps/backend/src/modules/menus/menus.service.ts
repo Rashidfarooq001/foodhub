@@ -416,7 +416,7 @@ export class MenusService {
         restaurantId: original.restaurantId,
         categoryId: original.categoryId,
         subCategoryId: original.subCategoryId,
-        name: `${original.name} (Copy)`,
+        name: original.name,
         description: original.description,
         price: original.price,
         imageUrl: original.imageUrl,
