@@ -32,4 +32,12 @@ export class NotificationsService {
       where: { endpoint },
     }).catch(() => null); // Ignore if already deleted
   }
+
+  async getUserNotifications(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50, // Limit to recent 50
+    });
+  }
 }

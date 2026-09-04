@@ -79,9 +79,6 @@ export class WebPushService implements OnModuleInit {
     audience: string, // 'CUSTOMERS', 'RESTAURANTS', 'RIDERS'
     payload: { title: string; body: string; url?: string }
   ) {
-    if (!this.isConfigured) return { success: 0, failed: 0, total: 0 };
-
-    // Map audience label to actual DB roles
     const roleMap: Record<string, string[]> = {
       CUSTOMERS: ['CUSTOMER'],
       RESTAURANTS: ['RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF'],
@@ -90,13 +87,33 @@ export class WebPushService implements OnModuleInit {
     const roles = roleMap[audience] ?? ['CUSTOMER'];
 
     try {
+      // 1. Save In-App Notifications for ALL matching active users
+      const users = await this.prisma.user.findMany({
+        where: { role: { in: roles as any[] }, isActive: true },
+        select: { id: true },
+      });
+
+      if (users.length > 0) {
+        const notificationsData = users.map((u) => ({
+          userId: u.id,
+          type: 'SYSTEM' as any,
+          title: payload.title,
+          message: payload.body,
+          status: 'SENT' as any,
+        }));
+        
+        for (let i = 0; i < notificationsData.length; i += 1000) {
+          await this.prisma.notification.createMany({
+            data: notificationsData.slice(i, i + 1000),
+          });
+        }
+      }
+
+      // 2. Send Web Push to those who have subscriptions
+      if (!this.isConfigured) return { success: 0, failed: 0, total: 0 };
+
       const subscriptions = await this.prisma.pushSubscription.findMany({
-        where: {
-          user: {
-            role: { in: roles as any[] },
-            isActive: true,
-          },
-        },
+        where: { user: { role: { in: roles as any[] }, isActive: true } },
       });
 
       if (subscriptions.length === 0) return { success: 0, failed: 0, total: 0 };

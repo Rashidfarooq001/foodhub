@@ -1,4 +1,4 @@
-import { Controller, Post, Delete, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Req, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -19,5 +19,10 @@ export class NotificationsController {
       await this.notificationsService.removeSubscription(endpoint);
     }
     return { success: true };
+  }
+
+  @Get()
+  async getUserNotifications(@Req() req) {
+    return this.notificationsService.getUserNotifications(req.user.id);
   }
 }

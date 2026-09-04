@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -24,6 +24,7 @@ interface NotificationItem {
   title: string;
   message: string;
   time: string;
+  timestamp?: number;
   type:
     | 'PLACED'
     | 'ACCEPTED'
@@ -48,27 +49,28 @@ export default function NotificationsPage() {
       }
 
       try {
-        // Fetch user's orders to derive real order notifications
-        const res = await fetch(`${API_BASE}/orders`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        // Fetch user's orders and real notifications concurrently
+        const [ordersRes, notificationsRes] = await Promise.all([
+          fetch(`${API_BASE}/orders`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+          fetch(`${API_BASE}/notifications`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+        ]);
 
-        if (res.ok) {
-          const ordersData = await res.json();
+        const list: NotificationItem[] = [];
+
+        // 1. Process Orders
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
           const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders ?? []);
-
-          const list: NotificationItem[] = [];
 
           orders.slice(0, 15).forEach((o: any) => {
             const num = o.orderNumber || o.id.slice(0, 8);
             const restName = o.restaurant?.name || 'Restaurant';
-            const dateStr = new Date(o.createdAt || o.placedAt || Date.now()).toLocaleTimeString(
-              [],
-              {
-                hour: '2-digit',
-                minute: '2-digit',
-              },
-            );
+            const dateObj = new Date(o.createdAt || o.placedAt || Date.now());
+            const dateStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             if (o.status === 'DELIVERED') {
               list.push({
@@ -78,6 +80,7 @@ export default function NotificationsPage() {
                 title: `Order #${num} Delivered`,
                 message: `Your meal from ${restName} has been delivered successfully. Enjoy your food!`,
                 time: dateStr,
+                timestamp: dateObj.getTime(),
                 type: 'DELIVERED',
                 isRead: true,
               });
@@ -89,6 +92,7 @@ export default function NotificationsPage() {
                 title: `Order #${num} Out For Delivery`,
                 message: `Delivery partner is heading to your delivery location from ${restName}.`,
                 time: dateStr,
+                timestamp: dateObj.getTime(),
                 type: 'OUT_FOR_DELIVERY',
                 isRead: false,
               });
@@ -100,6 +104,7 @@ export default function NotificationsPage() {
                 title: `Order #${num} is Being Prepared`,
                 message: `${restName} is freshly preparing your dishes right now.`,
                 time: dateStr,
+                timestamp: dateObj.getTime(),
                 type: 'PREPARING',
                 isRead: false,
               });
@@ -111,6 +116,7 @@ export default function NotificationsPage() {
                 title: `Order #${num} Cancelled`,
                 message: `Order #${num} was cancelled. Refund/status details are available in order history.`,
                 time: dateStr,
+                timestamp: dateObj.getTime(),
                 type: 'CANCELLED',
                 isRead: true,
               });
@@ -120,29 +126,52 @@ export default function NotificationsPage() {
                 orderId: o.id,
                 orderNumber: num,
                 title: `Order #${num} Placed`,
-                message: `Order received by ${restName} for ₹${o.totalAmount || o.customerTotal}.`,
+                message: `Order received by ${restName} for ?${o.totalAmount || o.customerTotal}.`,
                 time: dateStr,
+                timestamp: dateObj.getTime(),
                 type: 'PLACED',
                 isRead: false,
               });
             }
           });
-
-          // Add account security notification
-          if (user) {
-            list.push({
-              id: 'notif-security-welcome',
-              title: 'Account Protected',
-              message:
-                'Your Zayka Food account is secured with verified device session encryption.',
-              time: 'Recent',
-              type: 'SECURITY',
-              isRead: true,
-            });
-          }
-
-          setNotifications(list);
         }
+
+        // 2. Process Real Notifications (from Broadcasts)
+        if (notificationsRes.ok) {
+          const notifsData = await notificationsRes.json();
+          const notifs = Array.isArray(notifsData) ? notifsData : [];
+          notifs.forEach((n: any) => {
+            const dateObj = new Date(n.createdAt);
+            const dateStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            list.push({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              time: dateStr,
+              timestamp: dateObj.getTime(),
+              type: 'SYSTEM',
+              isRead: n.status === 'READ',
+            });
+          });
+        }
+
+        // Add account security notification
+        if (user) {
+          list.push({
+            id: 'notif-security-welcome',
+            title: 'Account Protected',
+            message: 'Your Zayka Food account is secured with verified device session encryption.',
+            time: 'Recent',
+            timestamp: 0, // Always at bottom
+            type: 'SECURITY',
+            isRead: true,
+          });
+        }
+
+        // Sort by newest first
+        list.sort((a, b) => b.timestamp - a.timestamp);
+
+        setNotifications(list);
       } catch (err) {
         console.error('Failed to load notifications', err);
       } finally {
@@ -201,6 +230,7 @@ export default function NotificationsPage() {
             const isOfd = n.type === 'OUT_FOR_DELIVERY';
             const isCancelled = n.type === 'CANCELLED';
             const isSecurity = n.type === 'SECURITY';
+            const isSystem = n.type === 'SYSTEM';
 
             const Icon = isDelivered
               ? CheckCircle2
@@ -210,7 +240,9 @@ export default function NotificationsPage() {
                   ? XCircle
                   : isSecurity
                     ? ShieldCheck
-                    : Clock;
+                    : isSystem
+                      ? Bell
+                      : Clock;
 
             return (
               <div
@@ -231,7 +263,9 @@ export default function NotificationsPage() {
                           ? 'bg-rose-100 text-rose-600'
                           : isSecurity
                             ? 'bg-blue-100 text-blue-600'
-                            : 'bg-orange-100 text-orange-600'
+                            : isSystem
+                              ? 'bg-purple-100 text-purple-600'
+                              : 'bg-orange-100 text-orange-600'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
