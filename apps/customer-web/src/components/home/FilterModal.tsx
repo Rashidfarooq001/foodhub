@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { X, Check, SlidersHorizontal, Clock, Star, MapPin, Tag, RotateCcw } from 'lucide-react';
@@ -115,7 +115,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   onClick={() => setDraftFilters({ ...draftFilters, sortBy: option.id as any })}
                   className={`flex items-center justify-between rounded-xl border p-2.5 text-left text-xs font-bold transition ${
                     active
-                      ? 'border-rose-600 bg-rose-50/60 text-rose-700 font-black shadow-sm'
+                      ? 'border-rose-600 bg-rose-50/60 text-rose-700 shadow-sm'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -201,7 +201,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 font-black text-xs">
-                  🌱
+                  ??
                 </div>
                 <div>
                   <p className="text-xs font-black text-gray-900">Pure Veg Only</p>
