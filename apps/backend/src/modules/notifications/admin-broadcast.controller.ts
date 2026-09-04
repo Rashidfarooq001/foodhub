@@ -14,7 +14,7 @@ export class AdminBroadcastController {
   @Post('broadcast')
   async sendBroadcast(@Req() req, @Body() body: { audience: string; title: string; message: string; url?: string }) {
     // 1. Enforce Admin Role
-    const adminUser = await this.prisma.user.findUnique({ where: { id: req.user.userId } });
+    const adminUser = await this.prisma.user.findUnique({ where: { id: req.user.id } });
     if (!adminUser || (adminUser.role !== 'ADMIN' && adminUser.role !== 'SUPER_ADMIN')) {
       throw new ForbiddenException('Only admins can broadcast notifications.');
     }
