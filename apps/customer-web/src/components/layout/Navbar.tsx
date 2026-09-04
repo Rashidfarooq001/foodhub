@@ -6,13 +6,16 @@ import { usePathname, useRouter } from 'next/navigation';
 import { PartnerHeader } from './PartnerHeader';
 import { Search, User, LogOut, Home, Clock, ChevronDown, Utensils, Bell } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { getApiBaseUrl } from '@foodhub/config';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, accessToken } = useAuthStore();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const pushAuth = usePushNotifications();
 
   // Use partner header on partner routes
   if (pathname?.startsWith('/restaurant/register') || pathname?.startsWith('/driver/register')) {
@@ -75,13 +78,19 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Notification Icon */}
-          <Link
-            href="/notifications"
+          <button
+            onClick={async () => {
+              if (isAuthenticated && pushAuth.permission !== 'granted') {
+                const url = `${getApiBaseUrl().replace('/customer', '')}/notifications/subscribe`;
+                await pushAuth.subscribeToPush(url, accessToken || '');
+              }
+              router.push('/notifications');
+            }}
             className="flex h-9 w-9 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-rose-600 transition"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
-          </Link>
+          </button>
 
           {/* Sign In / Profile Identity */}
           {isAuthenticated && user ? (
