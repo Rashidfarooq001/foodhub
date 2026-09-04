@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { getApiBaseUrl } from '@foodhub/config';
 import { Utensils } from 'lucide-react';
 
@@ -81,7 +82,7 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   },
 ];
 
-export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCategory }) => {
+export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> = ({ selectedCategory, onSelectCategory, initialCategories = [] }) => {
   const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -102,7 +103,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
         // silent fallback to default categories
       }
     };
-    fetchCategories();
+    if (categories.length === 0) fetchCategories();
     return () => {
       isMounted = false;
     };
@@ -150,16 +151,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
                 style={isSelected ? { boxShadow: '0 0 0 2px #e11d48' } : undefined}
               >
                 {cat.image ? (
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="h-full w-full rounded-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                  <Image src={cat.image} alt={cat.name} fill sizes="72px" className="rounded-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600">
                     <span className="font-black text-sm sm:text-base tracking-tight">ALL</span>
@@ -186,3 +178,4 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
     </div>
   );
 };
+
