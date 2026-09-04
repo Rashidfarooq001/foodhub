@@ -134,57 +134,59 @@ export default function InvoicePage() {
           </div>
 
           {/* RESTAURANT SETTLEMENT */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-purple-50 border-b border-purple-100 px-4 py-3 flex items-center gap-3">
-              <Store className="w-5 h-5 text-purple-700" />
-              <div>
-                <h2 className="font-black text-purple-900">{restaurantStatement.title}</h2>
-                <p className="text-[10px] uppercase font-bold text-purple-600 tracking-wider">
-                  Merchant: {parties.restaurant.name}
-                </p>
+          {restaurantStatement && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-purple-50 border-b border-purple-100 px-4 py-3 flex items-center gap-3">
+                <Store className="w-5 h-5 text-purple-700" />
+                <div>
+                  <h2 className="font-black text-purple-900">{restaurantStatement.title}</h2>
+                  <p className="text-[10px] uppercase font-bold text-purple-600 tracking-wider">
+                    Merchant: {parties.restaurant.name}
+                  </p>
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-gray-50">
+                    <tr className="flex justify-between py-2">
+                      <td className="text-gray-900 font-bold">Gross Eligible Sales</td>
+                      <td className="font-black text-gray-900">
+                        ₹{restaurantStatement.grossSales.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr className="flex justify-between py-2">
+                      <td className="text-gray-500">
+                        Commission ({restaurantStatement.commissionRate}%)
+                      </td>
+                      <td className="font-bold text-red-600">
+                        -₹{restaurantStatement.commissionDeduction.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr className="flex justify-between py-2">
+                      <td className="text-gray-500">GST on Commission (18%)</td>
+                      <td className="font-bold text-red-600">
+                        -₹{restaurantStatement.commissionGstDeduction.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr className="flex justify-between py-2">
+                      <td className="text-gray-400 line-through">Customer Platform Fee</td>
+                      <td className="font-bold text-gray-400">₹0.00</td>
+                    </tr>
+                    <tr className="flex justify-between py-3 mt-2 border-t-2 border-gray-100 bg-emerald-50/50 -mx-6 px-4">
+                      <td className="font-black text-emerald-900 uppercase">Net Payable</td>
+                      <td className="font-black text-xl text-emerald-700">
+                        ₹{restaurantStatement.netPayable.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg p-3 italic">
+                  * Note: Platform fee is strictly excluded from restaurant deductions per ZaykaFood
+                  financial rules.
+                </div>
               </div>
             </div>
-            <div className="p-4 space-y-4">
-              <table className="w-full text-sm">
-                <tbody className="divide-y divide-gray-50">
-                  <tr className="flex justify-between py-2">
-                    <td className="text-gray-900 font-bold">Gross Eligible Sales</td>
-                    <td className="font-black text-gray-900">
-                      ₹{restaurantStatement.grossSales.toFixed(2)}
-                    </td>
-                  </tr>
-                  <tr className="flex justify-between py-2">
-                    <td className="text-gray-500">
-                      Commission ({restaurantStatement.commissionRate}%)
-                    </td>
-                    <td className="font-bold text-red-600">
-                      -₹{restaurantStatement.commissionDeduction.toFixed(2)}
-                    </td>
-                  </tr>
-                  <tr className="flex justify-between py-2">
-                    <td className="text-gray-500">GST on Commission (18%)</td>
-                    <td className="font-bold text-red-600">
-                      -₹{restaurantStatement.commissionGstDeduction.toFixed(2)}
-                    </td>
-                  </tr>
-                  <tr className="flex justify-between py-2">
-                    <td className="text-gray-400 line-through">Customer Platform Fee</td>
-                    <td className="font-bold text-gray-400">₹0.00</td>
-                  </tr>
-                  <tr className="flex justify-between py-3 mt-2 border-t-2 border-gray-100 bg-emerald-50/50 -mx-6 px-4">
-                    <td className="font-black text-emerald-900 uppercase">Net Payable</td>
-                    <td className="font-black text-xl text-emerald-700">
-                      ₹{restaurantStatement.netPayable.toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg p-3 italic">
-                * Note: Platform fee is strictly excluded from restaurant deductions per ZaykaFood
-                financial rules.
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Items Breakdown */}
