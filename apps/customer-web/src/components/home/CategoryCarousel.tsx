@@ -126,7 +126,7 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
 
   return (
     <div className="w-full">
-      <div className="flex md:grid md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 items-center gap-3.5 sm:gap-4 md:gap-y-6 overflow-x-auto md:overflow-x-visible pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex md:grid md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 items-start gap-3.5 sm:gap-4 md:gap-y-6 overflow-x-auto md:overflow-x-visible pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {allItems.map((cat) => {
           const isSelected =
             (selectedCategory === '' && cat.id === 'all') ||
@@ -138,12 +138,16 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
               onClick={() => onSelectCategory(cat.id === 'all' ? '' : cat.name)}
               className="group flex flex-col items-center gap-1.5 shrink-0 focus:outline-none"
             >
+              {/*
+                Use a fixed outer wrapper div that NEVER changes size.
+                The border is always 1px, the padding is always 2px.
+                The rose ring is drawn as a box-shadow (outset) so it
+                occupies ZERO layout space — it draws outside the element
+                without pushing anything.
+              */}
               <div
-                className={`relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full p-0.5 transition-all duration-200 ${
-                  isSelected
-                    ? 'ring-2 ring-rose-600 ring-offset-2 shadow-md shadow-rose-500/20'
-                    : 'shadow-sm border border-gray-100 bg-gray-50'
-                }`}
+                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full p-0.5 border border-gray-200 bg-gray-50 flex items-center justify-center transition-shadow duration-200"
+                style={isSelected ? { boxShadow: '0 0 0 2px #e11d48' } : undefined}
               >
                 {cat.image ? (
                   <img
@@ -163,19 +167,17 @@ export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCa
                 )}
               </div>
               <span
-                className={`text-[11px] sm:text-xs text-center transition-colors max-w-[70px] truncate ${
-                  isSelected
-                    ? 'font-bold text-rose-600'
-                    : 'font-bold text-gray-700 group-hover:text-gray-900'
+                className={`text-[11px] sm:text-xs text-center transition-colors max-w-[70px] truncate font-bold ${
+                  isSelected ? 'text-rose-600' : 'text-gray-700 group-hover:text-gray-900'
                 }`}
               >
                 {cat.name}
               </span>
-              {/* Unconditionally render the underline to reserve exact vertical space */}
-              <div 
+              {/* Always in DOM, transparent when not selected — reserves exact 2px vertical space */}
+              <div
                 className={`h-0.5 w-6 rounded-full transition-colors -mt-1 ${
                   isSelected ? 'bg-rose-600' : 'bg-transparent'
-                }`} 
+                }`}
               />
             </button>
           );
