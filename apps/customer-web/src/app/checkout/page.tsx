@@ -296,7 +296,7 @@ export default function CheckoutPage() {
         isDefault: false,
       };
 
-      addAddress(gpsAddr);
+      addAddress(gpsAddr, true);
       setDeliveryAddress('current-location');
       setShowCustomAddressModal(false);
     } else {
@@ -350,7 +350,7 @@ export default function CheckoutPage() {
           isDefault: false,
         };
 
-        addAddress(newAddr as any);
+        addAddress(newAddr as any, true);
         setDeliveryAddress(newAddr.id);
         setShowCustomAddressModal(false);
 
@@ -689,7 +689,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="bg-gray-50 text-gray-900 pb-28">
+      <div className="bg-gray-50 text-gray-900 pb-24">
         {/* Mobile-first Header */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
           <div className="mx-auto max-w-2xl flex items-center gap-3">
@@ -729,7 +729,7 @@ export default function CheckoutPage() {
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
-                   {currentLocation?.label || 'CURRENT LOCATION'}
+                   CURRENT LOCATION
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
                    {currentLocation ? `${currentLocation.addressLine1}, ${currentLocation.city}` : 'No address selected'}
@@ -768,8 +768,7 @@ export default function CheckoutPage() {
                  <div key={item.id} className="flex justify-between text-xs items-center gap-2">
                    <div className="flex items-center gap-2 flex-1 min-w-0">
                      <span className="font-bold text-gray-900 text-[11px] bg-gray-100 px-1.5 py-0.5 rounded text-center min-w-[24px]">
-                       {item.quantity}Ã—
-                     </span>
+                       {item.quantity}×</span>
                      <span className="font-bold text-gray-800 truncate leading-snug">{item.name}</span>
                    </div>
                    <span className="font-black text-gray-900 shrink-0">{formatCurrency(item.price * item.quantity)}</span>
@@ -860,7 +859,7 @@ export default function CheckoutPage() {
           {/* 6. PRICE BREAKDOWN */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
              <h2 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wide">
-               <span>ðŸ’°</span> Price Breakdown
+               <Banknote className="w-5 h-5 text-gray-900" /> PRICE BREAKDOWN
              </h2>
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
@@ -943,7 +942,7 @@ export default function CheckoutPage() {
                       ? 'CHECK DISTANCE'
                       : !isDeliveryEligible 
                         ? 'OUT OF RANGE' 
-                        : (paymentMethod === 'COD' ? 'PLACE ORDER â†’' : 'PROCEED TO PAYMENT â†’')}
+                        : (paymentMethod === 'COD' ? (<span className="flex items-center gap-1">PLACE ORDER <ArrowRight className="w-4 h-4" /></span>) : (<span className="flex items-center gap-1">PROCEED TO PAYMENT <ArrowRight className="w-4 h-4" /></span>))}
               </span>
             </button>
           </div>
