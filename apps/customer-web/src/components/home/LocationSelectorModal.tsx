@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Navigation2 } from 'lucide-react';
+import { X, MapPin } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-store';
+import { useAddressStore } from '../../stores/use-address-store';
+import type { CustomerAddressItem } from '../../stores/use-address-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
@@ -155,7 +156,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
               className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 h-[68px] text-left transition hover:bg-orange-50 hover:border-orange-100 group disabled:opacity-50"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-orange-600 group-hover:scale-110 transition-transform">
-                <Navigation2 className="h-[18px] w-[18px]" />
+                <MapPin className="h-[18px] w-[18px]" />
               </div>
               <div className="flex-1 overflow-hidden">
                 <h3 className="font-bold text-sm text-gray-900 truncate">Use Current Location</h3>

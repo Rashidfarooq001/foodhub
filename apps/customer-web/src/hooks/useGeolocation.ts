@@ -1,9 +1,6 @@
 import { useState, useCallback } from 'react';
-import {
-  BrowserLocationService,
-  GeoLocationResult,
-  ReverseGeocodeResult,
-} from '../services/browser-location';
+import { BrowserLocationService } from '../services/browser-location';
+import type { GeoLocationResult, ReverseGeocodeResult } from '../services/browser-location';
 
 export type GeolocationState =
   'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'timeout' | 'error';
