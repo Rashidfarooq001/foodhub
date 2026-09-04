@@ -28,14 +28,11 @@ jobs:
       - name: Install Monorepo Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Monorepo Type-Check
-        run: pnpm type-check
-
       - name: Generate Prisma Client
         run: pnpm --filter backend prisma:generate
 
-      - name: Build Monorepo Bundles
-        run: pnpm build
+      - name: Monorepo Validate
+        run: pnpm validate
 
   docker-build:
     name: Build & Verify Production Containers

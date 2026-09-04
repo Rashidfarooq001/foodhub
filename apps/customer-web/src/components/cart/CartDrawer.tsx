@@ -89,8 +89,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               <p className="text-xs text-gray-500">{restaurantName || 'Empty Cart'}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
+          <button aria-label="Close cart" onClick={onClose}
             className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
@@ -160,22 +159,19 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
                     <div className="flex items-center gap-3">
                       <div className="flex items-center rounded-xl bg-gray-100 text-gray-800">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        <button aria-label="Decrease quantity" onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="p-1 hover:bg-gray-200 rounded-l-xl"
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
                         <span className="px-2 text-xs font-bold">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        <button aria-label="Increase quantity" onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           className="p-1 hover:bg-gray-200 rounded-r-xl"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <button
-                        onClick={() => removeItem(item.id)}
+                      <button aria-label="Remove item" onClick={() => removeItem(item.id)}
                         className="text-gray-400 hover:text-rose-500"
                       >
                         <Trash2 className="h-4 w-4" />

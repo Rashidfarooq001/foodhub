@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "tsc --noEmit",
     "clean": "rimraf dist"
   },
@@ -17,3 +17,4 @@
   },
   "type": "module"
 }
+

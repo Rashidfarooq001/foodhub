@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3002",
     "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint .",
-    "type-check": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "tsc --noEmit"
   },
   "dependencies": {
@@ -45,3 +45,6 @@
     "typescript": "^5.7.2"
   }
 }
+
+
+

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Clock, MapPin, Tag } from 'lucide-react';
 import { RestaurantData } from '../../data/mock-data';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
+  const [imgSrc, setImgSrc] = useState(getImageUrl(restaurant.bannerUrl || restaurant.logoUrl));
   return (
     <Link
       href={`/restaurant/${restaurant.slug}`}
@@ -18,17 +20,7 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
     >
       {/* Banner & Badges */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100 shrink-0">
-        <img
-          src={getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)}
-          alt={restaurant.name}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=70';
-          }}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <Image src={imgSrc} alt={restaurant.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={() => setImgSrc('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=70')} />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
@@ -84,3 +76,4 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
     </Link>
   );
 };
+

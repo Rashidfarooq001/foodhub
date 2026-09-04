@@ -229,8 +229,7 @@ export default function CustomerHomePage() {
 
   useEffect(() => {
     fetchRestaurants(userCoords);
-    const interval = setInterval(() => fetchRestaurants(userCoords), 30000);
-    return () => clearInterval(interval);
+
   }, [userCoords]);
 
   // 3. Fetch Customer Favorites from Backend
@@ -831,3 +830,5 @@ export default function CustomerHomePage() {
     </div>
   );
 }
+
+

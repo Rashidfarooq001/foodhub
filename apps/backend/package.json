@@ -7,7 +7,7 @@
     "build": "prisma generate && nest build",
     "start": "prisma db push --accept-data-loss && npx tsx dist/src/main.js",
     "lint": "tsc --noEmit",
-    "type-check": "tsc --noEmit",
+    "typecheck": "prisma generate && tsc --noEmit",
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
@@ -92,3 +92,6 @@
     "testEnvironment": "node"
   }
 }
+
+
+

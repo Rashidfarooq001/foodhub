@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import { Plus, Minus, Star } from 'lucide-react';
 import { FoodItemData } from '../../data/mock-data';
 import { useCartStore } from '../../stores/use-cart-store';
@@ -13,6 +14,7 @@ interface Props {
 
 export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
   const { items, addItem, updateQuantity, removeItem } = useCartStore();
+  const [imgSrc, setImgSrc] = useState(getImageUrl(food.imageUrl));
 
   const hasVariants = Boolean(food.variants && food.variants.length > 0);
   const hasAddons = Boolean(food.addonGroups && food.addonGroups.length > 0);
@@ -96,14 +98,14 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
     >
       {/* 1. Food Image (~55-60% of card visual height) */}
       <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
-        <img
-          src={getImageUrl(food.imageUrl)}
+        <Image
+          src={imgSrc}
           alt={food.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+          fill
+          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={() => {
+            setImgSrc('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80');
           }}
         />
 
@@ -163,26 +165,20 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
             <div>
               {totalInCart > 0 ? (
                 <div className="flex items-center gap-1.5 rounded-lg bg-rose-600 text-white px-2 py-1 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={handleDecrement}
+                  <button aria-label="Decrease quantity" type="button" onClick={handleDecrement}
                     className="flex h-4 w-4 items-center justify-center hover:opacity-80 transition"
                   >
                     <Minus className="h-3 w-3 stroke-[3]" />
                   </button>
                   <span className="text-xs font-black min-w-[12px] text-center">{totalInCart}</span>
-                  <button
-                    type="button"
-                    onClick={handleIncrement}
+                  <button aria-label="Increase quantity" type="button" onClick={handleIncrement}
                     className="flex h-4 w-4 items-center justify-center hover:opacity-80 transition"
                   >
                     <Plus className="h-3 w-3 stroke-[3]" />
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleAddClick}
+                <button aria-label="Add to cart" type="button" onClick={handleAddClick}
                   className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white transition shadow-sm"
                   title="Add to cart"
                 >

@@ -23,4 +23,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Turbo Monorepo
-        run: pnpm build
+        run: pnpm validate

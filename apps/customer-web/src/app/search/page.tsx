@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -32,8 +32,7 @@ function SearchPageInner() {
       }
     };
     fetchRestaurants();
-    const interval = setInterval(fetchRestaurants, 5000);
-    return () => clearInterval(interval);
+
   }, []);
 
   const allFoodItems: FoodItemData[] = restaurants.flatMap(
@@ -188,3 +187,4 @@ export default function SearchPage() {
     </Suspense>
   );
 }
+

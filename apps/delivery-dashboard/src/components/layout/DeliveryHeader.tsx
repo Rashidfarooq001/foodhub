@@ -6,6 +6,7 @@ import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getImageUrl, getApiBaseUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface DeliveryHeaderProps {
   onOpenMobileMenu?: () => void;
@@ -53,7 +54,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
       if (res.ok) {
         setIsOnDuty(newStatus);
         if (newStatus) {
-          await pushAuth.subscribeToPush(${getApiBaseUrl()}/notifications/subscribe, accessToken);
+          await pushAuth.subscribeToPush(`${getApiBaseUrl()}/notifications/subscribe`, accessToken);
         }
         window.location.reload();
       }

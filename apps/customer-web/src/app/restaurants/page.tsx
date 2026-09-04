@@ -31,8 +31,7 @@ export default function AllRestaurantsPage() {
       }
     };
     fetchRestaurants();
-    const interval = setInterval(fetchRestaurants, 5000);
-    return () => clearInterval(interval);
+
   }, []);
 
   // Extract all unique cuisines
@@ -145,3 +144,4 @@ export default function AllRestaurantsPage() {
     </div>
   );
 }
+
