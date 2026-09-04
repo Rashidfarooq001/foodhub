@@ -17,7 +17,7 @@ import Link from 'next/link';
 
 const API_BASE = getApiBaseUrl();
 
-interface NotificationItem {
+  interface NotificationItem {
   id: string;
   orderId?: string;
   orderNumber?: string;
@@ -32,7 +32,8 @@ interface NotificationItem {
     | 'OUT_FOR_DELIVERY'
     | 'DELIVERED'
     | 'CANCELLED'
-    | 'SECURITY';
+    | 'SECURITY'
+    | 'SYSTEM';
   isRead: boolean;
 }
 
@@ -169,7 +170,7 @@ export default function NotificationsPage() {
         }
 
         // Sort by newest first
-        list.sort((a, b) => b.timestamp - a.timestamp);
+        list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
         setNotifications(list);
       } catch (err) {
