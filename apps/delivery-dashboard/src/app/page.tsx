@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -70,6 +70,20 @@ export default function DeliveryDashboardPage() {
             setLocationError(`Network Error: ${e.message}`);
           });
 
+        const fetchAvailableJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
+          .then(async r => {
+            if (r.ok) {
+              const text = await r.text();
+              try {
+                const parsed = text ? JSON.parse(text) : null;
+                const jobsPayload = parsed?.data || parsed || [];
+                setAvailableJobs(Array.isArray(jobsPayload) ? jobsPayload : []);
+              } catch (e: any) {
+                console.error("Parse Error on available jobs:", e);
+              }
+            }
+          }).catch(console.error);
+
         const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
           .then(async r => {
             if (r.ok) {
@@ -81,7 +95,7 @@ export default function DeliveryDashboardPage() {
             }
           }).catch(console.error);
 
-        await Promise.all([fetchStats, fetchActiveJobs, fetchStatus]);
+        await Promise.all([fetchStats, fetchActiveJobs, fetchAvailableJobs, fetchStatus]);
       } catch (e: any) {
         console.error("fetchDashboardData top-level error:", e);
       } finally {
