@@ -174,114 +174,8 @@ export default function CustomerHomePage() {
         }
       }
 
-      // C. Request browser GPS with finite timeout and error handling
-      if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-        if (isMounted) {
-          setLocationStatus('requesting');
-          setLocationLabel('Detecting location...');
-          setLocationAddress('Please allow GPS access');
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            if (!isMounted) return;
-
-            const coords = { lat, lng };
-            setUserCoords(prev => {
-            if (prev && prev.lat === coords.lat && prev.lng === coords.lng) return prev;
-            return coords;
-          });
-            setLocationStatus('resolving');
-
-            try {
-              const geoRes = await fetch(
-                `${API_BASE}/geolocation/reverse-geocode?lat=${lat}&lng=${lng}`,
-              );
-              if (geoRes.ok) {
-                const geoData = await geoRes.json();
-                if (geoData && isMounted) {
-                  const locality = (
-                    geoData.locality ||
-                    geoData.village ||
-                    geoData.subLocality ||
-                    ''
-                  ).trim();
-                  const subDistrict = (geoData.subDistrict || '').trim();
-                  const district = (geoData.district || geoData.city || '').trim();
-                  const state = (geoData.state || 'Jammu & Kashmir').trim();
-                  const pincode = (geoData.pincode || geoData.postalCode || '').trim();
-
-                  const specificName = locality || subDistrict || district || 'Current Location';
-                  const cleanAddress =
-                    geoData.formattedAddress ||
-                    [locality, subDistrict, district, state].filter(Boolean).join(', ');
-                  const addressLine2 = [subDistrict, district]
-                    .filter(Boolean)
-                    .filter((d) => d !== specificName)
-                    .join(', ');
-
-                  setLocationLabel(specificName);
-                  setLocationAddress(cleanAddress);
-                  setLocationStatus('resolved');
-
-                  // Save into authoritative address store
-                  addAddress({
-                    id: 'current-location',
-                    label: 'Current Location',
-                    placeName: specificName,
-                    addressLine1: specificName,
-                    addressLine2: addressLine2 || undefined,
-                    city: district || 'Jammu & Kashmir',
-                    state: state,
-                    postalCode: pincode,
-                    latitude: lat,
-                    longitude: lng,
-                    locationSource: 'CURRENT_GPS',
-                    verificationStatus: 'VERIFIED',
-                    isDefault: false,
-                  });
-                  setSelectedAddress('current-location');
-                  fetchRestaurants(coords);
-                  return;
-                }
-              }
-            } catch {
-              // fallback
-            }
-
             if (isMounted) {
-              setLocationLabel('Current Location');
-              setLocationAddress('Location verified via GPS');
-              setLocationStatus('resolved');
-              fetchRestaurants(coords);
-            }
-          },
-          (err) => {
-            if (!isMounted) return;
-            setLocationLabel('Location');
-            if (err.code === err.PERMISSION_DENIED) {
-              setLocationAddress('Tap to set delivery location');
-              setLocationStatus('permission-denied');
-            } else if (err.code === err.TIMEOUT) {
-              setLocationAddress('GPS timed out — Tap to select location');
-              setLocationStatus('timeout');
-            } else {
-              setLocationAddress('Tap to select delivery location');
-              setLocationStatus('failed');
-            }
-            fetchRestaurants();
-          },
-          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
-        );
-      } else {
-        if (isMounted) {
-          setLocationLabel('Location');
-          setLocationAddress('Tap to select delivery location');
-          setLocationStatus('unavailable');
-          fetchRestaurants();
-        }
+        fetchRestaurants();
       }
     };
 
@@ -302,7 +196,10 @@ export default function CustomerHomePage() {
       const url = coords
         ? `${API_BASE}/restaurants?lat=${coords.lat}&lng=${coords.lng}`
         : `${API_BASE}/restaurants`;
+
+      console.log('[fetchRestaurants] Fetching:', url);
       const res = await fetch(url);
+
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.restaurants ?? []);
@@ -314,18 +211,21 @@ export default function CustomerHomePage() {
         } catch {
           // ignore quota
         }
-      } else if (restaurants.length === 0) {
-        setIsError(true);
+      } else {
+        console.error('[fetchRestaurants] Not ok:', res.status, res.statusText);
+        if (restaurants.length === 0) {
+          setIsError(true);
+        }
       }
     } catch (err) {
-      console.error('Failed to load restaurants from backend', err);
+      console.error('[fetchRestaurants] Failed to load restaurants from backend', err);
       if (restaurants.length === 0) {
         setIsError(true);
-        }
-      } finally {
-        setIsLoading(false);
       }
-    }, [userCoords]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userCoords, restaurants.length]);
 
   useEffect(() => {
     fetchRestaurants(userCoords);

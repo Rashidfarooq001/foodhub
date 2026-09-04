@@ -22,6 +22,7 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import { OrderQuoteService } from '../tax/order-quote.service';
 import { hashOtp } from './order-lifecycle.service';
 import * as crypto from 'crypto';
+import { WebPushService } from '../notifications/web-push.service';
 
 /** Generates a unique order number like FH-948210 */
 function generateOrderNumber(): string {
@@ -41,6 +42,7 @@ export class OrdersService {
     private readonly gateway: OrdersGateway,
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
+    private readonly webPushService: WebPushService,
   ) {}
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
@@ -380,6 +382,11 @@ export class OrdersService {
     // the restaurant queue until server-side payment verification succeeds.
     // The PaymentsService emits ORDER_CREATED after verifyPayment() or the Razorpay webhook fires.
     if (dto.paymentMethod === 'COD') {
+      this.webPushService.sendPushNotification(dto.restaurantId, {
+        title: 'New Order Received',
+        body: `Order #${order.orderNumber} for ₹${order.totalAmount} is waiting for acceptance.`,
+        url: '/orders',
+      });
       this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
         orderId: order.id,
         orderNumber: order.orderNumber,

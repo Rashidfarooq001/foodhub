@@ -220,6 +220,8 @@ model User {
   wallet          Wallet?
   auditLogs       AuditLog[]
   notifications   Notification[]
+  pushSubscriptions PushSubscription[]
+  broadcastsSent  BroadcastMessage[]
 
   privacyConsents   PrivacyConsent[]
   privacyRequests   PrivacyRequest[]
@@ -1380,6 +1382,34 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model BroadcastMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  adminUserId    String   @map("admin_user_id") @db.Uuid
+  targetAudience String   @map("target_audience")
+  title          String
+  message        String
+  status         String   @default("QUEUED")
+  recipientCount Int      @default(0) @map("recipient_count")
+  successCount   Int      @default(0) @map("success_count")
+  failureCount   Int      @default(0) @map("failure_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+  admin User @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  @@map("broadcast_messages")
 }
 
 model PushNotification {

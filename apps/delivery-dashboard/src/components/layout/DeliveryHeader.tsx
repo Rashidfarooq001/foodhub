@@ -16,6 +16,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
   const { user, accessToken } = useDeliveryAuthStore();
   const [isOnDuty, setIsOnDuty] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
+  const pushAuth = usePushNotifications();
 
   React.useEffect(() => {
     if (!accessToken) return;
@@ -51,6 +52,9 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
       });
       if (res.ok) {
         setIsOnDuty(newStatus);
+        if (newStatus) {
+          await pushAuth.subscribeToPush(${getApiBaseUrl()}/notifications/subscribe, accessToken);
+        }
         window.location.reload();
       }
     } catch {

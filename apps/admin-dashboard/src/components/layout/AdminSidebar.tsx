@@ -9,7 +9,7 @@ import {
   Store,
   CheckSquare,
   Bike,
-  ShoppingBag,
+  ShoppingBag, Megaphone,
   CreditCard,
   BarChart3,
   Shield,
@@ -27,9 +27,10 @@ const NAVIGATION = [
   { name: 'Driver Approval Queue', href: '/delivery-partners/approval', icon: CheckSquare },
   { name: 'Delivery Partners', href: '/delivery-partners', icon: Bike },
   { name: 'Customer Directory', href: '/customers', icon: Users },
-  { name: 'Global Orders Log', href: '/orders', icon: ShoppingBag },
+  { name: 'Global Orders Log', href: '/orders', icon: Megaphone },
   { name: 'Payments & Settlements', href: '/payments', icon: CreditCard },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
+  { name: 'Broadcasts', href: '/broadcast', icon: Megaphone },
 
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Audit Logs & Security', href: '/audit-logs', icon: Shield },
@@ -130,3 +131,5 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     </>
   );
 };
+
+

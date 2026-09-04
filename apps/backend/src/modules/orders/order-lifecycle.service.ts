@@ -9,6 +9,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { WebPushService } from "../notifications/web-push.service";
 import { OrdersGateway } from './orders.gateway';
 import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
@@ -80,6 +81,7 @@ export class OrderLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: OrdersGateway,
+    private readonly webPushService: WebPushService,
     
   ) {}
 
@@ -1301,3 +1303,5 @@ export class OrderLifecycleService {
     }
   }
 }
+
+

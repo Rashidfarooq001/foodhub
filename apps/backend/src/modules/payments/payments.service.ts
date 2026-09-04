@@ -10,6 +10,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { PaymentStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { WebPushService } from '../notifications/web-push.service';
 import { OrdersGateway } from '../orders/orders.gateway';
 import { ORDER_EVENTS } from '../orders/orders.events';
 
@@ -24,6 +25,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: OrdersGateway,
+    private readonly webPushService: WebPushService,
   ) {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -216,6 +218,7 @@ export class PaymentsService {
         include: { restaurant: true },
       });
       if (verifiedOrder) {
+        this.webPushService.sendPushNotification(verifiedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #$(.orderNumber) for ?$(.totalAmount) has been paid and is waiting for acceptance.`, url: '/orders' });
         this.gateway.emitToRestaurant(verifiedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: verifiedOrder.id,
           orderNumber: verifiedOrder.orderNumber,
@@ -588,6 +591,7 @@ export class PaymentsService {
         where: { id: existingPayment.orderId },
       });
       if (capturedOrder) {
+        this.webPushService.sendPushNotification(capturedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #$(.orderNumber) for ?$(.totalAmount) has been paid and is waiting for acceptance.`, url: '/orders' });
         this.gateway.emitToRestaurant(capturedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: capturedOrder.id,
           orderNumber: capturedOrder.orderNumber,
@@ -646,3 +650,4 @@ export class PaymentsService {
     this.logger.log(`Refund processed: ${refund?.id}`);
   }
 }
+

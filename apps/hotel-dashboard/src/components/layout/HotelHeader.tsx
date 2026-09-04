@@ -6,6 +6,7 @@ import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const API_BASE = getApiBaseUrl();
 
@@ -18,6 +19,8 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
   const { user, accessToken } = useHotelAuthStore();
   const [isOpen, setIsOpen] = useState(true);
   const [loadingToggle, setLoadingToggle] = useState(false);
+  
+  const pushAuth = usePushNotifications();
 
   const restaurantId = user?.restaurantId;
 
@@ -55,6 +58,9 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
       });
       if (res.ok) {
         setIsOpen(newStatus);
+        if (newStatus) {
+          pushAuth.subscribeToPush(`${API_BASE}/notifications/subscribe`, accessToken);
+        }
       }
     } catch {
       /* ignore */

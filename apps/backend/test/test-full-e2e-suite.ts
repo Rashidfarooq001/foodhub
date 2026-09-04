@@ -280,8 +280,8 @@ async function runEndToEndVerification() {
     distanceService,
   );
   const gateway = new OrdersGateway({} as any, {} as any, prisma as any);
-  const lifecycle = new OrderLifecycleService(prisma as any, gateway);
-  const stateMachine = new OrderLifecycleService(prisma as any, gateway);
+  const lifecycle = new OrderLifecycleService(prisma as any, gateway, {} as any);
+  const stateMachine = new OrderLifecycleService(prisma as any, gateway, {} as any);
   const ordersRepo = new OrdersRepository(prisma as any);
   const ordersValidation = new OrdersValidationService(prisma as any, null as any);
   const ordersService = new OrdersService(
@@ -291,6 +291,7 @@ async function runEndToEndVerification() {
     {} as any,
     gateway,
     quoteService,
+    {} as any,
     {} as any,
   );
 
@@ -548,3 +549,4 @@ runEndToEndVerification().catch((e) => {
   console.error('FATAL VERIFICATION ERROR:', e);
   process.exit(1);
 });
+
