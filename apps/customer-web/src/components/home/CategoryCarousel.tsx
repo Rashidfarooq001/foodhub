@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { getApiBaseUrl } from '@foodhub/config';
 import { Utensils } from 'lucide-react';
 
@@ -151,12 +150,15 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
                 style={isSelected ? { boxShadow: '0 0 0 2px #e11d48' } : undefined}
               >
                 {cat.image ? (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={cat.image}
                     alt={cat.name}
                     width={80}
                     height={80}
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600">
