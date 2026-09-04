@@ -46,6 +46,7 @@ export default function OrderDetailsPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -53,6 +54,13 @@ export default function OrderDetailsPage() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // Mirrors backend cancellation policy: only PENDING or ACCEPTED orders can be cancelled.
+  const canCancel =
+    order &&
+    (order.status === 'PENDING' || order.status === 'ACCEPTED') &&
+    order.status !== 'CANCELLED' &&
+    order.status !== 'DELIVERED';
 
   const fetchOrderDetail = async () => {
     try {
@@ -80,6 +88,7 @@ export default function OrderDetailsPage() {
   const handleCancelOrder = async () => {
     if (!cancelReason.trim()) return;
     setIsSubmittingCancel(true);
+    setCancelError(null);
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
         method: 'POST',
@@ -91,13 +100,16 @@ export default function OrderDetailsPage() {
       });
       if (res.ok) {
         setShowCancelModal(false);
+        setCancelReason('');
+        setCancelError(null);
         fetchOrderDetail();
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to cancel order');
+        // Show the human-readable policy error from the backend inline in the modal
+        setCancelError(data.message || 'Failed to cancel order. Please try again.');
       }
     } catch {
-      alert('Network error');
+      setCancelError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmittingCancel(false);
     }
@@ -506,9 +518,9 @@ export default function OrderDetailsPage() {
                   </>
                 )}
 
-                {(order.status === 'PENDING' || order.status === 'ACCEPTED') && (
+                {canCancel && (
                   <button
-                    onClick={() => setShowCancelModal(true)}
+                    onClick={() => { setShowCancelModal(true); setCancelError(null); }}
                     className="w-full flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 py-3 text-xs font-bold text-rose-600 hover:bg-rose-100 transition"
                   >
                     <XCircle className="h-4 w-4" /> Cancel Order
@@ -575,30 +587,39 @@ export default function OrderDetailsPage() {
             <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl space-y-4">
               <h3 className="text-lg font-black text-rose-600">Cancel Order</h3>
               <p className="text-xs text-gray-500">
-                Please provide a reason for cancelling this order.
+                You can cancel this order because the restaurant has not started preparing it yet.
+                Please provide a reason below.
               </p>
 
               <textarea
                 rows={3}
                 value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Reason for cancellation..."
+                onChange={(e) => { setCancelReason(e.target.value); setCancelError(null); }}
+                placeholder="e.g. Ordered by mistake, taking too long..."
                 className="w-full rounded-2xl border border-gray-200 p-3 text-xs font-bold text-gray-900 focus:outline-none"
               />
 
+              {/* Inline error from backend (e.g. policy rejection) */}
+              {cancelError && (
+                <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3">
+                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-rose-700">{cancelError}</p>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={() => setShowCancelModal(false)}
+                  onClick={() => { setShowCancelModal(false); setCancelError(null); setCancelReason(''); }}
                   className="px-4 py-2 text-xs font-bold text-gray-600"
                 >
-                  Close
+                  Keep Order
                 </button>
                 <button
                   onClick={handleCancelOrder}
-                  disabled={isSubmittingCancel}
+                  disabled={isSubmittingCancel || !cancelReason.trim()}
                   className="rounded-2xl bg-rose-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-rose-700 disabled:opacity-50"
                 >
-                  Confirm Cancel
+                  {isSubmittingCancel ? 'Cancelling...' : 'Confirm Cancel'}
                 </button>
               </div>
             </div>

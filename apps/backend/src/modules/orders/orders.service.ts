@@ -439,33 +439,81 @@ export class OrdersService {
     return this.lifecycle.updateOrderStatus(orderId, dto.status as OrderStatus, changedBy);
   }
 
-  async cancelOrder(orderId: string, dto: CancelOrderDto, cancelledBy: string) {
+  async cancelOrder(orderId: string, dto: CancelOrderDto, cancelledByUserId: string) {
     const order = await this.repo.findById(orderId);
 
-    const cancellableStatuses: OrderStatus[] = [OrderStatus.PENDING, OrderStatus.ACCEPTED];
-    if (!cancellableStatuses.includes(order.status)) {
-      throw new ForbiddenException(`Order cannot be cancelled once ${order.status}`);
+    // ── 1. OWNERSHIP CHECK ────────────────────────────────────────────────────
+    // Resolve the authenticated userId to a Customer record and verify ownership.
+    const customer = await this.prisma.customer.findFirst({
+      where: { OR: [{ userId: cancelledByUserId }, { id: cancelledByUserId }] },
+    });
+    const customerId = customer?.id;
+    if (!customerId || order.customerId !== customerId) {
+      throw new ForbiddenException('You are not authorised to cancel this order.');
     }
 
+    // ── 2. IDEMPOTENCY ────────────────────────────────────────────────────────
+    // If already cancelled just return success (handles double-click / retry).
+    if (order.status === OrderStatus.CANCELLED) {
+      return { message: 'Order is already cancelled.' };
+    }
+
+    // ── 3. CANCELLATION POLICY (existing rules) ───────────────────────────────
+    // Customers may cancel only while the order is PENDING or ACCEPTED.
+    // Once the restaurant starts PREPARING, cancellation is no longer allowed.
+    const cancellableStatuses: OrderStatus[] = [OrderStatus.PENDING, OrderStatus.ACCEPTED];
+    if (!cancellableStatuses.includes(order.status)) {
+      const friendlyStatus: Record<string, string> = {
+        PREPARING: 'the restaurant has already started preparing your order',
+        DRIVER_ASSIGNED: 'a rider has already been assigned',
+        ARRIVED_AT_RESTAURANT: 'the rider has arrived at the restaurant',
+        PICKED_UP: 'the rider has already picked up your order',
+        OUT_FOR_DELIVERY: 'your order is already out for delivery',
+        DELIVERED: 'your order has already been delivered',
+        REJECTED: 'this order was rejected by the restaurant',
+      };
+      const reason = friendlyStatus[order.status] ?? `the order is in ${order.status} state`;
+      throw new ForbiddenException(
+        `This order can no longer be cancelled because ${reason}.`,
+      );
+    }
+
+    // ── 4. ATOMIC TRANSACTION ─────────────────────────────────────────────────
     await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.CANCELLED },
       }),
       this.prisma.orderCancellation.create({
-        data: { orderId, reason: dto.reason, cancelledBy },
+        data: { orderId, reason: dto.reason, cancelledBy: cancelledByUserId },
       }),
       this.prisma.orderTimeline.create({
-        data: { orderId, status: OrderStatus.CANCELLED, message: dto.reason },
+        data: { orderId, status: OrderStatus.CANCELLED, message: `Cancelled by customer: ${dto.reason}` },
       }),
     ]);
 
+    // ── 5. REAL-TIME NOTIFICATIONS (after commit) ─────────────────────────────
+    // Notify all parties watching this order (customer tracking page)
     this.gateway.emitToOrder(orderId, ORDER_EVENTS.ORDER_CANCELLED, {
       orderId,
       reason: dto.reason,
     });
 
-    return { message: 'Order cancelled successfully' };
+    // Notify restaurant dashboard via socket
+    this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.ORDER_CANCELLED, {
+      orderId,
+      orderNumber: order.orderNumber,
+      reason: dto.reason,
+    });
+
+    // Notify restaurant via Web Push so they see it even if the tab is closed
+    this.webPushService.sendPushNotification(order.restaurantId, {
+      title: `Order #${order.orderNumber} Cancelled`,
+      body: `Customer cancelled the order. Reason: ${dto.reason}`,
+      url: '/orders',
+    });
+
+    return { message: 'Order cancelled successfully.' };
   }
 
   async getOrderWithTimeline(orderId: string) {
