@@ -9,7 +9,7 @@ export class NotificationsController {
 
   @Post('subscribe')
   async subscribe(@Req() req, @Body() subscription: any) {
-    await this.notificationsService.saveSubscription(req.user.userId, subscription);
+    await this.notificationsService.saveSubscription(req.user.id, subscription);
     return { success: true };
   }
 
