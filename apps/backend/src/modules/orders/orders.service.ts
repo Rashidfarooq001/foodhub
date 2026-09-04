@@ -404,7 +404,13 @@ export class OrdersService {
       });
     }
 
-    return order;
+    const sanitizedOrder: any = serializePrisma(order);
+    delete sanitizedOrder.pricingSnapshot;
+    delete sanitizedOrder.taxSnapshot;
+    delete sanitizedOrder.restaurantSnapshot;
+    delete sanitizedOrder.customerSnapshot;
+
+    return sanitizedOrder;
   }
 
   async updateStatus(
@@ -517,13 +523,28 @@ export class OrdersService {
   }
 
   async getOrderWithTimeline(orderId: string) {
-    const res = await this.repo.findById(orderId);
+    const res: any = await this.repo.findById(orderId);
+    delete res.pricingSnapshot;
+    delete res.taxSnapshot;
+    delete res.restaurantSnapshot;
+    delete res.customerSnapshot;
+    delete res.restaurantSettlement;
+    delete res.riderSettlement;
     return serializePrisma(res);
   }
 
   async getCustomerOrders(customerId: string, page: number, limit: number) {
     const res = await this.repo.findByCustomer(customerId, page, limit);
-    return serializePrisma(res);
+    const sanitized = res.map((order: any) => {
+      delete order.pricingSnapshot;
+      delete order.taxSnapshot;
+      delete order.restaurantSnapshot;
+      delete order.customerSnapshot;
+      delete order.restaurantSettlement;
+      delete order.riderSettlement;
+      return order;
+    });
+    return serializePrisma(sanitized);
   }
 
   async getRestaurantOrders(
@@ -958,8 +979,17 @@ export class OrdersService {
     }
 
     const serialized: any = serializePrisma(order);
-    if (!isAdmin) {
+    
+    // CUSTOMER & DRIVER MUST NEVER SEE FINANCIAL SNAPSHOTS OR SETTLEMENTS
+    const isRestaurantRole = role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF';
+    
+    if (!isAdmin && !isRestaurantRole) {
       delete serialized.pricingSnapshot;
+      delete serialized.taxSnapshot;
+      delete serialized.restaurantSnapshot;
+      delete serialized.customerSnapshot;
+      delete serialized.restaurantSettlement;
+      delete serialized.riderSettlement;
     }
 
     // Always redact OTP fields from all responses
@@ -1241,7 +1271,7 @@ export class OrdersService {
       snap.customerDeliveryFee !== undefined ? Number(snap.customerDeliveryFee) : 0;
     const packagingFee = snap.packagingFee !== undefined ? Number(snap.packagingFee) : 0;
 
-    return serializePrisma({
+    const response: any = {
       invoiceDetails: {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
@@ -1263,16 +1293,6 @@ export class OrdersService {
         totalPaid: customerTotal,
         note: 'Platform Fee is a customer-side charge.',
       },
-      restaurantStatement: {
-        title: 'Restaurant Settlement Statement',
-        grossSales: foodSubtotal,
-        commissionRate,
-        commissionDeduction: commissionAmount,
-        commissionGstDeduction: commissionGstAmount,
-        platformFeeDeduction: 0,
-        netPayable: restaurantNet,
-        note: 'Customer platform fee is excluded from restaurant deductions.',
-      },
       items: order.orderItems.map((item: any) => ({
         name: (item.itemSnapshot as any)?.foodName || 'Item',
         quantity: item.quantity,
@@ -1290,6 +1310,21 @@ export class OrdersService {
             : 'Customer',
         },
       },
-    });
+    };
+
+    if (isAdmin || isRestaurantOwner) {
+      response.restaurantStatement = {
+        title: 'Restaurant Settlement Statement',
+        grossSales: foodSubtotal,
+        commissionRate,
+        commissionDeduction: commissionAmount,
+        commissionGstDeduction: commissionGstAmount,
+        platformFeeDeduction: 0,
+        netPayable: restaurantNet,
+        note: 'Customer platform fee is excluded from restaurant deductions.',
+      };
+    }
+
+    return serializePrisma(response);
   }
 }
