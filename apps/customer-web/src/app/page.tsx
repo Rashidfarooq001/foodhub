@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -108,7 +108,10 @@ export default function CustomerHomePage() {
           lat: Number(selectedAddress.latitude),
           lng: Number(selectedAddress.longitude),
         };
-        setUserCoords(coords);
+        setUserCoords(prev => {
+            if (prev && prev.lat === coords.lat && prev.lng === coords.lng) return prev;
+            return coords;
+          });
         fetchRestaurants(coords);
       }
       return;
@@ -142,7 +145,10 @@ export default function CustomerHomePage() {
                   lat: Number(defaultAddr.latitude),
                   lng: Number(defaultAddr.longitude),
                 };
-                setUserCoords(coords);
+                setUserCoords(prev => {
+            if (prev && prev.lat === coords.lat && prev.lng === coords.lng) return prev;
+            return coords;
+          });
                 setLocationStatus('resolved');
                 addAddress({
                   id: defaultAddr.id || 'saved-default',
@@ -182,7 +188,10 @@ export default function CustomerHomePage() {
             if (!isMounted) return;
 
             const coords = { lat, lng };
-            setUserCoords(coords);
+            setUserCoords(prev => {
+            if (prev && prev.lat === coords.lat && prev.lng === coords.lng) return prev;
+            return coords;
+          });
             setLocationStatus('resolving');
 
             try {
@@ -282,7 +291,7 @@ export default function CustomerHomePage() {
   }, [selectedAddressId, isAuthenticated, accessToken]);
 
   // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
-  const fetchRestaurants = async (coords = userCoords) => {
+  const fetchRestaurants = useCallback(async (coords = userCoords) => {
     // Only show full loading spinner if we don't already have cached items
     if (restaurants.length === 0) {
       setIsLoading(true);
@@ -311,11 +320,11 @@ export default function CustomerHomePage() {
       console.error('Failed to load restaurants from backend', err);
       if (restaurants.length === 0) {
         setIsError(true);
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }, [userCoords]);
 
   useEffect(() => {
     fetchRestaurants(userCoords);
