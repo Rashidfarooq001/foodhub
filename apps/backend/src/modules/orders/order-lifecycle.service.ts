@@ -112,11 +112,7 @@ export class OrderLifecycleService {
       );
     }
 
-    if (order.restaurant.deliveryMode === 'FOODHUB_DELIVERY') {
-      throw new ForbiddenException(
-        'Manual rider assignment is disabled for ZaykaFood platform delivery. The system will automatically assign a delivery partner.',
-      );
-    }
+    
 
     if (!['PENDING', 'ACCEPTED', 'PREPARING', 'DRIVER_ASSIGNED'].includes(order.status)) {
       throw new BadRequestException(
@@ -130,6 +126,8 @@ export class OrderLifecycleService {
         id: true,
         status: true,
         isApproved: true,
+        currentLat: true,
+        currentLng: true,
         user: { select: { id: true, isActive: true, profile: true } },
         deliveryJobs: { select: { id: true, status: true } },
       },
@@ -146,6 +144,29 @@ export class OrderLifecycleService {
     if (driver.status === DriverStatus.OFFLINE) {
       throw new BadRequestException('Selected delivery partner is currently OFFLINE.');
     }
+
+    const restLat2 = Number(order.restaurant.latitude || 0);
+    const restLng2 = Number(order.restaurant.longitude || 0);
+
+    if (order.restaurant.deliveryMode === 'FOODHUB_DELIVERY') {
+      if (!driver.currentLat || !driver.currentLng) {
+        throw new BadRequestException('Selected delivery partner location is unavailable.');
+      }
+      
+      const getHaversine = (lat1, lon1, lat2, lon2) => {
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
+      };
+
+      const distance = getHaversine(restLat2, restLng2, driver.currentLat, driver.currentLng);
+      if (distance > 5.0) {
+        throw new BadRequestException(`Delivery partner is ${distance} km away. Maximum allowed radius is 5.0 km.`);
+      }
+    }
+
 
     const activeJobs = (driver.deliveryJobs || []).filter((j) =>
       [
@@ -1177,19 +1198,7 @@ export class OrderLifecycleService {
         this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
-      // 2. Broadcast to available drivers when order reaches DRIVER_ASSIGNED state (driver dispatch triggered at PREPARING)
-      if (toStatus === OrderStatus.PREPARING && !activeDriverId) {
-        this.gateway?.emitToAvailableDrivers?.(ORDER_EVENTS.JOB_AVAILABLE, {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          jobId: order.deliveryJob?.id,
-          restaurantName: order.restaurant?.name || 'Restaurant Partner',
-          restaurantAddress: order.restaurant?.addressLine || 'Restaurant Location',
-          deliveryFee: order.deliveryFee || 40,
-          estimatedPayout: order.deliveryJob?.riderPayout || 35,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      
     }
   }
 

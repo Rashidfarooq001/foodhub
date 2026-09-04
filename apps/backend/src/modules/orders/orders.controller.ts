@@ -225,7 +225,16 @@ export class OrdersController {
       return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
     };
 
-    return drivers.map((d) => {
+    
+    const filteredDrivers = drivers.filter(d => {
+      if (!d.user?.isActive || !d.isApproved || d.status === DriverStatus.OFFLINE) return false;
+      if (!d.currentLat || !d.currentLng) return false;
+      
+      const distanceKm = getHaversine(restLat, restLng, d.currentLat, d.currentLng);
+      return distanceKm <= 5.0;
+    });
+
+    return filteredDrivers.map((d) => {
       const activeJobs = d.deliveryJobs.filter((j) =>
         [
           DeliveryJobStatus.ASSIGNED as string,
