@@ -681,7 +681,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="bg-gray-50 text-gray-900 pb-24">
+      <div className="bg-gray-50 text-gray-900 -mb-20 md:mb-0">
         {/* Mobile-first Header */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
           <div className="mx-auto max-w-2xl flex items-center gap-3">
