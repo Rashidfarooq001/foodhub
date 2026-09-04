@@ -10,6 +10,6 @@ allowBuilds:
   bcrypt: true
   prisma: true
   protobufjs: true
-  puppeteer: set this to true or false
+  puppeteer: true
   sharp: true
   unrs-resolver: true
