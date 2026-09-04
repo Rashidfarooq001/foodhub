@@ -56,7 +56,7 @@ export default function CheckoutPage() {
   const { items, restaurantName, getSubtotal, getTaxAmount, getGrandTotal, clearCart } =
     useCartStore();
 
-  const { addresses, selectedAddressId, deliveryAddressId, setSelectedAddress, getSelectedAddress, addAddress, getDeliveryAddress, setDeliveryAddress } = useAddressStore();
+  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress } = useAddressStore();
   const { user, accessToken } = useAuthStore();
 
   // Restaurant details state (real coordinates & radius)
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
   };
 
   const currentLocation = getSelectedAddress();
-  const deliveryAddress = getDeliveryAddress();
+  const selectedAddress = getSelectedAddress();
 
   // Fetch real restaurant coordinates from backend API
   useEffect(() => {
@@ -184,29 +184,29 @@ export default function CheckoutPage() {
   const refreshQuote = useCallback(() => {
     const sub = getSubtotal();
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-    const hasCoords = deliveryAddress?.latitude !== null &&
-      deliveryAddress?.latitude !== undefined && deliveryAddress?.longitude !== null && deliveryAddress?.longitude !== undefined;
+    const hasCoords = selectedAddress?.latitude !== null &&
+      selectedAddress?.latitude !== undefined && selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
     const locationSource =
-      (deliveryAddress as any)?.locationSource || (deliveryAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+      (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
     console.log('[Checkout Location]', {
       source: locationSource,
       hasCoordinates: hasCoords,
-      locality: deliveryAddress?.placeName || deliveryAddress?.addressLine1,
-      district: deliveryAddress?.city,
-      state: deliveryAddress?.state,
-      pincode: deliveryAddress?.postalCode,
+      locality: selectedAddress?.placeName || selectedAddress?.addressLine1,
+      district: selectedAddress?.city,
+      state: selectedAddress?.state,
+      pincode: selectedAddress?.postalCode,
     });
 
     fetchOrderQuote({
       foodSubtotal: sub,
       restaurantId: restId || undefined,
-      latitude: hasCoords ? deliveryAddress!.latitude! : undefined,
-      longitude: hasCoords ? deliveryAddress!.longitude! : undefined,
+      latitude: hasCoords ? selectedAddress!.latitude! : undefined,
+      longitude: hasCoords ? selectedAddress!.longitude! : undefined,
       locationSource,
       tipAmount: tipAmount,
       discountAmount: 0,
-      customerState: deliveryAddress?.state || 'J&K',
+      customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
     })
       .then((quote) => {
@@ -216,7 +216,7 @@ export default function CheckoutPage() {
         setPaymentError(err.message || 'Failed to calculate delivery fee.');
         setOrderQuote(null);
       });
-  }, [items, deliveryAddress, tipAmount]);
+  }, [items, selectedAddress, tipAmount]);
 
   useEffect(() => {
     refreshQuote();
@@ -231,7 +231,6 @@ export default function CheckoutPage() {
 
   // Custom Address Modal Form state (Manual Text Address â€” Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
-  const [addressModalTarget, setAddressModalTarget] = useState<'CURRENT' | 'DELIVERY' | null>(null);
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
@@ -289,14 +288,9 @@ export default function CheckoutPage() {
         isDefault: false,
       };
 
-      if (addressModalTarget === 'CURRENT') {
-          addAddress(gpsAddr);
-          setSelectedAddress('current-location');
-        } else {
-          addAddress(gpsAddr, true);
-          setDeliveryAddress('current-location');
-        }
-        setShowCustomAddressModal(false);
+      addAddress(gpsAddr);
+      setSelectedAddress('current-location');
+      setShowCustomAddressModal(false);
     } else {
       setLocationError(gpsError || 'Unable to retrieve location.');
     }
@@ -348,14 +342,9 @@ export default function CheckoutPage() {
           isDefault: false,
         };
 
-        if (addressModalTarget === 'CURRENT') {
-            addAddress(newAddr as any);
-            setSelectedAddress(newAddr.id);
-          } else {
-            addAddress(newAddr as any, true);
-            setDeliveryAddress(newAddr.id);
-          }
-          setShowCustomAddressModal(false);
+        addAddress(newAddr as any);
+        setSelectedAddress(newAddr.id);
+        setShowCustomAddressModal(false);
 
         setOrderQuote(null);
         setLocationError(null);
@@ -380,7 +369,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!deliveryAddress) {
+    if (!selectedAddress) {
       setPaymentError('Please select or add a delivery address.');
       return;
     }
@@ -423,26 +412,26 @@ export default function CheckoutPage() {
         };
       });
 
-      let cleanCity = deliveryAddress.city;
-      let cleanState = deliveryAddress.state;
-      let cleanLine2 = deliveryAddress.addressLine2 || '';
+      let cleanCity = selectedAddress.city;
+      let cleanState = selectedAddress.state;
+      let cleanLine2 = selectedAddress.addressLine2 || '';
 
       // Removed Bandipora fallback per user request
       // Removed J&K fallback
       if (cleanLine2.includes('GPS Coordinates')) cleanLine2 = '';
 
       const addressPayload = {
-        label: deliveryAddress.label || 'Current Location',
-        street: deliveryAddress.addressLine1,
-        addressLine1: deliveryAddress.addressLine1,
+        label: selectedAddress.label || 'Current Location',
+        street: selectedAddress.addressLine1,
+        addressLine1: selectedAddress.addressLine1,
         addressLine2: cleanLine2,
-        landmark: deliveryAddress.landmark || '',
+        landmark: selectedAddress.landmark || '',
         city: cleanCity,
         state: cleanState,
-        postalCode: deliveryAddress.postalCode || '193502',
-        latitude: deliveryAddress.latitude,
-        longitude: deliveryAddress.longitude,
-        locationSource: (deliveryAddress as any).locationSource || 'CURRENT_GPS',
+        postalCode: selectedAddress.postalCode || '193502',
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+        locationSource: (selectedAddress as any).locationSource || 'CURRENT_GPS',
       };
 
       const validPaymentMethod =
@@ -451,7 +440,7 @@ export default function CheckoutPage() {
       const createOrderPayload = {
         restaurantId: cartRestaurantId,
         items: itemsPayload,
-        deliveryAddress: addressPayload,
+        selectedAddress: addressPayload,
         paymentMethod: validPaymentMethod,
         specialInstruction: [instructions.trim(), alwaysSendCutlery ? 'Always send cutlery' : ''].filter(Boolean).join(' | ') || undefined,
         tipAmount: tipAmount > 0 ? tipAmount : undefined,
@@ -732,7 +721,7 @@ export default function CheckoutPage() {
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
-                   CURRENT LOCATION
+                   {currentLocation?.label || 'CURRENT LOCATION'}
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
                    {currentLocation ? `${currentLocation.addressLine1}, ${currentLocation.city}` : 'No address selected'}
@@ -751,10 +740,9 @@ export default function CheckoutPage() {
                 setManualAddress('');
                 setMatchedAddressResult(null);
                 setAddressVerificationError(null);
-                  setAddressModalTarget('CURRENT');
-                  setShowCustomAddressModal(true);
-                }}
-                className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
+                setShowCustomAddressModal(true);
+              }}
+              className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
             >
               CHANGE
             </button>
@@ -772,7 +760,8 @@ export default function CheckoutPage() {
                  <div key={item.id} className="flex justify-between text-xs items-center gap-2">
                    <div className="flex items-center gap-2 flex-1 min-w-0">
                      <span className="font-bold text-gray-900 text-[11px] bg-gray-100 px-1.5 py-0.5 rounded text-center min-w-[24px]">
-                       {item.quantity}×</span>
+                       {item.quantity}×
+                       </span>
                      <span className="font-bold text-gray-800 truncate leading-snug">{item.name}</span>
                    </div>
                    <span className="font-black text-gray-900 shrink-0">{formatCurrency(item.price * item.quantity)}</span>
@@ -832,14 +821,8 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-start mb-3">
                <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Address</h2>
                <button 
-                  onClick={() => {
-                    setManualAddress('');
-                    setMatchedAddressResult(null);
-                    setAddressVerificationError(null);
-                    setAddressModalTarget('DELIVERY');
-                    setShowCustomAddressModal(true);
-                 }}
-                 className="text-[10px] font-black text-orange-600 uppercase tracking-wide"
+                  onClick={() => setShowCustomAddressModal(true)}
+                  className="text-[10px] font-black text-orange-600 uppercase tracking-wide"
                >
                  CHANGE
                </button>
@@ -848,7 +831,7 @@ export default function CheckoutPage() {
                <p className="text-sm">{user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Customer' : 'Customer'}</p>
                <p className="text-gray-600 font-medium">{user?.phone || ''}</p>
                <p className="text-gray-500 font-medium leading-relaxed pt-1 max-w-[90%]">
-                 {deliveryAddress ? `${deliveryAddress.addressLine1}${deliveryAddress.addressLine2 ? `, ${deliveryAddress.addressLine2}` : ''}, ${deliveryAddress.city} - ${deliveryAddress.postalCode}` : 'No address selected'}
+                 {selectedAddress ? `${selectedAddress.addressLine1}${selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}, ${selectedAddress.city} - ${selectedAddress.postalCode}` : 'No address selected'}
                </p>
             </div>
             
@@ -941,13 +924,13 @@ export default function CheckoutPage() {
             
             <button
               onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
-              disabled={isPlacing || !deliveryAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
+              disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
               className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-xl py-3.5 flex items-center justify-between px-5 disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-orange-500/20"
             >
               <span>
                 {isPlacing 
                   ? 'PROCESSING...' 
-                  : !deliveryAddress ? 'SELECT ADDRESS' 
+                  : !selectedAddress ? 'SELECT ADDRESS' 
                     : orderQuote && (!routeAvailable || realDistanceKm === null)
                       ? 'CHECK DISTANCE'
                       : !isDeliveryEligible 
@@ -995,14 +978,10 @@ export default function CheckoutPage() {
                         <button
                           key={addr.id}
                           onClick={() => {
-                              if (addressModalTarget === 'CURRENT') {
-                                setSelectedAddress(addr.id);
-                              } else {
-                                setDeliveryAddress(addr.id);
-                              }
-                              setShowCustomAddressModal(false);
-                            }}
-                          className={`w-full text-left p-3 rounded-xl border transition-colors ${deliveryAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                            setSelectedAddress(addr.id);
+                            setShowCustomAddressModal(false);
+                          }}
+                          className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
                         >
                           <p className="text-xs font-black text-gray-900 uppercase">{addr.label}</p>
                           <p className="text-[11px] text-gray-600 truncate mt-0.5">{addr.addressLine1}</p>

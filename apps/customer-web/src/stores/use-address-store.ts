@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -24,19 +24,12 @@ export interface CustomerAddressItem {
 
 interface AddressState {
   addresses: CustomerAddressItem[];
-  selectedAddressId: string | null; // Used as CURRENT LOCATION
-  deliveryAddressId: string | null; // Used strictly for CHECKOUT DELIVERY DESTINATION
-
+  selectedAddressId: string | null;
   setAddresses: (addresses: CustomerAddressItem[]) => void;
-  addAddress: (address: Omit<CustomerAddressItem, 'id'> | CustomerAddressItem, setAsDelivery?: boolean) => void;
+  addAddress: (address: Omit<CustomerAddressItem, 'id'> | CustomerAddressItem) => void;
   removeAddress: (id: string) => void;
-  
   setSelectedAddress: (id: string) => void;
   getSelectedAddress: () => CustomerAddressItem | null;
-  
-  setDeliveryAddress: (id: string) => void;
-  getDeliveryAddress: () => CustomerAddressItem | null;
-
   clearAddresses: () => void;
 }
 
@@ -45,20 +38,18 @@ export const useAddressStore = create<AddressState>()(
     (set, get) => ({
       addresses: [],
       selectedAddressId: null,
-      deliveryAddressId: null,
 
       setAddresses: (addresses) =>
         set({
           addresses,
           selectedAddressId: addresses.find((a) => a.isDefault)?.id || addresses[0]?.id || null,
-          deliveryAddressId: addresses.find((a) => a.isDefault)?.id || addresses[0]?.id || null,
         }),
 
-      addAddress: (newAddr, setAsDelivery = false) =>
+      addAddress: (newAddr) =>
         set((state) => {
           const rawId = (newAddr as any).id;
           const isCurrentLoc = rawId === 'current-location' || newAddr.label === 'Current Location';
-          const id = isCurrentLoc ? 'current-location' : rawId || 'addr-' + Date.now();
+          const id = isCurrentLoc ? 'current-location' : rawId || `addr-${Date.now()}`;
           const item: CustomerAddressItem = {
             ...newAddr,
             id,
@@ -68,13 +59,14 @@ export const useAddressStore = create<AddressState>()(
             verificationStatus: newAddr.verificationStatus || 'VERIFIED',
           };
 
+          // Filter out existing address with same ID or same Current Location label to prevent duplicates
           const filtered = state.addresses.filter(
             (a) => a.id !== id && !(isCurrentLoc && a.label === 'Current Location'),
           );
 
           return {
             addresses: [...filtered, item],
-            ...(setAsDelivery ? { deliveryAddressId: id } : { selectedAddressId: id }),
+            selectedAddressId: id,
           };
         }),
 
@@ -85,8 +77,6 @@ export const useAddressStore = create<AddressState>()(
             addresses: updated,
             selectedAddressId:
               state.selectedAddressId === id ? updated[0]?.id || null : state.selectedAddressId,
-            deliveryAddressId:
-              state.deliveryAddressId === id ? updated[0]?.id || null : state.deliveryAddressId,
           };
         }),
 
@@ -98,43 +88,18 @@ export const useAddressStore = create<AddressState>()(
         return addresses.find((a) => a.id === selectedAddressId) || addresses[0] || null;
       },
 
-      setDeliveryAddress: (id) => set({ deliveryAddressId: id }),
-
-      getDeliveryAddress: () => {
-        const { addresses, deliveryAddressId } = get();
-        if (deliveryAddressId) {
-          const found = addresses.find((a) => a.id === deliveryAddressId);
-          if (found) return found;
-        }
-        
-        // Find a default saved delivery address, excluding current-location
-        const savedAddresses = addresses.filter(a => a.id !== 'current-location' && a.label !== 'Current Location');
-        if (savedAddresses.length > 0) {
-          return savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
-        }
-        return null;
-      },
-
-      clearAddresses: () => set({ addresses: [], selectedAddressId: null, deliveryAddressId: null }),
+      clearAddresses: () => set({ addresses: [], selectedAddressId: null }),
     }),
     {
-      name: 'foodhub-customer-addresses-v6',
+      name: 'foodhub-customer-addresses-v5',
       storage: createJSONStorage(() => localStorage),
-      version: 6,
+      version: 5,
       migrate: (persistedState: any, version: number) => {
-        if (version < 6) {
-          const s = persistedState as any;
-          return { 
-            addresses: s?.addresses || [], 
-            selectedAddressId: s?.selectedAddressId || null,
-            deliveryAddressId: s?.selectedAddressId || null 
-          };
+        if (version < 5) {
+          return { addresses: [], selectedAddressId: null };
         }
         return persistedState as AddressState;
       },
     },
   ),
 );
-
-
-
