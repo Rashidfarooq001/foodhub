@@ -37,6 +37,7 @@ import {
   DEFAULT_PRICING_CONFIG_DATA,
 } from '@foodhub/api-client';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { formatCurrency } from '@foodhub/utils';
 
 const API_BASE = getApiBaseUrl();
 
@@ -55,8 +56,7 @@ export default function CheckoutPage() {
   const { items, restaurantName, getSubtotal, getTaxAmount, getGrandTotal, clearCart } =
     useCartStore();
 
-  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress } =
-    useAddressStore();
+  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress, getDeliveryAddress, setDeliveryAddress } = useAddressStore();
   const { user, accessToken } = useAuthStore();
 
   // Restaurant details state (real coordinates & radius)
@@ -120,7 +120,8 @@ export default function CheckoutPage() {
       });
   };
 
-  const selectedAddress = getSelectedAddress();
+  const currentLocation = getSelectedAddress();
+  const deliveryAddress = getDeliveryAddress();
 
   // Fetch real restaurant coordinates from backend API
   useEffect(() => {
@@ -191,33 +192,29 @@ export default function CheckoutPage() {
   const refreshQuote = useCallback(() => {
     const sub = getSubtotal();
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-    const hasCoords =
-      selectedAddress?.latitude !== null &&
-      selectedAddress?.latitude !== undefined &&
-      selectedAddress?.longitude !== null &&
-      selectedAddress?.longitude !== undefined;
+    const hasCoords = deliveryAddress?.latitude !== null &&
+      deliveryAddress?.latitude !== undefined && deliveryAddress?.longitude !== null && deliveryAddress?.longitude !== undefined;
     const locationSource =
-      (selectedAddress as any)?.locationSource ||
-      (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
+      (deliveryAddress as any)?.locationSource || (deliveryAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
     console.log('[Checkout Location]', {
       source: locationSource,
       hasCoordinates: hasCoords,
-      locality: selectedAddress?.placeName || selectedAddress?.addressLine1,
-      district: selectedAddress?.city,
-      state: selectedAddress?.state,
-      pincode: selectedAddress?.postalCode,
+      locality: deliveryAddress?.placeName || deliveryAddress?.addressLine1,
+      district: deliveryAddress?.city,
+      state: deliveryAddress?.state,
+      pincode: deliveryAddress?.postalCode,
     });
 
     fetchOrderQuote({
       foodSubtotal: sub,
       restaurantId: restId || undefined,
-      latitude: hasCoords ? selectedAddress!.latitude! : undefined,
-      longitude: hasCoords ? selectedAddress!.longitude! : undefined,
+      latitude: hasCoords ? deliveryAddress!.latitude! : undefined,
+      longitude: hasCoords ? deliveryAddress!.longitude! : undefined,
       locationSource,
       tipAmount: tipAmount,
       discountAmount: 0,
-      customerState: selectedAddress?.state || 'J&K',
+      customerState: deliveryAddress?.state || 'J&K',
       restaurantState: 'J&K',
     })
       .then((quote) => {
@@ -227,7 +224,7 @@ export default function CheckoutPage() {
         setPaymentError(err.message || 'Failed to calculate delivery fee.');
         setOrderQuote(null);
       });
-  }, [items, selectedAddress, tipAmount]);
+  }, [items, deliveryAddress, tipAmount]);
 
   useEffect(() => {
     refreshQuote();
@@ -300,7 +297,7 @@ export default function CheckoutPage() {
       };
 
       addAddress(gpsAddr);
-      setSelectedAddress('current-location');
+      setDeliveryAddress('current-location');
       setShowCustomAddressModal(false);
     } else {
       setLocationError(gpsError || 'Unable to retrieve location.');
@@ -354,7 +351,7 @@ export default function CheckoutPage() {
         };
 
         addAddress(newAddr as any);
-        setSelectedAddress(newAddr.id);
+        setDeliveryAddress(newAddr.id);
         setShowCustomAddressModal(false);
 
         setOrderQuote(null);
@@ -380,7 +377,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!selectedAddress) {
+    if (!deliveryAddress) {
       setPaymentError('Please select or add a delivery address.');
       return;
     }
@@ -423,26 +420,26 @@ export default function CheckoutPage() {
         };
       });
 
-      let cleanCity = selectedAddress.city;
-      let cleanState = selectedAddress.state;
-      let cleanLine2 = selectedAddress.addressLine2 || '';
+      let cleanCity = deliveryAddress.city;
+      let cleanState = deliveryAddress.state;
+      let cleanLine2 = deliveryAddress.addressLine2 || '';
 
       // Removed Bandipora fallback per user request
       // Removed J&K fallback
       if (cleanLine2.includes('GPS Coordinates')) cleanLine2 = '';
 
       const addressPayload = {
-        label: selectedAddress.label || 'Current Location',
-        street: selectedAddress.addressLine1,
-        addressLine1: selectedAddress.addressLine1,
+        label: deliveryAddress.label || 'Current Location',
+        street: deliveryAddress.addressLine1,
+        addressLine1: deliveryAddress.addressLine1,
         addressLine2: cleanLine2,
-        landmark: selectedAddress.landmark || '',
+        landmark: deliveryAddress.landmark || '',
         city: cleanCity,
         state: cleanState,
-        postalCode: selectedAddress.postalCode || '193502',
-        latitude: selectedAddress.latitude,
-        longitude: selectedAddress.longitude,
-        locationSource: (selectedAddress as any).locationSource || 'CURRENT_GPS',
+        postalCode: deliveryAddress.postalCode || '193502',
+        latitude: deliveryAddress.latitude,
+        longitude: deliveryAddress.longitude,
+        locationSource: (deliveryAddress as any).locationSource || 'CURRENT_GPS',
       };
 
       const validPaymentMethod =
@@ -732,10 +729,10 @@ export default function CheckoutPage() {
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
-                   {selectedAddress?.label || 'CURRENT DELIVERY ADDRESS'}
+                   {currentLocation?.label || 'CURRENT LOCATION'}
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
-                   {selectedAddress ? `${selectedAddress.addressLine1}, ${selectedAddress.city}` : 'No address selected'}
+                   {currentLocation ? `${currentLocation.addressLine1}, ${currentLocation.city}` : 'No address selected'}
                  </p>
                  <p className="text-xs font-bold text-gray-800 mt-1">
                    {orderQuote && routeAvailable && realDistanceKm !== null ? (
@@ -775,7 +772,7 @@ export default function CheckoutPage() {
                      </span>
                      <span className="font-bold text-gray-800 truncate leading-snug">{item.name}</span>
                    </div>
-                   <span className="font-black text-gray-900 shrink-0">â‚¹{item.price * item.quantity}</span>
+                   <span className="font-black text-gray-900 shrink-0">{formatCurrency(item.price * item.quantity)}</span>
                  </div>
                ))}
              </div>
@@ -805,7 +802,7 @@ export default function CheckoutPage() {
                         <h3 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2">{item.name}</h3>
                       </div>
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                        <span className="text-xs font-black text-gray-900">â‚¹{item.price}</span>
+                        <span className="text-xs font-black text-gray-900">{formatCurrency(item.price)}</span>
                         <button 
                           onClick={() => handleAddRecommended(item)}
                           className="bg-orange-50 text-orange-600 p-1 rounded-md hover:bg-orange-100 transition"
@@ -842,7 +839,7 @@ export default function CheckoutPage() {
                <p className="text-sm">{user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Customer' : 'Customer'}</p>
                <p className="text-gray-600 font-medium">{user?.phone || ''}</p>
                <p className="text-gray-500 font-medium leading-relaxed pt-1 max-w-[90%]">
-                 {selectedAddress ? `${selectedAddress.addressLine1}${selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}, ${selectedAddress.city} - ${selectedAddress.postalCode}` : 'No address selected'}
+                 {deliveryAddress ? `${deliveryAddress.addressLine1}${deliveryAddress.addressLine2 ? `, ${deliveryAddress.addressLine2}` : ''}, ${deliveryAddress.city} - ${deliveryAddress.postalCode}` : 'No address selected'}
                </p>
             </div>
             
@@ -868,13 +865,13 @@ export default function CheckoutPage() {
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
                   <span>Item Total</span>
-                  <span className="font-bold text-gray-900">â‚¹{subtotal}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span>
                     {dynamicDeliveryFee !== null ? (
-                      <span className="font-bold text-gray-900">â‚¹{dynamicDeliveryFee}</span>
+                      <span className="font-bold text-gray-900">{formatCurrency(dynamicDeliveryFee)}</span>
                     ) : (
                       <span className="text-amber-700 font-bold text-[11px]">Pending distance</span>
                     )}
@@ -882,16 +879,16 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Platform Fee</span>
-                  <span className="font-bold text-gray-900">â‚¹{platformFee ?? 3}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(platformFee ?? 3)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Taxes</span>
-                  <span className="font-bold text-gray-900">â‚¹{tax}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(tax)}</span>
                 </div>
                 {tipAmount > 0 && (
                   <div className="flex justify-between text-orange-600">
                     <span>Driver Tip</span>
-                    <span className="font-bold">+â‚¹{tipAmount}</span>
+                    <span className="font-bold">+{formatCurrency(tipAmount)}</span>
                   </div>
                 )}
              </div>
@@ -900,7 +897,7 @@ export default function CheckoutPage() {
           {/* 7. TOTAL BILL */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white">
              <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Total Bill</h2>
-             <span className="text-xl font-black text-orange-600">â‚¹{finalPayableTotal}</span>
+             <span className="text-xl font-black text-orange-600">{formatCurrency(finalPayableTotal)}</span>
           </div>
 
           {/* 8. PAY USING */}
@@ -930,19 +927,18 @@ export default function CheckoutPage() {
           <div className="mx-auto max-w-2xl flex items-center gap-3">
             <div className="flex flex-col justify-center px-2 min-w-[70px]">
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">Total</span>
-              <span className="text-lg font-black text-gray-900">â‚¹{finalPayableTotal}</span>
+              <span className="text-lg font-black text-gray-900">{formatCurrency(finalPayableTotal)}</span>
             </div>
             
             <button
               onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
-              disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
+              disabled={isPlacing || !deliveryAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
               className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-xl py-3.5 flex items-center justify-between px-5 disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-orange-500/20"
             >
               <span>
                 {isPlacing 
                   ? 'PROCESSING...' 
-                  : !selectedAddress 
-                    ? 'SELECT ADDRESS' 
+                  : !deliveryAddress ? 'SELECT ADDRESS' 
                     : orderQuote && (!routeAvailable || realDistanceKm === null)
                       ? 'CHECK DISTANCE'
                       : !isDeliveryEligible 
@@ -990,10 +986,10 @@ export default function CheckoutPage() {
                         <button
                           key={addr.id}
                           onClick={() => {
-                            setSelectedAddress(addr.id);
+                            setDeliveryAddress(addr.id);
                             setShowCustomAddressModal(false);
                           }}
-                          className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                          className={`w-full text-left p-3 rounded-xl border transition-colors ${deliveryAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
                         >
                           <p className="text-xs font-black text-gray-900 uppercase">{addr.label}</p>
                           <p className="text-[11px] text-gray-600 truncate mt-0.5">{addr.addressLine1}</p>
@@ -1034,3 +1030,4 @@ export default function CheckoutPage() {
     </CustomerAuthGuard>
   );
 }
+
