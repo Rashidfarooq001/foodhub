@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -440,7 +440,7 @@ export default function CheckoutPage() {
       const createOrderPayload = {
         restaurantId: cartRestaurantId,
         items: itemsPayload,
-        selectedAddress: addressPayload,
+        deliveryAddress: addressPayload,
         paymentMethod: validPaymentMethod,
         specialInstruction: [instructions.trim(), alwaysSendCutlery ? 'Always send cutlery' : ''].filter(Boolean).join(' | ') || undefined,
         tipAmount: tipAmount > 0 ? tipAmount : undefined,
