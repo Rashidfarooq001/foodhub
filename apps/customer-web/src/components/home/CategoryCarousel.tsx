@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getApiBaseUrl } from '@foodhub/config';
-import { Utensils } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_BASE = getApiBaseUrl();
 
@@ -16,6 +16,7 @@ export interface CategoryItem {
 interface Props {
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
+  initialCategories?: any[];
 }
 
 const DEFAULT_CATEGORIES: CategoryItem[] = [
@@ -81,9 +82,14 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   },
 ];
 
-export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> = ({ selectedCategory, onSelectCategory, initialCategories = [] }) => {
-  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
-  const [isLoading, setIsLoading] = useState(false);
+export const CategoryCarousel: React.FC<Props> = ({ selectedCategory, onSelectCategory, initialCategories = [] }) => {
+  const [categories, setCategories] = useState<CategoryItem[]>(
+    initialCategories.length > 0 ? initialCategories : DEFAULT_CATEGORIES
+  );
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -95,38 +101,75 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
           const list = Array.isArray(data) ? data : (data.categories ?? []);
           if (list.length > 0 && isMounted) {
             setCategories(list);
-            return;
           }
         }
       } catch (err) {
-        // silent fallback to default categories
+        // fallback
       }
     };
-    if (categories.length === 0) fetchCategories();
+    
+    if (categories === DEFAULT_CATEGORIES) {
+      fetchCategories();
+    }
+    
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [categories]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
-            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-100" />
-            <div className="h-2.5 w-10 rounded bg-gray-100" />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  };
 
-  // Items to display: Always include 'All', plus all dynamic categories from backend
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [categories]);
+
+  const scrollByAmount = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const clientWidth = scrollContainerRef.current.clientWidth;
+      const scrollAmount = direction === 'left' ? -(clientWidth / 2) : (clientWidth / 2);
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      setTimeout(checkScroll, 350); // check after smooth scroll
+    }
+  };
+
   const allItems: CategoryItem[] = [{ id: 'all', name: 'All', image: '' }, ...categories];
 
   return (
-    <div className="w-full">
-      <div className="flex md:grid md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 items-start gap-3.5 sm:gap-4 md:gap-y-6 overflow-x-auto md:overflow-x-visible pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+    <div className="w-full relative group">
+      
+      {canScrollLeft && (
+        <button 
+          onClick={() => scrollByAmount('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md text-gray-700 hover:text-rose-600 hover:border-rose-200 transition-colors focus:outline-none"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+
+      {canScrollRight && (
+        <button 
+          onClick={() => scrollByAmount('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md text-gray-700 hover:text-rose-600 hover:border-rose-200 transition-colors focus:outline-none"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
+
+      <div 
+        ref={scrollContainerRef}
+        onScroll={checkScroll}
+        className="flex flex-row items-start gap-3.5 sm:gap-4 overflow-x-auto pb-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-1 snap-x snap-mandatory scroll-smooth"
+      >
         {allItems.map((cat) => {
           const isSelected =
             (selectedCategory === '' && cat.id === 'all') ||
@@ -136,15 +179,8 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.id === 'all' ? '' : cat.name)}
-              className="group flex flex-col items-center gap-1.5 shrink-0 focus:outline-none"
+              className="group flex flex-col items-center gap-1.5 shrink-0 focus:outline-none snap-start"
             >
-              {/*
-                Use a fixed outer wrapper div that NEVER changes size.
-                The border is always 1px, the padding is always 2px.
-                The rose ring is drawn as a box-shadow (outset) so it
-                occupies ZERO layout space — it draws outside the element
-                without pushing anything.
-              */}
               <div
                 style={{
                   width: '72px',
@@ -163,7 +199,6 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
                 }}
               >
                 {cat.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={cat.image}
                     alt={cat.name}
@@ -184,7 +219,6 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
               >
                 {cat.name}
               </span>
-              {/* Always in DOM, transparent when not selected — reserves exact 2px vertical space */}
               <div
                 className={`h-0.5 w-6 rounded-full transition-colors -mt-1 ${
                   isSelected ? 'bg-rose-600' : 'bg-transparent'
@@ -197,4 +231,3 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
     </div>
   );
 };
-
