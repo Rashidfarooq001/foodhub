@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Script from 'next/script';
@@ -33,7 +33,7 @@ export const DeliveryMap: React.FC<Props> = ({
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isPluginLoaded, setIsPluginLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(!mapToken); // immediately error if no token
 
   const centerLat = driverLat || restaurantLat || customerLat;
   const centerLng = driverLng || restaurantLng || customerLng;
@@ -134,10 +134,27 @@ export const DeliveryMap: React.FC<Props> = ({
   }, [drawRoute]);
 
   if (!mapToken || error) {
+    const isBeforePickup = ['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(status);
+    const destLabel = isBeforePickup ? 'Restaurant' : 'Customer';
+    const destLat = isBeforePickup ? restaurantLat : customerLat;
+    const destLng = isBeforePickup ? restaurantLng : customerLng;
+
     return (
-      <div className="flex flex-col h-[300px] sm:h-[400px] items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 shadow-inner text-sm text-gray-500 p-6 text-center">
-        <span className="font-bold text-gray-700 mb-2">Map Unavailable</span>
-        <span>Please configure NEXT_PUBLIC_MAPPLS_MAP_TOKEN.</span>
+      <div className="h-[200px] sm:h-[260px] flex flex-col items-center justify-center gap-4 bg-gray-50 rounded-2xl border border-gray-100 shadow-inner p-6 text-center mt-4">
+        <div className="text-gray-400 text-xs font-bold uppercase tracking-wider">Navigate to {destLabel}</div>
+        {destLat && destLng ? (
+          <a
+            href={`https://mappls.com/direction?start=${driverLat || ''},${driverLng || ''}&end=${destLat},${destLng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-xl bg-gray-900 text-white text-sm font-black px-5 py-3 hover:bg-gray-700"
+          >
+            Open in Mappls Navigation
+          </a>
+        ) : (
+          <span className="text-xs text-gray-400">Destination coordinates unavailable</span>
+        )}
+        <span className="text-[10px] text-gray-400">Set NEXT_PUBLIC_MAPPLS_MAP_TOKEN to enable inline map.</span>
       </div>
     );
   }

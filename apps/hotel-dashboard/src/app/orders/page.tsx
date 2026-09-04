@@ -834,7 +834,7 @@ export default function HotelOrdersPage() {
                             onClick={() => handleFetchPickupOtp(o)}
                             className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-amber-700 flex items-center gap-1 shrink-0"
                           >
-                            <ShieldCheck className="h-3.5 w-3.5" /> PICKUP CODE &amp; QR
+                            <ShieldCheck className="h-3.5 w-3.5" /> PICKUP CODE
                           </button>
                         )}
 
@@ -1205,17 +1205,6 @@ export default function HotelOrdersPage() {
                     The courier will enter this code on their app to verify order package receipt.
                   </p>
                 </div>
-
-                {pickupOtpData.qrToken && (
-                  <div className="space-y-2 pt-2 border-t border-gray-100">
-                    <span className="text-xs font-bold text-gray-500 uppercase block">
-                      OR Signed QR Verification Token
-                    </span>
-                    <div className="rounded-2xl bg-gray-900 p-4 text-[10px] font-mono text-emerald-400 break-all select-all shadow-inner">
-                      {pickupOtpData.qrToken}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="py-6 text-center text-xs font-bold text-rose-600">
