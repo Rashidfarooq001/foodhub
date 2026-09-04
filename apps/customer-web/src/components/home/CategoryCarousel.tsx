@@ -146,23 +146,34 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
                 without pushing anything.
               */}
               <div
-                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border border-gray-200 bg-gray-50 transition-shadow duration-200 overflow-hidden shrink-0"
-                style={isSelected ? { boxShadow: '0 0 0 2px #e11d48' } : undefined}
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  minWidth: '72px',
+                  minHeight: '72px',
+                  maxWidth: '72px',
+                  maxHeight: '72px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#f9fafb',
+                  flexShrink: 0,
+                  boxShadow: isSelected ? '0 0 0 2px #e11d48' : undefined,
+                  transition: 'box-shadow 0.2s',
+                }}
               >
                 {cat.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={cat.image}
                     alt={cat.name}
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-cover"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     loading="lazy"
                     decoding="async"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600">
-                    <span className="font-black text-sm sm:text-base tracking-tight">ALL</span>
+                    <span className="font-black text-sm tracking-tight">ALL</span>
                   </div>
                 )}
               </div>
