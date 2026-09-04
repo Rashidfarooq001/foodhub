@@ -56,7 +56,7 @@ export default function CheckoutPage() {
   const { items, restaurantName, getSubtotal, getTaxAmount, getGrandTotal, clearCart } =
     useCartStore();
 
-  const { addresses, selectedAddressId, setSelectedAddress, getSelectedAddress, addAddress, getDeliveryAddress, setDeliveryAddress } = useAddressStore();
+  const { addresses, selectedAddressId, deliveryAddressId, setSelectedAddress, getSelectedAddress, addAddress, getDeliveryAddress, setDeliveryAddress } = useAddressStore();
   const { user, accessToken } = useAuthStore();
 
   // Restaurant details state (real coordinates & radius)
@@ -86,21 +86,13 @@ export default function CheckoutPage() {
         if (res.ok) {
           const menuData = await res.json();
           if (Array.isArray(menuData) && menuData.length > 0) {
-            // Find a category with items
-            let allItems: any[] = [];
-            menuData.forEach(cat => {
-              if (cat.items && Array.isArray(cat.items)) {
-                allItems.push(...cat.items);
-              }
-            });
-            // Try to filter recommended, else just take 3
-            let recs: any[] = allItems.filter(i => i.isRecommended || i.isBestseller);
-            if (recs.length === 0) recs = allItems;
-            // Filter out what is already in cart
-            const cartIds = new Set(items.map(i => i.id));
-            recs = recs.filter(i => !cartIds.has(i.id));
-            setRecommendedItems(recs.slice(0, 3));
-          }
+              let allItems = menuData;
+              let recs = allItems.filter(i => i.isRecommended || i.isBestseller);
+              if (recs.length === 0) recs = allItems;
+              const cartIds = new Set(items.map(i => i.foodItemId || i.id));
+              recs = recs.filter(i => !cartIds.has(i.id));
+              setRecommendedItems(recs.slice(0, 3));
+            }
         }
       } catch (err) {}
     };
@@ -239,6 +231,7 @@ export default function CheckoutPage() {
 
   // Custom Address Modal Form state (Manual Text Address â€” Text Form ONLY)
   const [showCustomAddressModal, setShowCustomAddressModal] = useState(false);
+  const [addressModalTarget, setAddressModalTarget] = useState<'CURRENT' | 'DELIVERY' | null>(null);
   const [customLabelInput, setCustomLabelInput] = useState<string>('');
 
   const [newAddrLabel, setNewAddrLabel] = useState<'Home' | 'Work' | 'Other'>('Home');
@@ -296,9 +289,14 @@ export default function CheckoutPage() {
         isDefault: false,
       };
 
-      addAddress(gpsAddr, true);
-      setDeliveryAddress('current-location');
-      setShowCustomAddressModal(false);
+      if (addressModalTarget === 'CURRENT') {
+          addAddress(gpsAddr);
+          setSelectedAddress('current-location');
+        } else {
+          addAddress(gpsAddr, true);
+          setDeliveryAddress('current-location');
+        }
+        setShowCustomAddressModal(false);
     } else {
       setLocationError(gpsError || 'Unable to retrieve location.');
     }
@@ -350,9 +348,14 @@ export default function CheckoutPage() {
           isDefault: false,
         };
 
-        addAddress(newAddr as any, true);
-        setDeliveryAddress(newAddr.id);
-        setShowCustomAddressModal(false);
+        if (addressModalTarget === 'CURRENT') {
+            addAddress(newAddr as any);
+            setSelectedAddress(newAddr.id);
+          } else {
+            addAddress(newAddr as any, true);
+            setDeliveryAddress(newAddr.id);
+          }
+          setShowCustomAddressModal(false);
 
         setOrderQuote(null);
         setLocationError(null);
@@ -748,9 +751,10 @@ export default function CheckoutPage() {
                 setManualAddress('');
                 setMatchedAddressResult(null);
                 setAddressVerificationError(null);
-                setShowCustomAddressModal(true);
-              }}
-              className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
+                  setAddressModalTarget('CURRENT');
+                  setShowCustomAddressModal(true);
+                }}
+                className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
             >
               CHANGE
             </button>
@@ -828,8 +832,14 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-start mb-3">
                <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Address</h2>
                <button 
-                  onClick={() => setShowCustomAddressModal(true)}
-                  className="text-[10px] font-black text-orange-600 uppercase tracking-wide"
+                  onClick={() => {
+                    setManualAddress('');
+                    setMatchedAddressResult(null);
+                    setAddressVerificationError(null);
+                    setAddressModalTarget('DELIVERY');
+                    setShowCustomAddressModal(true);
+                 }}
+                 className="text-[10px] font-black text-orange-600 uppercase tracking-wide"
                >
                  CHANGE
                </button>
@@ -985,9 +995,13 @@ export default function CheckoutPage() {
                         <button
                           key={addr.id}
                           onClick={() => {
-                            setDeliveryAddress(addr.id);
-                            setShowCustomAddressModal(false);
-                          }}
+                              if (addressModalTarget === 'CURRENT') {
+                                setSelectedAddress(addr.id);
+                              } else {
+                                setDeliveryAddress(addr.id);
+                              }
+                              setShowCustomAddressModal(false);
+                            }}
                           className={`w-full text-left p-3 rounded-xl border transition-colors ${deliveryAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
                         >
                           <p className="text-xs font-black text-gray-900 uppercase">{addr.label}</p>

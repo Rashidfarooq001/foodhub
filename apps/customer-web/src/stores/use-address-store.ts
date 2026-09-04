@@ -101,10 +101,18 @@ export const useAddressStore = create<AddressState>()(
       setDeliveryAddress: (id) => set({ deliveryAddressId: id }),
 
       getDeliveryAddress: () => {
-        const { addresses, deliveryAddressId, selectedAddressId } = get();
-        const targetId = deliveryAddressId || selectedAddressId;
-        if (!targetId) return addresses[0] || null;
-        return addresses.find((a) => a.id === targetId) || addresses[0] || null;
+        const { addresses, deliveryAddressId } = get();
+        if (deliveryAddressId) {
+          const found = addresses.find((a) => a.id === deliveryAddressId);
+          if (found) return found;
+        }
+        
+        // Find a default saved delivery address, excluding current-location
+        const savedAddresses = addresses.filter(a => a.id !== 'current-location' && a.label !== 'Current Location');
+        if (savedAddresses.length > 0) {
+          return savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+        }
+        return null;
       },
 
       clearAddresses: () => set({ addresses: [], selectedAddressId: null, deliveryAddressId: null }),
