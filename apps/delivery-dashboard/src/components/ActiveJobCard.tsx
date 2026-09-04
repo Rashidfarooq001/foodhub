@@ -1,11 +1,10 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
 import { io } from 'socket.io-client';
-import { MapPin, Navigation, Loader2 } from 'lucide-react';
-import { DeliveryMap } from './navigation/DeliveryMap';
+import { MapPin, Navigation } from 'lucide-react';
 
 const API_BASE = getApiBaseUrl();
 
@@ -101,43 +100,24 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
 
       {error && <div className="text-sm font-bold text-rose-600 bg-rose-50 p-3 rounded-xl">{error}</div>}
       
-      {/* MAP CONTROLS & MAP */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center px-1">
+      {/* NAVIGATION */}
+      {destLat && destLng && (
+        <div className="flex items-center justify-between rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3">
           <div className="text-sm font-black text-gray-900 flex items-center gap-2">
             <MapPin className="w-4 h-4 text-emerald-600" />
             {isBeforePickup ? 'Navigate to Restaurant' : 'Navigate to Customer'}
           </div>
-          {destLat && destLng && (
-            <a 
-              href={`https://mappls.com/direction?start=${driverLat || ''},${driverLng || ''}&end=${destLat},${destLng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-bold bg-gray-900 text-white px-3 py-1.5 rounded-lg"
-            >
-              <Navigation className="w-3 h-3" />
-              External Nav
-            </a>
-          )}
+          <a
+            href={`https://mappls.com/direction?start=${driverLat || ''},${driverLng || ''}&end=${destLat},${destLng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] font-bold bg-gray-900 text-white px-3 py-2 rounded-xl hover:bg-gray-700"
+          >
+            <Navigation className="w-3.5 h-3.5" />
+            Open Navigation
+          </a>
         </div>
-        
-        {(!driverLat || !driverLng) ? (
-          <div className="h-[300px] flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400 mb-2" />
-            <span className="text-xs font-bold text-gray-500">Waiting for GPS signal...</span>
-          </div>
-        ) : (
-          <DeliveryMap
-            driverLat={driverLat}
-            driverLng={driverLng}
-            restaurantLat={currentJob.restaurantLat}
-            restaurantLng={currentJob.restaurantLng}
-            customerLat={currentJob.customerLat}
-            customerLng={currentJob.customerLng}
-            status={currentJob.status}
-          />
-        )}
-      </div>
+      )}
       
       {/* ACTION BUTTONS */}
       {currentJob.status === 'DRIVER_ASSIGNED' && (
