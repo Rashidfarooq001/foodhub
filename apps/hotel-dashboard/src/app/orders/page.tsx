@@ -77,6 +77,7 @@ interface OrderRecord {
   driverPhone?: string;
   cancellationReason?: string;
   rejectionReason?: string;
+  restaurant?: any;
   items: OrderItem[];
 }
 
@@ -203,6 +204,7 @@ export default function HotelOrdersPage() {
             driverPhone: driverObj?.user?.phone,
             cancellationReason: o.cancellationReason,
             rejectionReason: o.rejectionReason,
+            restaurant: o.restaurant,
             items: itemsArr,
           };
         });
@@ -703,11 +705,39 @@ export default function HotelOrdersPage() {
                 )}
 
                 {['ACCEPTED', 'PREPARING'].includes(o.status) && (
+                  o.restaurant?.deliveryMode === 'RESTAURANT_SELF_DELIVERY' ? (
+                    <button
+                      onClick={() => handleOpenAssignRiderModal(o)}
+                      className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
+                    >
+                      <UserCheck className="h-4 w-4" /> SELECT &amp; ASSIGN RIDER
+                    </button>
+                  ) : (
+                    <div className="w-full rounded-2xl bg-gray-50 border border-gray-200 py-3 text-xs font-black text-gray-500 flex items-center justify-center gap-2 min-h-[44px]">
+                      <div className="h-4 w-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                      FINDING DELIVERY PARTNER...
+                    </div>
+                  )
+                )}
+
+                {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status) && o.driverName && (
+                  <div className="flex items-center gap-2 rounded-xl bg-purple-50 px-4 py-3 border border-purple-100 w-full mt-2">
+                    <div className="h-8 w-8 rounded-full bg-purple-200 flex items-center justify-center shrink-0">
+                      <UserCheck className="h-4 w-4 text-purple-700" />
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-purple-500 uppercase leading-none">Rider Assigned</p>
+                      <p className="text-sm font-black text-purple-900 leading-tight truncate mt-0.5">{o.driverName}</p>
+                    </div>
+                  </div>
+                )}
+
+                {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(o.status) && (
                   <button
-                    onClick={() => handleOpenAssignRiderModal(o)}
-                    className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
+                    onClick={() => handleFetchPickupOtp(o)}
+                    className="w-full rounded-2xl bg-amber-600 py-3 text-xs font-black text-white shadow-md hover:bg-amber-700 flex items-center justify-center gap-1.5 min-h-[44px] mt-2"
                   >
-                    <UserCheck className="h-4 w-4" /> SELECT &amp; ASSIGN RIDER
+                    <ShieldCheck className="h-4 w-4" /> PICKUP CODE &amp; QR
                   </button>
                 )}
               </div>
@@ -819,14 +849,33 @@ export default function HotelOrdersPage() {
                           </button>
                         )}
 
-                        {/* SELECT & ASSIGN RIDER ACTION */}
+                        {/* SELECT & ASSIGN RIDER ACTION OR STATUS */}
                         {['ACCEPTED', 'PREPARING'].includes(o.status) && (
-                          <button
-                            onClick={() => handleOpenAssignRiderModal(o)}
-                            className="rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700 flex items-center gap-1 shrink-0"
-                          >
-                            <UserCheck className="h-3.5 w-3.5" /> SELECT RIDER
-                          </button>
+                          o.restaurant?.deliveryMode === 'RESTAURANT_SELF_DELIVERY' ? (
+                            <button
+                              onClick={() => handleOpenAssignRiderModal(o)}
+                              className="rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700 flex items-center gap-1 shrink-0"
+                            >
+                              <UserCheck className="h-3.5 w-3.5" /> SELECT RIDER
+                            </button>
+                          ) : (
+                            <div className="rounded-xl bg-gray-50 border border-gray-100 px-3.5 py-2 text-xs font-black text-gray-500 flex items-center gap-1.5 shrink-0">
+                              <div className="h-3.5 w-3.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                              FINDING DELIVERY PARTNER...
+                            </div>
+                          )
+                        )}
+
+                        {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(o.status) && o.driverName && (
+                          <div className="flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-1.5 border border-purple-100 shrink-0">
+                            <div className="h-6 w-6 rounded-full bg-purple-200 flex items-center justify-center">
+                              <UserCheck className="h-3 w-3 text-purple-700" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-[9px] font-bold text-purple-500 uppercase leading-none">Rider Assigned</p>
+                              <p className="text-xs font-black text-purple-900 leading-tight">{o.driverName}</p>
+                            </div>
+                          </div>
                         )}
 
                         {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(o.status) && (

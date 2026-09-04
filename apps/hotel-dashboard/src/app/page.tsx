@@ -22,6 +22,9 @@ const API_BASE = getApiBaseUrl();
 
 interface RestaurantStats {
   todayRevenue: number;
+  activeRevenue?: number;
+  activeNetPayout?: number;
+  activeCommission?: number;
   todayOrders: number;
   completedOrders: number;
   cancelledOrders: number;

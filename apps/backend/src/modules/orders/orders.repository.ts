@@ -49,12 +49,7 @@ export class OrdersRepository {
       },
       include: {
         orderItems: { include: { foodItem: true } },
-        restaurant: {
-          select: {
-            id: true,
-            name: true,
-            addressLine: true,
-            phone: true,
+        restaurant: { select: { id: true, name: true, addressLine: true, phone: true, deliveryMode: true,
           },
         },
         orderTimelines: { orderBy: { createdAt: 'asc' } },
@@ -84,12 +79,7 @@ export class OrdersRepository {
       },
       include: {
         orderItems: { include: { foodItem: true } },
-        restaurant: {
-          select: {
-            id: true,
-            name: true,
-            addressLine: true,
-            phone: true,
+        restaurant: { select: { id: true, name: true, addressLine: true, phone: true, deliveryMode: true,
             latitude: true,
             longitude: true,
           },

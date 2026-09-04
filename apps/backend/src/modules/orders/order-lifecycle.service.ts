@@ -108,7 +108,13 @@ export class OrderLifecycleService {
 
     if (!isOwner && !isStaff && !isAdmin) {
       throw new ForbiddenException(
-        'Access denied. You do not own or manage this restaurant order.',
+        'Access denied. You do not own or manage this restaurant.',
+      );
+    }
+
+    if (order.restaurant.deliveryMode === 'FOODHUB_DELIVERY') {
+      throw new ForbiddenException(
+        'Manual rider assignment is disabled for ZaykaFood platform delivery. The system will automatically assign a delivery partner.',
       );
     }
 
