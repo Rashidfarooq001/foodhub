@@ -81,15 +81,19 @@ export class WebPushService implements OnModuleInit {
   ) {
     if (!this.isConfigured) return { success: 0, failed: 0, total: 0 };
 
-    let roleFilter = 'CUSTOMER';
-    if (audience === 'RESTAURANTS') roleFilter = 'RESTAURANT_STAFF'; // Need to check actual role names
-    if (audience === 'RIDERS') roleFilter = 'DELIVERY_PARTNER';
+    // Map audience label to actual DB roles
+    const roleMap: Record<string, string[]> = {
+      CUSTOMERS: ['CUSTOMER'],
+      RESTAURANTS: ['RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF'],
+      RIDERS: ['DELIVERY_PARTNER'],
+    };
+    const roles = roleMap[audience] ?? ['CUSTOMER'];
 
     try {
       const subscriptions = await this.prisma.pushSubscription.findMany({
         where: {
           user: {
-            role: roleFilter as any,
+            role: { in: roles as any[] },
             isActive: true,
           },
         },
