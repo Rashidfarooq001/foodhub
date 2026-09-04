@@ -583,37 +583,39 @@ export default function CustomerHomePage() {
           />
         </div>
 
-        {/* ─── ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) ─── */}
+        {/* 🌶️🌶️🌶️ ROW 5: FILTER CHIPS (Filters, Under 30 mins, Ratings 4.0+, Pure Veg, Near Me, Offers) 🌶️🌶️🌶️ */}
         <div
-          className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 md:hidden"
+          className="flex flex-nowrap items-center gap-2.5 overflow-x-auto pb-2 pt-4 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 md:hidden h-[62px] min-h-[62px] box-border"
           style={{ overscrollBehaviorX: 'contain' }}
         >
           {/* Main Filters Button (Opens Modal) */}
           <button
             type="button"
             onClick={() => setIsFilterModalOpen(true)}
-            className={`flex-shrink-0 flex items-center justify-center gap-1.5 h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center gap-1.5 h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               activeFiltersCount > 0
-                ? 'border-rose-600 bg-rose-50 text-rose-700 font-black shadow-sm'
+                ? 'border-rose-600 bg-rose-50 text-rose-700 shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5 text-rose-600" />
+            <SlidersHorizontal className="h-3.5 w-3.5 text-rose-600 shrink-0" />
             <span>Filters</span>
-            {activeFiltersCount > 0 && (
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white ml-0.5">
-                {activeFiltersCount}
-              </span>
-            )}
+            <span
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white ml-0.5 transition-opacity ${
+                activeFiltersCount > 0 ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {activeFiltersCount}
+            </span>
           </button>
 
           {/* Under 30 mins Chip */}
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, under30Mins: !prev.under30Mins }))}
-            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               filters.under30Mins
-                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
+                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -624,9 +626,9 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, rating4Plus: !prev.rating4Plus }))}
-            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               filters.rating4Plus
-                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
+                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -637,9 +639,9 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, pureVeg: !prev.pureVeg }))}
-            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               filters.pureVeg
-                ? 'border-emerald-600 bg-emerald-600 text-white font-black shadow-sm'
+                ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -650,9 +652,9 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, nearMe: !prev.nearMe }))}
-            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               filters.nearMe
-                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
+                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -663,9 +665,9 @@ export default function CustomerHomePage() {
           <button
             type="button"
             onClick={() => setFilters((prev) => ({ ...prev, hasOffers: !prev.hasOffers }))}
-            className={`flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border px-[14px] text-xs font-bold whitespace-nowrap transition-colors ${
               filters.hasOffers
-                ? 'border-rose-600 bg-rose-600 text-white font-black shadow-sm'
+                ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -677,9 +679,9 @@ export default function CustomerHomePage() {
             <button
               type="button"
               onClick={handleClearAllFilters}
-              className="flex-shrink-0 flex items-center justify-center h-[38px] rounded-full border border-rose-200 bg-rose-50 px-[14px] text-xs font-bold text-rose-600 hover:bg-rose-100 transition-all whitespace-nowrap"
+              className="flex-shrink-0 flex items-center justify-center h-[38px] box-border rounded-full border border-rose-200 bg-rose-50 px-[14px] text-xs font-bold text-rose-600 hover:bg-rose-100 transition-colors whitespace-nowrap"
             >
-              Clear Filters ✕
+              Clear Filters ×
             </button>
           )}
         </div>
