@@ -41,5 +41,16 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "pg": "^8.23.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "puppeteer",
+      "playwright",
+      "esbuild",
+      "bcrypt",
+      "esbuild-windows-64"
+    ]
   }
 }
