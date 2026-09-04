@@ -381,7 +381,7 @@ export default function DeliveryDashboardPage() {
             <DollarSign className="h-6 w-6 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
           </div>
           <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-            â‚¹{stats?.todayEarnings ?? 0}
+              ₹{stats?.todayEarnings ?? 0}
           </h2>
           <span className="text-[10px] text-emerald-600 font-bold block">
             Settled to Bank Cycle
@@ -485,7 +485,7 @@ export default function DeliveryDashboardPage() {
                         #{job.orderNumber || job.id.slice(0, 8)}
                       </span>
                       <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                        Payout: â‚¹{job.estimatedEarnings || job.deliveryFee || 65}
+                        Payout: ₹{job.estimatedEarnings || job.deliveryFee || 65}
                       </span>
                     </div>
 
