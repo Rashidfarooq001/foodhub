@@ -75,6 +75,50 @@ export default function CheckoutPage() {
 
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [recommendedItems, setRecommendedItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+    if (!restId) return;
+    const fetchMenu = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/menus/restaurant/${restId}`);
+        if (res.ok) {
+          const menuData = await res.json();
+          if (Array.isArray(menuData) && menuData.length > 0) {
+            // Find a category with items
+            let allItems: any[] = [];
+            menuData.forEach(cat => {
+              if (cat.items && Array.isArray(cat.items)) {
+                allItems.push(...cat.items);
+              }
+            });
+            // Try to filter recommended, else just take 3
+            let recs: any[] = allItems.filter(i => i.isRecommended || i.isBestseller);
+            if (recs.length === 0) recs = allItems;
+            // Filter out what is already in cart
+            const cartIds = new Set(items.map(i => i.id));
+            recs = recs.filter(i => !cartIds.has(i.id));
+            setRecommendedItems(recs.slice(0, 3));
+          }
+        }
+      } catch (err) {}
+    };
+    fetchMenu();
+  }, [items]);
+  
+  const handleAddRecommended = (item: any) => {
+    useCartStore.getState().addItem({
+      restaurantId: item.restaurantId,
+      restaurantName: restaurantName || 'Restaurant',
+      foodItemId: item.id,
+      isVeg: item.isVeg || false,
+      addons: [],
+      name: item.name,
+      price: item.price,
+      imageUrl: item.imageUrl || '',
+      });
+  };
 
   const selectedAddress = getSelectedAddress();
 
@@ -648,7 +692,7 @@ export default function CheckoutPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="bg-gray-50 min-h-screen text-gray-900 pb-4">
+      <div className="bg-gray-50 text-gray-900 pb-28">
         {/* Mobile-first Header */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
           <div className="mx-auto max-w-2xl flex items-center gap-3">
@@ -687,8 +731,8 @@ export default function CheckoutPage() {
             <div className="flex gap-3 min-w-0">
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
-                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide truncate">
-                   {selectedAddress?.label || 'Delivery Address'}
+                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
+                   {selectedAddress?.label || 'CURRENT DELIVERY ADDRESS'}
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
                    {selectedAddress ? `${selectedAddress.addressLine1}, ${selectedAddress.city}` : 'No address selected'}
@@ -717,21 +761,21 @@ export default function CheckoutPage() {
 
           {/* 2. RESTAURANT / ORDER */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-             <div className="flex justify-between items-center mb-4">
+             <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
                   {restaurantName || 'Your Order'}
                 </h2>
              </div>
-             <div className="space-y-3 border-b border-gray-100 pb-4 mb-3">
+             <div className="space-y-3 pb-4 mb-3 border-b border-gray-100">
                {items.map((item) => (
                  <div key={item.id} className="flex justify-between text-xs items-center gap-2">
                    <div className="flex items-center gap-2 flex-1 min-w-0">
                      <span className="font-bold text-gray-900 text-[11px] bg-gray-100 px-1.5 py-0.5 rounded text-center min-w-[24px]">
-                       {item.quantity}×
+                       {item.quantity}Ã—
                      </span>
                      <span className="font-bold text-gray-800 truncate leading-snug">{item.name}</span>
                    </div>
-                   <span className="font-black text-gray-900 shrink-0">₹{item.price * item.quantity}</span>
+                   <span className="font-black text-gray-900 shrink-0">â‚¹{item.price * item.quantity}</span>
                  </div>
                ))}
              </div>
@@ -743,7 +787,39 @@ export default function CheckoutPage() {
              </button>
           </div>
 
-          {/* 3. DELIVERY TIME */}
+          {/* 3. RECOMMENDED ITEMS */}
+          {recommendedItems && recommendedItems.length > 0 && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+               <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">Recommended Items</h2>
+               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                 {recommendedItems.map(item => (
+                   <div key={item.id} className="flex-shrink-0 w-32 border border-gray-100 rounded-xl p-2 flex flex-col justify-between">
+                      <div>
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="w-full h-20 object-cover rounded-lg mb-2" />
+                        ) : (
+                          <div className="w-full h-20 bg-orange-50 rounded-lg mb-2 flex items-center justify-center text-orange-300">
+                            <Store className="w-6 h-6" />
+                          </div>
+                        )}
+                        <h3 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2">{item.name}</h3>
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                        <span className="text-xs font-black text-gray-900">â‚¹{item.price}</span>
+                        <button 
+                          onClick={() => handleAddRecommended(item)}
+                          className="bg-orange-50 text-orange-600 p-1 rounded-md hover:bg-orange-100 transition"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
+
+          {/* 4. DELIVERY TIME */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
              <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Time</h2>
              <span className="text-sm font-black text-gray-900">
@@ -751,7 +827,7 @@ export default function CheckoutPage() {
              </span>
           </div>
 
-          {/* 4. DELIVERY ADDRESS & CUSTOMER INFO */}
+          {/* 5. DELIVERY ADDRESS & CUSTOMER INFO */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex justify-between items-start mb-3">
                <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Address</h2>
@@ -784,21 +860,21 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* 5. PRICE BREAKDOWN */}
+          {/* 6. PRICE BREAKDOWN */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
              <h2 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wide">
-               <span>💰</span> Price Breakdown
+               <span>ðŸ’°</span> Price Breakdown
              </h2>
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
                   <span>Item Total</span>
-                  <span className="font-bold text-gray-900">₹{subtotal}</span>
+                  <span className="font-bold text-gray-900">â‚¹{subtotal}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span>
                     {dynamicDeliveryFee !== null ? (
-                      <span className="font-bold text-gray-900">₹{dynamicDeliveryFee}</span>
+                      <span className="font-bold text-gray-900">â‚¹{dynamicDeliveryFee}</span>
                     ) : (
                       <span className="text-amber-700 font-bold text-[11px]">Pending distance</span>
                     )}
@@ -806,28 +882,28 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Platform Fee</span>
-                  <span className="font-bold text-gray-900">₹{platformFee ?? 3}</span>
+                  <span className="font-bold text-gray-900">â‚¹{platformFee ?? 3}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Taxes</span>
-                  <span className="font-bold text-gray-900">₹{tax}</span>
+                  <span className="font-bold text-gray-900">â‚¹{tax}</span>
                 </div>
                 {tipAmount > 0 && (
                   <div className="flex justify-between text-orange-600">
                     <span>Driver Tip</span>
-                    <span className="font-bold">+₹{tipAmount}</span>
+                    <span className="font-bold">+â‚¹{tipAmount}</span>
                   </div>
                 )}
              </div>
           </div>
 
-          {/* 6. TOTAL BILL */}
+          {/* 7. TOTAL BILL */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white">
              <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Total Bill</h2>
-             <span className="text-xl font-black text-orange-600">₹{finalPayableTotal}</span>
+             <span className="text-xl font-black text-orange-600">â‚¹{finalPayableTotal}</span>
           </div>
 
-          {/* 7. PAY USING */}
+          {/* 8. PAY USING */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center mb-3">
                 <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -847,16 +923,14 @@ export default function CheckoutPage() {
              </div>
           </div>
 
-          {/* Bottom spacing for sticky CTA */}
-          <div className="h-[80px]" />
         </div>
 
-        {/* 8. STICKY BOTTOM CTA */}
+        {/* 9. STICKY BOTTOM CTA */}
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
           <div className="mx-auto max-w-2xl flex items-center gap-3">
             <div className="flex flex-col justify-center px-2 min-w-[70px]">
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">Total</span>
-              <span className="text-lg font-black text-gray-900">₹{finalPayableTotal}</span>
+              <span className="text-lg font-black text-gray-900">â‚¹{finalPayableTotal}</span>
             </div>
             
             <button
@@ -873,9 +947,8 @@ export default function CheckoutPage() {
                       ? 'CHECK DISTANCE'
                       : !isDeliveryEligible 
                         ? 'OUT OF RANGE' 
-                        : (paymentMethod === 'COD' ? 'PLACE ORDER' : 'PROCEED TO PAYMENT')}
+                        : (paymentMethod === 'COD' ? 'PLACE ORDER â†’' : 'PROCEED TO PAYMENT â†’')}
               </span>
-              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
