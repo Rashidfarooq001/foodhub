@@ -147,7 +147,7 @@ export const CategoryCarousel: React.FC<Props & { initialCategories?: any[] }> =
                 without pushing anything.
               */}
               <div
-                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full p-0.5 border border-gray-200 bg-gray-50 flex items-center justify-center transition-shadow duration-200"
+                className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full p-0.5 border border-gray-200 bg-gray-50 flex items-center justify-center transition-shadow duration-200 overflow-hidden"
                 style={isSelected ? { boxShadow: '0 0 0 2px #e11d48' } : undefined}
               >
                 {cat.image ? (
