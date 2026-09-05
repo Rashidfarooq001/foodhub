@@ -187,10 +187,16 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
     };
   }, [selectedAddressId, isAuthenticated, accessToken]);
 
+  // Track restaurants.length via ref so fetchRestaurants doesn't need it as a dep
+  const restaurantsLengthRef = React.useRef(restaurants.length);
+  useEffect(() => { restaurantsLengthRef.current = restaurants.length; }, [restaurants.length]);
+
   // 2. Fetch Restaurants from Backend API (Passing customer coordinates for backend distance calculation)
-  const fetchRestaurants = useCallback(async (coords = userCoords) => {
+  // IMPORTANT: fetchRestaurants must NOT capture userCoords in its closure.
+  // Always call it with an explicit coords argument to prevent circular useCallback → useEffect loops.
+  const fetchRestaurants = useCallback(async (coords?: { lat: number; lng: number } | null) => {
     // Only show full loading spinner if we don't already have cached items
-    if (restaurants.length === 0) {
+    if (restaurantsLengthRef.current === 0) {
       setIsLoading(true);
     }
     setIsError(false);
@@ -215,24 +221,24 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
         }
       } else {
         console.error('[fetchRestaurants] Not ok:', res.status, res.statusText);
-        if (restaurants.length === 0) {
+        if (restaurantsLengthRef.current === 0) {
           setIsError(true);
         }
       }
     } catch (err) {
       console.error('[fetchRestaurants] Failed to load restaurants from backend', err);
-      if (restaurants.length === 0) {
+      if (restaurantsLengthRef.current === 0) {
         setIsError(true);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [userCoords, restaurants.length]);
+  }, []); // No deps — coords always passed explicitly; stable across renders
 
   useEffect(() => {
     fetchRestaurants(userCoords);
-
-  }, [userCoords]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCoords]); // fetchRestaurants is stable; only re-run when coords actually change
 
   // 3. Fetch Customer Favorites from Backend
   useEffect(() => {
