@@ -3,6 +3,12 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  compress: true,
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+    optimizePackageImports: ['lucide-react', 'date-fns', 'lodash'],
+  },
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: [
     '@foodhub/ui',

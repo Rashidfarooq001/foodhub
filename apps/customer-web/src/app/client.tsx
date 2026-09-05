@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
+import { HeroBanner } from '../components/home/HeroBanner';
 import { DesktopSidebar } from '../components/home/DesktopSidebar';
 import { RecommendedCard } from '../components/home/RecommendedCard';
 import dynamic from 'next/dynamic';
@@ -571,7 +572,12 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
           </div>
         </div>
 
-        {/* ─── ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) ─── */}
+        {/* 🏆 FEATURED PROMOTION BANNER */}
+        <div className="mt-6 md:mt-7">
+          <HeroBanner />
+        </div>
+
+        {/* 🥘 ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) 🥘 */}
         <div className="mt-6 md:mt-7">
           <CategoryCarousel initialCategories={initialCategories}
             selectedCategory={selectedCategory}
