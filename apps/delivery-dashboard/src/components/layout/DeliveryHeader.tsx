@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bell, Power, Menu, Bike } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getImageUrl, getApiBaseUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
@@ -66,67 +66,59 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-3 sm:px-4 md:px-6 gap-2">
-      {/* Left: Mobile Hamburger & Driver Info */}
-      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-1.5 sm:px-4 md:px-6 gap-1 sm:gap-2">
+      {/* LEFT GROUP: Menu -> Logo -> On Duty */}
+      <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+        {/* 1. Hamburger Menu */}
         <button
           onClick={onOpenMobileMenu}
-          className="flex lg:hidden h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
+          className="flex lg:hidden h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
           aria-label="Open Navigation Menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
-        {/* Mobile Brand Logo */}
-        <div className="flex lg:hidden items-center shrink-0">
-          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-7 w-auto object-contain" />
+        {/* 2. ZaykaFood Logo (visible on mobile and desktop) */}
+        <div className="flex items-center shrink-0">
+          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-5 sm:h-7 w-auto object-contain" />
         </div>
 
-        <div className="hidden md:flex items-center gap-2 truncate">
-          <Bike className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span className="text-xs font-bold text-gray-900 truncate max-w-[200px] lg:max-w-[300px]">
-            {user?.name || 'Delivery Partner'}
-          </span>
-        </div>
-      </div>
-
-      {/* Right Controls: On Duty / Off Duty Toggle & Notifications */}
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Prominent Duty Status Toggle */}
+        {/* 3. ON DUTY Status */}
         <button
           onClick={handleToggle}
           disabled={isToggling}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 text-xs font-black transition shadow-sm min-h-[44px] ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-xl sm:rounded-2xl px-1.5 sm:px-3 py-1 text-[9px] sm:text-xs font-black transition shadow-sm h-7 sm:h-10 shrink-0 ${
             isOnDuty
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
               : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
           }`}
           title="Toggle On/Off Duty Status"
         >
-          <Power
-            className={`h-4 w-4 shrink-0 ${isOnDuty ? 'text-emerald-600' : 'text-gray-500'}`}
-          />
           <span>{isToggling ? '...' : isOnDuty ? 'ON DUTY' : 'OFF DUTY'}</span>
           <span
-            className={`h-2 w-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}
+            className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}
           />
         </button>
+      </div>
 
-        <ThemeToggle />
+      {/* RIGHT GROUP: Moon -> Notifications -> Profile */}
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* 4. Theme Toggle */}
+        <ThemeToggle className="!h-8 !w-8 sm:!h-10 sm:!w-10 !rounded-xl sm:!rounded-2xl" />
 
-        {/* Notifications */}
+        {/* 5. Notifications */}
         <button
-          className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
+          className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
           aria-label="Notifications"
         >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-900" />
+          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-900" />
         </button>
 
-        {/* Profile Button */}
+        {/* 6. Rider Profile Avatar */}
         <button
           onClick={() => router.push('/settings')}
-          className="flex items-center gap-2 rounded-2xl p-1 hover:bg-gray-50 transition shrink-0"
+          className="flex items-center gap-2 rounded-full p-0.5 hover:bg-gray-50 transition shrink-0 ml-0.5"
           title="Rider Settings"
         >
           <img
@@ -137,7 +129,7 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
               (e.target as HTMLImageElement).src =
                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
             }}
-            className="h-9 w-9 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+            className="h-7 w-7 sm:h-9 sm:w-9 rounded-full object-cover border border-emerald-500 sm:border-2 shadow-sm"
           />
         </button>
       </div>
