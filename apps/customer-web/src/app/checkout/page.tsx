@@ -715,7 +715,7 @@ export default function CheckoutPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-sm font-black text-gray-900">Complete Your Order</h1>
+            <h1 className="text-lg font-bold text-gray-900">Complete Your Order</h1>
           </div>
         </div>
 
@@ -744,7 +744,7 @@ export default function CheckoutPage() {
             <div className="flex gap-3 min-w-0">
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
-                 <h2 className="text-sm font-black text-gray-900 ">
+                 <h2 className="text-sm font-semibold text-gray-900 ">
                    {currentLocation?.label || 'CURRENT LOCATION'}
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
@@ -766,14 +766,14 @@ export default function CheckoutPage() {
                 setAddressVerificationError(null);
                 setShowCustomAddressModal(true);
               }}
-              className="text-[10px] font-black text-orange-600  px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
+              className="text-xs font-medium text-orange-600 px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
             >Change</button>
           </div>
 
           {/* 2. RESTAURANT / ORDER */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
-                <h2 className="text-sm font-black text-gray-900 ">
+                <h2 className="text-sm font-semibold text-gray-900 ">
                   {restaurantName || 'Your Order'}
                 </h2>
              </div>
@@ -786,20 +786,20 @@ export default function CheckoutPage() {
                        </span>
                      <span className="font-bold text-gray-800 truncate leading-snug">{item.name}</span>
                    </div>
-                   <span className="font-black text-gray-900 shrink-0">{formatCurrency(item.price * item.quantity)}</span>
+                   <span className="font-semibold text-gray-900 shrink-0">{formatCurrency(item.price * item.quantity)}</span>
                  </div>
                ))}
              </div>
              <button
                 onClick={() => router.push('/cart')}
-                className="w-full text-xs font-black text-orange-600 r text-center flex justify-center items-center py-1 hover:text-orange-700 transition"
+                className="w-full text-xs font-semibold text-orange-600 r text-center flex justify-center items-center py-1 hover:text-orange-700 transition"
              >Edit order · Add more</button>
           </div>
 
           {/* 3. RECOMMENDED ITEMS */}
           {recommendedItems && recommendedItems.length > 0 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-               <h2 className="text-xs font-black text-gray-500 r mb-3">You might also like</h2>
+               <h2 className="text-sm font-semibold text-gray-900 mb-3">You might also like</h2>
                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                  {recommendedItems.map(item => (
                    <div key={item.id} className="flex-shrink-0 w-32 border border-gray-100 rounded-xl p-2 flex flex-col justify-between">
@@ -814,7 +814,7 @@ export default function CheckoutPage() {
                         <h3 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2">{item.name}</h3>
                       </div>
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                        <span className="text-xs font-black text-gray-900">{formatCurrency(item.price)}</span>
+                        <span className="text-sm font-medium text-gray-900">{formatCurrency(item.price)}</span>
                         <button 
                           onClick={() => handleAddRecommended(item)}
                           className="bg-orange-50 text-orange-600 p-1 rounded-md hover:bg-orange-100 transition"
@@ -830,8 +830,8 @@ export default function CheckoutPage() {
 
           {/* 4. DELIVERY TIME */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
-             <h2 className="text-xs font-black text-gray-500 r">When will it arrive?</h2>
-             <span className="text-sm font-black text-gray-900">
+             <h2 className="text-sm font-semibold text-gray-900 mb-2">When will it arrive?</h2>
+             <span className="text-sm font-semibold text-gray-900">
                {orderQuote?.etaMinutes ? `${orderQuote.etaMinutes} mins` : 'ETA unavailable'}
              </span>
           </div>
@@ -839,10 +839,10 @@ export default function CheckoutPage() {
           {/* 5. DELIVERY ADDRESS & CUSTOMER INFO */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex justify-between items-start mb-3">
-               <h2 className="text-xs font-black text-gray-500 r">Deliver to</h2>
+               <h2 className="text-sm font-semibold text-gray-900 mb-2">Deliver to</h2>
                <button 
                   onClick={() => setShowCustomAddressModal(true)}
-                  className="text-[10px] font-black text-orange-600 "
+                  className="text-xs font-medium text-orange-600"
                >Change</button>
             </div>
             <div className="text-xs font-bold text-gray-900 space-y-1">
@@ -869,7 +869,7 @@ export default function CheckoutPage() {
 
           {/* 5.5. COUPON */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <Tag className="w-5 h-5 text-gray-900" /> APPLY COUPON
             </h2>
             <div className="flex gap-2">
@@ -915,7 +915,7 @@ export default function CheckoutPage() {
 
           {/* 6. PRICE BREAKDOWN */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-             <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
+             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                <Banknote className="w-5 h-5 text-gray-900" />Bill Details</h2>
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
@@ -957,22 +957,22 @@ export default function CheckoutPage() {
 
           {/* 7. TOTAL BILL */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white">
-             <h2 className="text-sm font-black text-gray-900 ">To Pay</h2>
-             <span className="text-xl font-black text-orange-600">{formatCurrency(finalPayableTotal)}</span>
+             <h2 className="text-base font-semibold text-gray-900">To Pay</h2>
+             <span className="text-xl font-bold text-gray-900">{formatCurrency(finalPayableTotal)}</span>
           </div>
 
           {/* 8. PAY USING */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-xs font-black text-gray-500 r flex items-center gap-1.5">
+                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-gray-400" />Payment method</h2>
                 <button 
                   onClick={() => setPaymentMethod(prev => prev === 'COD' ? 'UPI' : 'COD')}
-                  className="text-[10px] font-black text-orange-600  px-2 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
+                  className="text-xs font-medium text-orange-600 px-3 py-1.5 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
                 >Change</button>
              </div>
              <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-gray-900">
+                <span className="text-sm font-semibold text-gray-900">
                   {paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'}
                 </span>
              </div>
@@ -981,28 +981,31 @@ export default function CheckoutPage() {
         </div>
 
         {/* 9. STICKY BOTTOM CTA */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-          <div className="mx-auto max-w-2xl flex items-center gap-3">
-            <div className="flex flex-col justify-center px-2 min-w-[70px]">
-              <span className="text-[10px] font-black text-gray-500 r">To Pay</span>
-              <span className="text-lg font-black text-gray-900">{formatCurrency(finalPayableTotal)}</span>
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+          <div className="mx-auto max-w-2xl flex items-center justify-between gap-4">
+            <div className="flex flex-col justify-center px-1">
+              <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">To Pay</span>
+              <span className="text-xl font-bold text-gray-900">{formatCurrency(finalPayableTotal)}</span>
             </div>
             
             <button
               onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? () => refreshQuote() : handlePlaceOrder}
               disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
-              className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-xl py-3.5 flex items-center justify-between px-5 disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-orange-500/20"
+              className="flex-[1.5] bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition-all duration-200 text-white font-semibold text-base rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100 shadow-lg shadow-orange-600/30"
             >
-              <span>
-                {isPlacing 
-                  ? 'PROCESSING...' 
-                  : !selectedAddress ? 'SELECT ADDRESS' 
-                    : orderQuote && (!routeAvailable || realDistanceKm === null)
-                      ? 'CHECK DISTANCE'
-                      : !isDeliveryEligible 
-                        ? 'OUT OF RANGE' 
-                        : (paymentMethod === 'COD' ? (<span className="flex items-center gap-1">Pay {formatCurrency(finalPayableTotal)} <ArrowRight className="w-4 h-4" /></span>) : (<span className="flex items-center gap-1">Pay {formatCurrency(finalPayableTotal)} <ArrowRight className="w-4 h-4" /></span>))}
-              </span>
+              {isPlacing 
+                ? 'Processing...' 
+                : !selectedAddress ? 'Select Address' 
+                  : orderQuote && (!routeAvailable || realDistanceKm === null)
+                    ? 'Check Distance'
+                    : !isDeliveryEligible 
+                      ? 'Out of Range' 
+                      : (
+                        <span className="flex items-center gap-2">
+                          Pay {formatCurrency(finalPayableTotal)}
+                          <ArrowRight className="w-5 h-5" />
+                        </span>
+                      )}
             </button>
           </div>
         </div>
@@ -1012,7 +1015,7 @@ export default function CheckoutPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
             <div className="w-full max-w-[420px] overflow-hidden rounded-3xl bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
-                <h2 className="text-base font-black text-gray-900">Change Delivery Location</h2>
+                <h2 className="text-base font-semibold text-gray-900">Change Delivery Location</h2>
                 <button
                   onClick={() => setShowCustomAddressModal(false)}
                   className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
@@ -1049,7 +1052,7 @@ export default function CheckoutPage() {
                           }}
                           className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedAddress?.id === addr.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}
                         >
-                          <p className="text-xs font-black text-gray-900 uppercase">{addr.label}</p>
+                          <p className="text-sm font-medium text-gray-900">{addr.label}</p>
                           <p className="text-[11px] text-gray-600 truncate mt-0.5">{addr.addressLine1}</p>
                         </button>
                       ))}
@@ -1070,7 +1073,7 @@ export default function CheckoutPage() {
                   <button
                     onClick={handleConfirmManualAddress}
                     disabled={!manualAddress.trim() || isVerifyingAddress}
-                    className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 shadow-sm"
+                    className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-semibold text-white hover:bg-orange-700 transition disabled:opacity-50 shadow-sm"
                   >
                     {isVerifyingAddress ? 'Verifying location...' : 'Save & Select Location'}
                   </button>
