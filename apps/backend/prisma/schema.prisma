@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "cockroachdb"
   url      = env("DATABASE_URL")
 }
 
@@ -209,19 +209,19 @@ model User {
   createdBy               String?   @map("created_by") @db.Uuid
   updatedBy               String?   @map("updated_by") @db.Uuid
 
-  profile         Profile?
-  refreshTokens   RefreshToken[]
-  otps            Otp[]
-  loginHistories  LoginHistory[]
-  sessions        Session[]
-  customer        Customer?
-  driver          Driver?
-  restaurantStaff RestaurantStaff[]
-  wallet          Wallet?
-  auditLogs       AuditLog[]
-  notifications   Notification[]
+  profile           Profile?
+  refreshTokens     RefreshToken[]
+  otps              Otp[]
+  loginHistories    LoginHistory[]
+  sessions          Session[]
+  customer          Customer?
+  driver            Driver?
+  restaurantStaff   RestaurantStaff[]
+  wallet            Wallet?
+  auditLogs         AuditLog[]
+  notifications     Notification[]
   pushSubscriptions PushSubscription[]
-  broadcastsSent  BroadcastMessage[]
+  broadcastsSent    BroadcastMessage[]
 
   privacyConsents   PrivacyConsent[]
   privacyRequests   PrivacyRequest[]
@@ -1391,24 +1391,26 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now()) @map("created_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@map("push_subscriptions")
 }
 
 model BroadcastMessage {
-  id             String   @id @default(uuid()) @db.Uuid
-  adminUserId    String   @map("admin_user_id") @db.Uuid
-  targetAudience String   @map("target_audience")
+  id             String    @id @default(uuid()) @db.Uuid
+  adminUserId    String    @map("admin_user_id") @db.Uuid
+  targetAudience String    @map("target_audience")
   title          String
   message        String
-  status         String   @default("QUEUED")
-  recipientCount Int      @default(0) @map("recipient_count")
-  successCount   Int      @default(0) @map("success_count")
-  failureCount   Int      @default(0) @map("failure_count")
-  createdAt      DateTime @default(now()) @map("created_at")
+  status         String    @default("QUEUED")
+  recipientCount Int       @default(0) @map("recipient_count")
+  successCount   Int       @default(0) @map("success_count")
+  failureCount   Int       @default(0) @map("failure_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
   completedAt    DateTime? @map("completed_at")
-  admin User @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  admin          User      @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
   @@map("broadcast_messages")
 }
 
@@ -1701,7 +1703,7 @@ model LegalPolicyVersion {
   policyName  String             @map("policy_name")
   version     String             @default("1.0")
   status      String             @default("ACTIVE")
-  content     String?            @db.Text
+  content     String?
   summary     String?
   publishedAt DateTime           @default(now()) @map("published_at")
   createdAt   DateTime           @default(now()) @map("created_at")
@@ -1748,12 +1750,12 @@ model PrivacyComplaint {
   orderNumber  String?           @map("order_number")
   category     ComplaintCategory @default(PRIVACY_CONCERN)
   subject      String
-  description  String            @db.Text
+  description  String
   evidenceUrls Json?             @map("evidence_urls")
   status       ComplaintStatus   @default(RECEIVED)
   priority     TicketPriority    @default(MEDIUM)
   assignedTo   String?           @map("assigned_to") @db.Uuid
-  resolution   String?           @db.Text
+  resolution   String?
   resolvedAt   DateTime?         @map("resolved_at")
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
@@ -1777,8 +1779,8 @@ model DataBreachIncident {
   resolvedAt           DateTime?        @map("resolved_at")
   affectedRecordsCount Int              @default(0) @map("affected_records_count")
   affectedSystems      String[]         @default([]) @map("affected_systems")
-  description          String           @db.Text
-  mitigationSteps      String?          @map("mitigation_steps") @db.Text
+  description          String
+  mitigationSteps      String?          @map("mitigation_steps")
   notificationRequired Boolean          @default(false) @map("notification_required")
   notifiedAt           DateTime?        @map("notified_at")
   dpbiNotified         Boolean          @default(false) @map("dpbi_notified")
