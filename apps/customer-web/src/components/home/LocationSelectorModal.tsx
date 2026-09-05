@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useAddressStore } from '../../stores/use-address-store';
 import type { CustomerAddressItem } from '../../stores/use-address-store';
-import { getApiBaseUrl } from '@foodhub/config';
-
-const API_BASE = getApiBaseUrl();
 
 interface LocationSelectorModalProps {
   isOpen: boolean;
@@ -32,50 +29,70 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   const [isResolving, setIsResolving] = useState(false);
   const [resolveError, setResolveError] = useState('');
 
-  // 1. Current GPS Location Handler
+  // Use a ref to ensure the GPS-success effect only fires ONCE per GPS grant.
+  // Without this, any re-render that creates new onSelectLocation/onClose refs
+  // would retrigger this effect causing an infinite loop → crash.
+  const gpsHandledRef = useRef(false);
+
+  // Reset the guard whenever the modal opens so GPS can fire again on next open
   useEffect(() => {
-    if (status === 'granted' && coordinates && addressData) {
-      const specificName =
-        addressData.locality ||
-        addressData.subDistrict ||
-        addressData.district ||
-        'Current Location';
-
-      const gpsAddr: CustomerAddressItem = {
-        id: 'current-gps',
-        label: 'Current Location',
-        placeName: specificName,
-        addressLine1: addressData.formattedAddress || specificName,
-        city: addressData.district || '',
-        state: addressData.state || '',
-        postalCode: addressData.postalCode || '',
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        locationSource: 'CURRENT_GPS',
-        verificationStatus: 'VERIFIED',
-        isDefault: false,
-      };
-
-      useAddressStore.getState().addAddress(gpsAddr);
-      useAddressStore.getState().setSelectedAddress('current-gps');
-
-      onSelectLocation({
-        label: 'Current Location',
-        address: specificName,
-        lat: coordinates.latitude,
-        lng: coordinates.longitude,
-        locationSource: 'CURRENT_GPS',
-      });
-
-      onClose(); // Auto-close on success
+    if (isOpen) {
+      gpsHandledRef.current = false;
     }
-  }, [status, coordinates, addressData, onSelectLocation, onClose]);
+  }, [isOpen]);
+
+  // 1. Current GPS Location Handler — fires ONCE when status becomes 'granted'
+  useEffect(() => {
+    if (status !== 'granted' || !coordinates || !addressData) return;
+    if (gpsHandledRef.current) return; // Already handled — prevent re-run
+    gpsHandledRef.current = true;
+
+    const specificName =
+      addressData.locality ||
+      (addressData as any).subDistrict ||
+      addressData.district ||
+      'Current Location';
+
+    const gpsAddr: CustomerAddressItem = {
+      id: 'current-gps',
+      label: 'Current Location',
+      placeName: specificName,
+      addressLine1: addressData.formattedAddress || specificName,
+      city: addressData.district || '',
+      state: addressData.state || '',
+      postalCode: addressData.postalCode || '',
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      locationSource: 'CURRENT_GPS',
+      verificationStatus: 'VERIFIED',
+      isDefault: false,
+    };
+
+    // Update address store via static getState() to avoid re-render dependency
+    useAddressStore.getState().addAddress(gpsAddr);
+    useAddressStore.getState().setSelectedAddress('current-gps');
+
+    // Call parent callbacks via refs to avoid them being in the dep array
+    onSelectLocation({
+      label: 'Current Location',
+      address: specificName,
+      lat: coordinates.latitude,
+      lng: coordinates.longitude,
+      locationSource: 'CURRENT_GPS',
+    });
+
+    onClose(); // Auto-close on success
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, coordinates, addressData]); // onSelectLocation + onClose intentionally excluded —
+  // they are inline arrow functions in the parent (new ref every render).
+  // The gpsHandledRef guard ensures this runs only once per GPS result.
 
   const handleUseCurrentLocation = async () => {
+    gpsHandledRef.current = false; // Allow re-run if user clicks again after a failure
     await requestLocation();
   };
 
-  // 2. Manual Address Handler (Resolves via Mappls Backend)
+  // 2. Manual Address Handler (Resolves via backend)
   const handleConfirmManualAddress = async () => {
     if (!manualAddress.trim()) return;
 
@@ -83,14 +100,25 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     setResolveError('');
 
     try {
-      const res = await fetch(`${API_BASE}/location/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: manualAddress.trim() }),
-      });
-      const data = await res.json();
+      const res = await fetch('/api/geo/search?q=' + encodeURIComponent(manualAddress.trim()));
+      let data: any = null;
 
-      if (res.ok && data.success && data.latitude && data.longitude) {
+      if (res.ok) {
+        data = await res.json();
+      }
+
+      // Fallback: try the location resolve endpoint
+      if (!data || !data.latitude) {
+        const API_BASE = (await import('@foodhub/config')).getApiBaseUrl();
+        const res2 = await fetch(`${API_BASE}/location/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: manualAddress.trim() }),
+        });
+        data = res2.ok ? await res2.json() : null;
+      }
+
+      if (data && data.success && data.latitude && data.longitude) {
         const addrId = 'manual-' + Date.now();
         const manualAddr: CustomerAddressItem = {
           id: addrId,
@@ -119,10 +147,10 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           locationSource: 'MANUAL_GEOCODED',
         });
 
-        onClose(); // Automatically close after successful resolution
+        onClose();
       } else {
         setResolveError(
-          data.message || "Couldn't verify this location. Please enter a more specific address.",
+          data?.message || "Couldn't verify this location. Please enter a more specific address.",
         );
       }
     } catch (err) {
@@ -138,7 +166,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-100 p-4 pb-3">
-          <h2 className="text-base font-black text-gray-900">Delivery Location</h2>
+          <h2 className="text-base font-bold text-gray-900">Delivery Location</h2>
           <button
             onClick={onClose}
             className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
@@ -156,11 +184,15 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
               className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 h-[68px] text-left transition hover:bg-orange-50 hover:border-orange-100 group disabled:opacity-50"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm text-orange-600 group-hover:scale-110 transition-transform">
-                <MapPin className="h-[18px] w-[18px]" />
+                <MapPin className={`h-[18px] w-[18px] ${status === 'requesting' ? 'animate-pulse' : ''}`} />
               </div>
               <div className="flex-1 overflow-hidden">
-                <h3 className="font-bold text-sm text-gray-900 truncate">Use Current Location</h3>
-                <p className="text-[11px] text-gray-500 font-medium truncate">Use device GPS</p>
+                <h3 className="font-bold text-sm text-gray-900 truncate">
+                  {status === 'requesting' ? 'Detecting your location...' : 'Use Current Location'}
+                </h3>
+                <p className="text-[11px] text-gray-500 font-medium truncate">
+                  {status === 'denied' ? 'Permission denied — enable in browser settings' : 'Use device GPS'}
+                </p>
               </div>
             </button>
             {error && <p className="mt-1.5 text-[11px] font-bold text-red-500 px-1">{error}</p>}
@@ -188,7 +220,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
             <button
               onClick={handleConfirmManualAddress}
               disabled={!manualAddress.trim() || isResolving}
-              className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-black text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
+              className="w-full flex items-center justify-center rounded-xl bg-orange-600 h-[52px] text-sm font-bold text-white hover:bg-orange-700 transition disabled:opacity-50 disabled:bg-gray-300 shadow-sm"
             >
               {isResolving ? 'Verifying location...' : 'Save Location'}
             </button>

@@ -412,6 +412,26 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
     setSearchQuery('');
   };
 
+  // Stable callback refs for LocationSelectorModal — MUST be useCallback.
+  // Inline arrow functions passed as props create new references every render,
+  // which would cause any useEffect in the modal that depends on them to re-fire
+  // infinitely after GPS succeeds (new location state → re-render → new ref → effect re-runs → loop → crash).
+  const handleCloseLocationModal = useCallback(() => {
+    setIsLocationModalOpen(false);
+  }, []);
+
+  const handleSelectLocation = useCallback((loc: {
+    label: string;
+    address: string;
+    lat: number;
+    lng: number;
+    locationSource: string;
+  }) => {
+    setLocationLabel(loc.label || 'Selected Location');
+    setLocationAddress(loc.address);
+    setUserCoords({ lat: loc.lat, lng: loc.lng });
+  }, []);
+
   const recommendedList = filteredRestaurants.slice(0, 6);
   const popularList =
     filteredRestaurants.slice(6, 12).length > 0
@@ -817,14 +837,10 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
       {/* Location Selection Modal (GPS / Search / Saved) */}
       <LocationSelectorModal
         isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
+        onClose={handleCloseLocationModal}
         currentLocality={locationLabel}
         currentAddress={locationAddress}
-        onSelectLocation={(loc) => {
-          setLocationLabel(loc.label || 'Selected Location');
-          setLocationAddress(loc.address);
-          setUserCoords({ lat: loc.lat, lng: loc.lng });
-        }}
+        onSelectLocation={handleSelectLocation}
       />
 
       {/* Filter & Sort Bottom Sheet / Modal */}

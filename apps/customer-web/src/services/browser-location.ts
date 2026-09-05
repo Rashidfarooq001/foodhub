@@ -1,6 +1,3 @@
-import { getApiBaseUrl } from '@foodhub/config';
-
-const API_BASE = getApiBaseUrl();
 
 export interface GeoLocationResult {
   latitude: number;
@@ -92,18 +89,20 @@ export class BrowserLocationService {
 
   static async reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodeResult> {
     try {
-      const url = API_BASE + '/geolocation/reverse-geocode?lat=' + lat + '&lng=' + lng;
-      const finalUrl = url.replace('/customer/geolocation', '/geolocation');
-      const res = await fetch(finalUrl);
-
+      // Use the Next.js reverse-geocode proxy route which is always available
+      // at /api/geo/reverse regardless of backend URL configuration.
+      const res = await fetch(`/api/geo/reverse?lat=${lat}&lng=${lng}`);
       if (!res.ok) {
-        throw new Error('Reverse geocoding failed on backend');
+        console.warn('[BrowserLocationService] reverseGeocode failed with status', res.status);
+        return {};
       }
-
       const data = await res.json();
       return data;
     } catch (e) {
-      throw e;
+      console.warn('[BrowserLocationService] reverseGeocode error:', e);
+      // Return an empty object — callers handle missing fields gracefully
+      // by falling back to 'Current Location' label. Never throw here.
+      return {};
     }
   }
 }
