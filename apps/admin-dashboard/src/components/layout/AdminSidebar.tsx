@@ -18,6 +18,8 @@ import {
   UserCog,
   DollarSign,
   X,
+  Image,
+  Tag,
 } from 'lucide-react';
 
 const NAVIGATION = [
@@ -28,6 +30,8 @@ const NAVIGATION = [
   { name: 'Delivery Partners', href: '/delivery-partners', icon: Bike },
   { name: 'Customer Directory', href: '/customers', icon: Users },
   { name: 'Global Orders Log', href: '/orders', icon: Megaphone },
+  { name: 'Banners & CMS', href: '/cms', icon: Image },
+  { name: 'Coupons Manager', href: '/coupons', icon: Tag },
   { name: 'Payments & Settlements', href: '/payments', icon: CreditCard },
   { name: 'Analytics & Reports', href: '/analytics', icon: BarChart3 },
   { name: 'Broadcasts', href: '/broadcast', icon: Megaphone },
