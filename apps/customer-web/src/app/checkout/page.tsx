@@ -908,8 +908,8 @@ export default function CheckoutPage() {
              <span className="text-sm font-semibold text-gray-900">
                {!orderQuote
                  ? 'Calculating...'
-                 : orderQuote.etaMinutes != null && orderQuote.etaMinutes > 0
-                 ? `Arrives in ~${orderQuote.etaMinutes} min`
+                 : orderQuote.etaMinutes != null && orderQuote.etaMinutes >= 0
+                 ? `Arrives in ~${Math.max(1, orderQuote.etaMinutes)} min`
                  : 'Delivery time unavailable'}
              </span>
           </div>
