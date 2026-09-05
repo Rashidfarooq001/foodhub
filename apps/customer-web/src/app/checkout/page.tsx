@@ -184,14 +184,19 @@ export default function CheckoutPage() {
   const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
   const isDeliveryEligible = Boolean(orderQuote && routeAvailable && orderQuote.deliveryEligible);
 
-  const handleApplyCoupon = async () => {
+    const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setIsApplyingCoupon(true);
     setCouponMessage(null);
     try {
-      useCartStore.getState().applyCoupon(couponInput.trim());
-      refreshQuote();
-      setCouponMessage({ type: 'success', text: 'Coupon applied successfully!' });
+      const quote = await refreshQuote(couponInput.trim());
+      if (quote && quote.appliedCouponCode) {
+        useCartStore.getState().applyCoupon(quote.appliedCouponCode);
+        setCouponMessage({ type: 'success', text: quote.couponMessage || 'Coupon applied successfully!' });
+      } else {
+        useCartStore.getState().removeCoupon();
+        setCouponMessage({ type: 'error', text: quote?.couponMessage || 'Invalid coupon' });
+      }
     } catch (e: any) {
       setCouponMessage({ type: 'error', text: e.message || 'Invalid coupon' });
       useCartStore.getState().removeCoupon();
@@ -207,29 +212,33 @@ export default function CheckoutPage() {
     refreshQuote();
   };
 
-  const refreshQuote = useCallback(() => {
+    const refreshQuote = useCallback((overrideCoupon?: string | null) => {
     const sub = getSubtotal();
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
     const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined && selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
     const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
-    fetchOrderQuote({
+    const couponToUse = overrideCoupon !== undefined ? (overrideCoupon || undefined) : (useCartStore.getState().appliedCoupon || undefined);
+
+    return fetchOrderQuote({
       foodSubtotal: sub,
       restaurantId: restId || undefined,
       latitude: hasCoords ? selectedAddress!.latitude! : undefined,
       longitude: hasCoords ? selectedAddress!.longitude! : undefined,
       locationSource,
       tipAmount: tipAmount,
-      couponCode: useCartStore.getState().appliedCoupon || undefined,
+      couponCode: couponToUse,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
     })
       .then((quote) => {
         if (quote) setOrderQuote(quote);
+        return quote;
       })
       .catch((err) => {
         setPaymentError(err.message || 'Failed to calculate delivery fee.');
         setOrderQuote(null);
+        return null;
       });
   }, [items, selectedAddress, tipAmount]);
 
@@ -990,7 +999,7 @@ export default function CheckoutPage() {
             </div>
             
             <button
-              onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? refreshQuote : handlePlaceOrder}
+              onClick={orderQuote && (!routeAvailable || realDistanceKm === null) ? () => refreshQuote() : handlePlaceOrder}
               disabled={isPlacing || !selectedAddress || Boolean(orderQuote && routeAvailable && realDistanceKm !== null && !isDeliveryEligible)}
               className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] transition text-white font-black text-sm rounded-xl py-3.5 flex items-center justify-between px-5 disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-orange-500/20"
             >
