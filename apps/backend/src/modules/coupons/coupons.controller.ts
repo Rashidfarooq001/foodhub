@@ -77,4 +77,22 @@ export class CouponsController {
   async deactivate(@Param('id') id: string) {
     return this.couponsService.deactivateCoupon(id);
   }
+
+  @Delete(':id/hard')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Hard delete a coupon' })
+  async deleteCoupon(@Param('id') id: string) {
+    return this.couponsService.deleteCoupon(id);
+  }
+
+  @Post(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Update a coupon' })
+  async update(@Param('id') id: string, @Body() dto: CreateCouponDto) {
+    return this.couponsService.updateCoupon(id, dto);
+  }
 }

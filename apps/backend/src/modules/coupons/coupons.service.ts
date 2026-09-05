@@ -192,4 +192,30 @@ export class CouponsService {
     this.eventsGateway.server.emit('coupon:updated', { couponId: coupon.id, action: 'deactivated' });
     return coupon;
   }
+
+  async deleteCoupon(couponId: string) {
+    const coupon = await this.prisma.coupon.delete({
+      where: { id: couponId },
+    });
+    this.eventsGateway.server.emit('coupon:updated', { couponId: coupon.id, action: 'deleted' });
+    return coupon;
+  }
+
+  async updateCoupon(couponId: string, dto: CreateCouponDto) {
+    const coupon = await this.prisma.coupon.update({
+      where: { id: couponId },
+      data: {
+        code: dto.code.toUpperCase(),
+        couponType: dto.couponType,
+        discountVal: dto.discountVal,
+        minOrderVal: dto.minOrderVal || 0,
+        maxDiscount: dto.maxDiscount || null,
+        validFrom: new Date(dto.validFrom),
+        validTill: new Date(dto.validTill),
+        usageLimit: dto.usageLimit || null,
+      },
+    });
+    this.eventsGateway.server.emit('coupon:updated', { couponId: coupon.id, action: 'updated' });
+    return coupon;
+  }
 }
