@@ -5,7 +5,6 @@ import { Bell, Menu } from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getImageUrl, getApiBaseUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
-import { ThemeToggle } from '../common/ThemeToggle';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface DeliveryHeaderProps {
@@ -101,10 +100,8 @@ export const DeliveryHeader: React.FC<DeliveryHeaderProps> = ({ onOpenMobileMenu
         </button>
       </div>
 
-      {/* RIGHT GROUP: Moon -> Notifications -> Profile */}
+      {/* RIGHT GROUP: Notifications -> Profile */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-        {/* 4. Theme Toggle */}
-        <ThemeToggle className="!h-8 !w-8 sm:!h-10 sm:!w-10 !rounded-xl sm:!rounded-2xl" />
 
         {/* 5. Notifications */}
         <button
