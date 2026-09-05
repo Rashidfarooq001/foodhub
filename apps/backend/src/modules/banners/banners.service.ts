@@ -2,17 +2,41 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { EventsGateway } from '../realtime/events.gateway';
 
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+
 export class CreateBannerDto {
+  @IsString()
+  @IsNotEmpty()
   title!: string;
+
+  @IsString()
+  @IsNotEmpty()
   imageUrl!: string;
+
+  @IsString()
+  @IsOptional()
   targetUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
   isActive?: boolean;
 }
 
 export class UpdateBannerDto {
+  @IsString()
+  @IsOptional()
   title?: string;
+
+  @IsString()
+  @IsOptional()
   imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
   targetUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
   isActive?: boolean;
 }
 
