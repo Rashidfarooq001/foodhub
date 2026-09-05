@@ -270,6 +270,80 @@ export default function CheckoutPage() {
   const { status: gpsStatus, error: gpsError, requestLocation } = useGeolocation();
   const isLocatingUser = gpsStatus === 'requesting';
 
+  // AUTO-DETECT LOCATION ON CHECKOUT ENTRY
+  // Check if the browser has already granted geolocation permission and no address is selected.
+  // If permission is already granted, silently obtain coordinates without prompting.
+  // This runs ONCE on mount. It does NOT run again, preventing duplicate/infinite GPS calls.
+  useEffect(() => {
+    // Only auto-request if no address with coordinates is already selected
+    const existing = useAddressStore.getState().getSelectedAddress();
+    const alreadyHasCoords =
+      existing?.latitude !== null &&
+      existing?.latitude !== undefined &&
+      existing?.longitude !== null &&
+      existing?.longitude !== undefined;
+
+    if (alreadyHasCoords) return; // Address with coords already present – ETA will work fine
+
+    if (typeof navigator === 'undefined' || !navigator.permissions) return;
+
+    navigator.permissions
+      .query({ name: 'geolocation' as PermissionName })
+      .then((result) => {
+        if (result.state === 'granted') {
+          // Permission already granted – silently fetch location without prompting user
+          requestLocation().then((res) => {
+            if (!res) return;
+            const { coords, address } = res;
+
+            const locality = (address.locality || address.village || address.subLocality || '').trim();
+            const subDistrict = ((address as any).subDistrict || '').trim();
+            const district = (address.district || address.city || '').trim();
+            const state = (address.state || 'Jammu & Kashmir').trim();
+            const pincode = (address.pincode || address.postalCode || '').trim();
+            const specificName = locality || subDistrict || district || 'Current Location';
+            const addressLine2 = [subDistrict, district]
+              .filter(Boolean)
+              .filter((d) => d !== specificName)
+              .join(', ');
+
+            const gpsAddr: CustomerAddressItem = {
+              id: 'current-location',
+              label: 'Current Location',
+              placeName: specificName,
+              addressLine1: specificName,
+              addressLine2: addressLine2 || undefined,
+              city: district || 'Jammu & Kashmir',
+              state: state,
+              postalCode: pincode,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              locationSource: 'CURRENT_GPS',
+              verificationStatus: 'VERIFIED',
+              isDefault: false,
+            };
+
+            // Only set as selected if user still has no address with coords
+            const current = useAddressStore.getState().getSelectedAddress();
+            const stillNeedsCoords =
+              !current ||
+              current.latitude === null ||
+              current.latitude === undefined;
+
+            if (stillNeedsCoords) {
+              useAddressStore.getState().addAddress(gpsAddr);
+              useAddressStore.getState().setSelectedAddress('current-location');
+            }
+          });
+        }
+        // If 'prompt' or 'denied' – do nothing; user can tap "Use Current GPS" manually
+      })
+      .catch(() => {
+        // Browser does not support permissions API – do nothing; rely on manual button
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run ONCE on mount only
+
   const handleUseCurrentLocation = async () => {
     setLocationError(null);
     const res = await requestLocation();
@@ -832,7 +906,11 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
              <h2 className="text-sm font-semibold text-gray-900 mb-2">When will it arrive?</h2>
              <span className="text-sm font-semibold text-gray-900">
-               {orderQuote?.etaMinutes ? `${orderQuote.etaMinutes} mins` : 'ETA unavailable'}
+               {!orderQuote
+                 ? 'Calculating...'
+                 : orderQuote.etaMinutes != null && orderQuote.etaMinutes > 0
+                 ? `Arrives in ~${orderQuote.etaMinutes} min`
+                 : 'Delivery time unavailable'}
              </span>
           </div>
 
