@@ -184,19 +184,8 @@ export default function CheckoutPage() {
   const refreshQuote = useCallback(() => {
     const sub = getSubtotal();
     const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
-    const hasCoords = selectedAddress?.latitude !== null &&
-      selectedAddress?.latitude !== undefined && selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
-    const locationSource =
-      (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
-
-    console.log('[Checkout Location]', {
-      source: locationSource,
-      hasCoordinates: hasCoords,
-      locality: selectedAddress?.placeName || selectedAddress?.addressLine1,
-      district: selectedAddress?.city,
-      state: selectedAddress?.state,
-      pincode: selectedAddress?.postalCode,
-    });
+    const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined && selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
+    const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
     fetchOrderQuote({
       foodSubtotal: sub,
@@ -205,7 +194,7 @@ export default function CheckoutPage() {
       longitude: hasCoords ? selectedAddress!.longitude! : undefined,
       locationSource,
       tipAmount: tipAmount,
-      discountAmount: 0,
+      couponCode: useCartStore.getState().appliedCoupon || undefined,
       customerState: selectedAddress?.state || 'J&K',
       restaurantState: 'J&K',
     })
@@ -223,8 +212,8 @@ export default function CheckoutPage() {
   }, [refreshQuote]);
 
   const tax = orderQuote?.totalCustomerTaxes ?? 0;
-  const discount = 0;
-  const baseGrandTotal = subtotal + (dynamicDeliveryFee || 0) + platformFee + tax;
+  const discount = orderQuote?.discountAmount ?? 0;
+  const baseGrandTotal = subtotal + (dynamicDeliveryFee || 0) + platformFee + tax - discount;
   const finalPayableTotal = orderQuote
     ? orderQuote.customerTotal
     : Math.max(0, baseGrandTotal) + tipAmount;
@@ -856,9 +845,15 @@ export default function CheckoutPage() {
              </h2>
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
-                  <span>Item Total</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(subtotal)}</span>
-                </div>
+                    <span>Item Total</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(subtotal)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Item Discount</span>
+                      <span className="font-bold">-{formatCurrency(discount)}</span>
+                    </div>
+                  )}
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span>

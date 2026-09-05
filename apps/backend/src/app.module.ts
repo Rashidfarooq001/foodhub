@@ -37,6 +37,7 @@ import { ReferralsModule } from './modules/referrals/referrals.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 // Phase 17 — Reports & Analytics
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { BannersModule } from './modules/banners/banners.module';
 // Phase 18 — Security & Hardening
 import { SecurityModule } from './modules/security/security.module';
 // Pricing & Tax Modules
@@ -83,6 +84,7 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
     ReviewsModule,
     // Phase 17
     AnalyticsModule,
+    BannersModule,
     // Phase 18
     // Pricing & Tax Modules
     PricingModule,

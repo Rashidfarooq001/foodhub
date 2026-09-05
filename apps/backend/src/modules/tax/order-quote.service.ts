@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { TaxEngineService, TaxComponentOutput } from './tax-engine.service';
 import { PricingService } from '../pricing/pricing.service';
 import { DistanceService } from '../geolocation/distance.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 export interface OrderQuoteRequest {
   foodSubtotal: number;
@@ -13,7 +14,8 @@ export interface OrderQuoteRequest {
   locationSource?:
     'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS' | 'MANUAL_ADDRESS' | 'MAPPLS_GEOCODE';
   tipAmount?: number;
-  discountAmount?: number;
+  couponCode?: string;
+  customerId?: string;
   packagingFee?: number;
   customerState?: string;
   restaurantState?: string;
@@ -26,6 +28,8 @@ export interface OrderQuoteResult {
   smallOrderFee: number;
   packagingFee: number;
   discountAmount: number;
+  appliedCouponCode?: string;
+  couponMessage?: string;
   tipAmount: number;
 
   distanceKm: number | null;
@@ -80,13 +84,36 @@ export class OrderQuoteService {
     private readonly taxEngine: TaxEngineService,
     private readonly pricingService: PricingService,
     private readonly distanceService: DistanceService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   async calculateQuote(req: OrderQuoteRequest): Promise<OrderQuoteResult> {
     const config = await this.pricingService.getActivePricingConfig();
     const foodSubtotal = Math.max(0, req.foodSubtotal || 0);
     const tipAmount = Math.max(0, req.tipAmount || 0);
-    const discountAmount = Math.max(0, req.discountAmount || 0);
+    
+    let discountAmount = 0;
+    let appliedCouponCode: string | undefined = undefined;
+    let couponMessage: string | undefined = undefined;
+
+    if (req.couponCode) {
+      const validation = await this.couponsService.validateCoupon(
+        req.couponCode,
+        req.customerId,
+        foodSubtotal,
+        req.restaurantId
+      );
+      if (validation.valid) {
+        discountAmount = validation.discountAmount;
+        appliedCouponCode = req.couponCode.toUpperCase();
+        couponMessage = validation.message;
+      } else {
+        couponMessage = validation.message;
+      }
+    } else {
+      discountAmount = Math.max(0, 0 || 0);
+    }
+
     const packagingFee = 0.0; // CUSTOMER PACKAGING FEE IS REMOVED COMPLETELY (₹0)
 
     const customerState = req.customerState || 'J&K';
@@ -318,6 +345,8 @@ export class OrderQuoteService {
       smallOrderFee: 0,
       packagingFee: 0,
       discountAmount,
+      appliedCouponCode,
+      couponMessage,
       tipAmount,
 
       distanceKm,

@@ -12,9 +12,10 @@ import { DatabaseModule } from '../database/database.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { GeolocationModule } from '../geolocation/geolocation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CouponsModule } from '../coupons/coupons.module';
 
 @Module({
-  imports: [TaxModule, PricingModule, DatabaseModule, TokensModule, GeolocationModule, NotificationsModule],
+  imports: [TaxModule, PricingModule, DatabaseModule, TokensModule, GeolocationModule, NotificationsModule, CouponsModule],
   controllers: [OrdersController],
   providers: [
     OrdersService,

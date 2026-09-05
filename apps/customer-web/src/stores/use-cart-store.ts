@@ -30,14 +30,14 @@ interface CartState {
   items: CartItem[];
   restaurantId: string | null;
   restaurantName: string | null;
-  appliedCoupon: null;
+  appliedCoupon: string | null;
   orderQuote: CustomerOrderQuoteData | null;
 
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>, quantityToAdd?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
-  applyCoupon: (code?: string, discount?: number) => void;
+  applyCoupon: (code: string) => void;
   removeCoupon: () => void;
   setOrderQuote: (quote: CustomerOrderQuoteData | null) => void;
   fetchCartQuote: (address?: CustomerAddressItem | null) => Promise<CustomerOrderQuoteData | null>;
@@ -129,9 +129,15 @@ export const useCartStore = create<CartState>()(
           orderQuote: null,
         }),
 
-      applyCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
+      applyCoupon: (code: string) => {
+        set({ appliedCoupon: code, orderQuote: null });
+        get().fetchCartQuote();
+      },
 
-      removeCoupon: () => set({ appliedCoupon: null, orderQuote: null }),
+      removeCoupon: () => {
+        set({ appliedCoupon: null, orderQuote: null });
+        get().fetchCartQuote();
+      },
 
       setOrderQuote: (quote) => set({ orderQuote: quote }),
 
@@ -160,7 +166,7 @@ export const useCartStore = create<CartState>()(
           latitude: hasCoords ? address!.latitude! : undefined,
           longitude: hasCoords ? address!.longitude! : undefined,
           locationSource,
-          discountAmount: 0,
+          couponCode: get().appliedCoupon || undefined,
         });
 
         if (quote) {

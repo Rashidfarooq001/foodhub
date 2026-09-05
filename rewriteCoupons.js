@@ -1,14 +1,16 @@
-'use client';
+const fs = require('fs');
+const file = 'apps/admin-dashboard/src/app/coupons/page.tsx';
+const newContent = `'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Tag, CheckCircle2, Trash2, X } from 'lucide-react';
-import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
+import { useAuthStore } from '../../stores/use-auth-store';
 import { adminFetch } from '../../utils/admin-fetch';
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const { accessToken } = useAdminAuthStore();
+  const { accessToken } = useAuthStore();
 
   const [showModal, setShowModal] = useState(false);
   const [code, setCode] = useState('');
@@ -17,10 +19,9 @@ export default function CouponsPage() {
 
   const fetchCoupons = async () => {
     try {
-      const res = await adminFetch('/coupons/admin', {
-        headers: { Authorization: `Bearer ${accessToken}` }
+      const data = await adminFetch('/coupons/admin', {
+        headers: { Authorization: \`Bearer \${accessToken}\` }
       });
-      const data = await res.json();
       setCoupons(data);
     } catch {
       // error
@@ -42,7 +43,7 @@ export default function CouponsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
+          Authorization: \`Bearer \${accessToken}\`
         },
         body: JSON.stringify({
           code: code.trim(),
@@ -66,9 +67,9 @@ export default function CouponsPage() {
 
   const handleDeactivate = async (id: string) => {
     try {
-      await adminFetch(`/coupons/${id}/deactivate`, {
+      await adminFetch(\`/coupons/\${id}/deactivate\`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: \`Bearer \${accessToken}\` }
       });
       fetchCoupons();
     } catch (err) {
@@ -129,7 +130,7 @@ export default function CouponsPage() {
                   )}
                 </div>
                 <p className="text-xs text-gray-500 font-bold uppercase">
-                  {c.couponType === 'PERCENTAGE' ? `${c.discountVal}% OFF` : `FLAT ₹${c.discountVal} OFF`}
+                  {c.couponType === 'PERCENTAGE' ? \`\${c.discountVal}% OFF\` : \`FLAT ₹\${c.discountVal} OFF\`}
                 </p>
               </div>
               <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
@@ -221,3 +222,6 @@ export default function CouponsPage() {
     </div>
   );
 }
+`;
+fs.writeFileSync(file, newContent);
+console.log('Rewrite admin coupons complete');

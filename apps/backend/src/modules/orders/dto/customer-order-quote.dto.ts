@@ -6,6 +6,8 @@ export class CustomerOrderQuoteDto {
   platformFee: number;
   smallOrderFee: number;
   discountAmount: number;
+  appliedCouponCode?: string;
+  couponMessage?: string;
   tipAmount: number;
 
   distanceKm: number | null;
@@ -44,6 +46,8 @@ export function toCustomerOrderQuote(fullQuote: OrderQuoteResult): CustomerOrder
     platformFee: fullQuote.platformFee,
     smallOrderFee: fullQuote.smallOrderFee,
     discountAmount: fullQuote.discountAmount,
+    appliedCouponCode: fullQuote.appliedCouponCode,
+    couponMessage: fullQuote.couponMessage,
     tipAmount: fullQuote.tipAmount,
 
     distanceKm: fullQuote.distanceKm,

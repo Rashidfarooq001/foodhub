@@ -1,8 +1,10 @@
-'use client';
+const fs = require('fs');
+const file = 'apps/admin-dashboard/src/app/cms/page.tsx';
+const newContent = `'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Image, CheckCircle2, Trash2, X } from 'lucide-react';
-import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
+import { useAuthStore } from '../../stores/use-auth-store';
 import { adminFetch } from '../../utils/admin-fetch';
 
 export default function AdminCmsPage() {
@@ -10,7 +12,7 @@ export default function AdminCmsPage() {
     Array<{ id: string; title: string; imageUrl: string; isActive: boolean }>
   >([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const { accessToken } = useAdminAuthStore();
+  const { accessToken } = useAuthStore();
 
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -18,10 +20,9 @@ export default function AdminCmsPage() {
 
   const fetchBanners = async () => {
     try {
-      const res = await adminFetch('/banners/admin', {
-        headers: { Authorization: `Bearer ${accessToken}` }
+      const data = await adminFetch('/banners/admin', {
+        headers: { Authorization: \`Bearer \${accessToken}\` }
       });
-      const data = await res.json();
       setBanners(data);
     } catch {
       // error
@@ -43,7 +44,7 @@ export default function AdminCmsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
+          Authorization: \`Bearer \${accessToken}\`
         },
         body: JSON.stringify({
           title: title.trim(),
@@ -62,9 +63,9 @@ export default function AdminCmsPage() {
 
   const handleDeleteBanner = async (id: string) => {
     try {
-      await adminFetch(`/banners/admin/${id}`, {
+      await adminFetch(\`/banners/admin/\${id}\`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: \`Bearer \${accessToken}\` }
       });
       fetchBanners();
     } catch (err) {
@@ -203,3 +204,6 @@ export default function AdminCmsPage() {
     </div>
   );
 }
+`;
+fs.writeFileSync(file, newContent);
+console.log('Rewrite admin cms complete');

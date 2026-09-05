@@ -1,12 +1,51 @@
 const fs = require('fs');
-let c = fs.readFileSync('apps/customer-web/src/app/client.tsx', 'utf8');
+const file = 'apps/customer-web/src/app/checkout/page.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-// Replace export default function CustomerHomePage() {
-c = c.replace('export default function CustomerHomePage() {', 'export default function CustomerHomePage({ initialRestaurants = [] }: { initialRestaurants?: any[] }) {');
+content = content.replace(
+  /const platformFee = orderQuote\?\.platformFee \?\? 3\.0;[\s\S]*?const finalPayableTotal = orderQuote/,
+  `const platformFee = orderQuote?.platformFee ?? 3.0;
+  const subtotal = getSubtotal();
+  const smallOrderFee = 0.0;
 
-// Change const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);
-c = c.replace('const [restaurants, setRestaurants] = useState<RestaurantData[]>([]);', 'const [restaurants, setRestaurants] = useState<RestaurantData[]>(initialRestaurants);');
+  const maxRadiusKm = restaurantData?.deliveryRadius ?? 15.0;
+  const isDeliveryEligible = Boolean(orderQuote && routeAvailable && orderQuote.deliveryEligible);
 
-// Make fetchRestaurants not show loading spinner if we have initial data (it already does this: if (restaurants.length === 0) setIsLoading(true))
+  const refreshQuote = useCallback(() => {
+    const sub = getSubtotal();
+    const restId = useCartStore.getState().restaurantId || items[0]?.restaurantId;
+    const hasCoords = selectedAddress?.latitude !== null && selectedAddress?.latitude !== undefined && selectedAddress?.longitude !== null && selectedAddress?.longitude !== undefined;
+    const locationSource = (selectedAddress as any)?.locationSource || (selectedAddress?.id === 'current-location' ? 'CURRENT_GPS' : 'MANUAL_GEOCODED');
 
-fs.writeFileSync('apps/customer-web/src/app/client.tsx', c);
+    fetchOrderQuote({
+      foodSubtotal: sub,
+      restaurantId: restId || undefined,
+      latitude: hasCoords ? selectedAddress!.latitude! : undefined,
+      longitude: hasCoords ? selectedAddress!.longitude! : undefined,
+      locationSource,
+      tipAmount: tipAmount,
+      couponCode: useCartStore.getState().appliedCoupon || undefined,
+      customerState: selectedAddress?.state || 'J&K',
+      restaurantState: 'J&K',
+    })
+      .then((quote) => {
+        if (quote) setOrderQuote(quote);
+      })
+      .catch((err) => {
+        setPaymentError(err.message || 'Failed to calculate delivery fee.');
+        setOrderQuote(null);
+      });
+  }, [items, selectedAddress, tipAmount]);
+
+  useEffect(() => {
+    refreshQuote();
+  }, [refreshQuote]);
+
+  const tax = orderQuote?.totalCustomerTaxes ?? 0;
+  const discount = orderQuote?.discountAmount ?? 0;
+  const baseGrandTotal = subtotal + (dynamicDeliveryFee || 0) + platformFee + tax - discount;
+  const finalPayableTotal = orderQuote`
+);
+
+fs.writeFileSync(file, content);
+console.log('Patched');

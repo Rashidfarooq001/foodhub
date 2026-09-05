@@ -5,9 +5,10 @@ import { OrderQuoteService } from './order-quote.service';
 import { DatabaseModule } from '../database/database.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { GeolocationModule } from '../geolocation/geolocation.module';
+import { CouponsModule } from '../coupons/coupons.module';
 
 @Module({
-  imports: [DatabaseModule, PricingModule, GeolocationModule],
+  imports: [DatabaseModule, PricingModule, GeolocationModule, CouponsModule],
   controllers: [TaxController],
   providers: [TaxEngineService, OrderQuoteService],
   exports: [TaxEngineService, OrderQuoteService],

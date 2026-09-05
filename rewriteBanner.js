@@ -1,13 +1,15 @@
-'use client';
+const fs = require('fs');
+const file = 'apps/customer-web/src/components/home/HeroBanner.tsx';
+const newContent = `'use client';
 
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Tag, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getSocketUrl } from '@foodhub/config';
 import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
-const SOCKET_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api', '');
+const SOCKET_URL = getSocketUrl();
 
 interface Banner {
   id: string;
@@ -23,7 +25,7 @@ export const HeroBanner: React.FC = () => {
 
   const fetchBanners = async () => {
     try {
-      const res = await fetch(`${API_BASE}/banners`);
+      const res = await fetch(\`\${API_BASE}/banners\`);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.banners ?? []);
@@ -130,10 +132,10 @@ export const HeroBanner: React.FC = () => {
             <button
               key={idx}
               onClick={() => setCurrent(idx)}
-              className={`h-1.5 rounded-full transition-all ${
+              className={\`h-1.5 rounded-full transition-all \${
                 idx === current ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'
-              }`}
-              aria-label={`Slide ${idx + 1}`}
+              }\`}
+              aria-label={\`Slide \${idx + 1}\`}
             />
           ))}
         </div>
@@ -141,3 +143,7 @@ export const HeroBanner: React.FC = () => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync(file, newContent);
+console.log('HeroBanner Replaced');

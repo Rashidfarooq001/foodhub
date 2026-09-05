@@ -20,6 +20,7 @@ import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, Prisma } from '@prisma/client';
 
 import { OrderQuoteService } from '../tax/order-quote.service';
+import { CouponsService } from '../coupons/coupons.service';
 import { hashOtp } from './order-lifecycle.service';
 import * as crypto from 'crypto';
 import { WebPushService } from '../notifications/web-push.service';
@@ -43,6 +44,7 @@ export class OrdersService {
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
     private readonly webPushService: WebPushService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
@@ -185,8 +187,24 @@ export class OrdersService {
     // 4. Validate minimum order
     await this.validation.validateMinimumOrder(dto.restaurantId, subtotal);
 
-    // 5. Zero discount (No coupon system)
-    const discountAmount = 0;
+    // 5. Apply Coupon Discount
+    let discountAmount = 0;
+    let validCouponId: string | undefined = undefined;
+
+    if (dto.couponCode) {
+      const couponVal = await this.couponsService.validateCoupon(
+        dto.couponCode,
+        targetCustomerId,
+        subtotal,
+        dto.restaurantId
+      );
+      if (couponVal.valid) {
+        discountAmount = couponVal.discountAmount;
+        validCouponId = couponVal.couponId;
+      } else {
+        throw new BadRequestException(couponVal.message);
+      }
+    }
 
     // Construct authoritative immutable deliveryAddress snapshot & calculate Mappls road distance
     const rawAddress: any = dto.deliveryAddress || {};
@@ -256,7 +274,8 @@ export class OrdersService {
       distanceKm: calculatedDistanceKm,
       restaurantId: dto.restaurantId,
       locationSource: locationSourceText as any,
-      discountAmount,
+      couponCode: dto.couponCode,
+      customerId: targetCustomerId,
       packagingFee: 0,
       tipAmount: (dto as any).tipAmount || 0,
     });
@@ -349,6 +368,17 @@ export class OrdersService {
           specialInstruction: dto.specialInstruction,
         },
       });
+
+      // Record coupon usage safely in transaction
+      if (validCouponId) {
+        await tx.couponUsage.create({
+          data: {
+            couponId: validCouponId,
+            customerId: targetCustomerId,
+            orderId: newOrder.id,
+          },
+        });
+      }
 
       // Create order items via createMany with complete variant & snapshot fields
       await tx.orderItem.createMany({

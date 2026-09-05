@@ -24,6 +24,8 @@ export interface CustomerOrderQuoteData {
   platformFee: number;
   smallOrderFee: number;
   discountAmount: number;
+  appliedCouponCode?: string;
+  couponMessage?: string;
   tipAmount: number;
 
   distanceKm: number | null;
@@ -76,6 +78,7 @@ export async function fetchOrderQuote(req: {
   locationSource?: 'CURRENT_GPS' | 'MANUAL_GEOCODED' | 'SAVED_ADDRESS';
   tipAmount?: number;
   discountAmount?: number;
+  couponCode?: string;
   customerState?: string;
   restaurantState?: string;
 }): Promise<CustomerOrderQuoteData | null> {

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { EventsGateway } from '../realtime/events.gateway';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { CouponStatus } from '@prisma/client';
 
@@ -17,7 +18,10 @@ export interface CouponValidationResult {
 
 @Injectable()
 export class CouponsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   /** Full coupon validation engine — returns discount amount if valid */
   async validateCoupon(
@@ -150,12 +154,19 @@ export class CouponsService {
     });
   }
 
+  /** List all coupons (for admin) */
+  async listAllCoupons() {
+    return this.prisma.coupon.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   /** Admin: create a new coupon */
   async createCoupon(dto: CreateCouponDto) {
     const existing = await this.prisma.coupon.findUnique({ where: { code: dto.code } });
     if (existing) throw new BadRequestException('Coupon code already exists');
 
-    return this.prisma.coupon.create({
+    const coupon = await this.prisma.coupon.create({
       data: {
         code: dto.code.toUpperCase(),
         couponType: dto.couponType,
@@ -168,13 +179,17 @@ export class CouponsService {
         status: CouponStatus.ACTIVE,
       },
     });
+    this.eventsGateway.server.emit('coupon:updated', { couponId: coupon.id, action: 'created' });
+    return coupon;
   }
 
   /** Admin: deactivate a coupon */
   async deactivateCoupon(couponId: string) {
-    return this.prisma.coupon.update({
+    const coupon = await this.prisma.coupon.update({
       where: { id: couponId },
       data: { status: CouponStatus.INACTIVE },
     });
+    this.eventsGateway.server.emit('coupon:updated', { couponId: coupon.id, action: 'deactivated' });
+    return coupon;
   }
 }

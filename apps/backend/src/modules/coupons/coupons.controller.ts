@@ -25,17 +25,19 @@ export class CouponsController {
   @Get()
   @ApiOperation({ summary: 'List all active platform coupons' })
   async listActive() {
-    return [];
+    return this.couponsService.listActiveCoupons();
   }
 
   @Post('validate')
   @ApiOperation({ summary: 'Validate a coupon code and preview discount amount' })
   async validate(@Request() req: any, @Body() dto: ValidateCouponDto) {
-    return {
-      valid: false,
-      discountAmount: 0,
-      message: 'Coupons and promotional discounts are not supported on Zayka Food.',
-    };
+    const customerId = req.user?.id; // Optional for validation preview
+    return this.couponsService.validateCoupon(
+      dto.code,
+      customerId,
+      dto.subtotal,
+      dto.restaurantId,
+    );
   }
 
   @Get('suggest')
@@ -43,11 +45,20 @@ export class CouponsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Suggest the best available coupon for a given subtotal' })
   @ApiQuery({ name: 'subtotal', description: 'Order subtotal in ₹' })
-  async suggest() {
-    return null;
+  async suggest(@Request() req: any, @Query('subtotal') subtotal: string) {
+    return this.couponsService.suggestBestCoupon(req.user.id, Number(subtotal) || 0);
   }
 
   // ---- Admin-only routes ----
+
+  @Get('admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: List all coupons' })
+  async listAllAdmin() {
+    return this.couponsService.listAllCoupons();
+  }
 
   @Post()
   @ApiBearerAuth()
