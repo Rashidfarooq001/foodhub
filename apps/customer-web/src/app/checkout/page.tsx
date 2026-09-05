@@ -715,7 +715,7 @@ export default function CheckoutPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-sm font-black uppercase tracking-wider text-gray-900">Payment</h1>
+            <h1 className="text-sm font-black text-gray-900">Complete Your Order</h1>
           </div>
         </div>
 
@@ -744,7 +744,7 @@ export default function CheckoutPage() {
             <div className="flex gap-3 min-w-0">
               <div className="mt-0.5"><MapPin className="w-5 h-5 text-orange-600" /></div>
               <div className="min-w-0 pr-2">
-                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
+                 <h2 className="text-sm font-black text-gray-900 ">
                    {currentLocation?.label || 'CURRENT LOCATION'}
                  </h2>
                  <p className="text-xs font-medium text-gray-500 mt-1 truncate">
@@ -766,16 +766,14 @@ export default function CheckoutPage() {
                 setAddressVerificationError(null);
                 setShowCustomAddressModal(true);
               }}
-              className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
-            >
-              CHANGE
-            </button>
+              className="text-[10px] font-black text-orange-600  px-3 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition shrink-0"
+            >Change</button>
           </div>
 
           {/* 2. RESTAURANT / ORDER */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
-                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">
+                <h2 className="text-sm font-black text-gray-900 ">
                   {restaurantName || 'Your Order'}
                 </h2>
              </div>
@@ -794,16 +792,14 @@ export default function CheckoutPage() {
              </div>
              <button
                 onClick={() => router.push('/cart')}
-                className="w-full text-xs font-black text-orange-600 uppercase tracking-wider text-center flex justify-center items-center py-1 hover:text-orange-700 transition"
-             >
-                EDIT / ADD MORE
-             </button>
+                className="w-full text-xs font-black text-orange-600 r text-center flex justify-center items-center py-1 hover:text-orange-700 transition"
+             >Edit order · Add more</button>
           </div>
 
           {/* 3. RECOMMENDED ITEMS */}
           {recommendedItems && recommendedItems.length > 0 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-               <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">Recommended Items</h2>
+               <h2 className="text-xs font-black text-gray-500 r mb-3">You might also like</h2>
                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                  {recommendedItems.map(item => (
                    <div key={item.id} className="flex-shrink-0 w-32 border border-gray-100 rounded-xl p-2 flex flex-col justify-between">
@@ -834,7 +830,7 @@ export default function CheckoutPage() {
 
           {/* 4. DELIVERY TIME */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
-             <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Time</h2>
+             <h2 className="text-xs font-black text-gray-500 r">When will it arrive?</h2>
              <span className="text-sm font-black text-gray-900">
                {orderQuote?.etaMinutes ? `${orderQuote.etaMinutes} mins` : 'ETA unavailable'}
              </span>
@@ -843,13 +839,11 @@ export default function CheckoutPage() {
           {/* 5. DELIVERY ADDRESS & CUSTOMER INFO */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex justify-between items-start mb-3">
-               <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider">Delivery Address</h2>
+               <h2 className="text-xs font-black text-gray-500 r">Deliver to</h2>
                <button 
                   onClick={() => setShowCustomAddressModal(true)}
-                  className="text-[10px] font-black text-orange-600 uppercase tracking-wide"
-               >
-                 CHANGE
-               </button>
+                  className="text-[10px] font-black text-orange-600 "
+               >Change</button>
             </div>
             <div className="text-xs font-bold text-gray-900 space-y-1">
                <p className="text-sm">{user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Customer' : 'Customer'}</p>
@@ -875,7 +869,7 @@ export default function CheckoutPage() {
 
           {/* 5.5. COUPON */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-            <h2 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+            <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
               <Tag className="w-5 h-5 text-gray-900" /> APPLY COUPON
             </h2>
             <div className="flex gap-2">
@@ -921,12 +915,11 @@ export default function CheckoutPage() {
 
           {/* 6. PRICE BREAKDOWN */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-             <h2 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wide">
-               <Banknote className="w-5 h-5 text-gray-900" /> PRICE BREAKDOWN
-             </h2>
+             <h2 className="text-sm font-black text-gray-900 flex items-center gap-2">
+               <Banknote className="w-5 h-5 text-gray-900" />Bill Details</h2>
              <div className="space-y-2.5 text-xs font-medium text-gray-600">
                 <div className="flex justify-between">
-                    <span>Item Total</span>
+                    <span>Food subtotal</span>
                     <span className="font-bold text-gray-900">{formatCurrency(subtotal)}</span>
                   </div>
                   {discount > 0 && (
@@ -936,7 +929,7 @@ export default function CheckoutPage() {
                     </div>
                   )}
                 <div className="flex justify-between">
-                  <span>Delivery Fee</span>
+                  <span>Delivery</span>
                   <span>
                     {dynamicDeliveryFee !== null ? (
                       <span className="font-bold text-gray-900">{formatCurrency(dynamicDeliveryFee)}</span>
@@ -946,7 +939,7 @@ export default function CheckoutPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Platform Fee</span>
+                  <span>Platform charges</span>
                   <span className="font-bold text-gray-900">{formatCurrency(platformFee ?? 3)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -964,22 +957,19 @@ export default function CheckoutPage() {
 
           {/* 7. TOTAL BILL */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white">
-             <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">Total Bill</h2>
+             <h2 className="text-sm font-black text-gray-900 ">To Pay</h2>
              <span className="text-xl font-black text-orange-600">{formatCurrency(finalPayableTotal)}</span>
           </div>
 
           {/* 8. PAY USING */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-gray-400" /> PAY USING
-                </h2>
+                <h2 className="text-xs font-black text-gray-500 r flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-gray-400" />Payment method</h2>
                 <button 
                   onClick={() => setPaymentMethod(prev => prev === 'COD' ? 'UPI' : 'COD')}
-                  className="text-[10px] font-black text-orange-600 uppercase tracking-wide px-2 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
-                >
-                  CHANGE
-                </button>
+                  className="text-[10px] font-black text-orange-600  px-2 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
+                >Change</button>
              </div>
              <div className="flex items-center gap-2">
                 <span className="text-sm font-black text-gray-900">
@@ -994,7 +984,7 @@ export default function CheckoutPage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
           <div className="mx-auto max-w-2xl flex items-center gap-3">
             <div className="flex flex-col justify-center px-2 min-w-[70px]">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">Total</span>
+              <span className="text-[10px] font-black text-gray-500 r">To Pay</span>
               <span className="text-lg font-black text-gray-900">{formatCurrency(finalPayableTotal)}</span>
             </div>
             
@@ -1011,7 +1001,7 @@ export default function CheckoutPage() {
                       ? 'CHECK DISTANCE'
                       : !isDeliveryEligible 
                         ? 'OUT OF RANGE' 
-                        : (paymentMethod === 'COD' ? (<span className="flex items-center gap-1">PLACE ORDER <ArrowRight className="w-4 h-4" /></span>) : (<span className="flex items-center gap-1">PROCEED TO PAYMENT <ArrowRight className="w-4 h-4" /></span>))}
+                        : (paymentMethod === 'COD' ? (<span className="flex items-center gap-1">Pay {formatCurrency(finalPayableTotal)} <ArrowRight className="w-4 h-4" /></span>) : (<span className="flex items-center gap-1">Pay {formatCurrency(finalPayableTotal)} <ArrowRight className="w-4 h-4" /></span>))}
               </span>
             </button>
           </div>
@@ -1046,7 +1036,7 @@ export default function CheckoutPage() {
                 
                 {addresses.length > 0 && (
                   <div className="space-y-2 mt-4 border-t border-gray-100 pt-4">
-                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+                    <label className="block text-[11px] font-bold text-gray-700 r px-1">
                       Saved Addresses
                     </label>
                     <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
@@ -1068,7 +1058,7 @@ export default function CheckoutPage() {
                 )}
 
                 <div className="space-y-2.5 border-t border-gray-100 pt-4">
-                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider px-1">
+                  <label className="block text-[11px] font-bold text-gray-700 r px-1">
                     Enter Custom Address
                   </label>
                   <textarea
