@@ -312,20 +312,6 @@ export class OrderQuoteService {
     const riderDistancePay = customerDeliveryFee || 0; // Rider gets exactly the customer delivery fee based on ZaykaFood model
     const riderTip = tipAmount; // 100% pass-through
     const totalRiderPayout = Math.round((riderDistancePay + riderTip) * 100) / 100;
-    const riderTip = tipAmount; // 100% pass-through
-    const totalRiderPayout =
-      Math.round(
-        (riderBasePay +
-          riderDistancePay +
-          config.riderWaitingPay +
-          config.riderPeakBonus +
-          config.riderLongDistanceBonus +
-          config.riderBatchBonus +
-          riderTip) *
-          100,
-      ) / 100;
-
-    // 8. Payment Gateway Internal Cost (Default 2% planning rate)
     const paymentGatewayCost =
       customerTotal !== null
         ? Math.round(customerTotal * (config.paymentGatewayPlanningRate / 100) * 100) / 100
@@ -389,8 +375,6 @@ export class OrderQuoteService {
       quoteTimestamp: new Date().toISOString(),
 
       deliveryDistanceKm: distanceKm,
-      deliveryFeeBaseKm,
-      deliveryFeeBaseAmount,
       deliveryFeeBaseKm: deliveryFeeBaseKm,
       deliveryFeeBaseAmount: deliveryFeeBaseAmount,
       deliveryFeePerExtraKm: deliveryFeePerExtraKm,
