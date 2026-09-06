@@ -79,7 +79,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       ? getImageUrl(restaurant.bannerUrl || restaurant.logoUrl)
       : '/zaykafood-logo.png';
 
-  const isOpen = restaurant.isOpen !== false;
+  const isOpen = restaurant.isCurrentlyOpen !== false;
 
   return (
     <div className="group relative flex flex-col rounded-2xl bg-white transition-all duration-200 hover:-translate-y-0.5 border border-gray-100/80 shadow-sm hover:shadow-md">

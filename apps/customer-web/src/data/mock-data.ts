@@ -291,6 +291,9 @@ export function normalizeRestaurantData(
       ? getImageUrl(r.logoUrl)
       : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=70',
     isOpen: r.isOpen ?? true,
+    isCurrentlyOpen: r.isCurrentlyOpen,
+    isManuallyOffline: r.isManuallyOffline,
+    nextOpeningTime: r.nextOpeningTime,
     fssaiLicense: r.licenseFssai || r.fssaiLicense || '',
     discountBadge: r.discountBadge || '',
     latitude: restLat,
