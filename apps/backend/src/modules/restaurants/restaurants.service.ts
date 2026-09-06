@@ -431,7 +431,7 @@ export class RestaurantsService {
   async findAllRestaurants(adminView = false, userLat?: number, userLng?: number) {
     const whereCondition: any = adminView
       ? { deletedAt: null }
-      : { status: RestaurantStatus.APPROVED, isOpen: true, deletedAt: null };
+      : { status: RestaurantStatus.APPROVED, deletedAt: null };
 
     const restaurants = await this.prisma.restaurant.findMany({
       where: whereCondition,

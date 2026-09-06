@@ -25,7 +25,7 @@ export default function HotelBusinessHoursPage() {
       dayOfWeek: d.dayOfWeek,
       open: '09:00 AM',
       close: '11:00 PM',
-      isClosed: false,
+      isClosed: true,
     })),
   );
 

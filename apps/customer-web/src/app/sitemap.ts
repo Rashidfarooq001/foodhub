@@ -105,7 +105,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             typeof r.slug === 'string' &&
             r.slug.trim() &&
             (r.status === 'APPROVED' || !r.status) &&
-            r.isOpen !== false &&
+            
             !r.deletedAt,
         )
         .map((r: any) => ({
@@ -121,3 +121,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticRoutes, ...dynamicRestaurantRoutes];
 }
+

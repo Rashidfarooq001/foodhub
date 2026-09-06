@@ -683,7 +683,7 @@ export class GeolocationService {
     const candidates = await this.prisma.restaurant.findMany({
       where: {
         status: 'APPROVED',
-        isOpen: true,
+        
         deletedAt: null,
         latitude: { gte: lat - delta, lte: lat + delta },
         longitude: { gte: lng - delta, lte: lng + delta },
@@ -789,3 +789,4 @@ export class GeolocationService {
     };
   }
 }
+
