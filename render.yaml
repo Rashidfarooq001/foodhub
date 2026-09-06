@@ -3,10 +3,28 @@ services:
     name: foodhub-backend
     env: node
     plan: free
-    buildCommand: pnpm --filter backend build
+    buildCommand: pnpm install && pnpm --filter backend run prisma:generate && pnpm --filter backend build
     startCommand: pnpm --filter backend start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 4000
+      - key: DATABASE_URL
+        value: postgresql://rashid:zzqmt1-REpJDao-fg3up7Q@mud-llama-33276.j77.aws-ap-south-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full
+      - key: JWT_SECRET
+        value: super-secret-jwt-key-foodhub-2026-enterprise
+      - key: RAZORPAY_KEY_ID
+        value: rzp_live_TWl2gnTRICZl19
+      - key: RAZORPAY_KEY_SECRET
+        value: kc3NismdjZiS5TIL0251uqJg
+      - key: MSG91_SENDER_ID
+        value: FOODHB
+      - key: MSG91_ROUTE
+        value: 4
+      - key: VAPID_PUBLIC_KEY
+        value: BCpvsZc5qMOZ9iGdmun5AJmNNPC8MVEBe3J_S9IIWIZtphjphbGqWxLzUriY6iwS6K2XtpvZHtpXOfKG_qfqgoo
+      - key: VAPID_PRIVATE_KEY
+        value: 4rgqSyaPTUi4rpCZuBxQ64BV8lg9LLt3cMz5QysUT3A
+      - key: VAPID_SUBJECT
+        value: mailto:admin@zaykafood.com
