@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd ../.. && pnpm --filter=delivery-dashboard build",
-  "outputDirectory": ".next",
-  "framework": "nextjs"
-}
