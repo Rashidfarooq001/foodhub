@@ -536,6 +536,7 @@ export class RestaurantsService {
             ? rejectionReason?.trim() || null
             : null,
       },
+      include: { timings: true },
     });
 
     // Update merchant user status ONLY if the user is strictly a dedicated RESTAURANT_OWNER.
