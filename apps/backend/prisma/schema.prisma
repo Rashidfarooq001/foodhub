@@ -777,6 +777,10 @@ model Order {
   taxAmount                  Decimal       @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
   discountAmount             Decimal       @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
   totalAmount                Decimal       @map("total_amount") @db.Decimal(10, 2)
+  platformFee                Decimal       @default(0.00) @map("platform_fee") @db.Decimal(10, 2)
+  commissionAmount           Decimal       @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
+  commissionGstAmount        Decimal       @default(0.00) @map("commission_gst_amount") @db.Decimal(10, 2)
+  restaurantGstAmount        Decimal       @default(0.00) @map("restaurant_gst_amount") @db.Decimal(10, 2)
   paymentStatus              PaymentStatus @default(PENDING) @map("payment_status")
   paymentMethod              PaymentMethod @default(UPI) @map("payment_method")
   deliveryAddress            Json          @map("delivery_address")
@@ -956,9 +960,15 @@ model RestaurantSettlement {
   orderId            String           @unique @map("order_id") @db.Uuid
   periodStart        DateTime         @map("period_start")
   periodEnd          DateTime         @map("period_end")
+  foodSubtotal       Decimal          @default(0.00) @map("food_subtotal") @db.Decimal(10, 2)
   grossAmount        Decimal          @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
   commissionRate     Decimal          @default(13.00) @map("commission_rate") @db.Decimal(5, 2)
   commissionAmount   Decimal          @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
+  commissionGst      Decimal          @default(0.00) @map("commission_gst") @db.Decimal(10, 2)
+  commissionTotal    Decimal          @default(0.00) @map("commission_total") @db.Decimal(10, 2)
+  applicableTds      Decimal          @default(0.00) @map("applicable_tds") @db.Decimal(10, 2)
+  applicableTcs      Decimal          @default(0.00) @map("applicable_tcs") @db.Decimal(10, 2)
+  otherAdjustments   Decimal          @default(0.00) @map("other_adjustments") @db.Decimal(10, 2)
   deductions         Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
   netPayable         Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
   status             SettlementStatus @default(PENDING)
@@ -982,27 +992,31 @@ model RestaurantSettlement {
 }
 
 model RiderSettlement {
-  id               String           @id @default(uuid()) @db.Uuid
-  driverId         String?          @map("driver_id") @db.Uuid
-  driverSnapshot   Json?            @map("driver_snapshot")
-  orderId          String           @unique @map("order_id") @db.Uuid
-  periodStart      DateTime         @map("period_start")
-  periodEnd        DateTime         @map("period_end")
-  basePayoutAmount Decimal          @default(0.00) @map("base_payout_amount") @db.Decimal(10, 2)
-  distancePayout   Decimal          @default(0.00) @map("distance_payout") @db.Decimal(10, 2)
-  bonusAmount      Decimal          @default(0.00) @map("bonus_amount") @db.Decimal(10, 2)
-  deductions       Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
-  netPayable       Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
-  status           SettlementStatus @default(PENDING)
-  payoutId         String?          @map("payout_id")
-  utrNumber        String?          @map("utr_number")
-  failureReason    String?          @map("failure_reason")
-  initiatedAt      DateTime?        @map("initiated_at")
-  settledAt        DateTime?        @map("settled_at")
-  adminId          String?          @map("admin_id") @db.Uuid
-  notes            String?
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  id                 String           @id @default(uuid()) @db.Uuid
+  driverId           String?          @map("driver_id") @db.Uuid
+  driverSnapshot     Json?            @map("driver_snapshot")
+  orderId            String           @unique @map("order_id") @db.Uuid
+  periodStart        DateTime         @map("period_start")
+  periodEnd          DateTime         @map("period_end")
+  deliveryDistanceKm Decimal          @default(0.00) @map("delivery_distance_km") @db.Decimal(10, 2)
+  deliveryRate       Decimal          @default(15.00) @map("delivery_rate") @db.Decimal(10, 2)
+  applicableTds      Decimal          @default(0.00) @map("applicable_tds") @db.Decimal(10, 2)
+  otherAdjustments   Decimal          @default(0.00) @map("other_adjustments") @db.Decimal(10, 2)
+  basePayoutAmount   Decimal          @default(0.00) @map("base_payout_amount") @db.Decimal(10, 2)
+  distancePayout     Decimal          @default(0.00) @map("distance_payout") @db.Decimal(10, 2)
+  bonusAmount        Decimal          @default(0.00) @map("bonus_amount") @db.Decimal(10, 2)
+  deductions         Decimal          @default(0.00) @map("deductions") @db.Decimal(10, 2)
+  netPayable         Decimal          @default(0.00) @map("net_payable") @db.Decimal(10, 2)
+  status             SettlementStatus @default(PENDING)
+  payoutId           String?          @map("payout_id")
+  utrNumber          String?          @map("utr_number")
+  failureReason      String?          @map("failure_reason")
+  initiatedAt        DateTime?        @map("initiated_at")
+  settledAt          DateTime?        @map("settled_at")
+  adminId            String?          @map("admin_id") @db.Uuid
+  notes              String?
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
 
   driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
   order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1541,6 +1555,12 @@ model PricingConfig {
   createdBy                   String?   @map("created_by")
   updatedBy                   String?   @map("updated_by")
   isDefault                   Boolean   @default(true) @map("is_default")
+  tds194OEnabled              Boolean   @default(true) @map("tds_194o_enabled")
+  tds194ORate                 Decimal   @default(0.10) @map("tds_194o_rate") @db.Decimal(5, 2)
+  gstTcsEnabled               Boolean   @default(true) @map("gst_tcs_enabled")
+  gstTcsRate                  Decimal   @default(1.00) @map("gst_tcs_rate") @db.Decimal(5, 2)
+  settlementDelayDays         Int       @default(5) @map("settlement_delay_days")
+  platformFeeGstMode          String    @default("EXCLUSIVE") @map("platform_fee_gst_mode")
   createdAt                   DateTime  @default(now()) @map("created_at")
   updatedAt                   DateTime  @updatedAt @map("updated_at")
 
@@ -1832,4 +1852,15 @@ enum TicketPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+model LedgerEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  orderId         String?  @map("order_id") @db.Uuid
+  transactionType String   @map("transaction_type")
+  amount          Decimal  @db.Decimal(10, 2)
+  referenceId     String?  @map("reference_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("ledger_entries")
 }

@@ -1256,6 +1256,12 @@ export class OrderLifecycleService {
         : Math.round((foodSubtotal - commissionAmount - commissionGstAmount + deductions) * 100) /
           100;
 
+    
+    const commissionGst = commissionGstAmount;
+    const commissionTotal = Math.round((commissionAmount + commissionGst) * 100) / 100;
+    const applicableTds = 0; // Configured separately in settlement module later if needed
+    const applicableTcs = 0; // Prompt: Do not deduct normal GST TCS from restaurant settlement for 9(5)
+    
     await tx.restaurantSettlement.upsert({
       where: { orderId: order.id },
       create: {
@@ -1263,15 +1269,22 @@ export class OrderLifecycleService {
         orderId: order.id,
         periodStart: now,
         periodEnd: now,
+        foodSubtotal: foodSubtotal,
         grossAmount: foodSubtotal,
         commissionRate: commissionRate,
         commissionAmount: commissionAmount,
+        commissionGst: commissionGst,
+        commissionTotal: commissionTotal,
+        applicableTds: applicableTds,
+        applicableTcs: applicableTcs,
         deductions: deductions,
+        otherAdjustments: 0,
         netPayable: restaurantNet,
         status: 'ELIGIBLE',
       },
       update: {},
     });
+
 
     // 2. Rider Settlement
     if (order.deliveryJob && order.deliveryJob.driverId) {
@@ -1286,6 +1299,11 @@ export class OrderLifecycleService {
           Math.max(30, Math.round(Number(order.deliveryJob.deliveryFee || 40) * 0.8)),
       );
 
+      
+      const deliveryDistanceKm = snap.deliveryDistanceKm !== undefined ? Number(snap.deliveryDistanceKm) : 0;
+      const deliveryRate = snap.deliveryFeePerExtraKm !== undefined ? Number(snap.deliveryFeePerExtraKm) : 15;
+      const applicableTdsRider = 0; // TDS will be computed when generating the actual payout if applicable
+      
       await tx.riderSettlement.upsert({
         where: { orderId: order.id },
         create: {
@@ -1295,13 +1313,105 @@ export class OrderLifecycleService {
           periodEnd: now,
           basePayoutAmount: basePayout,
           distancePayout: distancePayout,
+          deliveryDistanceKm: deliveryDistanceKm,
+          deliveryRate: deliveryRate,
+          applicableTds: applicableTdsRider,
+          otherAdjustments: 0,
+          deductions: applicableTdsRider,
           netPayable: netPayout,
           status: 'ELIGIBLE',
         },
         update: {},
       });
+      // 3. Generate Ledger Entries
+      const ledgerEntries = [];
+      const orderTotal = Number(order.totalAmount || 0);
+      
+      if (orderTotal > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'CUSTOMER_PAYMENT_RECEIVED',
+          amount: orderTotal,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      if (foodSubtotal > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'RESTAURANT_FOOD_VALUE',
+          amount: foodSubtotal,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      const restGst = snap.restaurantFoodGst !== undefined ? Number(snap.restaurantFoodGst) : 0;
+      if (restGst > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'RESTAURANT_GST_PAYABLE',
+          amount: restGst,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      const platFee = snap.platformFee !== undefined ? Number(snap.platformFee) : 0;
+      if (platFee > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'PLATFORM_FEE_REVENUE',
+          amount: platFee,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      const platFeeGst = snap.platformFeeGst !== undefined ? Number(snap.platformFeeGst) : 0;
+      if (platFeeGst > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'PLATFORM_FEE_GST_PAYABLE',
+          amount: platFeeGst,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      if (commissionAmount > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'ZAYKAFOOD_COMMISSION_REVENUE',
+          amount: commissionAmount,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      if (commissionGst > 0) {
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'COMMISSION_GST_PAYABLE',
+          amount: commissionGst,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      if (order.deliveryJob && order.deliveryJob.driverId) {
+        const netPayout = Number(
+          order.deliveryJob.riderPayout ??
+            Math.max(30, Math.round(Number(order.deliveryJob.deliveryFee || 40) * 0.8)),
+        );
+        ledgerEntries.push({
+          orderId: order.id,
+          transactionType: 'RIDER_DELIVERY_PAYABLE',
+          amount: netPayout,
+          referenceId: order.orderNumber,
+        });
+      }
+
+      if (ledgerEntries.length > 0) {
+        await tx.ledgerEntry.createMany({
+          data: ledgerEntries,
+        });
+      }
     }
-  }
 }
-
-
+}
+}

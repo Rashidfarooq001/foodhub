@@ -171,19 +171,11 @@ export class OrderQuoteService {
     // First 3 km: Base delivery fee = ₹15.00
     // After 3 km: Additional charge = ₹5.00 per additional KM
     // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
-    const deliveryFeeBaseKm = 3.0; // Wait, I'll keep this hardcoded as it's not in DB
-    const deliveryFeeBaseAmount = config.minimumCustomerDeliveryFee ?? 15.0;
-    const deliveryFeePerExtraKm = config.customerDeliveryPerKm ?? 5.0;
+    const deliveryRatePerKm = config.customerDeliveryPerKm ?? 15.0;
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
-      if (distanceKm <= deliveryFeeBaseKm) {
-        customerDeliveryFee = deliveryFeeBaseAmount;
-      } else {
-        const extraKm = distanceKm - deliveryFeeBaseKm;
-        customerDeliveryFee =
-          Math.round((deliveryFeeBaseAmount + extraKm * deliveryFeePerExtraKm) * 100) / 100;
-      }
+      customerDeliveryFee = Math.round((distanceKm * deliveryRatePerKm) * 100) / 100;
     } else {
       customerDeliveryFee = null; // Unresolved / null when route calculation is unavailable
     }
@@ -205,35 +197,35 @@ export class OrderQuoteService {
     // 4. Tax Components (GST = ₹0.00)
     const foodTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'RESTAURANT_FOOD_SERVICE',
-      taxableAmount: 0,
+      taxableAmount: foodSubtotal,
       supplierState: restaurantState,
       recipientState: customerState,
     });
 
     const platformTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'PLATFORM_FEE',
-      taxableAmount: 0,
+      taxableAmount: platformFee,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const smallOrderTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'SMALL_ORDER_FEE',
-      taxableAmount: 0,
+      taxableAmount: smallOrderFee,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const deliveryTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'DELIVERY_SERVICE',
-      taxableAmount: 0,
+      taxableAmount: customerDeliveryFee || 0,
       supplierState: 'J&K',
       recipientState: customerState,
     });
 
     const tipTax = await this.taxEngine.calculateTaxComponent({
       componentCode: 'RIDER_TIP',
-      taxableAmount: 0,
+      taxableAmount: tipAmount,
       supplierState: customerState,
       recipientState: customerState,
     });
@@ -246,12 +238,13 @@ export class OrderQuoteService {
       tipTax,
     ];
 
-    const restaurantFoodGst = 0.0;
-    const platformFeeGst = 0.0;
-    const smallOrderFeeGst = 0.0;
-    const deliveryFeeGst = 0.0;
-    const totalCustomerTaxes =
-      Math.round(foodSubtotal * ((config.foodGstRate || 0) / 100) * 100) / 100;
+    const restaurantFoodGst = foodTax.totalTax;
+    const platformFeeGst = platformTax.totalTax;
+    const smallOrderFeeGst = smallOrderTax.totalTax;
+    const deliveryFeeGst = deliveryTax.totalTax;
+    
+    // totalCustomerTaxes is now based strictly on the components
+    const totalCustomerTaxes = Math.round((restaurantFoodGst + platformFeeGst + smallOrderFeeGst + deliveryFeeGst) * 100) / 100;
 
     // 5. Customer Total (Food Subtotal + ₹15 Delivery Fee + ₹3 Platform Fee + ₹0 GST - Discounts)
     const customerTotal =
@@ -308,8 +301,10 @@ export class OrderQuoteService {
       Math.round((foodSubtotal - restaurantCommission - restaurantCommissionGst) * 100) / 100;
 
     // 7. Rider Payout (₹25 base + ₹6/km)
-    const riderBasePay = config.riderBasePay;
-    const riderDistancePay = Math.round((distanceKm || 0) * config.riderPerKmPay * 100) / 100;
+    const riderBasePay = 0;
+    const riderDistancePay = customerDeliveryFee || 0; // Rider gets exactly the customer delivery fee based on ZaykaFood model
+    const riderTip = tipAmount; // 100% pass-through
+    const totalRiderPayout = Math.round((riderDistancePay + riderTip) * 100) / 100;
     const riderTip = tipAmount; // 100% pass-through
     const totalRiderPayout =
       Math.round(
@@ -389,7 +384,9 @@ export class OrderQuoteService {
       deliveryDistanceKm: distanceKm,
       deliveryFeeBaseKm,
       deliveryFeeBaseAmount,
-      deliveryFeePerExtraKm,
+      deliveryFeeBaseKm: 0,
+      deliveryFeeBaseAmount: 0,
+      deliveryFeePerExtraKm: deliveryRatePerKm,
     };
   }
 }
