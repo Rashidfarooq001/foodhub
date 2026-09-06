@@ -171,11 +171,18 @@ export class OrderQuoteService {
     // First 3 km: Base delivery fee = ₹15.00
     // After 3 km: Additional charge = ₹5.00 per additional KM
     // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
-    const deliveryRatePerKm = config.customerDeliveryPerKm ?? 15.0;
+    const deliveryFeeBaseKm = 3.0;
+    const deliveryFeeBaseAmount = 15.0; // ₹15 fixed for first 3km
+    const deliveryFeePerExtraKm = 5.0;  // ₹5 per km after 3km
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {
-      customerDeliveryFee = Math.round((distanceKm * deliveryRatePerKm) * 100) / 100;
+      if (distanceKm <= deliveryFeeBaseKm) {
+        customerDeliveryFee = deliveryFeeBaseAmount;
+      } else {
+        const extraKm = distanceKm - deliveryFeeBaseKm;
+        customerDeliveryFee = Math.round((deliveryFeeBaseAmount + (extraKm * deliveryFeePerExtraKm)) * 100) / 100;
+      }
     } else {
       customerDeliveryFee = null; // Unresolved / null when route calculation is unavailable
     }
@@ -384,9 +391,9 @@ export class OrderQuoteService {
       deliveryDistanceKm: distanceKm,
       deliveryFeeBaseKm,
       deliveryFeeBaseAmount,
-      deliveryFeeBaseKm: 0,
-      deliveryFeeBaseAmount: 0,
-      deliveryFeePerExtraKm: deliveryRatePerKm,
+      deliveryFeeBaseKm: deliveryFeeBaseKm,
+      deliveryFeeBaseAmount: deliveryFeeBaseAmount,
+      deliveryFeePerExtraKm: deliveryFeePerExtraKm,
     };
   }
 }
