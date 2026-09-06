@@ -571,9 +571,9 @@ export class OrderLifecycleService {
   }
 
   /**
-   * Authenticated Delivery Completion â€” No OTP Required
+   * Authenticated Delivery Completion  No OTP Required
    * Validates: authenticated rider + assigned order + correct state.
-   * Transitions order OUT_FOR_DELIVERY â†’ DELIVERED.
+   * Transitions order OUT_FOR_DELIVERY  DELIVERED.
    */
   async completeDelivery(orderIdOrJobId: string, actor: AuthenticatedActor) {
     const order = await this.prisma.order.findFirst({
@@ -607,7 +607,7 @@ export class OrderLifecycleService {
       (order.deliveryJob?.driverId === actor.driverId ||
         order.assignedRestaurantDriverId === actor.driverId);
 
-    // Only assigned rider or admin can complete delivery â€” customer cannot self-complete
+    // Only assigned rider or admin can complete delivery  customer cannot self-complete
     if (!isAdmin && !isAssignedDriver) {
       throw new ForbiddenException('You are not authorized to complete delivery for this order.');
     }
@@ -762,14 +762,14 @@ export class OrderLifecycleService {
   }
 
   /**
-   * Legacy alias â€” kept for backward compatibility, delegates to completeDelivery
+   * Legacy alias  kept for backward compatibility, delegates to completeDelivery
    */
   async completeDeliveryWithOtp(orderIdOrJobId: string, _otp: string, actor: AuthenticatedActor) {
     return this.completeDelivery(orderIdOrJobId, actor);
   }
 
   /**
-   * Rider Submits Delivery OTP â€” now OTP-free, delegates to completeDelivery
+   * Rider Submits Delivery OTP  now OTP-free, delegates to completeDelivery
    */
   async verifyDeliveryOtp(orderId: string, _otp: string, actor: AuthenticatedActor) {
     return this.completeDelivery(orderId, actor);
@@ -1092,7 +1092,7 @@ export class OrderLifecycleService {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
       ACCEPTED: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
       PREPARING: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-      READY_FOR_PICKUP: [], // Removed from lifecycle â€“ kept in map to avoid exhaustiveness error
+      READY_FOR_PICKUP: [], // Removed from lifecycle  kept in map to avoid exhaustiveness error
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
       ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
@@ -1412,6 +1412,9 @@ export class OrderLifecycleService {
         });
       }
     }
+
 }
-}
-}
+
+}  
+ 
+
