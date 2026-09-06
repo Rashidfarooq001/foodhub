@@ -20,9 +20,27 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
     >
       {/* Banner & Badges */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100 shrink-0">
-        <Image src={imgSrc} alt={restaurant.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={() => setImgSrc('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=70')} />
+        <Image src={imgSrc} alt={restaurant.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${restaurant.isCurrentlyOpen === false ? 'grayscale' : ''}`} onError={() => setImgSrc('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=70')} />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        {/* CLOSED OVERLAY */}
+        {restaurant.isCurrentlyOpen === false && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex flex-col items-center justify-center p-4 z-10">
+             <div className="bg-white/95 px-4 py-2 rounded-xl text-center shadow-xl border border-gray-100">
+                <p className="font-bold text-gray-900 text-sm tracking-wide">RESTAURANT CLOSED</p>
+                {restaurant.nextOpeningTime ? (
+                  <p className="text-xs font-medium text-orange-600 mt-0.5">
+                    Opens at {restaurant.nextOpeningTime}
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-gray-500 mt-0.5">
+                    Currently not accepting orders
+                  </p>
+                )}
+             </div>
+          </div>
+        )}
 
         {/* Rating Badge */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 px-2.5 py-1 text-xs font-bold text-gray-900 shadow-md backdrop-blur-md">

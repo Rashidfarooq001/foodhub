@@ -225,9 +225,15 @@ export default function RestaurantDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between text-white">
               <div>
-                <span className="inline-block rounded-md bg-emerald-600/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                  OPEN NOW
-                </span>
+                {restaurant.isCurrentlyOpen === false ? (
+                  <span className="inline-block rounded-md bg-red-600/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                    CLOSED {restaurant.nextOpeningTime ? `• OPENS AT ${restaurant.nextOpeningTime}` : ''}
+                  </span>
+                ) : (
+                  <span className="inline-block rounded-md bg-emerald-600/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                    OPEN NOW
+                  </span>
+                )}
                 <h2 className="text-base sm:text-xl font-black leading-tight mt-1 truncate">
                   {restaurant.name}
                 </h2>
@@ -343,7 +349,7 @@ export default function RestaurantDetailPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
               {filteredItems.map((food) => (
-                <FoodCard key={food.id} food={food} onCustomize={(f) => openCustomization(f)} />
+                <FoodCard key={food.id} food={food} onCustomize={(f) => openCustomization(f)} restaurantClosed={restaurant.isCurrentlyOpen === false} />
               ))}
             </div>
           )}

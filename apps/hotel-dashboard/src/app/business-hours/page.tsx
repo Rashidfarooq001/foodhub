@@ -145,31 +145,40 @@ export default function HotelBusinessHoursPage() {
             {hours.map((h, idx) => (
               <div
                 key={h.day}
-                className="p-3 rounded-2xl border border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                className="p-3 sm:p-4 rounded-2xl border border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
               >
-                <span className="text-xs font-black text-gray-900">{h.day}</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={h.open}
-                    onChange={(e) => {
-                      const updated = [...hours];
-                      updated[idx].open = e.target.value;
-                      setHours(updated);
-                    }}
-                    className="flex-1 sm:w-28 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 text-center min-h-[40px]"
-                  />
-                  <span className="text-xs text-gray-400 font-bold">to</span>
-                  <input
-                    type="text"
-                    value={h.close}
-                    onChange={(e) => {
-                      const updated = [...hours];
-                      updated[idx].close = e.target.value;
-                      setHours(updated);
-                    }}
-                    className="flex-1 sm:w-28 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 text-center min-h-[40px]"
-                  />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-gray-900">{h.day}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 sm:hidden">Opening</span>
+                    <input
+                      type="text"
+                      value={h.open}
+                      onChange={(e) => {
+                        const updated = [...hours];
+                        updated[idx].open = e.target.value;
+                        setHours(updated);
+                      }}
+                      className="w-full sm:w-32 min-w-0 rounded-xl border border-gray-200 bg-white px-2 sm:px-3 py-2.5 text-xs sm:text-sm font-bold text-gray-800 text-center focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+                  <span className="text-xs text-gray-400 font-bold mt-4 sm:mt-0">to</span>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 sm:hidden">Closing</span>
+                    <input
+                      type="text"
+                      value={h.close}
+                      onChange={(e) => {
+                        const updated = [...hours];
+                        updated[idx].close = e.target.value;
+                        setHours(updated);
+                      }}
+                      className="w-full sm:w-32 min-w-0 rounded-xl border border-gray-200 bg-white px-2 sm:px-3 py-2.5 text-xs sm:text-sm font-bold text-gray-800 text-center focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
                 </div>
               </div>
             ))}

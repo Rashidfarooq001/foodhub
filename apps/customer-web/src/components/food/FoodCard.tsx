@@ -10,9 +10,10 @@ import { getImageUrl } from '@foodhub/config';
 interface Props {
   food: FoodItemData;
   onCustomize?: (food: FoodItemData) => void;
+  restaurantClosed?: boolean;
 }
 
-export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
+export const FoodCard: React.FC<Props> = ({ food, onCustomize, restaurantClosed }) => {
   const { items, addItem, updateQuantity, removeItem } = useCartStore();
   const [imgSrc, setImgSrc] = useState(getImageUrl(food.imageUrl));
 
@@ -161,7 +162,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize }) => {
           </div>
 
           {/* Compact Action Button */}
-          {isAvailable && (
+          {isAvailable && !restaurantClosed && (
             <div>
               {totalInCart > 0 ? (
                 <div className="flex items-center gap-1.5 rounded-lg bg-rose-600 text-white px-2 py-1 shadow-sm">

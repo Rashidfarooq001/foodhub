@@ -68,6 +68,9 @@ export interface RestaurantData {
   bannerUrl: string;
   logoUrl: string;
   isOpen: boolean;
+  isCurrentlyOpen?: boolean;
+  isManuallyOffline?: boolean;
+  nextOpeningTime?: string | null;
   fssaiLicense: string;
   discountBadge?: string;
   latitude: number;

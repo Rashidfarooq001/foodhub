@@ -1,4 +1,4 @@
-import {
+import { BadRequestException, 
   Controller,
   Get,
   Post,
@@ -22,6 +22,21 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
+
+  @Patch(':id/online-status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Toggle restaurant online status (owners only)' })
+  async updateOnlineStatus(
+    @Param('id') id: string,
+    @Body('isOpen') isOpen: boolean,
+    @CurrentUser() user: any,
+  ) {
+    if (typeof isOpen !== 'boolean') {
+      throw new BadRequestException('isOpen must be a boolean');
+    }
+    return this.restaurantsService.updateOnlineStatus(id, isOpen, user);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Submit new restaurant registration application' })
@@ -287,3 +302,4 @@ export class RestaurantsController {
     return this.restaurantsService.getDeliveryAnalytics(id);
   }
 }
+

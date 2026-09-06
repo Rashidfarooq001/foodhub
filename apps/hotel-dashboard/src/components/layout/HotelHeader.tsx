@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Power, Menu, Store } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useHotelAuthStore } from '../../stores/use-hotel-auth-store';
 import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
-import { ThemeToggle } from '../common/ThemeToggle';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const API_BASE = getApiBaseUrl();
@@ -48,7 +47,7 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
     setLoadingToggle(true);
     const newStatus = !isOpen;
     try {
-      const res = await fetch(`${API_BASE}/restaurants/${restaurantId}`, {
+      const res = await fetch(`${API_BASE}/restaurants/${restaurantId}/online-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -61,6 +60,9 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
         if (newStatus) {
           pushAuth.subscribeToPush(`${API_BASE}/notifications/subscribe`, accessToken);
         }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update store status. Make sure you are within operating hours.');
       }
     } catch {
       /* ignore */
@@ -70,76 +72,67 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-3 sm:px-4 md:px-6 gap-2">
-      {/* Left: Mobile Hamburger & Store Info */}
-      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 md:h-20 w-full items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-1.5 sm:px-4 md:px-6 gap-1 sm:gap-2">
+      {/* LEFT GROUP: Menu -> Logo -> Store Online */}
+      <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+        {/* 1. Hamburger Menu */}
         <button
           onClick={onOpenMobileMenu}
-          className="flex lg:hidden h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
+          className="flex lg:hidden h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none shrink-0"
           aria-label="Open Navigation Menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
-        {/* Mobile Brand Logo */}
-        <div className="flex lg:hidden items-center shrink-0">
-          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-7 w-auto object-contain" />
+        {/* 2. ZaykaFood Logo (visible on mobile and desktop) */}
+        <div className="flex items-center shrink-0">
+          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-5 sm:h-7 w-auto object-contain" />
         </div>
 
-        <div className="hidden md:flex items-center gap-2 truncate">
-          <Store className="h-4 w-4 text-orange-600 shrink-0" />
-          <span className="text-xs font-bold text-gray-900 truncate max-w-[200px] lg:max-w-[300px]">
-            {user?.restaurantName || (user as any)?.name || 'Merchant Kitchen'}
-          </span>
-        </div>
-      </div>
-
-      {/* Right Controls: Store Status Toggle & Notifications */}
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Prominent Online/Offline Store Toggle */}
+        {/* 3. STORE ONLINE Status */}
         <button
           onClick={toggleStoreStatus}
           disabled={loadingToggle}
-          className={`flex items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 text-xs font-black transition shadow-sm min-h-[44px] ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-xl sm:rounded-2xl px-1.5 sm:px-3 py-1 text-[9px] sm:text-xs font-black transition shadow-sm h-7 sm:h-10 shrink-0 ${
             isOpen
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
               : 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
           }`}
           title="Toggle Store Online/Offline Availability"
         >
-          <Power className={`h-4 w-4 shrink-0 ${isOpen ? 'text-emerald-600' : 'text-rose-600'}`} />
-          <span>{loadingToggle ? 'SAVING...' : isOpen ? 'STORE ONLINE' : 'STORE OFFLINE'}</span>
+          <span>{loadingToggle ? '...' : isOpen ? 'STORE ONLINE' : 'STORE OFFLINE'}</span>
           <span
-            className={`h-2 w-2 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}
+            className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}
           />
         </button>
+      </div>
 
-        <ThemeToggle />
-
-        {/* Notifications */}
+      {/* RIGHT GROUP: Notifications -> Profile */}
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* 4. Notifications */}
         <button
-          className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
+          className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0"
           aria-label="Notifications"
         >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-orange-600 ring-2 ring-white dark:ring-gray-900" />
+          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-orange-600 ring-2 ring-white" />
         </button>
 
-        {/* Profile Button */}
+        {/* 5. Restaurant Profile Avatar */}
         <button
           onClick={() => router.push('/settings')}
-          className="flex items-center gap-2 rounded-2xl p-1 hover:bg-gray-50 transition shrink-0"
+          className="flex items-center gap-2 rounded-full p-0.5 hover:bg-gray-50 transition shrink-0 ml-0.5"
           title="Restaurant Settings"
         >
           <img
             key={user?.avatarUrl || 'hotel-avatar-default'}
             src={getImageUrl(user?.avatarUrl)}
-            alt={user?.name || 'Restaurant Owner'}
+            alt={user?.restaurantName || 'Restaurant Owner'}
             onError={(e) => {
               (e.target as HTMLImageElement).src =
                 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=100&q=80';
             }}
-            className="h-9 w-9 rounded-full object-cover border-2 border-orange-500 shadow-sm"
+            className="h-7 w-7 sm:h-9 sm:w-9 rounded-full object-cover border border-orange-500 sm:border-2 shadow-sm"
           />
         </button>
       </div>
