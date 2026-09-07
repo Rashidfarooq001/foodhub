@@ -410,6 +410,9 @@ export class OrderLifecycleService {
           assignedRestaurantDriverId: null,
         },
       });
+    }, {
+      maxWait: 15000,
+      timeout: 30000,
     });
 
     this.logger.log(`[STATE MACHINE EVENT] Order #${job.order.orderNumber} unassigned by driver ${actor.driverId}`);
@@ -744,6 +747,9 @@ export class OrderLifecycleService {
       await this.generateSettlements(tx, updated);
 
       return updated;
+    }, {
+      maxWait: 15000,
+      timeout: 30000,
     });
 
     this.emitRealtimeEvents(
@@ -1067,6 +1073,9 @@ export class OrderLifecycleService {
       }
 
       return updatedOrderRecord;
+    }, {
+      maxWait: 15000,
+      timeout: 30000,
     });
 
     this.emitRealtimeEvents(updatedOrder, currentStatus, targetStatus);
