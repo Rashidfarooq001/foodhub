@@ -97,11 +97,21 @@ export default function LiveOrderTrackingPage() {
       setIsSocketConnected(false);
     });
 
-    // Real-time location broadcast
+    // Real-time location broadcast — validate before accepting
     socket.on('driver.location', (data: { lat: number; lng: number }) => {
-      if (data?.lat && data?.lng) {
-        setDriverLoc({ lat: data.lat, lng: data.lng });
+      const lat = Number(data?.lat);
+      const lng = Number(data?.lng);
+      const isValid =
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        lat !== 0 && lng !== 0 &&
+        lat >= -90 && lat <= 90 &&
+        lng >= -180 && lng <= 180;
+      if (isValid) {
+        setDriverLoc({ lat, lng });
         setLastUpdate(new Date());
+      } else {
+        console.warn('[Tracking] Ignored invalid socket driver.location payload:', data);
       }
     });
 

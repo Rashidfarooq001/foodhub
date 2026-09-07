@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useMapplsSdk } from '../../hooks/useMapplsSdk';
-import { Loader2, RefreshCw, AlertCircle, Bike } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface Props {
   driverLat?: number | null;
@@ -14,6 +14,28 @@ interface Props {
   driverName?: string;
   orderStatus?: string;
   routeCoordinates?: [number, number][];
+}
+
+/**
+ * Validates that a coordinate pair is:
+ * - Both numbers
+ * - Finite (not NaN / Infinity)
+ * - Within valid geographic range
+ * - Not exactly (0, 0) which indicates a missing/unset value
+ */
+function isValidCoord(lat?: number | null, lng?: number | null): lat is number {
+  return (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat !== 0 &&
+    lng !== 0 &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
 }
 
 export const MapplsLiveTrackingMap: React.FC<Props> = ({
@@ -33,73 +55,73 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
   const mapInstanceRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
+  // Track whether the map has been initialized so we never reinit on re-render
+  const mapInitializedRef = useRef(false);
 
   const [mapState, setMapState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
   const [errorDetails, setErrorDetails] = useState<string>('');
 
-  const hasValidCoords = (lat?: number | null, lng?: number | null) =>
-    typeof lat === 'number' &&
-    typeof lng === 'number' &&
-    !isNaN(lat) &&
-    !isNaN(lng) &&
-    lat !== 0 &&
-    lng !== 0;
-
+  // ─── INIT MAP ────────────────────────────────────────────────────────────────
+  // CRITICAL: This callback has NO dependency on any frequently-changing props
+  // (driverLat/driverLng/routeCoordinates). Those are handled by separate effects.
+  // This prevents the map from being destroyed and recreated on every GPS update.
   const initMap = useCallback(() => {
-    if (mapInstanceRef.current) {
-      return;
-    }
+    // Guard: only initialize once
+    if (mapInitializedRef.current || mapInstanceRef.current) return;
 
     if (!window.mappls) {
-      console.warn('[Mappls Web Map] window.mappls is undefined');
+      console.warn('[LiveMap] window.mappls not ready');
       return;
     }
 
     const containerId = 'mappls-live-tracking-map';
     const element = document.getElementById(containerId);
-
     if (!element) {
-      console.warn(`[Mappls Web Map] Container #${containerId} not found`);
+      console.warn('[LiveMap] Container not found');
       return;
     }
 
     const rect = element.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) {
-      console.warn(`[Mappls Web Map] Invalid dimensions: ${rect.width}x${rect.height}`);
+      console.warn(`[LiveMap] Invalid dimensions: ${rect.width}x${rect.height}`);
       return;
     }
 
+    // Mark as initialized BEFORE creating the map to prevent double-init from
+    // React StrictMode double-effect invocations.
+    mapInitializedRef.current = true;
+
     try {
-      const restValid = hasValidCoords(restaurantLat, restaurantLng);
-      const custValid = hasValidCoords(customerLat, customerLng);
+      // ── Determine initial center ──────────────────────────────────────────
+      // Priority: restaurant > customer > Kashmir default (we know orders are local)
+      const restValid = isValidCoord(restaurantLat, restaurantLng);
+      const custValid = isValidCoord(customerLat, customerLng);
 
       const centerLat = restValid ? restaurantLat : custValid ? customerLat : 34.3866;
       const centerLng = restValid ? restaurantLng : custValid ? customerLng : 74.522;
 
       const map = new window.mappls.Map(containerId, {
-        center: {
-          lat: Number(centerLat),
-          lng: Number(centerLng),
-        },
-        zoom: 13,
+        center: { lat: centerLat, lng: centerLng },
+        zoom: 14,
         zoomControl: true,
       });
 
       mapInstanceRef.current = map;
 
+      // ── Add static markers and initial polyline ───────────────────────────
       const addOverlays = () => {
         try {
-          // 1. Restaurant Marker
+          // 1. Restaurant marker 🏪
           if (restValid) {
             new window.mappls.Marker({
               map,
               position: { lat: restaurantLat, lng: restaurantLng },
               popupHtml:
-                '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏪 Kitchen / Restaurant</div>',
+                '<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#c2410c;padding:2px 4px;">🏪 Restaurant</div>',
             });
           }
 
-          // 2. Customer Destination Marker
+          // 2. Customer delivery destination marker 📍
           if (custValid) {
             new window.mappls.Marker({
               map,
@@ -109,94 +131,47 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
             });
           }
 
-          // 3. Initial Driver Marker
-
-          const isPickedUp = orderStatus === 'PICKED_UP' || orderStatus === 'OUT_FOR_DELIVERY';
-          const isDelivered = orderStatus === 'DELIVERED';
-          const showDriver =
-            !isDelivered &&
-            (orderStatus === 'DRIVER_ASSIGNED' ||
+          // 3. Initial driver marker 🛵 (only if driver location is available at init time)
+          const driverValid = isValidCoord(driverLat, driverLng);
+          if (driverValid && driverLat != null && driverLng != null && !driverMarkerRef.current) {
+            const showDriver =
+              orderStatus === 'DRIVER_ASSIGNED' ||
               orderStatus === 'ARRIVED_AT_RESTAURANT' ||
-              isPickedUp);
-          const driverValid = showDriver && hasValidCoords(driverLat, driverLng);
-          if (driverValid && driverLat && driverLng && !driverMarkerRef.current) {
-            const dMarker = new window.mappls.Marker({
-              map,
-              position: { lat: driverLat, lng: driverLng },
-              html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
-              offset: [0, -20],
-              popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
-            });
-            driverMarkerRef.current = dMarker;
-          }
+              orderStatus === 'PICKED_UP' ||
+              orderStatus === 'OUT_FOR_DELIVERY';
 
-          // 4. Real Mappls Road Route Polyline
-          if (routeCoordinates && routeCoordinates.length >= 2) {
-            // Mappls polyline takes an array of {lat, lng} objects or similar, depending on version
-            const path = routeCoordinates
-              .map((coord) => {
-                if (Array.isArray(coord)) {
-                  return { lat: Number(coord[0]), lng: Number(coord[1]) };
-                } else if (coord && typeof coord === 'object') {
-                  return { lat: Number((coord as any).lat), lng: Number((coord as any).lng) };
-                }
-                return { lat: 0, lng: 0 };
-              })
-              .filter((c) => c.lat && c.lng);
-
-            if (path.length >= 2) {
-              const polyline = new window.mappls.Polyline({
+            if (showDriver) {
+              driverMarkerRef.current = new window.mappls.Marker({
                 map,
-                path,
-                strokeColor: '#ea580c',
-                strokeWeight: 5,
-                strokeOpacity: 0.9,
-                fitbounds: false, // We will manually compute bounds below
+                position: { lat: driverLat, lng: driverLng },
+                html: `<div style="width:40px;height:40px;background:white;border-radius:50%;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.25);">🛵</div>`,
+                offset: [0, -20],
+                popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🛵 ${driverName || 'Delivery Partner'} (Live)</div>`,
               });
-              polylineRef.current = polyline;
             }
           }
 
-          // 5. Automatic Viewport Fitting
-          const bounds: [number, number][] = [];
-          if (restValid) bounds.push([Number(restaurantLat), Number(restaurantLng)]);
-          if (custValid) bounds.push([Number(customerLat), Number(customerLng)]);
-          if (driverValid && driverLat && driverLng)
-            bounds.push([Number(driverLat), Number(driverLng)]);
-          if (routeCoordinates && routeCoordinates.length >= 2) {
-            routeCoordinates.forEach((coord) => {
-              if (Array.isArray(coord)) {
-                bounds.push([Number(coord[0]), Number(coord[1])]);
-              } else if (coord && typeof coord === 'object') {
-                bounds.push([Number((coord as any).lat), Number((coord as any).lng)]);
-              }
-            });
-          }
+          // 4. Initial route polyline (if available)
+          _updatePolyline(map, routeCoordinates);
 
-          if (bounds.length > 0) {
-            const minLat = Math.min(...bounds.map((b) => b[0]));
-            const maxLat = Math.max(...bounds.map((b) => b[0]));
-            const minLng = Math.min(...bounds.map((b) => b[1]));
-            const maxLng = Math.max(...bounds.map((b) => b[1]));
-            try {
-              map.fitBounds([
-                [minLat - 0.005, minLng - 0.005],
-                [maxLat + 0.005, maxLng + 0.005],
-              ]);
-            } catch {
-              // ignore fit bounds error
-            }
-          }
+          // 5. Fit initial viewport to the delivery area ONCE
+          _fitBoundsToDelivery(map, {
+            restaurantLat, restaurantLng, restValid,
+            customerLat, customerLng, custValid,
+            driverLat: driverLat ?? null, driverLng: driverLng ?? null,
+            routeCoordinates,
+          });
 
           setMapState('READY');
         } catch (err: any) {
-          console.error('[Mappls Web Map] Overlay error:', err);
-          const errStr = err?.message || String(err);
-          setErrorDetails(`Overlay Error: ${errStr}`);
+          console.error('[LiveMap] Overlay error:', err);
+          setErrorDetails(`Overlay Error: ${err?.message || String(err)}`);
           setMapState('ERROR');
+          mapInitializedRef.current = false; // allow retry
         }
       };
 
+      // Mappls fires 'load' when tiles are ready; fall back to timeout
       let overlayAdded = false;
       const safeAddOverlays = () => {
         if (overlayAdded) return;
@@ -204,121 +179,112 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
         addOverlays();
       };
 
-      if (map.isStyleLoaded && map.isStyleLoaded()) {
+      if (typeof map.isStyleLoaded === 'function' && map.isStyleLoaded()) {
         safeAddOverlays();
-      } else {
-        if (typeof map.addListener === 'function') {
-          map.addListener('load', safeAddOverlays);
-        } else if (typeof map.on === 'function') {
-          map.on('load', safeAddOverlays);
-        }
-        setTimeout(() => {
-          safeAddOverlays();
-        }, 1500);
+      } else if (typeof map.on === 'function') {
+        map.on('load', safeAddOverlays);
+      } else if (typeof map.addListener === 'function') {
+        map.addListener('load', safeAddOverlays);
       }
+      // Fallback: force overlays after 1.5s in case 'load' event never fires
+      setTimeout(safeAddOverlays, 1500);
     } catch (err: any) {
-      console.error('[Mappls Web Map] Initialization error:', err);
-      const errStr = err?.message || String(err);
-      setErrorDetails(`Init Error: ${errStr}`);
+      console.error('[LiveMap] Init error:', err);
+      setErrorDetails(`Init Error: ${err?.message || String(err)}`);
       setMapState('ERROR');
+      mapInitializedRef.current = false; // allow retry
     }
-  }, [
-    restaurantLat,
-    restaurantLng,
-    customerLat,
-    customerLng,
-    routeCoordinates,
-    driverName,
-    driverLat,
-    driverLng,
-  ]);
+  // ⚠️ INTENTIONALLY EMPTY dependency array:
+  // initMap must NEVER change identity due to prop changes.
+  // driverLat/driverLng/routeCoordinates are updated by dedicated effects below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // ─── SDK LOAD TRIGGER ─────────────────────────────────────────────────────
   useEffect(() => {
     if (sdkError) {
       setErrorDetails(sdkError);
       setMapState('ERROR');
-    } else if (sdkLoaded && window.mappls && !mapInstanceRef.current) {
+    } else if (sdkLoaded && window.mappls && !mapInitializedRef.current) {
       initMap();
     }
   }, [sdkLoaded, sdkError, initMap]);
 
-  // Smooth real-time update of driver marker location (NO fitBounds / NO camera jump)
+  // ─── DRIVER MARKER LIVE UPDATE ────────────────────────────────────────────
+  // Only updates the marker position — NEVER touches the camera/viewport.
   useEffect(() => {
-    if (!hasValidCoords(driverLat, driverLng) || !driverLat || !driverLng) return;
+    if (!isValidCoord(driverLat, driverLng) || driverLat == null || driverLng == null) return;
+    if (!mapInstanceRef.current || mapState !== 'READY') return;
+
+    const showDriver =
+      orderStatus === 'DRIVER_ASSIGNED' ||
+      orderStatus === 'ARRIVED_AT_RESTAURANT' ||
+      orderStatus === 'PICKED_UP' ||
+      orderStatus === 'OUT_FOR_DELIVERY';
+
+    if (!showDriver) return;
 
     if (driverMarkerRef.current) {
+      // Smoothly move existing marker — no map viewport change
       try {
         driverMarkerRef.current.setPosition({ lat: driverLat, lng: driverLng });
       } catch (err) {
-        console.error('[Mappls Web Map] Error updating driver marker:', err);
+        console.error('[LiveMap] setPosition failed:', err);
       }
-    } else if (mapInstanceRef.current && window.mappls && mapState === 'READY') {
+    } else {
+      // First driver location received after map init — create the marker now
       try {
-        const dMarker = new window.mappls.Marker({
+        driverMarkerRef.current = new window.mappls.Marker({
           map: mapInstanceRef.current,
           position: { lat: driverLat, lng: driverLng },
-          html: `<div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-xl border-2 border-emerald-500 overflow-hidden"><img src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" style="width:24px;height:24px;object-fit:contain;" /></div>`,
+          html: `<div style="width:40px;height:40px;background:white;border-radius:50%;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.25);">🛵</div>`,
           offset: [0, -20],
-          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">?? ${driverName || 'Delivery Partner'} (Live)</div>`,
+          popupHtml: `<div style="font-family:sans-serif;font-weight:bold;font-size:12px;color:#047857;padding:2px 4px;">🛵 ${driverName || 'Delivery Partner'} (Live)</div>`,
         });
-        driverMarkerRef.current = dMarker;
       } catch (err) {
-        console.error('[Mappls Web Map] Error creating driver marker:', err);
+        console.error('[LiveMap] Driver marker create failed:', err);
       }
     }
-  }, [driverLat, driverLng, driverName, mapState]);
+  }, [driverLat, driverLng, driverName, orderStatus, mapState]);
 
-  // Global listener for "recenter-rider" event
+  // ─── ROUTE POLYLINE UPDATE ────────────────────────────────────────────────
+  // Updates the polyline when routeCoordinates change (API refetch after status change).
+  // NEVER touches the camera.
+  useEffect(() => {
+    if (!mapInstanceRef.current || mapState !== 'READY') return;
+    if (!routeCoordinates || routeCoordinates.length < 2) return;
+    _updatePolyline(mapInstanceRef.current, routeCoordinates);
+  }, [routeCoordinates, mapState]);
+
+  // ─── RECENTER (explicit user action only) ────────────────────────────────
+  // Only fired when the user taps the "Recenter" button — never automatically.
   useEffect(() => {
     const handleRecenter = () => {
       const map = mapInstanceRef.current;
       if (!map || mapState !== 'READY') return;
 
-      const bounds = [];
-      if (hasValidCoords(driverLat, driverLng)) bounds.push([Number(driverLat), Number(driverLng)]);
-      if (hasValidCoords(customerLat, customerLng))
-        bounds.push([Number(customerLat), Number(customerLng)]);
-      if (routeCoordinates && routeCoordinates.length >= 2) {
-        routeCoordinates.forEach((coord) => {
-          if (Array.isArray(coord)) {
-            bounds.push([Number(coord[0]), Number(coord[1])]);
-          } else if (coord && typeof coord === 'object') {
-            bounds.push([Number((coord as any).lat), Number((coord as any).lng)]);
-          }
-        });
-      }
-
-      if (bounds.length > 0) {
-        const minLat = Math.min(...bounds.map((b) => b[0]));
-        const maxLat = Math.max(...bounds.map((b) => b[0]));
-        const minLng = Math.min(...bounds.map((b) => b[1]));
-        const maxLng = Math.max(...bounds.map((b) => b[1]));
-        try {
-          map.fitBounds([
-            [minLat - 0.005, minLng - 0.005],
-            [maxLat + 0.005, maxLng + 0.005],
-          ]);
-        } catch {}
-      }
+      _fitBoundsToDelivery(map, {
+        restaurantLat, restaurantLng, restValid: isValidCoord(restaurantLat, restaurantLng),
+        customerLat, customerLng, custValid: isValidCoord(customerLat, customerLng),
+        driverLat: driverLat ?? null, driverLng: driverLng ?? null,
+        routeCoordinates,
+      });
     };
 
     window.addEventListener('recenter-rider', handleRecenter);
     return () => window.removeEventListener('recenter-rider', handleRecenter);
-  }, [mapState, driverLat, driverLng, customerLat, customerLng, routeCoordinates]);
+  }, [mapState, restaurantLat, restaurantLng, customerLat, customerLng, driverLat, driverLng, routeCoordinates]);
 
-  // Handle container resize (e.g., orientation change or responsive layout shifts)
+  // ─── RESIZE OBSERVER ─────────────────────────────────────────────────────
   useEffect(() => {
     const map = mapInstanceRef.current;
     const container = mapContainerRef.current;
     if (!map || !container || mapState !== 'READY') return;
 
     const observer = new ResizeObserver(() => {
-      if (typeof map.resize === 'function') {
-        map.resize();
-      }
+      if (typeof map.resize === 'function') map.resize();
     });
     observer.observe(container);
-
     return () => observer.disconnect();
   }, [mapState]);
 
@@ -365,3 +331,125 @@ export const MapplsLiveTrackingMap: React.FC<Props> = ({
 };
 
 export const LiveTrackingMap = MapplsLiveTrackingMap;
+
+// ─── PURE UTILITY HELPERS (outside component to avoid closure capture issues) ──
+
+/**
+ * Updates (or creates) the route polyline on the map.
+ * Removes the old polyline first to prevent duplicates.
+ * routeCoordinates are [lat, lng] pairs (already converted from GeoJSON [lng,lat]).
+ */
+function _updatePolyline(
+  map: any,
+  routeCoordinates: [number, number][],
+  polylineRef?: React.MutableRefObject<any>,
+) {
+  if (!routeCoordinates || routeCoordinates.length < 2) return;
+
+  // Build path validating each coordinate
+  const path = routeCoordinates
+    .map((coord) => {
+      if (Array.isArray(coord)) {
+        const lat = Number(coord[0]);
+        const lng = Number(coord[1]);
+        return isValidCoord(lat, lng) ? { lat, lng } : null;
+      } else if (coord && typeof coord === 'object') {
+        const lat = Number((coord as any).lat);
+        const lng = Number((coord as any).lng);
+        return isValidCoord(lat, lng) ? { lat, lng } : null;
+      }
+      return null;
+    })
+    .filter((c): c is { lat: number; lng: number } => c !== null);
+
+  if (path.length < 2) return;
+
+  try {
+    // Remove existing polyline if any
+    if (polylineRef?.current) {
+      try {
+        if (typeof polylineRef.current.remove === 'function') polylineRef.current.remove();
+        else if (typeof polylineRef.current.setMap === 'function') polylineRef.current.setMap(null);
+      } catch {}
+      polylineRef.current = null;
+    }
+
+    const polyline = new window.mappls.Polyline({
+      map,
+      path,
+      strokeColor: '#ea580c',
+      strokeWeight: 5,
+      strokeOpacity: 0.9,
+      fitbounds: false, // We control viewport ourselves
+    });
+
+    if (polylineRef) polylineRef.current = polyline;
+  } catch (err) {
+    console.error('[LiveMap] Polyline error:', err);
+  }
+}
+
+interface FitBoundsOptions {
+  restaurantLat: number;
+  restaurantLng: number;
+  restValid: boolean;
+  customerLat: number;
+  customerLng: number;
+  custValid: boolean;
+  driverLat: number | null;
+  driverLng: number | null;
+  routeCoordinates: [number, number][];
+}
+
+/**
+ * Fits the map viewport to the relevant delivery area.
+ * ONLY called on: initial map load + explicit user recenter.
+ * NEVER called on automatic GPS updates.
+ */
+function _fitBoundsToDelivery(map: any, opts: FitBoundsOptions) {
+  const bounds: [number, number][] = [];
+
+  if (opts.restValid) bounds.push([opts.restaurantLat, opts.restaurantLng]);
+  if (opts.custValid) bounds.push([opts.customerLat, opts.customerLng]);
+
+  if (isValidCoord(opts.driverLat, opts.driverLng) && opts.driverLat != null && opts.driverLng != null) {
+    bounds.push([opts.driverLat, opts.driverLng]);
+  }
+
+  // Include validated route coordinates
+  if (opts.routeCoordinates && opts.routeCoordinates.length >= 2) {
+    opts.routeCoordinates.forEach((coord) => {
+      let lat: number, lng: number;
+      if (Array.isArray(coord)) {
+        lat = Number(coord[0]);
+        lng = Number(coord[1]);
+      } else {
+        lat = Number((coord as any).lat);
+        lng = Number((coord as any).lng);
+      }
+      if (isValidCoord(lat, lng)) {
+        bounds.push([lat, lng]);
+      }
+    });
+  }
+
+  if (bounds.length === 0) return;
+
+  const minLat = Math.min(...bounds.map((b) => b[0]));
+  const maxLat = Math.max(...bounds.map((b) => b[0]));
+  const minLng = Math.min(...bounds.map((b) => b[1]));
+  const maxLng = Math.max(...bounds.map((b) => b[1]));
+
+  // Sanity check: ensure the bounds make geographic sense
+  if (!isValidCoord(minLat, minLng) || !isValidCoord(maxLat, maxLng)) return;
+
+  const PAD = 0.005;
+  try {
+    map.fitBounds([
+      [minLat - PAD, minLng - PAD],
+      [maxLat + PAD, maxLng + PAD],
+    ]);
+  } catch (err) {
+    console.warn('[LiveMap] fitBounds failed:', err);
+  }
+}
