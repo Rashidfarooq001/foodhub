@@ -1126,6 +1126,14 @@ export class OrderLifecycleService {
         );
       }
     }
+      if (targetStatus === OrderStatus.ACCEPTED) {
+        const TEN_MINUTES_MS = 10 * 60 * 1000;
+        const now = new Date().getTime();
+        const createdTime = new Date(order.createdAt).getTime();
+        if (now - createdTime > TEN_MINUTES_MS) {
+          throw new BadRequestException('Order has expired and can no longer be accepted. (10-minute timeout)');
+        }
+      }
 
     if (([OrderStatus.PREPARING, OrderStatus.PREPARING] as OrderStatus[]).includes(targetStatus)) {
       if (!isRestaurantActor && !isAdmin) {

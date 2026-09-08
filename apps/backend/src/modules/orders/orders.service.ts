@@ -1,3 +1,4 @@
+import { OnApplicationBootstrap } from '@nestjs/common';
 import { GeolocationService } from '../geolocation/geolocation.service';
 import {
   Injectable,
@@ -32,7 +33,7 @@ function generateOrderNumber(): string {
 }
 
 @Injectable()
-export class OrdersService {
+export class OrdersService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OrdersService.name);
 
   constructor(
@@ -46,6 +47,73 @@ export class OrdersService {
     private readonly webPushService: WebPushService,
     private readonly couponsService: CouponsService,
   ) {}
+
+  onApplicationBootstrap() {
+    // Run order timeout check every 1 minute
+    setInterval(() => {
+      this.handleOrderTimeouts().catch(err => {
+        this.logger.error('Error handling order timeouts', err);
+      });
+    }, 60 * 1000);
+  }
+
+  private async handleOrderTimeouts() {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    
+    // Find all PENDING orders older than 10 minutes
+    const expiredOrders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.PENDING,
+        createdAt: { lt: tenMinutesAgo }
+      },
+      select: { id: true, createdAt: true }
+    });
+
+    for (const order of expiredOrders) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          // Re-verify status with a lock/findUnique inside the transaction
+          const liveOrder = await tx.order.findUnique({
+            where: { id: order.id },
+            select: { status: true }
+          });
+          
+          if (liveOrder?.status === OrderStatus.PENDING) {
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: OrderStatus.CANCELLED }
+            });
+            
+            await tx.orderTimeline.create({
+              data: {
+                orderId: order.id,
+                status: OrderStatus.CANCELLED,
+                message: 'Order automatically cancelled because the restaurant did not accept within 10 minutes.'
+              }
+            });
+            
+            await tx.orderCancellation.create({
+              data: {
+                orderId: order.id,
+                reason: 'Restaurant acceptance timeout (10 minutes)',
+                cancelledBy: 'SYSTEM'
+              }
+            });
+          }
+        });
+        
+        // Notify realtime system
+        this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CANCELLED, {
+          orderId: order.id,
+          reason: 'Restaurant acceptance timeout (10 minutes)'
+        });
+        
+        this.logger.log(`Order ${order.id} was auto-cancelled due to 10-minute acceptance timeout.`);
+      } catch (err: any) {
+        this.logger.error(`Failed to auto-cancel expired order ${order.id}: ${err.message}`);
+      }
+    }
+  }
 
   async createOrder(customerIdOrUserId: string, dto: CreateOrderDto) {
     const isUuid =
