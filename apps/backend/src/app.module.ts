@@ -47,7 +47,7 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
     AppConfigModule,
     CommonModule,
     HealthModule,
