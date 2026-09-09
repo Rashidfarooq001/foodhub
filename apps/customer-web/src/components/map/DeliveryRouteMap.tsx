@@ -123,10 +123,21 @@ export default function DeliveryRouteMap({
             });
           } else if (restValid && custValid) {
             try {
-              map.fitBounds([
-                [Math.min(restaurantLat, customerLat) - 0.01, Math.min(restaurantLng, customerLng) - 0.01],
-                [Math.max(restaurantLat, customerLat) + 0.01, Math.max(restaurantLng, customerLng) + 0.01],
-              ]);
+              if (window.mappls && window.mappls.fitBounds) {
+                new window.mappls.fitBounds({
+                  map: map,
+                  bounds: [
+                    [restaurantLng, restaurantLat],
+                    [customerLng, customerLat]
+                  ],
+                  options: { padding: 80, duration: 1000 }
+                });
+              } else {
+                map.fitBounds([
+                  [Math.min(restaurantLng, customerLng) - 0.01, Math.min(restaurantLat, customerLat) - 0.01],
+                  [Math.max(restaurantLng, customerLng) + 0.01, Math.max(restaurantLat, customerLat) + 0.01],
+                ], { padding: 80, duration: 1000 });
+              }
             } catch {
               // ignore
             }

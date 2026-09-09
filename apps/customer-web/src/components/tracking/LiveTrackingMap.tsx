@@ -452,12 +452,25 @@ function _fitBoundsToDelivery(map: any, opts: FitBoundsOptions) {
   // Sanity check: ensure the bounds make geographic sense
   if (!isValidCoord(minLat, minLng) || !isValidCoord(maxLat, maxLng)) return;
 
-  const PAD = 0.005;
   try {
-    map.fitBounds([
-      [minLat - PAD, minLng - PAD],
-      [maxLat + PAD, maxLng + PAD],
-    ]);
+    if (window.mappls && window.mappls.fitBounds) {
+      new window.mappls.fitBounds({
+        map: map,
+        bounds: bounds.map((b) => [b[1], b[0]]), // convert [lat, lng] to [lng, lat] for bounds
+        options: {
+          padding: 80,
+          duration: 1000
+        }
+      });
+    } else {
+      // Fallback for direct mapbox-gl style fitBounds which takes [[swLng, swLat], [neLng, neLat]]
+      const PAD_LAT = 0.01;
+      const PAD_LNG = 0.01;
+      map.fitBounds([
+        [minLng - PAD_LNG, minLat - PAD_LAT],
+        [maxLng + PAD_LNG, maxLat + PAD_LAT],
+      ], { padding: 80, duration: 1000 });
+    }
   } catch (err) {
     console.warn('[LiveMap] fitBounds failed:', err);
   }
