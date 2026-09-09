@@ -27,7 +27,15 @@ import { getApiBaseUrl } from '@foodhub/config';
 
 const API_BASE = getApiBaseUrl();
 
-export default function CustomerHomePage({ initialRestaurants = [], initialCategories = [] }: { initialRestaurants?: any[], initialCategories?: any[] }) {
+export default function CustomerHomePage({ 
+  initialRestaurants = [], 
+  initialCategories = [],
+  initialBanners = [] 
+}: { 
+  initialRestaurants?: any[], 
+  initialCategories?: any[],
+  initialBanners?: any[] 
+}) {
   const router = useRouter();
   const { user, isAuthenticated, accessToken, logout } = useAuthStore();
 
@@ -558,9 +566,9 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
           </div>
         </div>
 
-        {/* 🏆 FEATURED PROMOTION BANNER */}
+        {/* 🌟 FEATURED PROMOTION BANNER */}
         <div className="mt-6 md:mt-7">
-          <HeroBanner />
+          <HeroBanner initialBanners={initialBanners} />
         </div>
 
         {/* 🥘 ROW 4: DYNAMIC FOOD CATEGORIES (ALL, Bir, Piz, Bur, ...) 🥘 */}

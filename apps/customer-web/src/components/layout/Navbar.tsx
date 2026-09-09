@@ -36,6 +36,7 @@ export const Navbar: React.FC = () => {
           <img
             src="/zaykafood-logo.png"
             alt="ZaykaFood"
+            fetchPriority="high"
             className="h-8 sm:h-9 w-auto object-contain"
           />
         </Link>

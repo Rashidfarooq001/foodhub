@@ -62,7 +62,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Brand & Mobile Close */}
         <div className="flex items-center justify-between px-1">
           <Link href="/" onClick={onCloseMobileMenu} className="flex items-center gap-2">
-            <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-8 w-auto object-contain" />
+            <img src="/zaykafood-logo.png" alt="ZaykaFood" fetchPriority="high" className="h-8 w-auto object-contain" />
             <div>
               <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 SuperAdmin

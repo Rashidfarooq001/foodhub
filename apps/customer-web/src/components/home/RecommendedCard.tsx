@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Heart, Clock, MapPin } from 'lucide-react';
 import { RestaurantData } from '../../data/mock-data';
@@ -89,15 +90,12 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       >
         {/* Image Container */}
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl bg-gray-100">
-          <img
+          <Image
             src={imageSrc}
             alt={restaurant.name}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/zaykafood-logo.png';
-            }}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
           />
 
           {/* Open/Closed Badge */}

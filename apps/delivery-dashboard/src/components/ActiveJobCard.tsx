@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
-import { io } from 'socket.io-client';
+import { useDeliverySocket } from '../providers/socket-provider';
 import { MapPin, Navigation } from 'lucide-react';
 
 const API_BASE = getApiBaseUrl();
@@ -19,14 +19,20 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
   const [driverLng, setDriverLng] = useState<number | null>(null);
   const lastEmitTime = useRef(0);
 
+  const socket = useDeliverySocket();
+
   useEffect(() => {
     if (!currentJob) return;
+
+    if (socket) {
+      const joinRoom = () => socket.emit('joinOrder', { orderId: currentJob.orderId });
+      if (socket.connected) {
+        joinRoom();
+      }
+      socket.on('connect', joinRoom);
+    }
+
     if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
-
-    const socketUrl = API_BASE.replace('/api/v1', '');
-    const socket = io(`${socketUrl}/orders`, { transports: ['websocket', 'polling'] });
-
-    socket.on('connect', () => socket.emit('joinOrder', { orderId: currentJob.orderId }));
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -36,7 +42,7 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
 
         // Throttle emission to once every 10 seconds
         const now = Date.now();
-        if (now - lastEmitTime.current > 10000) {
+        if (socket && (now - lastEmitTime.current > 10000)) {
           socket.emit('updateLocation', {
             orderId: currentJob.orderId,
             lat: latitude,
@@ -54,9 +60,11 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
-      socket.disconnect();
+      if (socket) {
+        socket.off('connect');
+      }
     };
-  }, [currentJob?.id, currentJob?.orderId, currentJob?.driverId]);
+  }, [currentJob?.id, currentJob?.orderId, currentJob?.driverId, socket]);
 
   const executeAction = async (endpoint: string, method: string = 'POST', body?: any) => {
     if (!currentJob) return;

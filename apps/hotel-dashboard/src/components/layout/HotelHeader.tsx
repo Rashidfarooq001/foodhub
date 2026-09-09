@@ -86,7 +86,7 @@ export const HotelHeader: React.FC<HotelHeaderProps> = ({ onOpenMobileMenu }) =>
 
         {/* 2. ZaykaFood Logo (visible on mobile and desktop) */}
         <div className="flex items-center shrink-0">
-          <img src="/zaykafood-logo.png" alt="ZaykaFood" className="h-5 sm:h-7 w-auto object-contain" />
+          <img src="/zaykafood-logo.png" alt="ZaykaFood" fetchPriority="high" className="h-5 sm:h-7 w-auto object-contain" />
         </div>
 
         {/* 3. STORE ONLINE Status */}

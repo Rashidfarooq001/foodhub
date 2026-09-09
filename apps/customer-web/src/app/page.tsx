@@ -9,6 +9,7 @@ export const revalidate = 60;
 export default async function Page() {
   let initialRestaurants = [];
   let initialCategories = [];
+  let initialBanners = [];
 
   try {
     const res = await fetch(`${API_BASE}/restaurants`, { next: { revalidate: 60 } });
@@ -30,5 +31,19 @@ export default async function Page() {
     console.error('Failed to prefetch categories');
   }
 
-  return <CustomerHomePage initialRestaurants={initialRestaurants} initialCategories={initialCategories} />;
+  try {
+    const resBan = await fetch(`${API_BASE}/banners`, { next: { revalidate: 60 } });
+    if (resBan.ok) {
+      const data = await resBan.json();
+      initialBanners = Array.isArray(data) ? data : (data.banners ?? []);
+    }
+  } catch (e) {
+    console.error('Failed to prefetch banners');
+  }
+
+  return <CustomerHomePage 
+    initialRestaurants={initialRestaurants} 
+    initialCategories={initialCategories} 
+    initialBanners={initialBanners} 
+  />;
 }

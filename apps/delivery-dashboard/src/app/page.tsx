@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
-import { io } from 'socket.io-client';
+import { useDeliverySocket } from '../providers/socket-provider';
 
 const API_BASE = getApiBaseUrl();
 
@@ -103,27 +103,31 @@ export default function DeliveryDashboardPage() {
       }
     };
 
+  const socket = useDeliverySocket();
+
   useEffect(() => {
     fetchDashboardData();
 
-    const socketUrl = API_BASE.replace('/api/v1', '');
-    const socket = io(`${socketUrl}/orders`, {
-      transports: ['websocket', 'polling'],
-    });
+    if (!socket) return;
 
-    socket.on('connect', () => {
-      socket.emit('joinDriver', { token: accessToken });
-      socket.emit('joinAvailableDrivers');
+    const onConnect = () => {
       fetchDashboardData();
-    });
+    };
 
-    socket.on('job.available', () => fetchDashboardData());
-    socket.on('order.status_updated', () => fetchDashboardData());
+    if (socket.connected) {
+      onConnect();
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('job.available', fetchDashboardData);
+    socket.on('order.status_updated', fetchDashboardData);
 
     return () => {
-      socket.disconnect();
+      socket.off('connect', onConnect);
+      socket.off('job.available', fetchDashboardData);
+      socket.off('order.status_updated', fetchDashboardData);
     };
-  }, [accessToken]);
+  }, [accessToken, socket]);
 
   // Live GPS tracking when ON DUTY
   const [locationError, setLocationError] = useState<string | null>(null);

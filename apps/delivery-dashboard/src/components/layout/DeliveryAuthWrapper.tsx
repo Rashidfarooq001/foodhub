@@ -7,6 +7,7 @@ import { DeliveryLayout } from './DeliveryLayout';
 import { useSessionTimeout } from '@foodhub/hooks';
 import { getApiBaseUrl } from '@foodhub/config';
 import { ZaykaFoodSplash } from './ZaykaFoodSplash';
+import { SocketProvider } from '../../providers/socket-provider';
 
 const API_BASE = getApiBaseUrl();
 
@@ -97,7 +98,9 @@ export function DeliveryAuthWrapper({ children }: { children: React.ReactNode })
         </div>
       ) : (
         /* AUTHENTICATED DELIVERY LAYOUT */
-        <DeliveryLayout>{children}</DeliveryLayout>
+        <SocketProvider>
+          <DeliveryLayout>{children}</DeliveryLayout>
+        </SocketProvider>
       )}
     </>
   );

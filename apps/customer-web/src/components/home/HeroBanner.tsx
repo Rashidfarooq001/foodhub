@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ArrowRight, Tag, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -16,10 +17,13 @@ interface Banner {
   targetUrl?: string;
 }
 
-export const HeroBanner: React.FC = () => {
-  const [banners, setBanners] = useState<Banner[]>([]);
+interface Props {
+  initialBanners?: Banner[];
+}
+
+export const HeroBanner: React.FC<Props> = ({ initialBanners = [] }) => {
+  const [banners, setBanners] = useState<Banner[]>(initialBanners);
   const [current, setCurrent] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
 
   const fetchBanners = async () => {
     try {
@@ -31,13 +35,13 @@ export const HeroBanner: React.FC = () => {
       }
     } catch {
       // offline
-    } finally {
-      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBanners();
+    if (initialBanners.length === 0) {
+      fetchBanners();
+    }
 
     // Setup Socket.IO for realtime banner sync
     const socket = io(SOCKET_URL);
@@ -48,7 +52,7 @@ export const HeroBanner: React.FC = () => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [initialBanners]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -57,10 +61,6 @@ export const HeroBanner: React.FC = () => {
     }, 5000);
     return () => clearInterval(timer);
   }, [banners]);
-
-  if (isLoading) {
-    return <div className="h-32 sm:h-40 w-full rounded-2xl bg-gray-100 animate-pulse" />;
-  }
 
   // If no active banners exist in backend, render clean platform welcome card
   if (banners.length === 0) {
@@ -93,10 +93,13 @@ export const HeroBanner: React.FC = () => {
 
   return (
     <div className="relative w-full h-[200px] sm:h-[280px] overflow-hidden rounded-2xl shadow-sm transition-all duration-500 group">
-      <img
+      <Image
         src={activeBanner.imageUrl}
         alt={activeBanner.title}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        fill
+        priority
+        sizes="(max-width: 640px) 100vw, 1280px"
+        className="object-cover transition-transform duration-700 group-hover:scale-105"
       />
       
       {/* Overlay */}
