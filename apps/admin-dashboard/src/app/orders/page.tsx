@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { ADMIN_ORDER_FILTERS } from '@foodhub/types';
 import { Search, ShoppingBag, RefreshCw, Eye, Store, User, MapPin } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
+import { io } from 'socket.io-client';
+import { getApiBaseUrl } from '@foodhub/config';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -11,8 +13,8 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
+  const fetchOrders = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await adminFetch('/orders?page=1&limit=200');
       if (res.ok) {
@@ -22,12 +24,37 @@ export default function AdminOrdersPage() {
     } catch {
       /* offline */
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
+
+    try {
+      const apiBase = getApiBaseUrl();
+      const socketUrl = apiBase.replace('/api/v1', '');
+      const socket = io(`${socketUrl}/orders`, {
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('joinAdmin');
+      });
+
+      const handleUpdate = () => {
+        fetchOrders(true);
+      };
+
+      socket.on('order.created', handleUpdate);
+      socket.on('order.status_updated', handleUpdate);
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch {
+      // ignore
+    }
   }, []);
 
   const getStatusBadge = (status: string) => {
@@ -94,7 +121,7 @@ export default function AdminOrdersPage() {
         </div>
 
         <button
-          onClick={fetchOrders}
+          onClick={() => fetchOrders(false)}
           disabled={isLoading}
           className="self-start sm:self-auto flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 transition min-h-[40px]"
         >
