@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { PartnerHeader } from './PartnerHeader';
-import { Search, User, LogOut, Home, Clock, ChevronDown, Utensils, Bell } from 'lucide-react';
+import { Search, Utensils, Clock, Bell, Menu } from 'lucide-react';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -14,7 +14,7 @@ export const Navbar: React.FC = () => {
   const router = useRouter();
 
   const { user, isAuthenticated, logout, accessToken } = useAuthStore();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pushAuth = usePushNotifications();
 
   // Use partner header on partner routes
@@ -24,13 +24,9 @@ export const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    setIsProfileOpen(false);
+    setIsMenuOpen(false);
     router.push('/login');
   };
-
-  const initials = user
-    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
-    : 'U';
 
   const isHome = pathname === '/';
 
@@ -92,79 +88,59 @@ export const Navbar: React.FC = () => {
             <Bell className="h-4 w-4" />
           </button>
 
-          {/* Sign In / Profile Identity */}
-          {isAuthenticated && user ? (
-            <div className="relative">
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 rounded-2xl border border-gray-200 px-3 py-1.5 hover:bg-gray-50 transition"
-              >
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.firstName || 'Profile'}
-                    className="h-7 w-7 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-xs font-black text-rose-700">
-                    {initials}
-                  </span>
-                )}
-                <span className="hidden sm:inline text-sm font-bold text-gray-800">
-                  {user.firstName}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-              </button>
+          {/* Hamburger Menu Toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-rose-600 transition"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
-                  <Link
-                    href="/"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <Home className="h-4 w-4" /> Home
-                  </Link>
-                  <Link
-                    href="/orders"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <Clock className="h-4 w-4" /> My Orders
-                  </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <User className="h-4 w-4" /> Profile
-                  </Link>
-                  <div className="my-1 border-t border-gray-100" />
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
+                <Link
+                  href="/coupons"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  Coupons
+                </Link>
+                <Link
+                  href="/addresses"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  Your Saved Addresses
+                </Link>
+                <Link
+                  href="/privacy-policy"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  Privacy Policy
+                </Link>
+                <div className="my-1 border-t border-gray-100" />
+                {isAuthenticated ? (
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50"
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
                   >
-                    <LogOut className="h-4 w-4" /> Sign Out
+                    Logout
                   </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="rounded-2xl border border-gray-200 px-3 py-1.5 text-xs sm:text-sm font-bold text-gray-700 hover:border-rose-500 hover:text-rose-600 transition"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="hidden sm:inline-block rounded-2xl bg-rose-600 px-3.5 py-1.5 text-xs sm:text-sm font-bold text-white hover:bg-rose-700 transition shadow-sm shadow-rose-600/20"
-              >
-                Sign Up
-              </Link>
-            </div>
-          )}
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                  >
+                    Login / Sign In
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

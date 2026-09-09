@@ -11,8 +11,9 @@ import {
   Mic,
   SlidersHorizontal,
   Clock,
-  ArrowRight,
   RefreshCw,
+  Menu,
+  ArrowRight,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { HeroBanner } from '../components/home/HeroBanner';
@@ -30,7 +31,7 @@ const API_BASE = getApiBaseUrl();
 
 export default function CustomerHomePage({ initialRestaurants = [], initialCategories = [] }: { initialRestaurants?: any[], initialCategories?: any[] }) {
   const router = useRouter();
-  const { user, isAuthenticated, accessToken } = useAuthStore();
+  const { user, isAuthenticated, accessToken, logout } = useAuthStore();
 
   // Dynamic Location State
   const [locationLabel, setLocationLabel] = useState<string>('Location');
@@ -54,6 +55,7 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Real Data State with Instant Cache
   const [restaurants, setRestaurants] = useState<RestaurantData[]>(initialRestaurants);
@@ -438,10 +440,6 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
       ? filteredRestaurants.slice(6, 12)
       : filteredRestaurants.slice(0, 4);
 
-  const initials = user
-    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || 'U'
-    : 'U';
-
   const customerGreeting = user?.firstName ? `Hi, ${user.firstName}` : 'Zayka Food';
   return (
     <div className="bg-white">
@@ -514,33 +512,73 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
               </span>
             </button>
 
-            {/* Notification & Profile (Mobile Only, Desktop handled by Navbar) */}
+            {/* Notification & Hamburger Menu (Mobile Only) */}
             <div className="flex items-center gap-2.5 md:hidden">
               <Link
                 href="/notifications"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100 shrink-0"
+                className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100 shrink-0"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" />
               </Link>
 
-              <Link
-                href={isAuthenticated ? '/profile' : '/login'}
-                className="shrink-0"
-                aria-label="User Profile"
-              >
-                {user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.firstName || 'Profile'}
-                    className="h-9 w-9 rounded-full object-cover ring-2 ring-rose-100"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 text-white font-black text-xs shadow-sm">
-                    {isAuthenticated ? initials : 'Sign In'}
+              {/* Hamburger Menu Toggle */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 text-gray-700 hover:bg-gray-100 transition shrink-0"
+                  aria-label="Menu"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
+                    <Link
+                      href="/coupons"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      Coupons
+                    </Link>
+                    <Link
+                      href="/addresses"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      Your Saved Addresses
+                    </Link>
+                    <Link
+                      href="/privacy-policy"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      Privacy Policy
+                    </Link>
+                    <div className="my-1 border-t border-gray-100" />
+                    {isAuthenticated ? (
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          logout();
+                          router.push('/login');
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                      >
+                        Logout
+                      </button>
+                    ) : (
+                      <Link
+                        href="/login"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
+                      >
+                        Login / Sign In
+                      </Link>
+                    )}
                   </div>
                 )}
-              </Link>
+              </div>
             </div>
           </div>
         </div>
