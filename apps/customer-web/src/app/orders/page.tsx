@@ -52,8 +52,9 @@ export default function OrderHistoryPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED'>('ALL');
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
+      if (!silent) setIsLoading(true);
       const { accessToken } = useAuthStore.getState();
       const headers: Record<string, string> = accessToken
         ? { Authorization: `Bearer ${accessToken}` }
@@ -75,10 +76,10 @@ export default function OrderHistoryPage() {
         const data = await historyRes.json();
         setOrders(Array.isArray(data) ? data : []);
       }
-    } catch {
-      /* offline */
+    } catch (err) {
+      console.error('[Orders] Failed to fetch orders', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
