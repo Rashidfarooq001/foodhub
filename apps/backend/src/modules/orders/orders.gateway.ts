@@ -146,7 +146,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
 
       const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-      const isCustomer = user.customerId && order.customerId === user.customerId;
+      const isCustomer = order.customerId === user.id;
       const isRestaurant = user.restaurantId && order.restaurantId === user.restaurantId;
       const isAssignedDriver =
         (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
