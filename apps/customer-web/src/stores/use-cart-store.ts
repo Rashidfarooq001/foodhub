@@ -184,14 +184,15 @@ export const useCartStore = create<CartState>()(
 
       getDeliveryFee: () => {
         const { orderQuote } = get();
-        if (orderQuote) return orderQuote.customerDeliveryFee;
-        return 15; // Fixed business delivery fee ₹15
+        if (orderQuote && orderQuote.customerDeliveryFee !== null) return orderQuote.customerDeliveryFee;
+        if (orderQuote && orderQuote.deliveryFeeBaseAmount !== null && orderQuote.deliveryFeeBaseAmount !== undefined) return orderQuote.deliveryFeeBaseAmount;
+        return 15; // Fixed business delivery fee ₹15 fallback
       },
 
       getTaxAmount: () => {
         const { orderQuote } = get();
         if (orderQuote) return orderQuote.totalCustomerTaxes;
-        return 0; // GST = ₹0
+        return 0; // GST = ₹0 fallback
       },
 
       getDiscountAmount: () => 0,
@@ -201,9 +202,13 @@ export const useCartStore = create<CartState>()(
         if (subtotal === 0) return 0;
 
         const { orderQuote } = get();
-        if (orderQuote) return orderQuote.customerTotal;
+        if (orderQuote && orderQuote.customerTotal !== null) return orderQuote.customerTotal;
 
-        const total = subtotal + get().getDeliveryFee() + 3; // Fixed Platform Fee ₹3
+        const deliveryFee = get().getDeliveryFee();
+        const platformFee = orderQuote?.platformFee ?? 0;
+        const taxes = orderQuote?.totalCustomerTaxes ?? 0;
+
+        const total = subtotal + deliveryFee + platformFee + taxes;
         return Math.max(0, total);
       },
 

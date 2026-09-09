@@ -38,18 +38,17 @@ export default function CartPage() {
     fetchCartQuote,
   } = useCartStore();
 
-  const subtotal = getSubtotal();
-
   useEffect(() => {
     if (items.length > 0) {
       fetchCartQuote().catch(console.error);
     }
   }, [items.length, fetchCartQuote]);
 
-  const platformFee = orderQuote?.platformFee ?? 5;
+  const subtotal = getSubtotal();
+  const platformFee = orderQuote?.platformFee ?? 0;
   const tax = orderQuote?.totalCustomerTaxes ?? 0;
-  const deliveryFee = orderQuote?.customerDeliveryFee ?? 15;
-  const grandTotal = orderQuote?.customerTotal ?? getGrandTotal();
+  const deliveryFee = getDeliveryFee();
+  const grandTotal = getGrandTotal();
 
   if (items.length === 0) {
     return (

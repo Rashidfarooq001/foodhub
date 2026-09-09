@@ -40,9 +40,9 @@ export default function RestaurantDetailPage() {
   const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
   const [customizationQty, setCustomizationQty] = useState(1);
 
-  const { addItem, getItemCount, getGrandTotal } = useCartStore();
+  const { addItem, getItemCount, getSubtotal } = useCartStore();
   const cartItemCount = getItemCount();
-  const cartGrandTotal = getGrandTotal();
+  const cartSubtotal = getSubtotal();
 
   useEffect(() => {
     const fetchRestaurant = async () => {
@@ -413,7 +413,7 @@ export default function RestaurantDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs font-black">
-              <span>Rs. {cartGrandTotal}</span>
+              <span>Rs. {cartSubtotal}</span>
               <span className="rounded-lg bg-white text-rose-600 px-2 py-1 flex items-center gap-1 text-[11px] font-bold">
                 View Cart <ArrowRight className="h-3 w-3" />
               </span>

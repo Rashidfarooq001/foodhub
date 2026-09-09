@@ -32,9 +32,11 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     items,
     restaurantName,
     orderQuote,
-    updateQuantity,
     removeItem,
+    updateQuantity,
     getSubtotal,
+    getGrandTotal,
+    getDeliveryFee,
     fetchCartQuote,
   } = useCartStore();
 
@@ -53,22 +55,16 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const subtotal = getSubtotal();
 
   const hasVerifiedLocation =
-    selectedAddress &&
-    selectedAddress.latitude !== null &&
-    selectedAddress.latitude !== undefined &&
-    selectedAddress.longitude !== null &&
-    selectedAddress.longitude !== undefined;
-
-  const deliveryFeeText =
-    hasVerifiedLocation && orderQuote
-      ? `₹${orderQuote.customerDeliveryFee}`
-      : 'Calculated at checkout';
+    selectedAddress?.latitude !== null &&
+    selectedAddress?.latitude !== undefined &&
+    selectedAddress?.longitude !== null &&
+    selectedAddress?.longitude !== undefined;
 
   const taxText = orderQuote
     ? `₹${orderQuote.totalCustomerTaxes}`
     : `₹${Math.round(subtotal * 0.05)}`;
 
-  const payableTotal = orderQuote ? orderQuote.customerTotal : subtotal + 15 + 3;
+  const payableTotal = getGrandTotal();
 
   const handleCheckout = () => {
     onClose();
@@ -192,11 +188,13 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   <span
                     className={
                       hasVerifiedLocation && orderQuote
-                        ? 'font-bold text-gray-900'
-                        : 'italic text-gray-500'
+                        ? 'text-gray-900'
+                        : 'text-gray-400 italic'
                     }
                   >
-                    {deliveryFeeText}
+                    {hasVerifiedLocation && orderQuote?.customerDeliveryFee !== null
+                      ? `₹${orderQuote!.customerDeliveryFee}`
+                      : `₹${getDeliveryFee()}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-600">
