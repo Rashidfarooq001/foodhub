@@ -13,10 +13,22 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const fetchOrders = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const res = await adminFetch('/orders?page=1&limit=200');
+      let query = '/orders?page=1&limit=200';
+      if (statusFilter !== 'ALL') {
+        const filterValue = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS];
+        if (Array.isArray(filterValue)) {
+          query += `&status=${filterValue.join(',')}`;
+        } else if (filterValue && filterValue !== 'ALL') {
+          query += `&status=${filterValue}`;
+        }
+      }
+      
+      const res = await adminFetch(query);
       if (res.ok) {
         const data = await res.json();
         setOrders(Array.isArray(data) ? data : (data.orders ?? []));
@@ -29,8 +41,10 @@ export default function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(refreshTrigger > 0); // silent if it's from socket
+  }, [statusFilter, refreshTrigger]);
 
+  useEffect(() => {
     try {
       const apiBase = getApiBaseUrl();
       const socketUrl = apiBase.replace('/api/v1', '');
@@ -42,12 +56,12 @@ export default function AdminOrdersPage() {
         socket.emit('joinAdmin');
       });
 
-      const handleUpdate = () => {
-        fetchOrders(true);
+      const onRealtimeEvent = () => {
+        setRefreshTrigger((prev) => prev + 1);
       };
 
-      socket.on('order.created', handleUpdate);
-      socket.on('order.status_updated', handleUpdate);
+      socket.on('order.created', onRealtimeEvent);
+      socket.on('order.status_updated', onRealtimeEvent);
 
       return () => {
         socket.disconnect();
@@ -55,7 +69,7 @@ export default function AdminOrdersPage() {
     } catch {
       // ignore
     }
-  }, []);
+  }, []); // Run socket setup ONLY once!
 
   const getStatusBadge = (status: string) => {
     switch (status) {
