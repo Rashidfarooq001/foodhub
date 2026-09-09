@@ -75,7 +75,15 @@ export class OrderLifecycleService {
   private readonly logger = new Logger(OrderLifecycleService.name);
 
   
-  async updateOrderStatus(orderId: string, newStatus: OrderStatus, actorId?: string, additionalData?: { riderId?: string; deliveryJobPayload?: any }) { const actor: AuthenticatedActor = { userId: actorId }; if (additionalData?.riderId) actor.driverId = additionalData.riderId; return this.transition(orderId, newStatus, actor, { deliveryJobPayload: additionalData?.deliveryJobPayload }); }
+  async updateOrderStatus(orderId: string, newStatus: OrderStatus, actorId?: string, additionalData?: { riderId?: string; deliveryJobPayload?: any; cancellationReason?: string }) {
+    const actor: AuthenticatedActor = { userId: actorId };
+    if (additionalData?.riderId) actor.driverId = additionalData.riderId;
+
+    return this.transition(orderId, newStatus, actor, { 
+      deliveryJobPayload: additionalData?.deliveryJobPayload,
+      cancellationReason: additionalData?.cancellationReason
+    });
+  }
 
 
   constructor(
