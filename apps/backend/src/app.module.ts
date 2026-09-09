@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigModule } from './modules/config/config.module';
 import { CommonModule } from './modules/common/common.module';
 import { HealthModule } from './modules/health/health.module';
@@ -47,7 +45,6 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
     AppConfigModule,
     CommonModule,
     HealthModule,
@@ -92,10 +89,6 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
     PrivacyModule,
   ],
   providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
   ],
 })
 export class AppModule {}
