@@ -112,21 +112,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-
-      const isExplicitlyAllowed = allowedOrigins.includes(origin);
-      const isZaykaDomain = /^https:\/\/([a-zA-Z0-9-]+\.)*zaykafood\.online$/.test(origin);
-      const isVercelDomain = /^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(origin);
-      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-
-      if (isExplicitlyAllowed || isZaykaDomain || isVercelDomain || isLocalhost) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
-      }
-    },
+    origin: true, // Automatically reflects the request origin, allowing all domains
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Request-ID', 'Cache-Control', 'Pragma'],
