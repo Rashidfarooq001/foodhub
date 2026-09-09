@@ -110,8 +110,8 @@ export class PricingService {
     if (updated.baseDeliveryFee < 0) {
       throw new BadRequestException('Base delivery fee cannot be negative.');
     }
-    if (updated.baseDistanceKm <= 0) {
-      throw new BadRequestException('Base distance must be greater than 0.');
+    if (updated.baseDistanceKm < 0) {
+      throw new BadRequestException('Base distance cannot be negative.');
     }
     if (updated.extraDistanceRate < 0) {
       throw new BadRequestException('Extra distance rate cannot be negative.');
