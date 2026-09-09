@@ -294,6 +294,16 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         updatedAt: new Date().toISOString(),
       };
 
+      try {
+        await this.prisma.orderTracking.upsert({
+          where: { orderId: data.orderId },
+          update: { currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
+          create: { orderId: data.orderId, currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
+        });
+      } catch (err) {
+        this.logger.error('Failed to upsert order tracking from socket', err);
+      }
+
       this.emitToOrder(data.orderId, ORDER_EVENTS.DRIVER_LOCATION, sanitizedLoc);
     }
   }

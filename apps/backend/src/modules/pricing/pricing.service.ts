@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 
 export interface PricingConfigDto {
   restaurantCommissionPercent: number | null;
-  customerDeliveryPerKm: number;
-  minimumCustomerDeliveryFee: number;
+  baseDeliveryFee: number;
+  baseDistanceKm: number;
+  extraDistanceRate: number;
   platformFee: number;
   smallOrderThreshold: number;
   smallOrderFee: number;
@@ -21,8 +22,9 @@ export interface PricingConfigDto {
 
 export const DEFAULT_PRICING_CONFIG: PricingConfigDto = {
   restaurantCommissionPercent: 13.0,
-  customerDeliveryPerKm: 5.0,
-  minimumCustomerDeliveryFee: 15.0,
+  baseDeliveryFee: 15.0,
+  baseDistanceKm: 3.0,
+  extraDistanceRate: 5.0,
   platformFee: 3.0,
   smallOrderThreshold: 0.0,
   smallOrderFee: 0.0,
@@ -65,8 +67,9 @@ export class PricingService {
               configRecord.restaurantCommissionPercent != null
                 ? Number(configRecord.restaurantCommissionPercent)
                 : null,
-            customerDeliveryPerKm: Number(configRecord.customerDeliveryPerKm),
-            minimumCustomerDeliveryFee: Number(configRecord.minimumCustomerDeliveryFee),
+            baseDeliveryFee: Number(configRecord.baseDeliveryFee),
+            baseDistanceKm: Number(configRecord.baseDistanceKm),
+            extraDistanceRate: Number(configRecord.extraDistanceRate),
             platformFee: Number(configRecord.platformFee),
             smallOrderThreshold: Number(configRecord.smallOrderThreshold),
             smallOrderFee: Number(configRecord.smallOrderFee),
@@ -104,12 +107,23 @@ export class PricingService {
       ...dto,
     };
 
+    if (updated.baseDeliveryFee < 0) {
+      throw new BadRequestException('Base delivery fee cannot be negative.');
+    }
+    if (updated.baseDistanceKm <= 0) {
+      throw new BadRequestException('Base distance must be greater than 0.');
+    }
+    if (updated.extraDistanceRate < 0) {
+      throw new BadRequestException('Extra distance rate cannot be negative.');
+    }
+
     // 1. Save core pricing
     const newRecord = await this.prisma.pricingConfig.create({
       data: {
         restaurantCommissionPercent: updated.restaurantCommissionPercent,
-        customerDeliveryPerKm: updated.customerDeliveryPerKm,
-        minimumCustomerDeliveryFee: updated.minimumCustomerDeliveryFee,
+        baseDeliveryFee: updated.baseDeliveryFee,
+        baseDistanceKm: updated.baseDistanceKm,
+        extraDistanceRate: updated.extraDistanceRate,
         platformFee: updated.platformFee,
         smallOrderThreshold: updated.smallOrderThreshold,
         smallOrderFee: updated.smallOrderFee,

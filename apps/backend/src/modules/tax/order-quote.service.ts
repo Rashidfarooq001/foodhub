@@ -168,12 +168,10 @@ export class OrderQuoteService {
     }
 
     // 2. Authoritative Distance-Based Customer Delivery Fee Rule:
-    // First 3 km: Base delivery fee = ₹15.00
-    // After 3 km: Additional charge = ₹5.00 per additional KM
-    // Formula: if (distance <= 3) deliveryFee = 15; else deliveryFee = 15 + ((distance - 3) * 5);
-    const deliveryFeeBaseKm = 3.0;
-    const deliveryFeeBaseAmount = 15.0; // ₹15 fixed for first 3km
-    const deliveryFeePerExtraKm = 5.0;  // ₹5 per km after 3km
+    // Canonical DB-driven delivery pricing
+    const deliveryFeeBaseKm = config.baseDistanceKm;
+    const deliveryFeeBaseAmount = config.baseDeliveryFee;
+    const deliveryFeePerExtraKm = config.extraDistanceRate;
 
     let customerDeliveryFee: number | null = null;
     if (routeAvailable && distanceKm !== null && distanceKm >= 0) {

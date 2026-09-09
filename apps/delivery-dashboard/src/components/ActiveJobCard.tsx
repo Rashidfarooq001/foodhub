@@ -26,7 +26,7 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
     const socketUrl = API_BASE.replace('/api/v1', '');
     const socket = io(`${socketUrl}/orders`, { transports: ['websocket', 'polling'] });
 
-    socket.on('connect', () => socket.emit('joinRoom', `order_${currentJob.orderId}`));
+    socket.on('connect', () => socket.emit('joinOrder', { orderId: currentJob.orderId }));
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -37,7 +37,7 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
         // Throttle emission to once every 10 seconds
         const now = Date.now();
         if (now - lastEmitTime.current > 10000) {
-          socket.emit('driverLocationUpdate', {
+          socket.emit('updateLocation', {
             orderId: currentJob.orderId,
             lat: latitude,
             lng: longitude,

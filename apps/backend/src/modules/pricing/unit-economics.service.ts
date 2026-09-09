@@ -55,14 +55,16 @@ export class UnitEconomicsService {
 
     // Delivery Fee (Using DB Config)
     let customerDeliveryFee = 0;
-    if (distanceKm <= 3.0) {
-      customerDeliveryFee = config.minimumCustomerDeliveryFee;
-    } else {
-      const extraKm = distanceKm - 3.0;
-      customerDeliveryFee =
-        Math.round(
-          (config.minimumCustomerDeliveryFee + extraKm * config.customerDeliveryPerKm) * 100,
-        ) / 100;
+    if (distanceKm !== null && distanceKm >= 0) {
+      if (distanceKm <= config.baseDistanceKm) {
+        customerDeliveryFee = config.baseDeliveryFee;
+      } else {
+        const extraKm = distanceKm - config.baseDistanceKm;
+        customerDeliveryFee =
+          Math.round(
+            (config.baseDeliveryFee + extraKm * config.extraDistanceRate) * 100,
+          ) / 100;
+      }
     }
 
     // Platform Fee (Using DB Config)

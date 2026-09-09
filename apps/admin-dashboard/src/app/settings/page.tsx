@@ -19,8 +19,9 @@ interface CombinedSettingsForm {
   platformBrandTitle: string;
   restaurantCommissionPercent: number | '';
   foodGstRate: number | '';
-  minimumCustomerDeliveryFee: number | '';
-  customerDeliveryPerKm: number | '';
+  baseDeliveryFee: number | '';
+  baseDistanceKm: number | '';
+  extraDistanceRate: number | '';
   platformFee: number | '';
   riderBasePay: number | '';
   riderPerKmPay: number | '';
@@ -31,8 +32,9 @@ export default function CombinedSettingsPage() {
     platformBrandTitle: 'ZaykaFood',
     restaurantCommissionPercent: 13,
     foodGstRate: 5,
-    minimumCustomerDeliveryFee: 0,
-    customerDeliveryPerKm: 5,
+    baseDeliveryFee: 15,
+    baseDistanceKm: 3,
+    extraDistanceRate: 5,
     platformFee: 3,
     riderBasePay: 25,
     riderPerKmPay: 6,
@@ -66,8 +68,9 @@ export default function CombinedSettingsPage() {
           platformBrandTitle: data.platformBrandTitle || 'ZaykaFood',
           restaurantCommissionPercent: data.restaurantCommissionPercent ?? 13,
           foodGstRate: data.foodGstRate ?? 5,
-          minimumCustomerDeliveryFee: data.minimumCustomerDeliveryFee ?? 0,
-          customerDeliveryPerKm: data.customerDeliveryPerKm ?? 5,
+          baseDeliveryFee: data.baseDeliveryFee ?? 15,
+          baseDistanceKm: data.baseDistanceKm ?? 3,
+          extraDistanceRate: data.extraDistanceRate ?? 5,
           platformFee: data.platformFee ?? 3,
           riderBasePay: data.riderBasePay ?? 25,
           riderPerKmPay: data.riderPerKmPay ?? 6,
@@ -91,8 +94,9 @@ export default function CombinedSettingsPage() {
         platformBrandTitle: form.platformBrandTitle,
         restaurantCommissionPercent: Number(form.restaurantCommissionPercent),
         foodGstRate: Number(form.foodGstRate),
-        minimumCustomerDeliveryFee: Number(form.minimumCustomerDeliveryFee),
-        customerDeliveryPerKm: Number(form.customerDeliveryPerKm),
+        baseDeliveryFee: Number(form.baseDeliveryFee),
+        baseDistanceKm: Number(form.baseDistanceKm),
+        extraDistanceRate: Number(form.extraDistanceRate),
         platformFee: Number(form.platformFee),
         riderBasePay: Number(form.riderBasePay),
         riderPerKmPay: Number(form.riderPerKmPay),
@@ -234,16 +238,15 @@ export default function CombinedSettingsPage() {
               <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Base Delivery Fee (,1)
+                    Base Delivery Fee (₹)
                   </label>
                   <input
                     type="number"
-                    value={form.minimumCustomerDeliveryFee}
+                    value={form.baseDeliveryFee}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        minimumCustomerDeliveryFee:
-                          e.target.value === '' ? '' : Number(e.target.value),
+                        baseDeliveryFee: e.target.value === '' ? '' : Number(e.target.value),
                       })
                     }
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -251,15 +254,31 @@ export default function CombinedSettingsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Extra Delivery Fee (,1/km)
+                    Base Distance (KM)
                   </label>
                   <input
                     type="number"
-                    value={form.customerDeliveryPerKm}
+                    value={form.baseDistanceKm}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        customerDeliveryPerKm: e.target.value === '' ? '' : Number(e.target.value),
+                        baseDistanceKm: e.target.value === '' ? '' : Number(e.target.value),
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Extra Delivery Fee (₹/km)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.extraDistanceRate}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        extraDistanceRate: e.target.value === '' ? '' : Number(e.target.value),
                       })
                     }
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"

@@ -1538,9 +1538,10 @@ model Webhook {
 model PricingConfig {
   id                          String    @id @default(uuid()) @db.Uuid
   restaurantCommissionPercent Decimal?  @map("restaurant_commission_percent") @db.Decimal(5, 2)
-  customerDeliveryPerKm       Decimal   @default(0.00) @map("customer_delivery_per_km") @db.Decimal(10, 2)
-  minimumCustomerDeliveryFee  Decimal   @default(15.00) @map("minimum_customer_delivery_fee") @db.Decimal(10, 2)
+  baseDeliveryFee             Decimal   @default(15.00) @map("base_delivery_fee") @db.Decimal(10, 2)
+  baseDistanceKm              Decimal   @default(3.00) @map("base_distance_km") @db.Decimal(10, 2)
   platformFee                 Decimal   @default(3.00) @map("platform_fee") @db.Decimal(10, 2)
+  extraDistanceRate           Decimal   @default(5.00) @map("extra_distance_rate") @db.Decimal(10, 2)
   smallOrderThreshold         Decimal   @default(0.00) @map("small_order_threshold") @db.Decimal(10, 2)
   smallOrderFee               Decimal   @default(0.00) @map("small_order_fee") @db.Decimal(10, 2)
   riderBasePay                Decimal   @default(25.00) @map("rider_base_pay") @db.Decimal(10, 2)
