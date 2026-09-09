@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Request,
+  Query
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DriversService } from './drivers.service';
@@ -67,8 +68,18 @@ export class DriversController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'List all registered drivers (Admin Only)' })
-  async findAll() {
-    return this.driversService.findAllDrivers();
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.driversService.findAllDrivers(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+      search,
+      status,
+    );
   }
 
   @Get('applications')

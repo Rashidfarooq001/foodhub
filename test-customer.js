@@ -1,0 +1,10 @@
+const { execSync } = require('child_process');
+const fs = require('fs');
+execSync('npx lighthouse http://localhost:3000/ --output json --output-path ./report-customer.json --chrome-flags=\"--headless\"', { stdio: 'ignore' });
+const data = JSON.parse(fs.readFileSync('./report-customer.json', 'utf8'));
+const perf = Math.round(data.categories.performance?.score * 100);
+const lcp = data.audits['largest-contentful-paint']?.displayValue;
+const fcp = data.audits['first-contentful-paint']?.displayValue;
+const tbt = data.audits['total-blocking-time']?.displayValue;
+const cls = data.audits['cumulative-layout-shift']?.displayValue;
+console.log('Perf:', perf, 'LCP:', lcp, 'FCP:', fcp, 'TBT:', tbt, 'CLS:', cls);

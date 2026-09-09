@@ -95,7 +95,7 @@ export default function OrderHistoryPage() {
     });
 
     socket.on('connect', () => {
-      socket.emit('joinCustomer', { userId: user.id });
+      socket.emit('joinUser', { userId: user.id });
     });
 
     const handleUpdate = () => {

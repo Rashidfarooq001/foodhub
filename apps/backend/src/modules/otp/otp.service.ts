@@ -10,6 +10,17 @@ export class OtpService {
   private readonly OTP_EXPIRY_MINS = 10;
   private readonly usedAccessTokens = new Set<string>();
 
+  private trackUsedAccessToken(token: string) {
+    this.usedAccessTokens.add(token);
+    if (this.usedAccessTokens.size > 10000) {
+      // basic memory leak prevention
+      const iterator = this.usedAccessTokens.values();
+      for (let i = 0; i < 1000; i++) {
+        this.usedAccessTokens.delete(iterator.next().value);
+      }
+    }
+  }
+
   constructor(private readonly prisma: PrismaService) {}
 
   async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
@@ -81,16 +92,31 @@ export class OtpService {
       throw new BadRequestException('OTP code has expired. Please request a new code.');
     }
 
+    if (otpRecord.attempts >= 5) {
+      // Mark blocked
+      await this.prisma.otp.update({ where: { id: otpRecord.id }, data: { isUsed: true } });
+      throw new BadRequestException('Too many invalid attempts. This OTP has been blocked. Please request a new one.');
+    }
+
     const isMatch = await bcrypt.compare(rawOtp, otpRecord.otpHash);
+    
     if (!isMatch) {
+      await this.prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { attempts: { increment: 1 } },
+      });
       throw new BadRequestException('Invalid OTP code entered');
     }
 
-    // Immediately mark current OTP record as used (SINGLE-USE ENFORCEMENT)
-    await this.prisma.otp.update({
-      where: { id: otpRecord.id },
+    // Immediately mark current OTP record as used (SINGLE-USE ENFORCEMENT - ATOMIC)
+    const updateRes = await this.prisma.otp.updateMany({
+      where: { id: otpRecord.id, isUsed: false },
       data: { isUsed: true },
     });
+
+    if (updateRes.count === 0) {
+      throw new BadRequestException('OTP was already used concurrently.');
+    }
 
     return true;
   }
@@ -134,7 +160,7 @@ export class OtpService {
             ? devPhone
             : `+${devPhone}`;
 
-      this.usedAccessTokens.add(accessToken);
+      this.trackUsedAccessToken(accessToken);
       return {
         type: 'success',
         message: formattedDevPhone || '919876543210',
@@ -172,7 +198,7 @@ export class OtpService {
       }
 
       // Mark token as used after successful verification
-      this.usedAccessTokens.add(accessToken);
+      this.trackUsedAccessToken(accessToken);
       return msg91Data;
     } catch (error: any) {
       if (error instanceof UnauthorizedException || error instanceof BadRequestException) {

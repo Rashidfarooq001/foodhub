@@ -69,10 +69,22 @@ export class RestaurantsController {
     @Query('admin') admin?: string,
     @Query('lat') lat?: string,
     @Query('lng') lng?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     const userLat = lat ? parseFloat(lat) : undefined;
     const userLng = lng ? parseFloat(lng) : undefined;
-    return this.restaurantsService.findAllRestaurants(admin === 'true', userLat, userLng);
+    return this.restaurantsService.findAllRestaurants(
+      admin === 'true',
+      userLat,
+      userLng,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+      search,
+      status
+    );
   }
 
   @Get(':id')

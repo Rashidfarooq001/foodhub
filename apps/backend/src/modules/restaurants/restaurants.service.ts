@@ -352,10 +352,61 @@ export class RestaurantsService {
     );
   }
 
-  async findAllRestaurants(adminView = false, userLat?: number, userLng?: number) {
+  async findAllRestaurants(
+    adminView = false,
+    userLat?: number,
+    userLng?: number,
+    page = 1,
+    limit = 50,
+    search?: string,
+    statusFilter?: string
+  ) {
     const whereCondition: any = adminView
       ? { deletedAt: null }
       : { status: RestaurantStatus.APPROVED, deletedAt: null };
+
+    if (adminView && statusFilter && statusFilter !== 'ALL') {
+      whereCondition.status = statusFilter;
+    }
+
+    if (search) {
+      whereCondition.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    if (adminView) {
+      const [restaurants, total] = await this.prisma.$transaction([
+        this.prisma.restaurant.findMany({
+          where: whereCondition,
+          include: {
+            documents: true,
+            galleries: true,
+            bankAccount: true,
+            timings: true,
+            settings: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.restaurant.count({ where: whereCondition }),
+      ]);
+
+      const mapped = serializePrisma(
+        restaurants.map((restaurant) => ({
+          ...restaurant,
+          ...getRestaurantAvailability(restaurant.timings || [], restaurant.isOpen),
+          avgRating: restaurant.avgRating ? Number(restaurant.avgRating) : 0,
+          commissionRate: restaurant.commissionRate ? Number(restaurant.commissionRate) : 0,
+        }))
+      );
+      return { restaurants: mapped, total, page, limit, totalPages: Math.ceil(total / limit) };
+    }
 
     const restaurants = await this.prisma.restaurant.findMany({
       where: whereCondition,

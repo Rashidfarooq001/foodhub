@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import { adminFetch } from '../utils/admin-fetch';
+import { adminFetch, getAdminAccessToken } from '../utils/admin-fetch';
 import { getApiBaseUrl } from '@foodhub/config';
 import { io } from 'socket.io-client';
 
@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
     });
 
     socket.on('connect', () => {
-      socket.emit('joinAdmin');
+      socket.emit('joinAdmin', { token: getAdminAccessToken() ?? '' });
       fetchStats();
     });
 

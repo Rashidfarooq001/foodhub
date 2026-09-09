@@ -225,20 +225,49 @@ export class DriversService {
     return driver;
   }
 
-  async findAllDrivers() {
-    return this.prisma.driver.findMany({
-      where: {
-        deletedAt: null,
-      },
-      include: {
-        user: {
-          include: { profile: true },
+  async findAllDrivers(page = 1, limit = 50, search?: string, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: any = { deletedAt: null };
+
+    if (status && status !== 'ALL') {
+      if (status === 'PENDING') {
+        where.isApproved = false;
+        where.status = 'PENDING';
+      } else if (status === 'APPROVED') {
+        where.isApproved = true;
+        where.status = { not: 'SUSPENDED' };
+      } else if (status === 'SUSPENDED') {
+        where.status = 'SUSPENDED';
+      } else {
+        where.status = status;
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { licenseNumber: { contains: search, mode: 'insensitive' } },
+        { user: { phone: { contains: search } } },
+        { user: { profile: { firstName: { contains: search, mode: 'insensitive' } } } },
+        { user: { profile: { lastName: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [drivers, total] = await this.prisma.$transaction([
+      this.prisma.driver.findMany({
+        where,
+        include: {
+          user: { include: { profile: true } },
+          vehicles: true,
+          documents: true,
         },
-        vehicles: true,
-        documents: true,
-      },
-      orderBy: { id: 'desc' },
-    });
+        orderBy: { id: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.driver.count({ where }),
+    ]);
+
+    return { drivers, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findPendingApplications() {

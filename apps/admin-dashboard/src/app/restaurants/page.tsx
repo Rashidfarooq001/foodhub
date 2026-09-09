@@ -17,7 +17,7 @@ import {
   X,
   Phone,
 } from 'lucide-react';
-import { adminFetch } from '../../utils/admin-fetch';
+import { adminFetch, getAdminAccessToken } from '../../utils/admin-fetch';
 import ReviewRestaurantModal from '../../components/modals/ReviewRestaurantModal';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -47,6 +47,9 @@ export default function AdminRestaurantsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
@@ -62,15 +65,13 @@ export default function AdminRestaurantsPage() {
   const fetchRestaurants = async () => {
     setIsLoading(true);
     try {
-      const res = await adminFetch('/restaurants?admin=true');
+      const q = encodeURIComponent(search);
+      const res = await adminFetch(`/restaurants?page=${page}&limit=20&search=${q}&status=${statusFilter}&admin=true`);
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.restaurants)
-            ? data.restaurants
-            : [];
-        setRestaurants(list);
+        setRestaurants(data.restaurants || data.restaurants || data.customers || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total || 0);
       }
     } catch {
       /* offline */
@@ -80,34 +81,11 @@ export default function AdminRestaurantsPage() {
   };
 
   useEffect(() => {
-    fetchRestaurants();
-
-    try {
-      const apiBase = getApiBaseUrl();
-      const socketUrl = apiBase.replace('/api/v1', '');
-      const socket = io(`${socketUrl}/orders`, {
-        transports: ['websocket', 'polling'],
-      });
-
-      socket.on('connect', () => {
-        socket.emit('joinAdmin');
-      });
-
-      socket.on('restaurant.status_changed', (payload: { restaurantId: string; status: any }) => {
-        if (payload?.restaurantId) {
-          setRestaurants((prev) =>
-            prev.map((r) => (r.id === payload.restaurantId ? { ...r, status: payload.status } : r)),
-          );
-        }
-      });
-
-      return () => {
-        socket.disconnect();
-      };
-    } catch {
-      /* noop */
-    }
-  }, []);
+    const delay = setTimeout(() => {
+      fetchRestaurants();
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [page, statusFilter, search]);
 
   const handleExecuteAction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,22 +196,7 @@ export default function AdminRestaurantsPage() {
     }
   };
 
-  const filtered = restaurants.filter((r) => {
-    // If we're on the 'ALL' tab, don't show PENDING_APPROVAL restaurants
-    // as they belong in the Restaurant Approval Queue page.
-    if (statusFilter === 'ALL' && r.status === 'PENDING_APPROVAL') {
-      return false;
-    }
-
-    const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
-    const matchesSearch =
-      !search ||
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.phone.includes(search) ||
-      (r.owner?.profile?.firstName &&
-        r.owner.profile.firstName.toLowerCase().includes(search.toLowerCase()));
-    return matchesStatus && matchesSearch;
-  });
+  const filtered = restaurants;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -267,7 +230,7 @@ export default function AdminRestaurantsPage() {
             type="text"
             placeholder="Search by restaurant name, owner, or phone..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-500 focus:outline-none min-h-[44px]"
           />
         </div>
@@ -277,7 +240,7 @@ export default function AdminRestaurantsPage() {
           {['ALL', 'APPROVED', 'SUSPENDED', 'REJECTED'].map((st) => (
             <button
               key={st}
-              onClick={() => setStatusFilter(st)}
+              onClick={() => { setStatusFilter(st); setPage(1); }}
               className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
                 statusFilter === st
                   ? 'bg-gray-900 text-white'
@@ -565,6 +528,26 @@ export default function AdminRestaurantsPage() {
                 </tbody>
               </table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <button 
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-medium text-gray-500">Page {page} of {totalPages}</span>
+                <button 
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

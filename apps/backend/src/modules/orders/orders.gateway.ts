@@ -127,51 +127,35 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     if (!data?.orderId || !client) {
       return { success: false, message: 'orderId is required' };
     }
-
     const orderId = data.orderId;
     const user = this.extractUserFromSocket(client, data.token);
 
-    // If unauthenticated, allow public tracking only if configured or check database order exists
+    if (!user) {
+      client.emit('error', { message: 'Authentication required to join order channel' });
+      return { success: false, message: 'Unauthorized' };
+    }
+
     try {
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
-        select: {
-          id: true,
-          customerId: true,
-          restaurantId: true,
-          customer: { select: { id: true, userId: true } },
-          restaurant: { select: { id: true, ownerId: true } },
-          deliveryJob: {
-            select: { id: true, driverId: true, driver: { select: { userId: true } } },
-          },
-          assignedRestaurantDriverId: true,
-        },
+        include: { deliveryJob: true },
       });
 
       if (!order) {
-        client.emit('error', { message: `Order ${orderId} not found` });
         return { success: false, message: 'Order not found' };
       }
 
-      // Authorization verification if authenticated user
-      if (user) {
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-        const isCustomer = order.customer?.userId === user.id || order.customerId === user.id;
-        const isRestaurant =
-          order.restaurantId === user.restaurantId || order.restaurant?.ownerId === user.id;
-        const isAssignedDriver =
-          order.deliveryJob?.driver?.userId === user.id ||
-          (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
-          (user.driverId && order.assignedRestaurantDriverId === user.driverId);
+      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+      const isCustomer = user.customerId && order.customerId === user.customerId;
+      const isRestaurant = user.restaurantId && order.restaurantId === user.restaurantId;
+      const isAssignedDriver =
+        (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
+        (user.driverId && order.assignedRestaurantDriverId === user.driverId);
 
-        // If authenticated user is unrelated customer/driver, forbid
-        if (!isAdmin && !isCustomer && !isRestaurant && !isAssignedDriver) {
-          this.logger.warn(
-            `Client ${client.id} (user ${user.id}) unauthorized for order:${orderId}`,
-          );
-          client.emit('error', { message: 'Unauthorized to access order room' });
-          return { success: false, message: 'Unauthorized' };
-        }
+      if (!isAdmin && !isCustomer && !isRestaurant && !isAssignedDriver) {
+        this.logger.warn(`Client ${client.id} (user ${user.id}) unauthorized for order:${orderId}`);
+        client.emit('error', { message: 'Unauthorized to access order room' });
+        return { success: false, message: 'Unauthorized' };
       }
 
       client.join(`order:${orderId}`);
@@ -179,9 +163,8 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       client.emit('joinedOrder', { success: true, orderId });
       return { success: true };
     } catch (err: any) {
-      this.logger.error(`Error joining order room ${orderId}: ${err?.message}`);
-      client.join(`order:${orderId}`);
-      return { success: true };
+      this.logger.error(`Error verifying order room ${orderId}: ${err?.message}`);
+      return { success: false, message: 'Internal Server Error' };
     }
   }
 
@@ -197,16 +180,20 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const restaurantId = data.restaurantId;
     const user = this.extractUserFromSocket(client, data.token);
 
-    if (user) {
-      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-      const isAffiliated =
-        user.restaurantId === restaurantId ||
-        user.role === 'RESTAURANT_OWNER' ||
-        user.role === 'RESTAURANT_STAFF';
-      if (!isAdmin && !isAffiliated) {
-        client.emit('error', { message: 'Unauthorized to join restaurant channel' });
-        return { success: false, message: 'Unauthorized' };
-      }
+    if (!user) {
+      client.emit('error', { message: 'Authentication required' });
+      return { success: false, message: 'Unauthorized' };
+    }
+
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+    const isAffiliated =
+      user.restaurantId === restaurantId ||
+      user.role === 'RESTAURANT_OWNER' ||
+      user.role === 'RESTAURANT_STAFF';
+
+    if (!isAdmin && !isAffiliated) {
+      client.emit('error', { message: 'Unauthorized to join restaurant channel' });
+      return { success: false, message: 'Unauthorized' };
     }
 
     client.join(`restaurant:${restaurantId}`);
@@ -223,7 +210,11 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const user = this.extractUserFromSocket(client, data?.token);
     let driverId = data?.driverId;
 
-    if (!driverId && user) {
+    if (!user) {
+      return { success: false, message: 'Unauthorized' };
+    }
+
+    if (!driverId) {
       try {
         const driverRecord = await this.prisma.driver.findUnique({
           where: { userId: user.id },
@@ -238,13 +229,13 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
     }
 
-    if (driverId) {
-      client.join(`driver:${driverId}`);
-      this.logger.log(`Client ${client.id} joined driver:${driverId}`);
+    if (!driverId || (user.driverId !== driverId && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized to join this driver channel' };
     }
 
-    // Also join global available driver dispatch room
+    client.join(`driver:${driverId}`);
     client.join('drivers:available');
+    this.logger.log(`Client ${client.id} joined driver:${driverId} and drivers:available`);
     client.emit('joinedDriver', { success: true, driverId });
     return { success: true };
   }
@@ -253,12 +244,14 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleJoinAvailableDrivers(
     @ConnectedSocket() client: Socket,
     @MessageBody() data?: { token?: string },
-  ): { success: boolean } {
-    if (client) {
-      client.join('drivers:available');
-      this.logger.log(`Client ${client.id} joined drivers:available`);
-      client.emit('joinedAvailableDrivers', { success: true });
+  ): { success: boolean; message?: string } {
+    const user = this.extractUserFromSocket(client, data?.token);
+    if (!user || (user.role !== 'DRIVER' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized to join available drivers channel' };
     }
+    client.join('drivers:available');
+    this.logger.log(`Client ${client.id} joined drivers:available`);
+    client.emit('joinedAvailableDrivers', { success: true });
     return { success: true };
   }
 
@@ -268,7 +261,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     @MessageBody() data?: { token?: string },
   ): { success: boolean; message?: string } {
     const user = this.extractUserFromSocket(client, data?.token);
-    if (user && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       client.emit('error', { message: 'Unauthorized: Admin role required' });
       return { success: false, message: 'Unauthorized' };
     }
@@ -285,8 +278,34 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   async handleLocationUpdate(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { orderId: string; lat: number; lng: number; token?: string },
-  ): Promise<void> {
-    if (data?.orderId && typeof data?.lat === 'number' && typeof data?.lng === 'number') {
+  ): Promise<{ success: boolean; message?: string } | void> {
+    if (!data?.orderId || typeof data?.lat !== 'number' || typeof data?.lng !== 'number') {
+      return { success: false, message: 'Invalid data' };
+    }
+
+    const user = this.extractUserFromSocket(client, data.token);
+    if (!user) {
+      return { success: false, message: 'Unauthorized' };
+    }
+
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: data.orderId },
+        include: { deliveryJob: true },
+      });
+
+      if (!order) return { success: false, message: 'Order not found' };
+
+      const isAssignedDriver =
+        (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
+        (user.driverId && order.assignedRestaurantDriverId === user.driverId);
+      
+      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+
+      if (!isAssignedDriver && !isAdmin) {
+        return { success: false, message: 'Unauthorized to update location for this order' };
+      }
+
       const sanitizedLoc = {
         orderId: data.orderId,
         lat: Number(data.lat),
@@ -294,17 +313,17 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         updatedAt: new Date().toISOString(),
       };
 
-      try {
-        await this.prisma.orderTracking.upsert({
-          where: { orderId: data.orderId },
-          update: { currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
-          create: { orderId: data.orderId, currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
-        });
-      } catch (err) {
-        this.logger.error('Failed to upsert order tracking from socket', err);
-      }
+      await this.prisma.orderTracking.upsert({
+        where: { orderId: data.orderId },
+        update: { currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
+        create: { orderId: data.orderId, currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
+      });
 
       this.emitToOrder(data.orderId, ORDER_EVENTS.DRIVER_LOCATION, sanitizedLoc);
+      return { success: true };
+    } catch (err) {
+      this.logger.error('Failed to upsert order tracking from socket', err);
+      return { success: false, message: 'Internal error' };
     }
   }
 

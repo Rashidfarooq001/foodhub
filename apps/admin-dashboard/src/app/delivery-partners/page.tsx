@@ -15,7 +15,7 @@ import {
   FileCheck,
   Trash2,
 } from 'lucide-react';
-import { adminFetch } from '../../utils/admin-fetch';
+import { adminFetch, getAdminAccessToken } from '../../utils/admin-fetch';
 import ReviewDriverModal from '../../components/modals/ReviewDriverModal';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -43,6 +43,9 @@ export default function AdminDeliveryPartnersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modal State
   const [activeModal, setActiveModal] = useState<{
@@ -57,10 +60,13 @@ export default function AdminDeliveryPartnersPage() {
   const fetchDrivers = async () => {
     setIsLoading(true);
     try {
-      const res = await adminFetch('/drivers');
+      const q = encodeURIComponent(search);
+      const res = await adminFetch(`/drivers?page=${page}&limit=20&search=${q}&status=${statusFilter}`);
       if (res.ok) {
         const data = await res.json();
-        setDrivers(Array.isArray(data) ? data : []);
+        setDrivers(data.drivers || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total || 0);
       }
     } catch {
       /* offline */
@@ -69,9 +75,16 @@ export default function AdminDeliveryPartnersPage() {
     }
   };
 
+  // Fetch data effect
   useEffect(() => {
-    fetchDrivers();
+    const delay = setTimeout(() => {
+      fetchDrivers();
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [page, statusFilter, search]);
 
+  // Socket effect
+  useEffect(() => {
     try {
       const apiBase = getApiBaseUrl();
       const socketUrl = apiBase.replace('/api/v1', '');
@@ -80,7 +93,7 @@ export default function AdminDeliveryPartnersPage() {
       });
 
       socket.on('connect', () => {
-        socket.emit('joinAdmin');
+        socket.emit('joinAdmin', { token: getAdminAccessToken() ?? '' });
       });
 
       socket.on(
@@ -92,9 +105,8 @@ export default function AdminDeliveryPartnersPage() {
                 d.id === payload.driverId
                   ? {
                       ...d,
-                      status: payload.status || d.status,
-                      isApproved:
-                        payload.isApproved !== undefined ? payload.isApproved : d.isApproved,
+                      status: payload.status ?? d.status,
+                      isApproved: payload.isApproved ?? d.isApproved,
                     }
                   : d,
               ),
@@ -107,7 +119,7 @@ export default function AdminDeliveryPartnersPage() {
         socket.disconnect();
       };
     } catch {
-      /* noop */
+      // ignore
     }
   }, []);
 
@@ -182,35 +194,7 @@ export default function AdminDeliveryPartnersPage() {
     );
   };
 
-  const filtered = drivers.filter((d) => {
-    const isPending = !d.isApproved && d.status === 'PENDING';
-    const isSuspended = d.status === 'SUSPENDED';
-    const isApproved = d.isApproved && d.status !== 'SUSPENDED';
-
-    // If we're on the 'ALL' tab, don't show PENDING drivers
-    if (statusFilter === 'ALL' && isPending) {
-      return false;
-    }
-
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      (statusFilter === 'APPROVED' && isApproved) ||
-      (statusFilter === 'SUSPENDED' && isSuspended);
-
-    const name = `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`
-      .trim()
-      .toLowerCase();
-    const phone = d.user?.phone || '';
-    const vehicle = d.vehicles?.[0]?.vehicleNumber || '';
-
-    const matchesSearch =
-      !search ||
-      name.includes(search.toLowerCase()) ||
-      phone.includes(search) ||
-      vehicle.toLowerCase().includes(search.toLowerCase());
-
-    return matchesStatus && matchesSearch;
-  });
+  const filtered = drivers; // Server-side filtering now
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -244,7 +228,7 @@ export default function AdminDeliveryPartnersPage() {
             type="text"
             placeholder="Search by name, phone, or vehicle..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none"
           />
         </div>
@@ -252,25 +236,17 @@ export default function AdminDeliveryPartnersPage() {
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {['ALL', 'APPROVED', 'SUSPENDED'].map((st) => {
-            let count = 0;
-            if (st === 'ALL')
-              count = drivers.filter((d) => !(!d.isApproved && d.status === 'PENDING')).length;
-            else if (st === 'APPROVED')
-              count = drivers.filter((d) => d.isApproved && d.status !== 'SUSPENDED').length;
-            else if (st === 'SUSPENDED')
-              count = drivers.filter((d) => d.status === 'SUSPENDED').length;
-
             return (
               <button
                 key={st}
-                onClick={() => setStatusFilter(st)}
+                onClick={() => { setStatusFilter(st); setPage(1); }}
                 className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
                   statusFilter === st
                     ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {st} ({count})
+                {st}
               </button>
             );
           })}
@@ -300,7 +276,7 @@ export default function AdminDeliveryPartnersPage() {
                   `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() ||
                   'Courier Driver';
                 const phone = d.user?.phone || '—';
-                const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
+                const vehicle = d.vehicles?.[0]?.vehicleNumber || 'Not Registered';
 
                 return (
                   <div
@@ -407,7 +383,7 @@ export default function AdminDeliveryPartnersPage() {
                       `${d.user?.profile?.firstName || ''} ${d.user?.profile?.lastName || ''}`.trim() ||
                       'Courier Driver';
                     const phone = d.user?.phone || '—';
-                    const vehicle = d.vehicles?.[0]?.vehicleNumber || 'KA-01-HA-9821';
+                    const vehicle = d.vehicles?.[0]?.vehicleNumber || 'Not Registered';
 
                     return (
                       <tr key={d.id} className="hover:bg-gray-50/50">
@@ -490,6 +466,26 @@ export default function AdminDeliveryPartnersPage() {
                 </tbody>
               </table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <button 
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-medium text-gray-500">Page {page} of {totalPages}</span>
+                <button 
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

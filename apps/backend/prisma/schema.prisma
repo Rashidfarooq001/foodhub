@@ -308,6 +308,7 @@ model Otp {
   otpHash   String   @map("otp_hash")
   expiresAt DateTime @map("expires_at")
   isUsed    Boolean  @default(false) @map("is_used")
+  attempts  Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1277,6 +1278,7 @@ model FoodReview {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@unique([orderId, foodItemId])
   @@map("food_reviews")
 }
 
@@ -1337,13 +1339,14 @@ model CouponUsage {
   id         String   @id @default(uuid()) @db.Uuid
   couponId   String   @map("coupon_id") @db.Uuid
   customerId String   @map("customer_id") @db.Uuid
-  orderId    String   @map("order_id") @db.Uuid
+  orderId    String   @unique @map("order_id") @db.Uuid
   usedAt     DateTime @default(now()) @map("used_at")
 
   coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@unique([couponId, customerId])
   @@map("coupon_usages")
 }
 
@@ -1865,3 +1868,5 @@ model LedgerEntry {
 
   @@map("ledger_entries")
 }
+
+

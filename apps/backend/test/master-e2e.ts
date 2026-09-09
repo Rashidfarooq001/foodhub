@@ -15,7 +15,7 @@ async function bootstrap() {
   
   // Manually instantiate due to tsx decorator issues
   const gateway = app.get(OrdersGateway);
-  const lifecycleService = new OrderLifecycleService(prisma, gateway, {} as any);
+  const lifecycleService = new OrderLifecycleService(prisma, gateway, {} as any, {} as any);
 
   let report = `# MASTER E2E TEST REPORT\n\n`;
   const append = (msg: string) => {

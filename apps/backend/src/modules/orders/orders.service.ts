@@ -75,44 +75,26 @@ export class OrdersService implements OnApplicationBootstrap {
 
     for (const order of expiredPendingOrders) {
       try {
-        await this.prisma.$transaction(async (tx) => {
-          const liveOrder = await tx.order.findUnique({
-            where: { id: order.id },
-            select: { status: true }
-          });
-          
-          if (liveOrder?.status === OrderStatus.PENDING) {
-            await tx.order.update({
-              where: { id: order.id },
-              data: { status: OrderStatus.CANCELLED }
-            });
-            
-            await tx.orderTimeline.create({
-              data: {
-                orderId: order.id,
-                status: OrderStatus.CANCELLED,
-                message: 'Order automatically cancelled because the restaurant did not accept within 10 minutes.'
-              }
-            });
-            
-            await tx.orderCancellation.create({
-              data: {
-                orderId: order.id,
-                reason: 'Restaurant acceptance timeout (10 minutes)',
-                cancelledBy: 'SYSTEM'
-              }
-            });
-          }
-        });
+        await this.lifecycle.updateOrderStatus(
+          order.id,
+          OrderStatus.CANCELLED,
+          'SYSTEM', // Special actor
+          { cancellationReason: 'Restaurant acceptance timeout (10 minutes)' }
+        );
         
-        this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CANCELLED, {
-          orderId: order.id,
-          reason: 'Restaurant acceptance timeout (10 minutes)'
+        await this.prisma.orderCancellation.create({
+          data: {
+            orderId: order.id,
+            reason: 'Restaurant acceptance timeout (10 minutes)',
+            cancelledBy: 'SYSTEM'
+          }
         });
         
         this.logger.log(`Order ${order.id} was auto-cancelled due to 10-minute acceptance timeout.`);
       } catch (err: any) {
-        this.logger.error(`Failed to auto-cancel expired order ${order.id} (10-min rule): ${err.message}`);
+        if (err.name !== 'ConflictException') {
+          this.logger.error(`Failed to auto-cancel expired order ${order.id} (10-min rule): ${err.message}`);
+        }
       }
     }
 
@@ -1033,9 +1015,9 @@ export class OrdersService implements OnApplicationBootstrap {
         restaurantName: ord.restaurant?.name || 'Restaurant',
         restaurantBanner: ord.restaurant?.bannerUrl,
         date:
-          ord.createdAt.toLocaleDateString() +
+          ord.createdAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) +
           ' ' +
-          ord.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          ord.createdAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
         createdAt: ord.createdAt,
         deliveredAt: ord.deliveryJob?.deliveredAt || ord.updatedAt,
         totalAmount: Number(ord.totalAmount),

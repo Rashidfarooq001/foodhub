@@ -177,7 +177,7 @@ export default function CheckoutPage() {
       ? orderQuote.customerDeliveryFee
       : null;
 
-  const platformFee = orderQuote?.platformFee ?? 3.0;
+  const platformFee = orderQuote?.platformFee ?? 5.0;
   const subtotal = getSubtotal();
   const smallOrderFee = 0.0;
 
@@ -1018,7 +1018,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Platform charges</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(platformFee ?? 3)}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(platformFee ?? 5)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Taxes</span>

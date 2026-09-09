@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ADMIN_ORDER_FILTERS } from '@foodhub/types';
 import { Search, ShoppingBag, RefreshCw, Eye, Store, User, MapPin } from 'lucide-react';
-import { adminFetch } from '../../utils/admin-fetch';
+import { adminFetch, getAdminAccessToken } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -53,7 +53,7 @@ export default function AdminOrdersPage() {
       });
 
       socket.on('connect', () => {
-        socket.emit('joinAdmin');
+        socket.emit('joinAdmin', { token: getAdminAccessToken() ?? '' });
       });
 
       const onRealtimeEvent = () => {

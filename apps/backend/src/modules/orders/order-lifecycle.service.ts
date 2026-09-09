@@ -1,3 +1,4 @@
+import { PaymentsService } from '../payments/payments.service';
 import {
   Injectable,
   NotFoundException,
@@ -90,6 +91,8 @@ export class OrderLifecycleService {
     private readonly prisma: PrismaService,
     private readonly gateway: OrdersGateway,
     private readonly webPushService: WebPushService,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly paymentsService: PaymentsService,
     
   ) {}
 
@@ -1042,7 +1045,17 @@ export class OrderLifecycleService {
         }
       }
 
-      const updatedOrderRecord = await tx.order.update({
+      // Trigger refund if cancelled and payment was completed
+        if ((targetStatus === OrderStatus.CANCELLED || targetStatus === OrderStatus.REJECTED || targetStatus === OrderStatus.FAILED) && order.paymentStatus === 'COMPLETED') {
+          // Fire refund asynchronously to avoid blocking the transaction
+          setTimeout(() => {
+            this.paymentsService.initiateRefund(order.id, extraData?.cancellationReason || 'Order Cancelled').catch(e => {
+              this.logger.error('Auto-refund failed for order ' + order.id, e);
+            });
+          }, 0);
+        }
+
+        const updatedOrderRecord = await tx.order.update({
         where: { id: order.id },
         data: {
           status: targetStatus,
@@ -1251,7 +1264,7 @@ export class OrderLifecycleService {
         return `Restaurant rejected order. Reason: ${reason || 'Not specified'}.`;
       case OrderStatus.PREPARING:
         return 'Chef started preparing items in kitchen queue.';
-      case OrderStatus.PREPARING:
+      case OrderStatus.READY_FOR_PICKUP:
         return 'Order is packed and ready for delivery partner pickup.';
       case OrderStatus.DRIVER_ASSIGNED:
         return 'FoodHub delivery partner assigned to order.';

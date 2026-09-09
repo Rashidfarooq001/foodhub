@@ -13,7 +13,7 @@ import {
   X,
   Trash2,
 } from 'lucide-react';
-import { adminFetch } from '../../utils/admin-fetch';
+import { adminFetch, getAdminAccessToken } from '../../utils/admin-fetch';
 import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -38,6 +38,9 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal State
@@ -54,10 +57,12 @@ export default function AdminCustomersPage() {
     setIsLoading(true);
     try {
       const q = encodeURIComponent(search);
-      const res = await adminFetch(`/users/customers?limit=50&search=${q}`);
+      const res = await adminFetch(`/users/customers?page=${page}&limit=20&search=${q}&status=${statusFilter}`);
       if (res.ok) {
         const data = await res.json();
-        setCustomers(data.customers || []);
+        setCustomers(data.customers || data.restaurants || data.customers || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total || 0);
       }
     } catch {
       /* offline */
@@ -77,7 +82,7 @@ export default function AdminCustomersPage() {
       });
 
       socket.on('connect', () => {
-        socket.emit('joinAdmin');
+        socket.emit('joinAdmin', { token: getAdminAccessToken() ?? '' });
       });
 
       socket.on('user.status_changed', (payload: { userId: string; isActive: boolean }) => {
@@ -135,11 +140,7 @@ export default function AdminCustomersPage() {
     }
   };
 
-  const filtered = customers.filter((c) => {
-    if (statusFilter === 'ACTIVE') return c.isActive;
-    if (statusFilter === 'SUSPENDED') return !c.isActive;
-    return true;
-  });
+  const filtered = customers;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -172,7 +173,7 @@ export default function AdminCustomersPage() {
             type="text"
             placeholder="Search by customer name, phone, or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-purple-500 focus:outline-none min-h-[44px]"
           />
         </div>
@@ -181,7 +182,7 @@ export default function AdminCustomersPage() {
           {['ALL', 'ACTIVE', 'SUSPENDED'].map((st) => (
             <button
               key={st}
-              onClick={() => setStatusFilter(st)}
+              onClick={() => { setStatusFilter(st); setPage(1); }}
               className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition min-h-[40px] ${
                 statusFilter === st
                   ? 'bg-gray-900 text-white'
@@ -376,6 +377,26 @@ export default function AdminCustomersPage() {
                 </tbody>
               </table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <button 
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-medium text-gray-500">Page {page} of {totalPages}</span>
+                <button 
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

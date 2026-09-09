@@ -45,14 +45,22 @@ export class ReviewsService {
       throw new ConflictException('You have already reviewed the restaurant for this order');
     }
 
-    const review = await this.prisma.restaurantReview.create({
-      data: {
-        restaurantId: order.restaurantId,
-        customerId: customer.id,
-        orderId: dto.orderId,
-        rating: dto.rating,
-      },
-    });
+    let review;
+    try {
+      review = await this.prisma.restaurantReview.create({
+        data: {
+          restaurantId: order.restaurantId,
+          customerId: customer.id,
+          orderId: dto.orderId,
+          rating: dto.rating,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('You have already reviewed the restaurant for this order');
+      }
+      throw error;
+    }
 
     await this.updateRestaurantRating(order.restaurantId);
     return review;
@@ -86,14 +94,29 @@ export class ReviewsService {
       throw new NotFoundException('Food item not found in this order');
     }
 
-    const review = await this.prisma.foodReview.create({
-      data: {
-        foodItemId: dto.foodItemId,
-        orderId: dto.orderId,
-        customerId: customer.id,
-        rating: dto.rating,
-      },
+    const existing = await this.prisma.foodReview.findFirst({
+      where: { orderId: dto.orderId, foodItemId: dto.foodItemId },
     });
+    if (existing) {
+      throw new ConflictException('You have already reviewed this food item for this order');
+    }
+
+    let review;
+    try {
+      review = await this.prisma.foodReview.create({
+        data: {
+          foodItemId: dto.foodItemId,
+          orderId: dto.orderId,
+          customerId: customer.id,
+          rating: dto.rating,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('You have already reviewed this food item for this order');
+      }
+      throw error;
+    }
 
     return review;
   }
@@ -124,14 +147,22 @@ export class ReviewsService {
     if (existing)
       throw new ConflictException('You have already reviewed the driver for this order');
 
-    const review = await this.prisma.driverReview.create({
-      data: {
-        driverId: driverId,
-        customerId: customer.id,
-        orderId: dto.orderId,
-        rating: dto.rating,
-      },
-    });
+    let review;
+    try {
+      review = await this.prisma.driverReview.create({
+        data: {
+          driverId: driverId,
+          customerId: customer.id,
+          orderId: dto.orderId,
+          rating: dto.rating,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('You have already reviewed the driver for this order');
+      }
+      throw error;
+    }
 
     // Update driver avgRating
     const driverReviews = await this.prisma.driverReview.findMany({
@@ -197,10 +228,11 @@ export class ReviewsService {
       id: r.id,
       restaurantName: r.restaurant?.name || 'Restaurant',
       rating: r.rating,
-      date: new Date(r.createdAt).toLocaleDateString('en-GB', {
+      date: new Date(r.createdAt).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
+        timeZone: 'Asia/Kolkata',
       }),
     }));
   }

@@ -71,7 +71,7 @@ export default function CombinedSettingsPage() {
           baseDeliveryFee: data.baseDeliveryFee ?? 15,
           baseDistanceKm: data.baseDistanceKm ?? 3,
           extraDistanceRate: data.extraDistanceRate ?? 5,
-          platformFee: data.platformFee ?? 3,
+          platformFee: data.platformFee ?? 5,
           riderBasePay: data.riderBasePay ?? 25,
           riderPerKmPay: data.riderPerKmPay ?? 6,
         });
