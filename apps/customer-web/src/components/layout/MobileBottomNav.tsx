@@ -5,13 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ClipboardList, ShoppingBag, User, Search } from 'lucide-react';
 import { useCartStore } from '../../stores/use-cart-store';
+import { useAuthStore } from '../../stores/use-auth-store';
 import { CartDrawer } from '../cart/CartDrawer';
 
 export const MobileBottomNav: React.FC = () => {
   const pathname = usePathname();
   const { getItemCount } = useCartStore();
+  const { user, isAuthenticated } = useAuthStore();
   const cartCount = getItemCount();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [profileImgError, setProfileImgError] = useState(false);
+
+  React.useEffect(() => {
+    setProfileImgError(false);
+  }, [user?.avatarUrl]);
 
   // Hide on partner registration routes, checkout, and auth pages
   if (
@@ -77,7 +84,18 @@ export const MobileBottomNav: React.FC = () => {
                   isActive ? 'text-rose-600 scale-105' : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                {item.label === 'Profile' && isAuthenticated && user?.avatarUrl && !profileImgError ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Profile"
+                    className={`h-6 w-6 rounded-full object-cover shadow-sm ${
+                      isActive ? 'ring-2 ring-rose-600 ring-offset-1' : 'border border-gray-200'
+                    }`}
+                    onError={() => setProfileImgError(true)}
+                  />
+                ) : (
+                  <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                )}
                 <span
                   className={`text-[11px] tracking-tight mt-0.5 ${isActive ? 'font-black' : 'font-bold'}`}
                 >
