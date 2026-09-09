@@ -58,10 +58,14 @@ export class OrdersService implements OnApplicationBootstrap {
   }
 
   private async handleOrderTimeouts() {
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const now = Date.now();
+    const tenMinutesAgo = new Date(now - 10 * 60 * 1000);
+    const fiveHoursAgo = new Date(now - 5 * 60 * 60 * 1000);
     
-    // Find all PENDING orders older than 10 minutes
-    const expiredOrders = await this.prisma.order.findMany({
+    // -----------------------------------------------------
+    // RULE A: 10-MINUTE RESTAURANT ACCEPTANCE TIMEOUT
+    // -----------------------------------------------------
+    const expiredPendingOrders = await this.prisma.order.findMany({
       where: {
         status: OrderStatus.PENDING,
         createdAt: { lt: tenMinutesAgo }
@@ -69,10 +73,9 @@ export class OrdersService implements OnApplicationBootstrap {
       select: { id: true, createdAt: true }
     });
 
-    for (const order of expiredOrders) {
+    for (const order of expiredPendingOrders) {
       try {
         await this.prisma.$transaction(async (tx) => {
-          // Re-verify status with a lock/findUnique inside the transaction
           const liveOrder = await tx.order.findUnique({
             where: { id: order.id },
             select: { status: true }
@@ -102,7 +105,6 @@ export class OrdersService implements OnApplicationBootstrap {
           }
         });
         
-        // Notify realtime system
         this.gateway.emitToOrder(order.id, ORDER_EVENTS.ORDER_CANCELLED, {
           orderId: order.id,
           reason: 'Restaurant acceptance timeout (10 minutes)'
@@ -110,7 +112,54 @@ export class OrdersService implements OnApplicationBootstrap {
         
         this.logger.log(`Order ${order.id} was auto-cancelled due to 10-minute acceptance timeout.`);
       } catch (err: any) {
-        this.logger.error(`Failed to auto-cancel expired order ${order.id}: ${err.message}`);
+        this.logger.error(`Failed to auto-cancel expired order ${order.id} (10-min rule): ${err.message}`);
+      }
+    }
+
+    // -----------------------------------------------------
+    // RULE B: 5-HOUR MAXIMUM ORDER LIFECYCLE TIMEOUT
+    // -----------------------------------------------------
+    const overdueOrders = await this.prisma.order.findMany({
+      where: {
+        status: {
+          notIn: [
+            OrderStatus.DELIVERED,
+            OrderStatus.CANCELLED,
+            OrderStatus.REJECTED,
+            OrderStatus.FAILED,
+            OrderStatus.REFUNDED
+          ]
+        },
+        createdAt: { lt: fiveHoursAgo }
+      },
+      select: { id: true, createdAt: true }
+    });
+
+    for (const order of overdueOrders) {
+      try {
+        // Use the lifecycle service to safely cancel, handle DeliveryJob rollback, timelines, and events
+        await this.lifecycle.updateOrderStatus(
+          order.id,
+          OrderStatus.CANCELLED,
+          'SYSTEM', // Special actor
+          { cancellationReason: 'Maximum order lifecycle timeout exceeded (5 hours).' }
+        );
+
+        // Ensure cancellation record is explicitly tracked
+        await this.prisma.orderCancellation.create({
+          data: {
+            orderId: order.id,
+            reason: 'Maximum order lifecycle timeout exceeded (5 hours)',
+            cancelledBy: 'SYSTEM'
+          }
+        });
+
+        this.logger.log(`Order ${order.id} was auto-cancelled due to 5-hour maximum lifecycle timeout.`);
+      } catch (err: any) {
+        // Ignore ConflictException if the race condition was already won by a valid terminal transition
+        if (err.name !== 'ConflictException') {
+          this.logger.error(`Failed to auto-cancel overdue order ${order.id} (5-hour rule): ${err.message}`);
+        }
       }
     }
   }

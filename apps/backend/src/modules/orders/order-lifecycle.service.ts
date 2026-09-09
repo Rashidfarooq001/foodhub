@@ -604,6 +604,13 @@ export class OrderLifecycleService {
       };
     }
 
+    // --- 5-HOUR TIMEOUT RACE CONDITION GUARD ---
+    const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+    const isPast5Hours = (Date.now() - new Date(order.createdAt).getTime()) > FIVE_HOURS_MS;
+    if (isPast5Hours) {
+      throw new BadRequestException('Order has exceeded the maximum 5-hour lifecycle limit and is invalid for delivery.');
+    }
+
     const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
     const isAssignedDriver =
       actor.driverId &&
@@ -804,6 +811,13 @@ export class OrderLifecycleService {
     }
 
     const currentStatus = order.status;
+
+    // --- 5-HOUR TIMEOUT RACE CONDITION GUARD ---
+    const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+    const isPast5Hours = (Date.now() - new Date(order.createdAt).getTime()) > FIVE_HOURS_MS;
+    if (isPast5Hours && targetStatus !== OrderStatus.CANCELLED && targetStatus !== OrderStatus.REJECTED && targetStatus !== OrderStatus.FAILED) {
+      throw new BadRequestException('Order has exceeded the maximum 5-hour lifecycle limit and is overdue for cancellation.');
+    }
 
     this.validateActorPermission(order, currentStatus, targetStatus, actor);
 
