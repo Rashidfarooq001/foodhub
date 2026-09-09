@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   ShoppingBag,
@@ -132,6 +132,8 @@ export default function HotelOrdersPage() {
     }
   };
 
+  const hasConnectedOnce = useRef(false);
+
   const fetchOrders = async () => {
     try {
       const res = await fetch(`${API_BASE}/orders`, {
@@ -228,7 +230,10 @@ export default function HotelOrdersPage() {
       if (restaurantId) {
         socket.emit('joinRestaurant', { restaurantId });
       }
-      fetchOrders();
+      if (hasConnectedOnce.current) {
+        fetchOrders();
+      }
+      hasConnectedOnce.current = true;
     });
 
     const handleRealtimeUpdate = () => {
