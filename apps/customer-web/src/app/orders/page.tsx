@@ -22,6 +22,7 @@ import { useAuthStore } from '../../stores/use-auth-store';
 import { useCartStore } from '../../stores/use-cart-store';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useRouter } from 'next/navigation';
+import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
 
@@ -83,6 +84,29 @@ export default function OrderHistoryPage() {
 
   useEffect(() => {
     fetchOrders();
+
+    const { user } = useAuthStore.getState();
+    if (!user?.id) return;
+
+    const socketUrl = API_BASE.replace('/api/v1', '');
+    const socket = io(`${socketUrl}/orders`, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      socket.emit('joinCustomer', { userId: user.id });
+    });
+
+    const handleUpdate = () => {
+      fetchOrders(true);
+    };
+
+    socket.on('order.status_updated', handleUpdate);
+    socket.on('order.created', handleUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
   }, [activeTab]);
 
   const handleReorder = async (orderId: string) => {
