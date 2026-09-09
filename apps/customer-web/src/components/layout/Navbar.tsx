@@ -28,12 +28,8 @@ export const Navbar: React.FC = () => {
     router.push('/login');
   };
 
-  const isHome = pathname === '/';
-
   return (
-    <header
-      className={`sticky top-0 z-30 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md ${isHome ? 'hidden md:block' : ''}`}
-    >
+    <header className="sticky top-0 z-30 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 sm:px-6 lg:px-8 md:h-[72px] lg:h-[76px]">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">

@@ -6,13 +6,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
-  Bell,
   Search,
   Mic,
   SlidersHorizontal,
   Clock,
   RefreshCw,
-  Menu,
   ArrowRight,
 } from 'lucide-react';
 import { CategoryCarousel } from '../components/home/CategoryCarousel';
@@ -55,7 +53,6 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>(initialFilterState);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Real Data State with Instant Cache
   const [restaurants, setRestaurants] = useState<RestaurantData[]>(initialRestaurants);
@@ -444,15 +441,9 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
   return (
     <div className="bg-white">
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 pt-4 pb-10 md:pt-8">
-        {/* ─── ROW 1: LOGO (LEFT) & NAME (CENTER/RIGHT) (Mobile Only) ───── */}
+        {/* 🌟🌟🌟 ROW 1: GREETING (Mobile Only) 🌟🌟🌟 */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100/80 pb-2 md:hidden">
-          {/* Logo on Left */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/zaykafood-logo.png" alt="Zayka Food" width={150} height={44} className="h-10 sm:h-11 w-auto object-contain" priority />
-          </Link>
-
-          {/* Name / Brand / Greeting in Center-Right */}
-          <div className="text-right shrink-0">
+          <div className="text-left shrink-0">
             <h1 className="text-base sm:text-lg font-black tracking-tight text-gray-900">
               {customerGreeting}
             </h1>
@@ -462,7 +453,7 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
           </div>
         </div>
 
-        {/* ─── ROW 2: LOCATION (LEFT) + VEG TOGGLE + NOTIFICATION + PROFILE (RIGHT) ─── */}
+        {/* 🌟🌟🌟 ROW 2: LOCATION (LEFT) + VEG TOGGLE (RIGHT) 🌟🌟🌟 */}
         <div className="flex items-center justify-between gap-3 pt-2 pb-1 mt-0 md:mt-0">
           {/* Current Location on Left */}
           <button
@@ -485,7 +476,7 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
             </div>
           </button>
 
-          {/* Right Action Cluster: Veg Toggle + Notification + Profile Photo */}
+          {/* Right Action Cluster: Veg Toggle */}
           <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
             {/* Veg Toggle Button */}
             <button
@@ -511,75 +502,6 @@ export default function CustomerHomePage({ initialRestaurants = [], initialCateg
                 {isVegOnly ? 'Pure Veg' : 'Veg Only'}
               </span>
             </button>
-
-            {/* Notification & Hamburger Menu (Mobile Only) */}
-            <div className="flex items-center gap-2.5 md:hidden">
-              <Link
-                href="/notifications"
-                className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition relative border border-gray-100 shrink-0"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" />
-              </Link>
-
-              {/* Hamburger Menu Toggle */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 text-gray-700 hover:bg-gray-100 transition shrink-0"
-                  aria-label="Menu"
-                >
-                  <Menu className="h-4 w-4" />
-                </button>
-
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
-                    <Link
-                      href="/coupons"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      Coupons
-                    </Link>
-                    <Link
-                      href="/addresses"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      Your Saved Addresses
-                    </Link>
-                    <Link
-                      href="/privacy-policy"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      Privacy Policy
-                    </Link>
-                    <div className="my-1 border-t border-gray-100" />
-                    {isAuthenticated ? (
-                      <button
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          logout();
-                          router.push('/login');
-                        }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
-                      >
-                        Logout
-                      </button>
-                    ) : (
-                      <Link
-                        href="/login"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        Login / Sign In
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
