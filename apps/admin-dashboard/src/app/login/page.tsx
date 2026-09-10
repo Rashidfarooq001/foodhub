@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Lock, ArrowRight, AlertCircle, Phone, User } from 'lucide-react';
@@ -170,7 +170,7 @@ export default function AdminLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   />
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function AdminLoginPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   className="mt-2 block w-full text-center tracking-[1em] font-mono text-2xl bg-slate-950 border border-slate-800 rounded-lg py-4 text-white focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="••••"
+                  placeholder="â€¢â€¢â€¢â€¢"
                 />
               </div>
 
@@ -238,3 +238,4 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+
