@@ -43,12 +43,11 @@ describe('PaymentsService', () => {
         orderId: 'order-1',
         status: 'PENDING',
       });
-      const result = await service.verifyPayment({
+      await expect(service.verifyPayment({
         razorpayOrderId: 'order_fake',
         razorpayPaymentId: 'pay_fake',
         razorpaySignature: 'tampered_sig_that_should_fail',
-      });
-      expect(result).toHaveProperty('message');
+      })).rejects.toThrow(BadRequestException);
     });
 
     it('should accept a valid signature', async () => {
@@ -75,3 +74,4 @@ describe('PaymentsService', () => {
     });
   });
 });
+

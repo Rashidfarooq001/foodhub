@@ -1,0 +1,121 @@
+# ZaykaFood Multi-Instance Staging Environment
+# -----------------------------------------------
+# Usage: docker compose -f docker-compose.staging.yml up --scale api=4 --scale socket=4
+#
+# IMPORTANT: Do NOT commit actual secrets to Git.
+# Copy this file to docker-compose.staging.yml.local and fill in real values.
+# Or use environment files (--env-file staging.env)
+
+version: '3.9'
+
+x-backend-common: &backend-common
+  image: zaykafood-backend:staging
+  build:
+    context: .
+    dockerfile: apps/backend/Dockerfile
+  restart: unless-stopped
+  env_file:
+    - staging.env
+  depends_on:
+    redis:
+      condition: service_healthy
+  networks:
+    - zayka-net
+
+services:
+  # ─────────────────────────────────────────────
+  # Local Redis (replace with managed Redis in real staging)
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - zayka-net
+    volumes:
+      - redis-data:/data
+
+  # ─────────────────────────────────────────────
+  # API Tier (HTTP REST only — Socket.IO disabled)
+  # Scale with: --scale api=N
+  # ─────────────────────────────────────────────
+  api:
+    <<: *backend-common
+    environment:
+      NODE_ROLE: api
+      PORT: 4000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/v1/health', r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    labels:
+      - "zayka.role=api"
+
+  # ─────────────────────────────────────────────
+  # Socket.IO Tier (WebSocket only)
+  # Scale with: --scale socket=N
+  # ─────────────────────────────────────────────
+  socket:
+    <<: *backend-common
+    environment:
+      NODE_ROLE: socket
+      PORT: 4001
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4001/api/v1/health', r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    labels:
+      - "zayka.role=socket"
+
+  # ─────────────────────────────────────────────
+  # Worker Tier (order timeout scheduler)
+  # Run exactly 1 replica — Redis NX lock prevents duplicates
+  # ─────────────────────────────────────────────
+  worker:
+    <<: *backend-common
+    environment:
+      NODE_ROLE: worker
+      PORT: 4002
+    deploy:
+      replicas: 1
+    labels:
+      - "zayka.role=worker"
+
+  # ─────────────────────────────────────────────
+  # Nginx Load Balancer
+  # ─────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.staging.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - socket
+    networks:
+      - zayka-net
+
+networks:
+  zayka-net:
+    driver: bridge
+
+volumes:
+  redis-data:

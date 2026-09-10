@@ -4,6 +4,7 @@ import { CommonModule } from './modules/common/common.module';
 import { HealthModule } from './modules/health/health.module';
 import { AppLoggerModule } from './modules/logger/logger.module';
 import { DatabaseModule } from './modules/database/database.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
@@ -49,6 +50,7 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
     CommonModule,
     HealthModule,
     AppLoggerModule,
+    RedisModule,
     DatabaseModule,
     CacheModule,
     QueueModule,

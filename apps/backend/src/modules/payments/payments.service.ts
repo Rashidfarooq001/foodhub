@@ -147,9 +147,7 @@ export class PaymentsService {
       .update(`${dto.razorpayOrderId}|${dto.razorpayPaymentId}`)
       .digest('hex');
 
-    const isDev = process.env.NODE_ENV !== 'production' || process.env.GUEST_CHECKOUT === 'true';
-
-    if (generatedSignature !== dto.razorpaySignature && !isDev) {
+    if (generatedSignature !== dto.razorpaySignature) {
       throw new BadRequestException('Payment signature verification failed');
     }
 
@@ -250,7 +248,9 @@ export class PaymentsService {
 
     const generatedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
-    if (generatedSignature !== signature) {
+    const expected = Buffer.from(generatedSignature);
+    const actual = Buffer.from(signature);
+    if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
       throw new BadRequestException('Invalid webhook signature');
     }
 
@@ -650,4 +650,5 @@ export class PaymentsService {
     this.logger.log(`Refund processed: ${refund?.id}`);
   }
 }
+
 

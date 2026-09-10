@@ -105,16 +105,16 @@ export class OrdersController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get customer order history with status filter' })
-  async getOrderHistory(@Request() req: any, @Query('status') status?: string) {
+  async getOrderHistory(@Request() req: any, @Query('status') status?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
     const userId = req.user.id || req.user.sub;
-    return this.ordersService.getCustomerOrderHistory(userId, status);
+    return this.ordersService.getCustomerOrderHistory(userId, status, +page, +limit);
   }
 
   @Get('my')
   @ApiOperation({ summary: 'Get customer order history' })
-  async getMyOrdersAlias(@Request() req: any, @Query('status') status?: string) {
+  async getMyOrdersAlias(@Request() req: any, @Query('status') status?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
     const userId = req.user.id || req.user.sub;
-    return this.ordersService.getCustomerOrderHistory(userId, status);
+    return this.ordersService.getCustomerOrderHistory(userId, status, +page, +limit);
   }
 
   @Get('my-orders')
@@ -127,7 +127,7 @@ export class OrdersController {
   ) {
     const userId = req.user.id || req.user.sub;
     if (status) {
-      return this.ordersService.getCustomerOrderHistory(userId, status);
+      return this.ordersService.getCustomerOrderHistory(userId, status, +page, +limit);
     }
     return this.ordersService.getCustomerOrders(userId, +page, +limit);
   }
@@ -198,18 +198,38 @@ export class OrdersController {
       );
     }
 
-    const drivers = await this.prisma.driver.findMany({
-      include: {
-        user: { include: { profile: true } },
-        vehicles: true,
-        deliveryJobs: true,
-        reviews: true,
-      },
-    });
-
     const restLat = Number(order.restaurant.latitude || 0);
-    const restLng = Number(order.restaurant.longitude || 74.5221);
+      const restLng = Number(order.restaurant.longitude || 74.5221);
 
+      const latDiff = 5.0 / 111.0;
+      const lngDiff = 5.0 / (111.0 * Math.cos(restLat * Math.PI / 180));
+      
+      const drivers = await this.prisma.driver.findMany({
+        where: {
+          isApproved: true,
+          status: 'ONLINE',
+          user: { isActive: true },
+          currentLat: { gte: restLat - latDiff, lte: restLat + latDiff },
+          currentLng: { gte: restLng - lngDiff, lte: restLng + lngDiff },
+        },
+        include: {
+          user: { include: { profile: true } },
+          vehicles: true,
+          deliveryJobs: {
+            where: {
+              status: {
+                in: ['ASSIGNED', 'ARRIVED', 'PICKED_UP', 'DELIVERED']
+              }
+            },
+            take: 100,
+            orderBy: { createdAt: 'desc' }
+          },
+          reviews: { take: 10, orderBy: { createdAt: 'desc' } },
+        },
+        take: 200,
+      });
+
+    
     const now = new Date();
 
     const getHaversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {

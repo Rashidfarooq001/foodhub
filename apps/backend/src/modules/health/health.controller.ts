@@ -24,6 +24,7 @@ export class HealthController {
         rssMb: Math.round((memory.rss / 1024 / 1024) * 100) / 100,
         heapUsedMb: Math.round((memory.heapUsed / 1024 / 1024) * 100) / 100,
       },
+      cpu: process.cpuUsage(),
     };
   }
 

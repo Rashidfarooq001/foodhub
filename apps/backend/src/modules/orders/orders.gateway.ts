@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { OrderEventName, ORDER_EVENTS } from './orders.events';
 
 interface AuthenticatedSocketUser {
@@ -23,7 +24,16 @@ interface AuthenticatedSocketUser {
   driverId?: string;
 }
 
-@WebSocketGateway({ cors: { origin: '*' }, namespace: '/orders' })
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
+  'https://zaykafood.online',
+  ...(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+];
+
+@WebSocketGateway({ cors: { origin: allowedOrigins, credentials: true }, namespace: '/orders' })
 export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
@@ -34,6 +44,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
   ) {}
 
   afterInit(): void {
@@ -82,6 +93,12 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         this.configService.get<string>('JWT_SECRET') ||
         'super-secret-jwt-key-foodhub-2026-enterprise';
       const decoded: any = this.jwtService.verify(token, { secret });
+      
+      // Phase 10: Prevent Pre-Auth Tokens from connecting to Socket.IO
+      if (decoded.purpose === 'ADMIN_OTP_VERIFICATION') {
+        this.logger.warn(`Rejected socket connection for Pre-Auth Token (Admin: ${decoded.sub})`);
+        return null;
+      }
       const user: AuthenticatedSocketUser = {
         id: decoded.sub || decoded.id,
         phone: decoded.phone,
@@ -101,14 +118,15 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     @MessageBody() data: { userId?: string; token?: string },
   ): Promise<{ success: boolean; message?: string }> {
     const user = this.extractUserFromSocket(client, data?.token);
-    const targetUserId = data?.userId || user?.id;
 
-    if (!targetUserId) {
+    if (!user) {
       client.emit('error', { message: 'Authentication required to join user channel' });
       return { success: false, message: 'Authentication required' };
     }
 
-    if (user && user.id !== targetUserId && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+    const targetUserId = data?.userId || user.id;
+
+    if (user.id !== targetUserId && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       client.emit('error', { message: 'Unauthorized to join this user channel' });
       return { success: false, message: 'Unauthorized' };
     }
@@ -186,13 +204,26 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-    const isAffiliated =
-      user.restaurantId === restaurantId ||
-      user.role === 'RESTAURANT_OWNER' ||
-      user.role === 'RESTAURANT_STAFF';
+    let isAffiliated = false;
+
+    if (user.restaurantId === restaurantId) {
+      isAffiliated = true;
+    } else if (user.role === 'RESTAURANT_OWNER') {
+      try {
+        const rest = await this.prisma.restaurant.findUnique({
+          where: { id: restaurantId },
+          select: { ownerId: true },
+        });
+        if (rest && rest.ownerId === user.id) {
+          isAffiliated = true;
+        }
+      } catch (err) {
+        /* fallback */
+      }
+    }
 
     if (!isAdmin && !isAffiliated) {
-      client.emit('error', { message: 'Unauthorized to join restaurant channel' });
+      client.emit('error', { message: 'Unauthorized to join this restaurant channel' });
       return { success: false, message: 'Unauthorized' };
     }
 
@@ -289,18 +320,33 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     try {
-      const order = await this.prisma.order.findUnique({
-        where: { id: data.orderId },
-        include: { deliveryJob: true },
-      });
-
-      if (!order) return { success: false, message: 'Order not found' };
-
-      const isAssignedDriver =
-        (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
-        (user.driverId && order.assignedRestaurantDriverId === user.driverId);
-      
       const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+      let isAssignedDriver = false;
+
+      if (!isAdmin) {
+        // Cache assignment lookup in Redis for 60 seconds to avoid DB query on every tick
+        const authKey = `driver_auth_${data.orderId}_${user.driverId}`;
+        const cachedAuth = await this.redisService.getClient().get(authKey);
+        
+        if (cachedAuth === 'true') {
+          isAssignedDriver = true;
+        } else {
+          const order = await this.prisma.order.findUnique({
+            where: { id: data.orderId },
+            select: { assignedRestaurantDriverId: true, deliveryJob: { select: { driverId: true } } },
+          });
+
+          if (!order) return { success: false, message: 'Order not found' };
+
+          isAssignedDriver =
+            (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
+            (user.driverId && order.assignedRestaurantDriverId === user.driverId);
+            
+          if (isAssignedDriver) {
+            await this.redisService.getClient().setex(authKey, 60, 'true');
+          }
+        }
+      }
 
       if (!isAssignedDriver && !isAdmin) {
         return { success: false, message: 'Unauthorized to update location for this order' };
@@ -313,16 +359,17 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         updatedAt: new Date().toISOString(),
       };
 
-      await this.prisma.orderTracking.upsert({
-        where: { orderId: data.orderId },
-        update: { currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
-        create: { orderId: data.orderId, currentLat: sanitizedLoc.lat, currentLng: sanitizedLoc.lng },
-      });
+      // Write location to Redis directly instead of PostgreSQL
+      await this.redisService.getClient().setex(`driver_loc_${data.orderId}`, 3600, JSON.stringify({
+        lat: sanitizedLoc.lat,
+        lng: sanitizedLoc.lng,
+        updatedAt: sanitizedLoc.updatedAt
+      }));
 
       this.emitToOrder(data.orderId, ORDER_EVENTS.DRIVER_LOCATION, sanitizedLoc);
       return { success: true };
     } catch (err) {
-      this.logger.error('Failed to upsert order tracking from socket', err);
+      this.logger.error('Failed to update order tracking from socket', err);
       return { success: false, message: 'Internal error' };
     }
   }

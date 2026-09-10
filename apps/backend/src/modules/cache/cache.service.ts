@@ -1,31 +1,37 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
+import { RedisService } from '../redis/redis.service';
 
-/**
- * Simple in-process cache service.
- * In production this should be backed by Redis via ioredis or @nestjs/cache-manager.
- */
 @Injectable()
 export class CacheService {
-  private readonly store = new Map<string, { value: unknown; expiresAt: number }>();
+  private readonly logger = new Logger(CacheService.name);
+
+  constructor(private readonly redisService: RedisService) {}
 
   async get<T>(key: string): Promise<T | null> {
-    const entry = this.store.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.store.delete(key);
+    try {
+      const data = await this.redisService.getClient().get(key);
+      if (!data) return null;
+      return JSON.parse(data) as T;
+    } catch (error) {
+      this.logger.error(`Cache get error for key ${key}: ${error.message}`);
       return null;
     }
-    return entry.value as T;
   }
 
   async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
-    this.store.set(key, {
-      value,
-      expiresAt: Date.now() + ttlSeconds * 1000,
-    });
+    try {
+      const serialized = JSON.stringify(value);
+      await this.redisService.getClient().setex(key, ttlSeconds, serialized);
+    } catch (error) {
+      this.logger.error(`Cache set error for key ${key}: ${error.message}`);
+    }
   }
 
   async del(key: string): Promise<void> {
-    this.store.delete(key);
+    try {
+      await this.redisService.getClient().del(key);
+    } catch (error) {
+      this.logger.error(`Cache del error for key ${key}: ${error.message}`);
+    }
   }
 }

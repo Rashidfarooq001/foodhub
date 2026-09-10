@@ -42,3 +42,8 @@ scratch/
 
 .vercel
 .env*
+
+# Staging secrets
+staging.env
+*.env.local
+.env.staging

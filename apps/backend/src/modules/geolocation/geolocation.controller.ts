@@ -2,6 +2,8 @@ import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { GeolocationService } from './geolocation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -142,7 +144,8 @@ export class GeolocationController {
 
   @Get('nearby-drivers')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Find available drivers near a location (admin/internal)' })
   @ApiQuery({ name: 'lat' })
   @ApiQuery({ name: 'lng' })

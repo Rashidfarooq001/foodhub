@@ -1,5 +1,6 @@
 import { OnApplicationBootstrap } from '@nestjs/common';
 import { GeolocationService } from '../geolocation/geolocation.service';
+import { RedisService } from '../redis/redis.service';
 import {
   Injectable,
   NotFoundException,
@@ -45,15 +46,21 @@ export class OrdersService implements OnApplicationBootstrap {
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
     private readonly webPushService: WebPushService,
+    private readonly redisService: RedisService,
     private readonly couponsService: CouponsService,
   ) {}
 
   onApplicationBootstrap() {
     // Run order timeout check every 1 minute
-    setInterval(() => {
-      this.handleOrderTimeouts().catch(err => {
-        this.logger.error('Error handling order timeouts', err);
-      });
+    setInterval(async () => {
+      try {
+        const lockAcquired = await this.redisService.getClient().set('lock:order_timeouts', '1', 'EX', 55, 'NX');
+        if (lockAcquired) {
+          await this.handleOrderTimeouts();
+        }
+      } catch (err) {
+        this.logger.error('Error in order timeout scheduler', err);
+      }
     }, 60 * 1000);
   }
 
@@ -788,7 +795,8 @@ export class OrdersService implements OnApplicationBootstrap {
     return { message: 'Self delivery rider assigned successfully', rider };
   }
 
-  async getSelfRiderOrders(riderId: string) {
+  async getSelfRiderOrders(riderId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
     return this.prisma.order.findMany({
       where: { assignedRestaurantDriverId: riderId },
       include: {
@@ -797,6 +805,8 @@ export class OrdersService implements OnApplicationBootstrap {
         orderItems: { include: { foodItem: true } },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
   }
 
@@ -956,7 +966,8 @@ export class OrdersService implements OnApplicationBootstrap {
     }
   }
 
-  async getCustomerOrderHistory(userId: string, statusFilter?: string) {
+  async getCustomerOrderHistory(userId: string, statusFilter?: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
     let whereClause: any = {
       customer: { userId },
       deletedAt: null,
@@ -1006,6 +1017,8 @@ export class OrdersService implements OnApplicationBootstrap {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
 
     return serializePrisma(
@@ -1133,36 +1146,48 @@ export class OrdersService implements OnApplicationBootstrap {
   async getOrderTrackingSecured(orderId: string, userId: string, role?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        restaurant: true,
-        customer: { include: { user: { include: { profile: true } } } },
-        tracking: true,
-        assignedRestaurantDriver: true,
-      },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        customerId: true,
+        restaurantId: true,
+        assignedRestaurantDriverId: true,
+        deliveryAddress: true,
+        restaurant: {
+          select: {
+            name: true,
+            latitude: true,
+            longitude: true,
+            ownerId: true,
+          }
+        },
+        assignedRestaurantDriver: {
+          select: {
+            firstName: true,
+            lastName: true,
+            phone: true,
+            vehicleNumber: true,
+          }
+        }
+      }
     });
 
     if (!order) throw new BadRequestException(`Order ${orderId} not found`);
 
-    const isCustomerOwner =
-      order.customer.userId === userId ||
-      order.customerId === userId ||
-      order.customer.id === userId;
-
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+    let isAuthorized = isAdmin || order.customerId === userId;
 
-    let isAuthorized = isCustomerOwner || isAdmin;
-
-    if (
-      !isAuthorized &&
-      (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')
-    ) {
+    if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
       const isOwner = order.restaurant.ownerId === userId;
-      const isStaff = await this.prisma.restaurantStaff.findFirst({
-        where: { restaurantId: order.restaurantId, userId },
-        select: { id: true },
-      });
-      if (isOwner || isStaff) {
+      if (isOwner) {
         isAuthorized = true;
+      } else {
+        const isStaff = await this.prisma.restaurantStaff.findFirst({
+          where: { restaurantId: order.restaurantId, userId },
+          select: { id: true },
+        });
+        if (isStaff) isAuthorized = true;
       }
     }
 
@@ -1172,21 +1197,20 @@ export class OrdersService implements OnApplicationBootstrap {
         select: { id: true },
       });
       if (driver) {
-        const isAssigned = order.assignedRestaurantDriverId === driver.id;
-        const job = await this.prisma.deliveryJob.findFirst({
-          where: { orderId: order.id, driverId: driver.id },
-          select: { id: true },
-        });
-        if (isAssigned || job) {
+        if (order.assignedRestaurantDriverId === driver.id) {
           isAuthorized = true;
+        } else {
+          const job = await this.prisma.deliveryJob.findFirst({
+            where: { orderId: order.id, driverId: driver.id },
+            select: { id: true },
+          });
+          if (job) isAuthorized = true;
         }
       }
     }
 
     if (!isAuthorized) {
-      throw new ForbiddenException(
-        'You do not have permission to view delivery tracking for this order.',
-      );
+      throw new ForbiddenException('You do not have permission to view delivery tracking for this order.');
     }
 
     const deliveryAddress: any = order.deliveryAddress || {};
@@ -1194,12 +1218,31 @@ export class OrdersService implements OnApplicationBootstrap {
     const restaurantLng = Number(order.restaurant.longitude) || 0;
     const customerLat = Number(deliveryAddress?.latitude) || 0;
     const customerLng = Number(deliveryAddress?.longitude) || 0;
-    let driverLat = order.tracking?.currentLat ? Number(order.tracking.currentLat) : null;
-    let driverLng = order.tracking?.currentLng ? Number(order.tracking.currentLng) : null;
 
-    if (order.status === 'DELIVERED') {
-      driverLat = null;
-      driverLng = null;
+    let driverLat = null;
+    let driverLng = null;
+
+    if (order.status !== 'DELIVERED') {
+      try {
+        const liveLoc = await this.redisService.getClient().get(`driver_loc_${orderId}`);
+        if (liveLoc) {
+          const parsed = JSON.parse(liveLoc);
+          driverLat = parsed.lat;
+          driverLng = parsed.lng;
+        } else {
+          // Fallback to DB if Redis has no data
+          const tracking = await this.prisma.orderTracking.findUnique({
+            where: { orderId },
+            select: { currentLat: true, currentLng: true }
+          });
+          if (tracking) {
+            driverLat = Number(tracking.currentLat);
+            driverLng = Number(tracking.currentLng);
+          }
+        }
+      } catch (e) {
+        this.logger.warn(`Redis fetch failed for driver location: ${e.message}`);
+      }
     }
 
     let routeCoordinates: [number, number][] = [];
@@ -1212,18 +1255,13 @@ export class OrdersService implements OnApplicationBootstrap {
     let routeEndLng = customerLng;
 
     const hasDriverLoc = driverLat && driverLng;
-    const isPickedUp =
-      order.status === 'PICKED_UP' ||
-      order.status === 'OUT_FOR_DELIVERY' ||
-      order.status === 'DELIVERED';
+    const isPickedUp = order.status === 'PICKED_UP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED';
 
     if (hasDriverLoc) {
       if (isPickedUp) {
-        // Rider to Customer
         routeStartLat = driverLat;
         routeStartLng = driverLng;
       } else {
-        // Rider to Restaurant
         routeStartLat = driverLat;
         routeStartLng = driverLng;
         routeEndLat = restaurantLat;
@@ -1232,21 +1270,28 @@ export class OrdersService implements OnApplicationBootstrap {
     }
 
     if (routeStartLat && routeStartLng && routeEndLat && routeEndLng) {
+      const cacheKey = `route_geom_${orderId}_${routeStartLat.toFixed(3)}_${routeStartLng.toFixed(3)}`;
+      let cachedRoute = null;
       try {
-        const routeData = await this.geolocationService.getRouteGeometry(
-          routeStartLat,
-          routeStartLng,
-          routeEndLat,
-          routeEndLng,
-        );
-        routeCoordinates = routeData.coordinates;
-        roadDistanceKm = routeData.distanceKm;
-        etaMins = routeData.etaMinutes;
-        routeCoordinates = routeData.coordinates;
-      } catch (err: any) {
-        this.logger.warn(
-          `[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`,
-        );
+        const val = await this.redisService.getClient().get(cacheKey);
+        if (val) cachedRoute = JSON.parse(val);
+      } catch (e) {}
+
+      if (cachedRoute) {
+        routeCoordinates = cachedRoute.coordinates;
+        roadDistanceKm = cachedRoute.distanceKm;
+        etaMins = cachedRoute.etaMinutes;
+      } else {
+        try {
+          const routeData = await this.geolocationService.getRouteGeometry(routeStartLat, routeStartLng, routeEndLat, routeEndLng);
+          routeCoordinates = routeData.coordinates;
+          roadDistanceKm = routeData.distanceKm;
+          etaMins = routeData.etaMinutes;
+          
+          this.redisService.getClient().setex(cacheKey, 60, JSON.stringify(routeData)).catch(() => {});
+        } catch (err: any) {
+          this.logger.warn(`[Order Tracking] Could not fetch Mappls road route geometry for order ${orderId}: ${err?.message || err}`);
+        }
       }
     }
 
@@ -1269,7 +1314,7 @@ export class OrdersService implements OnApplicationBootstrap {
       etaMins,
       distanceKm: roadDistanceKm,
       routeCoordinates,
-      updatedAt: order.tracking?.updatedAt || new Date(),
+      updatedAt: new Date(),
     });
   }
 

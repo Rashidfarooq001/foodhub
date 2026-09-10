@@ -12,6 +12,7 @@ import { OtpService } from '../otp/otp.service';
 import { TokenService } from '../tokens/token.service';
 import { SessionService } from '../sessions/session.service';
 import { UsersService } from '../users/users.service';
+import { RedisService } from '../redis/redis.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
     private readonly usersService: UsersService,
+    private readonly redisService: RedisService,
   ) {}
 
   async sendOtp(phone: string) {
@@ -1313,11 +1315,7 @@ export class AuthService {
 
     // Issue short-lived, single-use password reset token (valid 10 minutes)
     const resetToken = `rst_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
-    this.resetTokenMap.set(resetToken, {
-      userId: user.id,
-      phone: user.phone,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
+    await this.redisService.getClient().setex(`reset_token:${resetToken}`, 600, JSON.stringify({ userId: user.id, phone: user.phone }));
 
     this.logger.log(
       `[Backend ForgotPassword] Issued reset token for user ID=${user.id}, phone=${user.phone}`,
@@ -1334,20 +1332,22 @@ export class AuthService {
     let userId: string | null = null;
 
     if (dto.resetToken) {
-      const payload = this.resetTokenMap.get(dto.resetToken);
+      const rawPayload = await this.redisService.getClient().get(`reset_token:${dto.resetToken}`);
+      let payload: any = null;
+      if (rawPayload) payload = JSON.parse(rawPayload);
       if (!payload) {
         throw new BadRequestException(
           'Invalid or expired password reset token. Please request a new OTP.',
         );
       }
       if (Date.now() > payload.expiresAt) {
-        this.resetTokenMap.delete(dto.resetToken);
+        await this.redisService.getClient().del(`reset_token:${dto.resetToken}`);
         throw new BadRequestException(
           'Password reset token has expired. Please request a new OTP.',
         );
       }
       // Single-use token: invalidate immediately!
-      this.resetTokenMap.delete(dto.resetToken);
+      await this.redisService.getClient().del(`reset_token:${dto.resetToken}`);
       userId = payload.userId;
     } else if (dto.accessToken || (dto.phone && dto.otp)) {
       const verifyRes = await this.verifyResetToken({
@@ -1355,10 +1355,12 @@ export class AuthService {
         phone: dto.phone || '',
         otp: dto.otp,
       });
-      const payload = this.resetTokenMap.get(verifyRes.resetToken);
+      const rawPayload2 = await this.redisService.getClient().get(`reset_token:${verifyRes.resetToken}`);
+        let payload: any = null;
+        if (rawPayload2) payload = JSON.parse(rawPayload2);
       if (payload) {
         userId = payload.userId;
-        this.resetTokenMap.delete(verifyRes.resetToken);
+        await this.redisService.getClient().del(`reset_token:${verifyRes.resetToken}`);
       }
     }
 
@@ -1566,7 +1568,7 @@ export class AuthService {
       where: {
         OR: [
           { role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] } },
-          { phone: '+917006298795' },
+          { phone: process.env.ADMIN_PHONE_OVERRIDE || '+910000000000' },
           { email: 'www.rashidreshi2005@gmail.com' },
           { phone: process.env.ADMIN_PHONE || '+910000000000' },
           { email: process.env.ADMIN_EMAIL || 'admin@zaykafood.com' },
@@ -1743,7 +1745,8 @@ export class AuthService {
   ) {
     const ipKey = ipAddress || 'global_ip';
     const now = Date.now();
-    const attemptInfo = this.recoveryAttemptsMap.get(ipKey);
+    const attemptInfoStr = await this.redisService.getClient().get(`admin_recovery_attempts:${ipKey}`);
+    const attemptInfo = attemptInfoStr ? JSON.parse(attemptInfoStr) : null;
 
     if (attemptInfo && now < attemptInfo.resetTime) {
       if (attemptInfo.count >= 5) {
@@ -1753,7 +1756,7 @@ export class AuthService {
         );
       }
     } else {
-      this.recoveryAttemptsMap.set(ipKey, { count: 0, resetTime: now + 15 * 60 * 1000 });
+      await this.redisService.getClient().setex(`admin_recovery_attempts:${ipKey}`, 900, JSON.stringify({ count: 0, resetTime: now + 15 * 60 * 1000 }));
     }
 
     const cleanDob = (dto.dob || '').trim();
@@ -1767,7 +1770,7 @@ export class AuthService {
       where: {
         OR: [
           { role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] } },
-          { phone: '+917006298795' },
+          { phone: process.env.ADMIN_PHONE_OVERRIDE || '+910000000000' },
           { email: 'www.rashidreshi2005@gmail.com' },
           { phone: process.env.ADMIN_PHONE || '+910000000000' },
         ],
@@ -1818,7 +1821,7 @@ export class AuthService {
     }
 
     // Clear failed attempts counter on success
-    this.recoveryAttemptsMap.delete(ipKey);
+    await this.redisService.getClient().del(`admin_recovery_attempts:${ipKey}`);
 
     // Create short-lived single-use recovery token (valid for 10 minutes)
     const resetToken = `admin_reset_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;

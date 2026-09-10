@@ -11,6 +11,8 @@ import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { PrismaService } from './modules/database/prisma.service';
 import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exception.filter';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -112,7 +114,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: true, // Automatically reflects the request origin, allowing all domains
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Request-ID', 'Cache-Control', 'Pragma'],
@@ -146,7 +148,18 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup('api/v1/docs', app, document);
+  if (process.env.NODE_ENV !== 'production') {
+    SwaggerModule.setup('api/v1/docs', app, document);
+  }
+
+
+  // Redis Socket.IO Adapter
+  const configService = app.get(ConfigService);
+  const redisHost = configService.get<string>('REDIS_HOST', 'localhost');
+  const redisPort = configService.get<number>('REDIS_PORT', 6379);
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis(redisHost, redisPort);
+  app.useWebSocketAdapter(redisIoAdapter);
 
   // Start
   const port = process.env.PORT || 4000;
@@ -154,7 +167,26 @@ async function bootstrap() {
 
   const appLogger = app.get(Logger);
   appLogger.log(`🚀 FoodHub Core Backend API is running on: http://localhost:${port}/api/v1`);
-  appLogger.log(`📚 Swagger documentation available at: http://localhost:${port}/api/v1/docs`);
+  appLogger.log(`Instance: ${process.env.API_INSTANCE_ID || 'default'} | Role: ${process.env.NODE_ROLE || 'api'}`);
+
+  // ── Graceful shutdown ──────────────────────────────────────────────────────
+  // Required for Docker SIGTERM / Kubernetes pod eviction.
+  // NestJS app.close() cleanly drains in-flight requests, closes Prisma pool,
+  // disconnects Redis, and closes the Socket.IO server before exit.
+  const shutdown = async (signal: string) => {
+    appLogger.log(`Received ${signal} — starting graceful shutdown`);
+    try {
+      await app.close();
+      appLogger.log('Graceful shutdown complete');
+      process.exit(0);
+    } catch (err) {
+      appLogger.error('Error during shutdown', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 bootstrap();
