@@ -76,6 +76,7 @@ interface OrderRecord {
   driverName?: string;
   driverPhone?: string;
   cancellationReason?: string;
+  deliveryOffers?: any[];
   rejectionReason?: string;
   items: OrderItem[];
 }
@@ -474,8 +475,21 @@ export default function HotelOrdersPage() {
     }).length;
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+    const getStatusBadge = (order: OrderRecord) => {
+    const offer = order.deliveryOffers && order.deliveryOffers.length > 0 ? order.deliveryOffers[0] : null;
+    if (offer) {
+      if (offer.status === 'PENDING') {
+        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800 animate-pulse">Awaiting Rider Response</span>;
+      }
+      if (offer.status === 'REJECTED') {
+        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">Rider Declined</span>;
+      }
+      if (offer.status === 'EXPIRED') {
+        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">Offer Expired</span>;
+      }
+    }
+
+    switch (order.status) {
       case 'PENDING':
         return (
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 animate-pulse">
@@ -635,7 +649,7 @@ export default function HotelOrdersPage() {
                   <h3 className="text-sm font-black text-gray-900 mt-0.5">{o.customerName}</h3>
                   <p className="text-[11px] font-bold text-gray-500">{o.customerPhone}</p>
                 </div>
-                {getStatusBadge(o.status)}
+                {getStatusBadge(o)}
               </div>
 
               <div className="rounded-2xl bg-gray-50 p-3 space-y-1.5 text-xs">
@@ -779,7 +793,7 @@ export default function HotelOrdersPage() {
                         {o.paymentMethod}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(o.status)}</td>
+                    <td className="px-6 py-4">{getStatusBadge(o)}</td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         {/* PENDING ACTIONS */}
@@ -1114,7 +1128,7 @@ export default function HotelOrdersPage() {
               </div>
               <div>
                 <span className="text-[10px] uppercase text-gray-400 block font-bold">Status</span>
-                <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                <div className="mt-1">{getStatusBadge(selectedOrder)}</div>
               </div>
             </div>
 
@@ -1222,3 +1236,7 @@ export default function HotelOrdersPage() {
     </div>
   );
 }
+
+
+
+

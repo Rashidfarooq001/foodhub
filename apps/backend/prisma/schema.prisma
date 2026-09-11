@@ -819,6 +819,7 @@ model Order {
   foodReviews              FoodReview[]
   driverReviews            DriverReview[]
   couponUsages             CouponUsage[]
+  deliveryOffers           DeliveryOffer[]
 
   @@index([orderNumber])
   @@index([customerId, status])
@@ -1098,6 +1099,7 @@ model Driver {
   reviews          DriverReview[]
   riderSettlements RiderSettlement[]
   jobRejections    DeliveryJobRejection[]
+  deliveryOffers   DeliveryOffer[]
 
   @@index([status])
   @@index([currentLat, currentLng])
@@ -1871,3 +1873,26 @@ model LedgerEntry {
 }
 
 
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model DeliveryOffer {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  driverId   String   @map("driver_id") @db.Uuid
+  status     OfferStatus @default(PENDING)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([driverId])
+  @@map("delivery_offers")
+}

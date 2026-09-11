@@ -234,11 +234,12 @@ export class OrderLifecycleService {
       ? Number(snapRiderPayout) 
       : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
 
-    const deliveryJobPayload = {
+    // Upsert DeliveryJob as AVAILABLE (no driver yet)
+    await this.prisma.deliveryJob.upsert({
+      where: { orderId: order.id },
       create: {
         orderId: order.id,
-        driverId: driver.id,
-        status: DeliveryJobStatus.ASSIGNED,
+        status: DeliveryJobStatus.AVAILABLE,
         pickupAddressJson: pickupAddress,
         dropAddressJson: dropAddress,
         distanceKm,
@@ -249,24 +250,51 @@ export class OrderLifecycleService {
         pickupOtpAttempts: 0,
       },
       update: {
-        driverId: driver.id,
-        status: DeliveryJobStatus.ASSIGNED,
+        status: DeliveryJobStatus.AVAILABLE,
         pickupAddressJson: pickupAddress,
         pickupOtpHash,
         pickupOtpExpiresAt,
         pickupOtpAttempts: 0,
       },
-    };
+    });
 
-    const updatedOrder = await this.updateOrderStatus(
-      order.id,
-      OrderStatus.DRIVER_ASSIGNED,
-      actor.userId,
-      {
-        riderId: driver.id,
-        deliveryJobPayload,
+    // Invalidate any existing pending offers for this order
+    await this.prisma.deliveryOffer.updateMany({
+      where: { orderId: order.id, status: 'PENDING' },
+      data: { status: 'EXPIRED' },
+    });
+
+    // Create the new offer
+    await this.prisma.deliveryOffer.create({
+      data: {
+        orderId: order.id,
+        driverId: driver.id,
+        status: 'PENDING',
       },
-    );
+    });
+
+    // Notify the specific driver about the job offer
+    this.gateway.emitToDriver(driver.id, ORDER_EVENTS.JOB_AVAILABLE, {
+      orderId: order.id,
+    });
+
+    // Notify the restaurant that an offer is pending
+    this.gateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
+      orderId: order.id,
+    });
+
+    // We do NOT change the order status or the DeliveryJob.driverId yet.
+    // Return the updated order with the offers included so the frontend knows
+    const updatedOrder = await this.prisma.order.findUnique({
+      where: { id: order.id },
+      include: {
+        restaurant: true,
+        deliveryJob: true,
+        deliveryOffers: {
+          where: { status: 'PENDING' },
+        },
+      },
+    });
 
     return updatedOrder;
   }
@@ -1468,5 +1496,9 @@ export class OrderLifecycleService {
 }
 
 }
+
+
+
+
 
 

@@ -54,6 +54,7 @@ export class OrdersRepository {
         },
         orderTimelines: { orderBy: { createdAt: 'asc' } },
         deliveryJob: true,
+        deliveryOffers: { orderBy: { createdAt: 'desc' }, take: 1 },
         tracking: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -85,6 +86,7 @@ export class OrdersRepository {
           },
         },
         customer: { include: { user: { include: { profile: true } } } },
+        deliveryOffers: { orderBy: { createdAt: 'desc' } },
         deliveryJob: {
           include: {
             driver: {
@@ -118,6 +120,7 @@ export class OrdersRepository {
         orderItems: { include: { foodItem: true } },
         restaurant: { select: { id: true, name: true, addressLine: true, phone: true } },
         customer: { include: { user: { include: { profile: true } } } },
+        deliveryOffers: { orderBy: { createdAt: 'desc' } },
         deliveryJob: {
           include: {
             driver: {
@@ -162,3 +165,4 @@ export class OrdersRepository {
     });
   }
 }
+
