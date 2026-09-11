@@ -931,16 +931,21 @@ export default function HotelOrdersPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="text-sm font-black text-gray-900">{r.name}</h4>
-                              <span className="rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5">
-                                ONLINE
+                              <span className={`rounded-full text-[9px] font-black px-2 py-0.5 uppercase tracking-wide
+                                ${r.status === 'ONLINE' ? 'bg-emerald-100 text-emerald-800' : 
+                                  r.status === 'BUSY' ? 'bg-amber-100 text-amber-800' :
+                                  r.status === 'OUT_FOR_DELIVERY' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'}`}
+                              >
+                                {r.status?.replace(/_/g, ' ')}
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 font-bold mt-0.5">
                               {r.vehicleType} • {r.vehicleNumber} • {r.phone}
                             </p>
-                            <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
+                            <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
                               <span className="text-amber-600 font-black">★ {r.rating}</span>
-                              <span>{r.completedCount} deliveries completed</span>
+                              <span className="text-purple-600 bg-purple-50 px-1.5 rounded">Active Orders: {r.activeJobsCount || 0}</span>
                               <span className="text-emerald-700 font-bold">
                                 {r.distanceText ||
                                   (r.distanceKm != null && r.distanceKm !== 999

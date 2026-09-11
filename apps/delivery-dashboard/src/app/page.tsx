@@ -483,9 +483,14 @@ export default function DeliveryDashboardPage() {
               return (
                 <div
                   key={job.id}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3 flex flex-col justify-between hover:border-emerald-300 transition"
+                  className={`rounded-2xl border ${job.isOffer ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-100 shadow-md' : 'border-gray-200 bg-white'} p-4 shadow-sm space-y-3 flex flex-col justify-between hover:border-emerald-300 transition`}
                 >
                   <div className="space-y-2">
+                    {job.isOffer && (
+                      <div className="bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider py-1 px-3 rounded-lg inline-block mb-1">
+                        ✨ NEW DELIVERY REQUEST
+                      </div>
+                    )}
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <span className="text-xs font-black text-gray-900">
                         #{job.orderNumber || job.id.slice(0, 8)}
