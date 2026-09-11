@@ -13,7 +13,7 @@ export interface TokenPair {
 @Injectable()
 export class TokenService {
   constructor(
-    private readonly jwtService: JwtService,
+    public readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}

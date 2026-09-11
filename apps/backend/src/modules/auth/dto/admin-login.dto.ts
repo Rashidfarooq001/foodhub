@@ -65,3 +65,12 @@ export class AdminChangeSecurityQuestionsDto {
   @IsNotEmpty()
   newFavoritePerson!: string;
 }
+export class AdminVerifyOtpDto {
+  @IsString()
+  @IsNotEmpty()
+  preAuthToken!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp!: string;
+}

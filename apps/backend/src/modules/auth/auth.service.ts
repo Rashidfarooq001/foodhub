@@ -1672,31 +1672,47 @@ export class AuthService {
 
     const adminUser = authenticatedAdmin;
 
-    // 5. Authenticate Admin session & issue JWT token pair
-    this.logger.log(
-      `[Admin Two-Password Auth] Successful login for Admin ID=${adminUser.id}, role=${adminUser.role}`,
-    );
     const session = await this.sessionService.createSession(adminUser.id, ipAddress, userAgent);
     const tokens = await this.tokenService.generateTokenPair(
-      {
-        id: adminUser.id,
-        phone: adminUser.phone,
-        role: adminUser.role || UserRole.SUPER_ADMIN,
-      },
-      session.id,
+      { id: adminUser.id, phone: adminUser.phone, role: adminUser.role }, session.id
     );
-
+    
     return {
-      user: {
-        id: adminUser.id,
-        phone: adminUser.phone,
-        email: adminUser.email,
-        role: adminUser.role || UserRole.SUPER_ADMIN,
-        profile: adminUser.profile,
-      },
-      tokens,
+      user: { id: adminUser.id, phone: adminUser.phone, email: adminUser.email, role: adminUser.role, profile: adminUser.profile },
+      tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }
     };
   }
+
+  async adminTwoPasswordVerifyOtp(dto: any, ipAddress?: string, userAgent?: string) {
+    const rawPayload = await this.redisService.getClient().get(`admin_pre_auth:${dto.preAuthToken}`);
+    if (!rawPayload) throw new UnauthorizedException('Invalid or expired preAuthToken');
+    const payload = JSON.parse(rawPayload);
+    if (payload.type !== 'pre-auth') throw new UnauthorizedException('Invalid token type');
+    await this.redisService.getClient().del(`admin_pre_auth:${dto.preAuthToken}`);
+    const adminUser = await (this.usersService as any).prisma.user.findUnique({ where: { id: payload.adminId }, include: { profile: true } });
+    if (!adminUser) throw new UnauthorizedException('Admin not found');
+    await this.otpService.verifyOtp(adminUser.phone, dto.otp);
+    
+    const session = await this.sessionService.createSession(adminUser.id, ipAddress, userAgent);
+    const tokens = await this.tokenService.generateTokenPair(
+      { id: adminUser.id, phone: adminUser.phone, role: adminUser.role }, session.id
+    );
+    return {
+      user: { id: adminUser.id, phone: adminUser.phone, email: adminUser.email, role: adminUser.role, profile: adminUser.profile },
+      tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }
+    };
+  }
+
+  async adminTwoPasswordResendOtp(dto: any) {
+    const rawPayload = await this.redisService.getClient().get(`admin_pre_auth:${dto.preAuthToken}`);
+    if (!rawPayload) throw new UnauthorizedException('Invalid or expired preAuthToken');
+    const payload = JSON.parse(rawPayload);
+    if (payload.type !== 'pre-auth') throw new UnauthorizedException('Invalid token type');
+    const adminUser = await (this.usersService as any).prisma.user.findUnique({ where: { id: payload.adminId } });
+    await this.otpService.sendOtp(adminUser.phone);
+    return { success: true };
+  }
+
 
   async changeAdminPasswords(
     userId: string,

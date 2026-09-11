@@ -51,10 +51,9 @@ export class OtpService {
       data: { isUsed: true },
     });
 
-    const isDevOrTest = process.env.NODE_ENV !== 'production';
-
-    // Generate unique 4-digit OTP code
-    const rawOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate unique 4-digit OTP code cryptographically
+    const crypto = require('crypto');
+    const rawOtp = crypto.randomInt(1000, 10000).toString();
     const otpHash = await bcrypt.hash(rawOtp, 10);
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINS * 60 * 1000);
 
@@ -66,12 +65,39 @@ export class OtpService {
       },
     });
 
-    this.logger.log(`[OTP Gateway] Dispatched OTP for phone=${normalizedDbPhone}`);
+    const authKey = process.env.MSG91_AUTH_KEY;
+
+    if (!authKey) {
+      this.logger.error('[OTP Gateway] MSG91_AUTH_KEY missing');
+      // Cleanup the stored OTP before throwing
+      await this.prisma.otp.deleteMany({ where: { phone: normalizedDbPhone, isUsed: false } });
+      throw new BadRequestException('SMS Gateway is not configured correctly.');
+    }
+
+    const mobileFor91 = `91${cleanDigits.slice(-10)}`;
+    const msg91Url = `https://api.msg91.com/api/v5/otp?authkey=${authKey}&mobile=${mobileFor91}&otp=${rawOtp}`;
+
+    try {
+      this.logger.log(`[OTP Gateway] Requesting MSG91 SendOTP for mobile ending ...${cleanDigits.slice(-4)}...`);
+      const response = await fetch(msg91Url, { method: 'GET' });
+      const msg91Data = await response.json().catch(() => ({}));
+      this.logger.log(`[OTP Gateway] MSG91 HTTP status: ${response.status}, type: ${msg91Data?.type}`);
+
+      if (!response.ok || msg91Data?.type === 'error') {
+        throw new Error(msg91Data?.message || 'Provider rejected request');
+      }
+    } catch (err: any) {
+      this.logger.error(`[OTP Gateway] MSG91 SendOTP Failed: ${err.message}`);
+      // Delete the OTP record since it failed to send — do NOT authenticate
+      await this.prisma.otp.deleteMany({ where: { phone: normalizedDbPhone, isUsed: false } });
+      throw new BadRequestException('OTP_SEND_FAILED: Unable to deliver SMS. Please try again later.');
+    }
+
+    this.logger.log(`[OTP Gateway] Successfully dispatched OTP via MSG91 for mobile ending ...${cleanDigits.slice(-4)}`);
 
     return {
       message: 'OTP sent successfully',
       cooldownSec: this.OTP_COOLDOWN_SEC,
-      ...(isDevOrTest ? { otp: rawOtp } : {}),
     };
   }
 
