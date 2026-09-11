@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, ArrowRight, AlertCircle, Phone, User } from 'lucide-react';
+import { ShieldCheck, Lock, ArrowRight, AlertCircle, Phone } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -15,9 +15,9 @@ export default function AdminLoginPage() {
 
   const [mode, setMode] = useState<ViewMode>('LOGIN');
 
-  // Credentials
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Two-password credentials
+  const [password1, setPassword1] = useState('');
+  const [password2, setPassword2] = useState('');
   const [otp, setOtp] = useState('');
   
   // MFA State
@@ -44,18 +44,28 @@ export default function AdminLoginPage() {
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!/^\d{16}$/.test(password1)) {
+      setError('Password 1 must be exactly 16 numeric digits');
+      return;
+    }
+    if (!/^\d{8}$/.test(password2)) {
+      setError('Password 2 must be exactly 8 numeric digits');
+      return;
+    }
+
     setLoading(true);
-    
     try {
       const res = await fetch(`${API_BASE}/auth/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ password1, password2 }),
       });
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.message || 'Invalid credentials');
+        const msg = Array.isArray(data.message) ? data.message.join(', ') : (data.message || 'Invalid credentials');
+        throw new Error(msg);
       }
       
       setPreAuthToken(data.preAuthToken);
@@ -142,35 +152,43 @@ export default function AdminLoginPage() {
           {mode === 'LOGIN' && (
             <form className="space-y-6" onSubmit={handlePasswordLogin}>
               <div>
-                <label className="block text-sm font-medium text-slate-300">Email Address</label>
-                <div className="mt-2 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-slate-500" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="admin@zaykafood.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300">Password</label>
+                <label className="block text-sm font-medium text-slate-300">
+                  Password 1 <span className="text-slate-500 text-xs">(16 digits)</span>
+                </label>
                 <div className="mt-2 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-slate-500" />
                   </div>
                   <input
                     type="password"
+                    inputMode="numeric"
+                    maxLength={16}
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="••••••••"
+                    value={password1}
+                    onChange={(e) => setPassword1(e.target.value.replace(/\D/g, ''))}
+                    className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+                    placeholder="16 numeric digits"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300">
+                  Password 2 <span className="text-slate-500 text-xs">(8 digits)</span>
+                </label>
+                <div className="mt-2 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-slate-500" />
+                  </div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={8}
+                    required
+                    value={password2}
+                    onChange={(e) => setPassword2(e.target.value.replace(/\D/g, ''))}
+                    className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+                    placeholder="8 numeric digits"
                   />
                 </div>
               </div>
