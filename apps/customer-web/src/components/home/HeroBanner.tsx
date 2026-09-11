@@ -8,7 +8,7 @@ import { getApiBaseUrl } from '@foodhub/config';
 import { io } from 'socket.io-client';
 
 const API_BASE = getApiBaseUrl();
-const SOCKET_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api', '');
+const SOCKET_URL = API_BASE.replace('/api/v1', '');
 
 interface Banner {
   id: string;
