@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, AlertCircle } from 'lucide-react';
+import { Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
 
@@ -13,6 +13,8 @@ export default function AdminLoginPage() {
 
   const [password1, setPassword1] = useState('');
   const [password2, setPassword2] = useState('');
+  const [show1, setShow1] = useState(false);
+  const [show2, setShow2] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,11 +23,11 @@ export default function AdminLoginPage() {
     setError(null);
 
     if (!/^\d{16}$/.test(password1)) {
-      setError('Password 1 must be exactly 16 numeric digits');
+      setError('Password 1 must be exactly 16 numeric digits.');
       return;
     }
     if (!/^\d{8}$/.test(password2)) {
-      setError('Password 2 must be exactly 8 numeric digits');
+      setError('Password 2 must be exactly 8 numeric digits.');
       return;
     }
 
@@ -41,7 +43,7 @@ export default function AdminLoginPage() {
       if (!res.ok) {
         const msg = Array.isArray(data.message)
           ? data.message.join(', ')
-          : data.message || 'Authentication failed';
+          : data.message || 'Authentication failed.';
         throw new Error(msg);
       }
 
@@ -55,84 +57,183 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans text-slate-200">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <ShieldCheck className="h-10 w-10 text-white" />
+    <div className="min-h-screen w-full bg-gray-50 flex">
+      {/* Left panel — brand side */}
+      <div className="hidden lg:flex w-[420px] xl:w-[480px] shrink-0 flex-col justify-between bg-white border-r border-gray-100 p-10">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/zaykafood-logo.png"
+            alt="ZaykaFood"
+            className="h-8 w-auto object-contain"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+            SuperAdmin
+          </span>
+        </div>
+
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 leading-snug">
+            Platform<br />Control Center
+          </h1>
+          <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+            Full-access administrative portal for restaurants, drivers, orders, payments, and platform settings.
+          </p>
+
+          <div className="mt-10 space-y-4">
+            {[
+              'Restaurant onboarding & approval',
+              'Driver management & payouts',
+              'Global orders & analytics',
+              'Payments, refunds & settlements',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-600 shrink-0" />
+                <span className="text-sm text-gray-600">{item}</span>
+              </div>
+            ))}
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
-          System Administration
-        </h2>
+
+        <p className="text-xs text-gray-400">
+          © {new Date().getFullYear()} ZaykaFood. Restricted access.
+        </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-slate-900 py-8 px-4 shadow-2xl shadow-black sm:rounded-xl sm:px-10 border border-slate-800">
+      {/* Right panel — form side */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
+        {/* Mobile logo */}
+        <div className="flex lg:hidden items-center gap-2 mb-8">
+          <img
+            src="/zaykafood-logo.png"
+            alt="ZaykaFood"
+            className="h-7 w-auto object-contain"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            SuperAdmin
+          </span>
+        </div>
+
+        <div className="w-full max-w-[360px]">
+          <div className="mb-7">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              Sign in to your account
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Enter your administrator credentials to continue.
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-6 rounded-md bg-red-900/30 p-4 border border-red-500/50">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-400">{error}</h3>
-                </div>
-              </div>
+            <div className="mb-5 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 leading-snug">{error}</p>
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} noValidate className="space-y-4">
+            {/* Password 1 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300">
-                Password 1 <span className="text-slate-500 text-xs">(16 digits)</span>
+              <label
+                htmlFor="password1"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
+                Password 1
+                <span className="ml-1.5 text-xs font-normal text-gray-400">(16 digits)</span>
               </label>
-              <div className="mt-2 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-500" />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
-                  type="password"
+                  id="password1"
+                  type={show1 ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={16}
                   required
+                  autoComplete="off"
                   value={password1}
                   onChange={(e) => setPassword1(e.target.value.replace(/\D/g, ''))}
-                  className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+                  disabled={loading}
                   placeholder="16 numeric digits"
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-10 text-sm text-gray-900 placeholder-gray-400 font-mono tracking-wider
+                    transition-colors
+                    focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20
+                    disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShow1((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={show1 ? 'Hide password' : 'Show password'}
+                >
+                  {show1 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
+            {/* Password 2 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300">
-                Password 2 <span className="text-slate-500 text-xs">(8 digits)</span>
+              <label
+                htmlFor="password2"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
+                Password 2
+                <span className="ml-1.5 text-xs font-normal text-gray-400">(8 digits)</span>
               </label>
-              <div className="mt-2 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-500" />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <input
-                  type="password"
+                  id="password2"
+                  type={show2 ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={8}
                   required
+                  autoComplete="off"
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value.replace(/\D/g, ''))}
-                  className="block w-full pl-10 bg-slate-950 border border-slate-800 rounded-lg py-3 text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+                  disabled={loading}
                   placeholder="8 numeric digits"
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-10 text-sm text-gray-900 placeholder-gray-400 font-mono tracking-wider
+                    transition-colors
+                    focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20
+                    disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShow2((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={show2 ? 'Hide password' : 'Show password'}
+                >
+                  {show2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 disabled:opacity-50 transition-colors"
+              className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white
+                transition-colors
+                hover:bg-purple-700
+                focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? 'Authenticating...' : 'Login securely'}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Authenticating…
+                </>
+              ) : (
+                'Sign in'
+              )}
             </button>
           </form>
 
+          <p className="mt-8 text-center text-xs text-gray-400">
+            Access is restricted to authorised ZaykaFood platform administrators only.
+          </p>
         </div>
       </div>
     </div>
