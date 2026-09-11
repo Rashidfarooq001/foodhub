@@ -3,15 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Bike,
   Lock,
   Mail,
-  ArrowRight,
   Phone,
-  CheckCircle2,
+  Eye,
+  EyeOff,
   RotateCcw,
   Edit2,
-  ShieldCheck,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { useDeliveryAuthStore } from '../../stores/use-delivery-auth-store';
 import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
@@ -28,6 +29,7 @@ export default function DeliveryLoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
 
@@ -246,218 +248,301 @@ export default function DeliveryLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl bg-white p-8 shadow-2xl">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-16 items-center justify-center">
-            <img
-              src="/zaykafood-logo.png"
-              alt="ZaykaFood"
-              className="h-16 w-auto object-contain mx-auto"
-            />
-          </div>
-          <h1 className="text-2xl font-black text-gray-900">Courier Partner Portal</h1>
-          <p className="text-xs text-gray-500">
-            Sign in to view trip dispatches, earnings &amp; GPS navigation
+    <div className="min-h-screen w-full bg-gray-50 flex">
+      {/* Left panel — brand side */}
+      <div className="hidden lg:flex w-[400px] xl:w-[440px] shrink-0 flex-col justify-between bg-white border-r border-gray-100 p-10">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/zaykafood-logo.png"
+            alt="ZaykaFood"
+            className="h-8 w-auto object-contain"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+            Delivery Partner
+          </span>
+        </div>
+
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 leading-snug">
+            Courier<br />Partner Portal
+          </h1>
+          <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+            Manage your deliveries, track earnings, navigate to drop-offs and update your duty status.
           </p>
+
+          <div className="mt-10 space-y-4">
+            {[
+              'Live order dispatches & navigation',
+              'Real-time earnings & ledger',
+              'On-duty / off-duty toggle',
+              'Payout history & settlements',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 shrink-0" />
+                <span className="text-sm text-gray-600">{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Mode Selector Tabs */}
-        <div className="grid grid-cols-2 rounded-2xl bg-gray-100 p-1 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => {
-              setLoginMode('OTP');
-              setError('');
-            }}
-            className={`rounded-xl py-2.5 transition ${loginMode === 'OTP' ? 'bg-white text-emerald-600 shadow' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            MSG91 OTP Login
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setLoginMode('PASSWORD');
-              setError('');
-            }}
-            className={`rounded-xl py-2.5 transition ${loginMode === 'PASSWORD' ? 'bg-white text-emerald-600 shadow' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            Password Login
-          </button>
+        <p className="text-xs text-gray-400">
+          © {new Date().getFullYear()} ZaykaFood. Delivery partners only.
+        </p>
+      </div>
+
+      {/* Right panel — form side */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
+        {/* Mobile logo */}
+        <div className="flex lg:hidden items-center gap-2 mb-8">
+          <img
+            src="/zaykafood-logo.png"
+            alt="ZaykaFood"
+            className="h-7 w-auto object-contain"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Delivery Partner
+          </span>
         </div>
 
-        {/* Session Expired Banner */}
-        {isExpiredSession && (
-          <div className="rounded-2xl bg-amber-50 p-4 text-center text-xs font-bold text-amber-800 border border-amber-200 shadow-sm">
-            ⚠️ Your session has expired. Please log in again.
+        <div className="w-full max-w-[360px]">
+          <div className="mb-7">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              Sign in to your account
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Access your courier dashboard to manage deliveries.
+            </p>
           </div>
-        )}
 
-        {error && (
-          <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3 text-xs font-bold text-rose-700">
-            ⚠️ {error}
+          {/* Session expired notice */}
+          {isExpiredSession && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-700 leading-snug">Your session has expired. Please sign in again.</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 leading-snug">{error}</p>
+            </div>
+          )}
+
+          {/* Mode tabs */}
+          <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 mb-6 text-sm">
+            {(['OTP', 'PASSWORD'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setLoginMode(mode); setError(''); setStep('PHONE'); }}
+                className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors ${
+                  loginMode === mode
+                    ? 'bg-white text-emerald-700 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {mode === 'OTP' ? 'Phone OTP' : 'Password'}
+              </button>
+            ))}
           </div>
-        )}
 
-        {loginMode === 'OTP' ? (
-          step === 'PHONE' ? (
-            <form onSubmit={handleSendOtp} className="space-y-5">
+          {/* OTP Flow */}
+          {loginMode === 'OTP' ? (
+            step === 'PHONE' ? (
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Registered mobile number
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      id="phone"
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="10-digit mobile number"
+                      disabled={isLoading}
+                      className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400
+                        focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20
+                        disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white
+                    hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                    disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Sending OTP…</>
+                  ) : (
+                    'Send OTP'
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Enter the 4-digit code sent to{' '}
+                    <span className="font-semibold text-gray-900">{phone}</span>
+                  </label>
+                  <div className="flex justify-center gap-3">
+                    {otp.map((digit, idx) => (
+                      <input
+                        key={idx}
+                        ref={(el) => { otpInputsRef.current[idx] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => {
+                          if (!/^\d*$/.test(e.target.value)) return;
+                          const next = [...otp];
+                          next[idx] = e.target.value.substring(e.target.value.length - 1);
+                          setOtp(next);
+                          if (e.target.value && idx < 3) otpInputsRef.current[idx + 1]?.focus();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+                            otpInputsRef.current[idx - 1]?.focus();
+                          }
+                        }}
+                        className="h-12 w-12 rounded-lg border-2 border-gray-200 text-center text-xl font-bold text-gray-900
+                          focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || otp.join('').length < 4}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white
+                    hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                    disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
+                  ) : (
+                    <><CheckCircle2 className="h-4 w-4" /> Verify & Sign in</>
+                  )}
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => { setStep('PHONE'); setError(''); }}
+                    className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Edit number
+                  </button>
+                  {cooldown > 0 ? (
+                    <span className="text-gray-400">Resend in {cooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSendOtp()}
+                      className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+              </form>
+            )
+          ) : (
+            /* Password flow */
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Registered Courier Phone
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email or phone
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   <input
-                    type="tel"
+                    id="email"
+                    type="text"
                     required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter registered 10-digit mobile"
-                    className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    placeholder="your@email.com"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400
+                      focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20
+                      disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-10 text-sm text-gray-900
+                      focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20
+                      disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-xs font-black text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white
+                  hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                  disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
-                <span>{isLoading ? 'Sending OTP...' : 'Continue with MSG91 OTP'}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-5">
-              <div className="flex justify-center gap-3">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => {
-                      otpInputsRef.current[idx] = el;
-                    }}
-                    type="text"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => {
-                      if (!/^\d*$/.test(e.target.value)) return;
-                      const next = [...otp];
-                      next[idx] = e.target.value.substring(e.target.value.length - 1);
-                      setOtp(next);
-                      if (e.target.value && idx < 3) otpInputsRef.current[idx + 1]?.focus();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
-                        otpInputsRef.current[idx - 1]?.focus();
-                      }
-                    }}
-                    className="h-12 w-12 rounded-2xl border-2 border-gray-200 text-center text-lg font-black text-gray-900 focus:border-emerald-600 focus:outline-none"
-                  />
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-xs font-black text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                <span>{isLoading ? 'Verifying...' : 'Verify & Access Dashboard'}</span>
-              </button>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('PHONE');
-                    setError('');
-                  }}
-                  className="flex items-center gap-1 font-bold text-gray-500 hover:text-emerald-600"
-                >
-                  <Edit2 className="h-3.5 w-3.5" /> Edit Phone
-                </button>
-                {cooldown > 0 ? (
-                  <span className="font-bold text-gray-400">Resend in {cooldown}s</span>
+                {isLoading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleSendOtp()}
-                    className="flex items-center gap-1 font-bold text-emerald-600 hover:underline"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Resend OTP
-                  </button>
+                  'Sign in'
                 )}
-              </div>
+              </button>
             </form>
-          )
-        ) : (
-          <form onSubmit={handlePasswordLogin} className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Courier Email / Phone
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
-                />
-              </div>
-            </div>
+          )}
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-gray-700">Password</label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-bold text-emerald-600 hover:underline"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 py-3 pl-10 pr-4 text-xs font-bold text-gray-900 focus:border-emerald-600 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-xs font-black text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-700 disabled:opacity-50"
-            >
-              <span>{isLoading ? 'Signing In...' : 'Access Courier Dashboard'}</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </form>
-        )}
-
-        <div className="border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400 flex items-center justify-center gap-1">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          <span>Protected by ZaykaFood Courier Role Based Access Control</span>
+          <p className="mt-8 text-center text-xs text-gray-400">
+            Access is restricted to registered ZaykaFood delivery partners only.
+          </p>
         </div>
       </div>
-
-      {/* Footer Navigation */}
-      <footer className="fixed bottom-0 inset-x-0 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 py-3 text-center text-xs text-gray-400">
-        <div className="mx-auto max-w-md flex items-center justify-center gap-4 text-xs">
-          <span>ZaykaFood Delivery</span>
-          <span>•</span>
-          <Link href="/support" className="hover:text-white transition">
-            Help &amp; Contact
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }
