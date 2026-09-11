@@ -758,17 +758,19 @@ export class DeliveryJobsController {
       });
 
       if (activeOffer) {
-        await this.prisma.deliveryOffer.update({
-          where: { id: activeOffer.id },
+        const result = await this.prisma.deliveryOffer.updateMany({
+          where: { id: activeOffer.id, status: 'PENDING' },
           data: { status: 'REJECTED' }
         });
         
-        // Notify restaurant that the rider rejected the offer
-        const order = await this.prisma.order.findUnique({ where: { id: job.orderId } });
-        if (order) {
-          this.ordersGateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
-            orderId: order.id,
-          });
+        if (result.count > 0) {
+          // Notify restaurant that the rider rejected the offer
+          const order = await this.prisma.order.findUnique({ where: { id: job.orderId } });
+          if (order) {
+            this.ordersGateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
+              orderId: order.id,
+            });
+          }
         }
       }
 
@@ -844,8 +846,8 @@ export class DeliveryJobsController {
         const isExpired = Date.now() - new Date(activeOffer.createdAt).getTime() > 120 * 1000;
         
         if (isExpired) {
-          await this.prisma.deliveryOffer.update({
-            where: { id: activeOffer.id },
+          await this.prisma.deliveryOffer.updateMany({
+            where: { id: activeOffer.id, status: 'PENDING' },
             data: { status: 'EXPIRED' }
           });
           
@@ -858,11 +860,15 @@ export class DeliveryJobsController {
             throw new ConflictException('This delivery job is currently offered to another partner.');
           }
 
-          // Mark offer as accepted
-          await this.prisma.deliveryOffer.update({
-            where: { id: activeOffer.id },
+          // Mark offer as accepted atomically
+          const result = await this.prisma.deliveryOffer.updateMany({
+            where: { id: activeOffer.id, status: 'PENDING' },
             data: { status: 'ACCEPTED' }
           });
+          
+          if (result.count === 0) {
+            throw new ConflictException('This offer is no longer available.');
+          }
         }
       }
 

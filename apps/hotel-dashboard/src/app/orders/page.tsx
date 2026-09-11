@@ -208,6 +208,7 @@ export default function HotelOrdersPage() {
             driverPhone: driverObj?.user?.phone,
             cancellationReason: o.cancellationReason,
             rejectionReason: o.rejectionReason,
+            deliveryOffers: o.deliveryOffers || [],
             items: itemsArr,
           };
         });
@@ -550,6 +551,38 @@ export default function HotelOrdersPage() {
         );
     }
   };
+  const renderAssignRiderSection = (o: OrderRecord) => {
+    if (!['ACCEPTED', 'PREPARING'].includes(o.status)) return null;
+
+    const pendingOffer = o.deliveryOffers?.find((offer) => offer.status === 'PENDING');
+    const latestRejectedOrExpired = o.deliveryOffers
+      ?.filter((offer) => ['REJECTED', 'EXPIRED'].includes(offer.status))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+    if (pendingOffer) {
+      return (
+        <div className="w-full rounded-2xl bg-purple-50 border border-purple-200 py-3 px-4 text-xs font-black text-purple-700 shadow-sm flex items-center justify-center gap-2 min-h-[44px] animate-pulse">
+          <Clock className="h-4 w-4" /> Waiting for rider response...
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 w-full">
+        {latestRejectedOrExpired && (
+          <div className="text-[10px] font-bold text-rose-600 text-center uppercase tracking-wider">
+            {latestRejectedOrExpired.status === 'REJECTED' ? 'Rider Rejected' : 'Offer Expired'}
+          </div>
+        )}
+        <button
+          onClick={() => handleOpenAssignRiderModal(o)}
+          className="w-full rounded-2xl bg-purple-600 py-3 px-4 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
+        >
+          <UserCheck className="h-4 w-4" /> {latestRejectedOrExpired ? 'ASSIGN ANOTHER RIDER' : 'SELECT & ASSIGN RIDER'}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -723,14 +756,7 @@ export default function HotelOrdersPage() {
                   </button>
                 )}
 
-                {['ACCEPTED', 'PREPARING'].includes(o.status) && (
-                  <button
-                    onClick={() => handleOpenAssignRiderModal(o)}
-                    className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
-                  >
-                    <UserCheck className="h-4 w-4" /> SELECT &amp; ASSIGN RIDER
-                  </button>
-                )}
+                {renderAssignRiderSection(o)}
               </div>
             </div>
           ))
@@ -841,14 +867,9 @@ export default function HotelOrdersPage() {
                         )}
 
                         {/* SELECT & ASSIGN RIDER ACTION */}
-                        {['ACCEPTED', 'PREPARING'].includes(o.status) && (
-                          <button
-                            onClick={() => handleOpenAssignRiderModal(o)}
-                            className="rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700 flex items-center gap-1 shrink-0"
-                          >
-                            <UserCheck className="h-3.5 w-3.5" /> SELECT RIDER
-                          </button>
-                        )}
+                        <div className="min-w-[200px] shrink-0">
+                          {renderAssignRiderSection(o)}
+                        </div>
 
                         {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(o.status) && (
                           <button
