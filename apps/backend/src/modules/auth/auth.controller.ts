@@ -191,23 +191,6 @@ export class AuthController {
     const ua = req.headers['user-agent'];
     return this.authService.adminTwoPasswordLogin(dto, ip, ua);
   }
-
-  @Public()
-  @Post('admin/login/verify-otp')
-  @HttpCode(HttpStatus.OK)
-  async adminLoginVerifyOtp(@Body() dto: any, @Req() req: Request) {
-    const ip = req.ip || req.socket.remoteAddress;
-    const ua = req.headers['user-agent'];
-    return this.authService.adminTwoPasswordVerifyOtp(dto, ip, ua);
-  }
-
-  @Public()
-  @Post('admin/login/resend-otp')
-  @HttpCode(HttpStatus.OK)
-  async adminLoginResendOtp(@Body() dto: any) {
-    return this.authService.adminTwoPasswordResendOtp(dto);
-  }
-
   @Public()
   @Post('admin/verify-security-questions')
   @HttpCode(HttpStatus.OK)
