@@ -68,57 +68,12 @@ export default function AdminLoginPage() {
         throw new Error(msg);
       }
       
-      setPreAuthToken(data.preAuthToken);
-      setMaskedPhone(data.maskedPhone || 'your registered number');
-      setMode('OTP');
-      startResendTimer();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    
-    try {
-      const res = await fetch(`${API_BASE}/auth/admin/login/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${preAuthToken}` },
-        body: JSON.stringify({ preAuthToken, otp }),
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || 'Invalid OTP');
-      }
-      
       setAuth(data.user, data.tokens.accessToken, data.tokens.refreshToken);
       router.push('/');
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE}/auth/admin/login/resend-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preAuthToken }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to resend OTP');
-      startResendTimer();
-    } catch (err: any) {
-      setError(err.message);
     }
   };
 
