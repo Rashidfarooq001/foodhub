@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -144,7 +146,7 @@ export default function CartPage() {
                         </p>
                       )}
                       <p className="text-xs font-black text-gray-900 mt-0.5">
-                        ₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}
+                        {formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.price * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -199,7 +201,7 @@ export default function CartPage() {
 
             <div className="border-t border-gray-200 pt-2.5 flex justify-between items-center text-sm font-black text-gray-900">
               <span>To Pay</span>
-              <span className="text-orange-600 text-base">₹{grandTotal}</span>
+              <span className="text-orange-600 text-base">{formatCurrency(grandTotal)}</span>
             </div>
           </div>
         </div>
@@ -209,7 +211,7 @@ export default function CartPage() {
           <div className="mx-auto max-w-2xl flex items-center justify-between gap-4">
             <div>
               <span className="text-[11px] font-semibold text-gray-500 block">Total</span>
-              <span className="text-lg font-black text-gray-900">₹{grandTotal}</span>
+              <span className="text-lg font-black text-gray-900">{formatCurrency(grandTotal)}</span>
             </div>
 
             <button

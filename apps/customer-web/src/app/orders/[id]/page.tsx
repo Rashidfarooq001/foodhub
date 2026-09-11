@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -331,7 +333,7 @@ export default function OrderDetailsPage() {
                   <span className="uppercase font-black text-emerald-700">
                     {order.refund.isProcessed ? 'REFUNDED' : 'PROCESSING'}
                   </span>{' '}
-                  (₹{Number(order.refund.amount)})
+                  ({formatCurrency(Number(order.refund.amount))})
                 </p>
               )}
             </div>
@@ -376,11 +378,11 @@ export default function OrderDetailsPage() {
                         {item.foodItem?.name || item.name || 'Food Item'}
                       </p>
                       <p className="text-[10px] text-gray-500">
-                        Qty: {item.quantity} × ₹{Number(item.unitPrice)}
+                        Qty: {item.quantity} × {formatCurrency(Number(item.unitPrice))}
                       </p>
                     </div>
                     <span className="font-black text-gray-900">
-                      ₹{Number(item.totalPrice).toFixed(2)}
+                      {formatCurrency(Number(item.totalPrice))}
                     </span>
                   </div>
                 ))}
@@ -437,34 +439,34 @@ export default function OrderDetailsPage() {
                 <div className="flex justify-between text-gray-600">
                   <span>Item Subtotal</span>
                   <span className="font-bold text-gray-900">
-                    ₹{Number(order.subtotal).toFixed(2)}
+                    {formatCurrency(Number(order.subtotal))}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery Fee</span>
                   <span className="font-bold text-gray-900">
-                    ₹{Number(order.deliveryFee || 0).toFixed(2)}
+                    {formatCurrency(Number(order.deliveryFee || 0))}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Taxes (GST 5%)</span>
                   <span className="font-bold text-gray-900">
-                    ₹{Number(order.taxAmount || 0).toFixed(2)}
+                    {formatCurrency(Number(order.taxAmount || 0))}
                   </span>
                 </div>
 
                 {Number(order.discountAmount) > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
                     <span>Discount</span>
-                    <span>-₹{Number(order.discountAmount).toFixed(2)}</span>
+                    <span>-{formatCurrency(Number(order.discountAmount))}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-base font-black text-gray-900 border-t border-gray-100 pt-3">
                   <span>Grand Total</span>
-                  <span className="text-orange-600">₹{Number(order.totalAmount).toFixed(2)}</span>
+                  <span className="text-orange-600">{formatCurrency(Number(order.totalAmount))}</span>
                 </div>
               </div>
 
@@ -556,13 +558,13 @@ export default function OrderDetailsPage() {
                     <span>
                       {i.quantity}x {i.foodItem?.name || i.name}
                     </span>
-                    <span>₹{Number(i.totalPrice).toFixed(2)}</span>
+                    <span>{formatCurrency(Number(i.totalPrice))}</span>
                   </div>
                 ))}
                 <hr />
                 <div className="flex justify-between font-bold">
                   <span>Grand Total</span>
-                  <span>₹{Number(order.totalAmount).toFixed(2)}</span>
+                  <span>{formatCurrency(Number(order.totalAmount))}</span>
                 </div>
                 <p>
                   Payment: {order.paymentMethod} ({order.paymentStatus})

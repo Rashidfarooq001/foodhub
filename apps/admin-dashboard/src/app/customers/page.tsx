@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import {
   Users,
@@ -248,7 +250,7 @@ export default function AdminCustomersPage() {
                         Total Spent
                       </span>
                       <span className="font-black text-purple-700">
-                        ₹{c.totalSpent.toLocaleString()}
+                        {formatCurrency(Number(c.totalSpent))}
                       </span>
                     </div>
                   </div>
@@ -317,7 +319,7 @@ export default function AdminCustomersPage() {
                       <td className="py-3 text-gray-500">{c.email || '-'}</td>
                       <td className="py-3 font-bold text-gray-800">{c.totalOrders}</td>
                       <td className="py-3 font-black text-purple-700">
-                        ₹{c.totalSpent.toLocaleString()}
+                        {formatCurrency(Number(c.totalSpent))}
                       </td>
                       <td className="py-3">
                         <span

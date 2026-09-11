@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Store, MapPin, Calendar, Loader2, PackageCheck } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -104,7 +106,7 @@ export default function DeliveryOrdersPage() {
                 </div>
 
                 <div className="flex justify-between items-center border-t border-gray-100 pt-2 text-xs">
-                  <span className="font-black text-emerald-700">Earnings: ?{h.riderPayout}</span>
+                  <span className="font-black text-emerald-700">Earnings: {formatCurrency(h.riderPayout)}</span>
                   <span className="text-[10px] text-gray-400 font-medium">
                     {h.deliveredAt ? new Date(h.deliveredAt).toLocaleDateString() : 'Delivered'}
                   </span>
@@ -135,7 +137,7 @@ export default function DeliveryOrdersPage() {
                       <td className="px-6 py-4 text-gray-500">
                         {h.distanceKm ? `${h.distanceKm} km` : '—'}
                       </td>
-                      <td className="px-6 py-4 font-black text-emerald-700">?{h.riderPayout}</td>
+                      <td className="px-6 py-4 font-black text-emerald-700">{formatCurrency(h.riderPayout)}</td>
                       <td className="px-6 py-4 text-gray-500">
                         {h.deliveredAt ? new Date(h.deliveredAt).toLocaleString() : '—'}
                       </td>

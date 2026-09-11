@@ -1,0 +1,148 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  Query
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { DriversService } from './drivers.service';
+import { CreateDriverDto } from './dto/create-driver.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { VehicleType } from '@prisma/client';
+
+/**
+ * VEHICLE TYPES CONFIG:
+ * Sourced from the Prisma VehicleType enum — the database schema is the source
+ * of truth for which vehicle types are supported. Frontends MUST call
+ * GET /api/v1/drivers/vehicle-types to populate their dropdowns.
+ * Never hardcode vehicle type lists in React components.
+ */
+const VEHICLE_TYPE_CONFIG: Array<{ code: VehicleType; name: string }> = [
+  { code: VehicleType.MOTORCYCLE, name: 'Motorcycle / Bike' },
+  { code: VehicleType.SCOOTER, name: 'Scooter' },
+  { code: VehicleType.EV_SCOOTER, name: 'Electric Scooter (EV)' },
+  { code: VehicleType.BICYCLE, name: 'Bicycle' },
+];
+
+@ApiTags('Delivery Drivers & Onboarding')
+@Controller('drivers')
+export class DriversController {
+  constructor(private readonly driversService: DriversService) {}
+
+  /**
+   * Returns the list of active vehicle types supported by FoodHub.
+   * Frontends MUST use this endpoint to populate vehicle type dropdowns.
+   * Source of truth: Prisma VehicleType enum (schema.prisma).
+   */
+  @Get('vehicle-types')
+  @ApiOperation({ summary: 'Get supported vehicle types for registration forms' })
+  getVehicleTypes() {
+    return VEHICLE_TYPE_CONFIG;
+  }
+
+  @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Super Admin direct driver creation' })
+  async createByAdmin(@Body() dto: CreateDriverDto) {
+    return this.driversService.createDriver(dto, true);
+  }
+
+  @Post('apply')
+  @ApiOperation({ summary: 'Delivery partner self-registration application' })
+  async selfRegister(@Body() dto: CreateDriverDto) {
+    return this.driversService.createDriver(dto, false);
+  }
+
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List all registered drivers (Admin Only)' })
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.driversService.findAllDrivers(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+      search,
+      status,
+    );
+  }
+
+  @Get('applications')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List pending driver onboarding applications (Admin Only)' })
+  async findApplications() {
+    return this.driversService.findPendingApplications();
+  }
+
+  
+  @Get(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Get delivery partner details by ID (Admin Only)' })
+  async findOne(@Param('id') id: string) {
+    return this.driversService.findOneDriver(id);
+  }
+
+  @Patch(':id/approval')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Approve or Reject/Suspend driver onboarding application' })
+  async updateApproval(
+    @Param('id') id: string,
+    @Body('isApproved') isApproved: boolean,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
+  ) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.updateApprovalStatus(id, isApproved, reason, adminUserId);
+  }
+
+  @Patch(':id/suspend')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Suspend a delivery partner (Super Admin Only)' })
+  async suspendDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.suspendDriver(id, adminUserId);
+  }
+
+  @Patch(':id/reactivate')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Reactivate a suspended delivery partner (Super Admin Only)' })
+  async reactivateDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.reactivateDriver(id, adminUserId);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a delivery partner (Super Admin Only)' })
+  async permanentlyDeleteDriver(@Param('id') id: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.driversService.permanentlyDeleteDriver(id, adminUserId);
+  }
+}

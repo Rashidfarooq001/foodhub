@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, Star } from 'lucide-react';
@@ -153,7 +155,7 @@ export const FoodCard: React.FC<Props> = ({ food, onCustomize, restaurantClosed 
         {/* Price & Action Row */}
         <div className="mt-2 flex items-center justify-between gap-1">
           <div className="flex flex-col">
-            <span className="text-xs sm:text-sm font-black text-gray-900">₹{displayPrice}</span>
+            <span className="text-xs sm:text-sm font-black text-gray-900">{formatCurrency(displayPrice)}</span>
             {isCustomizable && (
               <span className="text-[9px] font-bold text-rose-500 uppercase tracking-tight">
                 Customise

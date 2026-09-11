@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
@@ -133,7 +135,7 @@ export default function RestaurantAnalyticsPage() {
             <DollarSign className="h-6 w-6 rounded-xl bg-orange-50 p-1.5 text-orange-600" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
-            ₹{activeRevenue.toLocaleString('en-IN')}
+            {formatCurrency(Number(activeRevenue))}
           </div>
           <span className="text-[10px] text-gray-400 font-semibold block truncate">
             Period gross sales
@@ -163,7 +165,7 @@ export default function RestaurantAnalyticsPage() {
             <TrendingUp className="h-6 w-6 rounded-xl bg-emerald-100 p-1.5 text-emerald-700" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
-            ₹{(stats?.todayRevenue ?? 0).toLocaleString('en-IN')}
+            {formatCurrency(stats?.todayRevenue ?? 0)}
           </div>
           <span className="text-[10px] text-emerald-700 font-bold block truncate">
             {stats?.todayOrders ?? 0} today orders

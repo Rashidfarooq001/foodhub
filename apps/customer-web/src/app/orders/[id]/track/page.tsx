@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
@@ -392,7 +394,7 @@ export default function LiveOrderTrackingPage() {
                     {item.quantity}x {item.foodItem?.name || item.name}
                   </span>
                   <span className="font-bold text-gray-900">
-                    ₹{Number(item.totalPrice).toFixed(2)}
+                    {formatCurrency(Number(item.totalPrice))}
                   </span>
                 </div>
               ))}

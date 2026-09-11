@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAdminAuthStore } from '@/stores/use-admin-auth-store';
@@ -94,17 +96,17 @@ export default function InvoicePage() {
                   <tr className="flex justify-between py-2">
                     <td className="text-gray-500">Food Subtotal</td>
                     <td className="font-bold text-gray-900">
-                      ₹{customerInvoice.foodSubtotal.toFixed(2)}
+                      {formatCurrency(Number(customerInvoice.foodSubtotal))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-2">
                     <td className="text-gray-500">Taxes</td>
-                    <td className="font-bold text-gray-900">₹{customerInvoice.taxes.toFixed(2)}</td>
+                    <td className="font-bold text-gray-900">{formatCurrency(Number(customerInvoice.taxes))}</td>
                   </tr>
                   <tr className="flex justify-between py-2">
                     <td className="text-gray-500">Delivery Fee</td>
                     <td className="font-bold text-gray-900">
-                      ₹{customerInvoice.deliveryFee.toFixed(2)}
+                      {formatCurrency(Number(customerInvoice.deliveryFee))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-2">
@@ -115,13 +117,13 @@ export default function InvoicePage() {
                       </span>
                     </td>
                     <td className="font-bold text-blue-700">
-                      ₹{customerInvoice.platformFee.toFixed(2)}
+                      {formatCurrency(Number(customerInvoice.platformFee))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-3 mt-2 border-t-2 border-gray-100">
                     <td className="font-black text-gray-900 uppercase">Total Paid</td>
                     <td className="font-black text-xl text-gray-900">
-                      ₹{customerInvoice.totalPaid.toFixed(2)}
+                      {formatCurrency(Number(customerInvoice.totalPaid))}
                     </td>
                   </tr>
                 </tbody>
@@ -150,7 +152,7 @@ export default function InvoicePage() {
                   <tr className="flex justify-between py-2">
                     <td className="text-gray-900 font-bold">Gross Eligible Sales</td>
                     <td className="font-black text-gray-900">
-                      ₹{restaurantStatement.grossSales.toFixed(2)}
+                      {formatCurrency(Number(restaurantStatement.grossSales))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-2">
@@ -158,13 +160,13 @@ export default function InvoicePage() {
                       Commission ({restaurantStatement.commissionRate}%)
                     </td>
                     <td className="font-bold text-red-600">
-                      -₹{restaurantStatement.commissionDeduction.toFixed(2)}
+                      -{formatCurrency(Number(restaurantStatement.commissionDeduction))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-2">
                     <td className="text-gray-500">GST on Commission (18%)</td>
                     <td className="font-bold text-red-600">
-                      -₹{restaurantStatement.commissionGstDeduction.toFixed(2)}
+                      -{formatCurrency(Number(restaurantStatement.commissionGstDeduction))}
                     </td>
                   </tr>
                   <tr className="flex justify-between py-2">
@@ -174,7 +176,7 @@ export default function InvoicePage() {
                   <tr className="flex justify-between py-3 mt-2 border-t-2 border-gray-100 bg-emerald-50/50 -mx-6 px-6">
                     <td className="font-black text-emerald-900 uppercase">Net Payable</td>
                     <td className="font-black text-xl text-emerald-700">
-                      ₹{restaurantStatement.netPayable.toFixed(2)}
+                      {formatCurrency(Number(restaurantStatement.netPayable))}
                     </td>
                   </tr>
                 </tbody>
@@ -210,10 +212,10 @@ export default function InvoicePage() {
                       {item.quantity}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-500">
-                      ₹{item.unitPrice.toFixed(2)}
+                      {formatCurrency(Number(item.unitPrice))}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900">
-                      ₹{item.totalPrice.toFixed(2)}
+                      {formatCurrency(Number(item.totalPrice))}
                     </td>
                   </tr>
                 ))}

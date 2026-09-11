@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { adminFetch } from '../../utils/admin-fetch';
 import {
@@ -176,7 +178,7 @@ export default function AdminAnalyticsPage() {
             <DollarSign className="h-6 w-6 rounded-xl bg-purple-50 p-1.5 text-purple-600" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-gray-900">
-            ₹{kpis.todayRevenue.toLocaleString('en-IN')}
+            {formatCurrency(Number(kpis.todayRevenue))}
           </div>
           <span className="text-[10px] text-gray-400 font-semibold block truncate">
             Today gross sales
@@ -206,7 +208,7 @@ export default function AdminAnalyticsPage() {
             <TrendingUp className="h-6 w-6 rounded-xl bg-emerald-100 p-1.5 text-emerald-700" />
           </div>
           <div className="text-lg sm:text-2xl font-black text-emerald-900">
-            ₹{kpis.platformCommission.toLocaleString('en-IN')}
+            {formatCurrency(Number(kpis.platformCommission))}
           </div>
           <span className="text-[10px] text-emerald-700 font-bold block truncate">
             Net take-rate income
@@ -252,7 +254,7 @@ export default function AdminAnalyticsPage() {
               Gross Collections
             </span>
             <span className="text-base sm:text-lg font-black text-gray-900">
-              ₹{kpis.periodRevenue.toLocaleString('en-IN')}
+              {formatCurrency(Number(kpis.periodRevenue))}
             </span>
           </div>
 
@@ -261,7 +263,7 @@ export default function AdminAnalyticsPage() {
               Statutory GST
             </span>
             <span className="text-base sm:text-lg font-black text-teal-800">
-              ₹{kpis.statutoryGst.toLocaleString('en-IN')}
+              {formatCurrency(Number(kpis.statutoryGst))}
             </span>
           </div>
 
@@ -270,7 +272,7 @@ export default function AdminAnalyticsPage() {
               Net Revenue
             </span>
             <span className="text-base sm:text-lg font-black text-purple-900">
-              ₹{kpis.foodhubNetRevenue.toLocaleString('en-IN')}
+              {formatCurrency(Number(kpis.foodhubNetRevenue))}
             </span>
           </div>
 
@@ -279,7 +281,7 @@ export default function AdminAnalyticsPage() {
               Contribution Margin
             </span>
             <span className="text-base sm:text-lg font-black text-emerald-800">
-              ₹{kpis.platformContributionMargin.toLocaleString('en-IN')}
+              {formatCurrency(Number(kpis.platformContributionMargin))}
             </span>
           </div>
         </div>
@@ -378,7 +380,7 @@ export default function AdminAnalyticsPage() {
                   <span className="text-gray-700 truncate">{cat.name}</span>
                 </div>
                 <span className="text-gray-900 font-bold">
-                  ₹{cat.value.toLocaleString('en-IN')}
+                  {formatCurrency(Number(cat.value))}
                 </span>
               </div>
             ))}

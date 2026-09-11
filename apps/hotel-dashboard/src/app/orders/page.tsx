@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
@@ -663,14 +665,14 @@ export default function HotelOrdersPage() {
                         </span>
                       )}
                     </span>
-                    <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(i.price * i.quantity)}</span>
                   </div>
                 ))}
               </div>
 
               <div className="flex items-center justify-between text-xs font-black text-gray-900 border-t border-gray-100 pt-3">
                 <span>
-                  Total: ₹{o.totalAmount} ({o.paymentMethod})
+                  Total: {formatCurrency(o.totalAmount)} ({o.paymentMethod})
                 </span>
                 <button
                   onClick={() => setSelectedOrder(o)}
@@ -788,7 +790,7 @@ export default function HotelOrdersPage() {
                       ))}
                     </td>
                     <td className="px-6 py-4 font-black text-gray-900">
-                      ₹{o.totalAmount}
+                      {formatCurrency(o.totalAmount)}
                       <span className="block text-[10px] font-bold text-gray-400 uppercase">
                         {o.paymentMethod}
                       </span>
@@ -1158,7 +1160,7 @@ export default function HotelOrdersPage() {
                         </p>
                       )}
                     </div>
-                    <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(i.price * i.quantity)}</span>
                   </div>
                 ))}
               </div>
@@ -1167,19 +1169,19 @@ export default function HotelOrdersPage() {
             <div className="space-y-1.5 text-xs border-t border-gray-100 pt-4">
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Subtotal</span>
-                <span>₹{selectedOrder.subtotal}</span>
+                <span>{formatCurrency(selectedOrder.subtotal)}</span>
               </div>
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Delivery Fee</span>
-                <span>₹{selectedOrder.deliveryFee}</span>
+                <span>{formatCurrency(selectedOrder.deliveryFee)}</span>
               </div>
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Taxes &amp; Fees</span>
-                <span>₹{selectedOrder.taxAmount}</span>
+                <span>{formatCurrency(selectedOrder.taxAmount)}</span>
               </div>
               <div className="flex justify-between text-sm font-black text-gray-900 pt-2 border-t border-gray-100">
                 <span>Total Amount ({selectedOrder.paymentMethod})</span>
-                <span className="text-orange-600">₹{selectedOrder.totalAmount}</span>
+                <span className="text-orange-600">{formatCurrency(selectedOrder.totalAmount)}</span>
               </div>
             </div>
           </div>

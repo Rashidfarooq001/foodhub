@@ -1,0 +1,151 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { UsersService } from './users.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
+
+@ApiTags('Users & Addresses')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller()
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get('users/customers')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List and filter all registered customers with metrics (Admin Only)' })
+  async findCustomers(
+    @Query('search') search?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.usersService.getCustomersForAdmin(search, +page, +limit);
+  }
+
+  @Get('users')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'List and filter all registered users in system (Admin Only)' })
+  async findAllUsers(
+    @Query('role') role?: string,
+    @Query('search') search?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.usersService.findAllUsersForAdmin(role, search, +page, +limit);
+  }
+
+  @Patch('users/:id/status')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Activate or deactivate/suspend a user account (Admin Only)' })
+  async updateUserStatus(
+    @Param('id') userId: string,
+    @Body('isActive') isActive: boolean,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
+  ) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.updateUserStatusByAdmin(userId, isActive, reason, adminUserId);
+  }
+
+  // --- SUPERADMIN CUSTOMER MANAGEMENT ---
+
+  @Patch('users/customers/:id/suspend')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Suspend a customer (SuperAdmin Only)' })
+  async suspendCustomer(
+    @Param('id') customerId: string,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
+  ) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.suspendCustomer(customerId, reason, adminUserId);
+  }
+
+  @Patch('users/customers/:id/reactivate')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Reactivate a customer (SuperAdmin Only)' })
+  async reactivateCustomer(@Param('id') customerId: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.reactivateCustomer(customerId, adminUserId);
+  }
+
+  @Delete('users/customers/:id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a customer (SuperAdmin Only)' })
+  async permanentlyDeleteCustomer(@Param('id') customerId: string, @Request() req?: any) {
+    const adminUserId = req?.user?.id || req?.user?.sub;
+    return this.usersService.permanentlyDeleteCustomer(customerId, adminUserId);
+  }
+
+  @Get('addresses')
+  @ApiOperation({ summary: 'List customer saved delivery addresses' })
+  async getAddresses(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.getCustomerAddresses(userId);
+  }
+
+  @Post('addresses')
+  @ApiOperation({ summary: 'Add a new saved delivery address' })
+  async createAddress(@Request() req: any, @Body() dto: CreateAddressDto) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.createCustomerAddress(userId, dto);
+  }
+
+  @Patch('addresses/:id')
+  @ApiOperation({ summary: 'Update an existing saved delivery address' })
+  async updateAddress(
+    @Request() req: any,
+    @Param('id') addressId: string,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.updateCustomerAddress(userId, addressId, dto);
+  }
+
+  @Delete('addresses/:id')
+  @ApiOperation({ summary: 'Delete a saved delivery address' })
+  async deleteAddress(@Request() req: any, @Param('id') addressId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.deleteCustomerAddress(userId, addressId);
+  }
+
+  @Get('users/favorites/restaurants')
+  @ApiOperation({ summary: 'List customer favorite restaurant IDs' })
+  async getFavorites(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.getFavoriteRestaurants(userId);
+  }
+
+  @Post('users/favorites/restaurants/:restaurantId')
+  @ApiOperation({ summary: 'Add restaurant to favorites' })
+  async addFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.addFavoriteRestaurant(userId, restaurantId);
+  }
+
+  @Delete('users/favorites/restaurants/:restaurantId')
+  @ApiOperation({ summary: 'Remove restaurant from favorites' })
+  async removeFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.removeFavoriteRestaurant(userId, restaurantId);
+  }
+}

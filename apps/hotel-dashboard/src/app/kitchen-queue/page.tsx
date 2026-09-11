@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle2, AlertCircle, Utensils, Bike, RefreshCw, Volume2 } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -175,7 +177,7 @@ export default function KitchenQueuePage() {
 
           <div className="text-right">
             <span className="inline-block rounded-xl bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-800">
-              ₹{order.totalAmount || order.payableAmount || 0}
+              {formatCurrency(order.totalAmount || order.payableAmount || 0)}
             </span>
             <span className="block text-[9px] text-gray-400 font-semibold mt-0.5">
               {order.paymentStatus || 'PAID'}
@@ -197,7 +199,7 @@ export default function KitchenQueuePage() {
                 )}
               </div>
               <span className="font-semibold text-gray-500 shrink-0">
-                ₹{item.price || item.unitPrice || 0}
+                {formatCurrency(item.price || item.unitPrice || 0)}
               </span>
             </div>
           ))}

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { Package, AlertTriangle, CheckCircle2, ShieldAlert, Loader2, Power } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -143,7 +145,7 @@ export default function HotelInventoryPage() {
                 <tr key={item.id} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 font-bold text-gray-900">{item.name}</td>
                   <td className="px-6 py-4 text-gray-500">{item.category}</td>
-                  <td className="px-6 py-4 font-black text-gray-900">₹{item.price}</td>
+                  <td className="px-6 py-4 font-black text-gray-900">{formatCurrency(item.price)}</td>
                   <td className="px-6 py-4">
                     {item.isAvailable ? (
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-800 flex items-center gap-1 w-fit">

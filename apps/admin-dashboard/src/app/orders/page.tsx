@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { ADMIN_ORDER_FILTERS } from '@foodhub/types';
 import { Search, ShoppingBag, RefreshCw, Eye, Store, User, MapPin } from 'lucide-react';
@@ -239,7 +241,7 @@ export default function AdminOrdersPage() {
                       {o.createdAt ? new Date(o.createdAt).toLocaleTimeString() : 'Today'}
                     </span>
                     <span className="text-sm font-black text-gray-900">
-                      ₹{o.totalAmount || o.payableAmount || 0}
+                      {formatCurrency(o.totalAmount || o.payableAmount || 0)}
                     </span>
                   </div>
                 </div>
@@ -272,7 +274,7 @@ export default function AdminOrdersPage() {
                         {o.restaurant?.name || 'Restaurant'}
                       </td>
                       <td className="py-3 font-black text-gray-900">
-                        ₹{o.totalAmount || o.payableAmount || 0}
+                        {formatCurrency(o.totalAmount || o.payableAmount || 0)}
                       </td>
                       <td className="py-3">
                         <span

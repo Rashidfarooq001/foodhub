@@ -1,0 +1,13 @@
+﻿const https = require("https");
+const body = JSON.stringify({password1:"9999888877776666", password2:"88887777"});
+const req = https.request({
+  hostname:"api.zaykafood.online",
+  path:"/api/v1/auth/admin/login",
+  method:"POST",
+  headers:{"Content-Type":"application/json","Content-Length":Buffer.byteLength(body)}
+}, r=>{
+  let b="";
+  r.on("data",d=>b+=d);
+  r.on("end",()=>console.log(b));
+});
+req.end(body);

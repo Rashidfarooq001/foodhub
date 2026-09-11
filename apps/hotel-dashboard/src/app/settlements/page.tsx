@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
@@ -245,7 +247,7 @@ export default function MerchantSettlementsPage() {
                 GROSS FOOD SALES
               </span>
               <div className="text-lg sm:text-2xl font-black text-gray-900">
-                ₹{fin.grossSales.toLocaleString()}
+                {formatCurrency(Number(fin.grossSales))}
               </div>
               <span className="text-[10px] text-gray-500 block">
                 {fin.orderCount} Orders delivered
@@ -257,7 +259,7 @@ export default function MerchantSettlementsPage() {
                 COMMISSION
               </span>
               <div className="text-lg sm:text-2xl font-black text-orange-600">
-                -₹{fin.commissionAmount.toLocaleString()}
+                -{formatCurrency(Number(fin.commissionAmount))}
               </div>
               <span className="text-[10px] text-orange-700 font-semibold block">
                 Platform deduction
@@ -269,7 +271,7 @@ export default function MerchantSettlementsPage() {
                 NET PAYABLE
               </span>
               <div className="text-lg sm:text-2xl font-black text-emerald-900">
-                ₹{fin.netPayable.toLocaleString()}
+                {formatCurrency(Number(fin.netPayable))}
               </div>
               <span className="text-[10px] text-emerald-700 font-bold block">
                 Gross - Commission
@@ -339,7 +341,7 @@ export default function MerchantSettlementsPage() {
                         #{ord.orderNumber || ord.orderId.slice(0, 8)}
                       </span>
                       <span className="text-xs font-black text-emerald-700">
-                        Net: ₹{ord.netPayable}
+                        Net: {formatCurrency(ord.netPayable)}
                       </span>
                     </div>
 
@@ -376,13 +378,13 @@ export default function MerchantSettlementsPage() {
                         {new Date(ord.deliveredAt).toLocaleString()}
                       </td>
                       <td className="py-3 font-bold text-gray-900">
-                        ₹{Number(ord.totalAmount).toLocaleString()}
+                        {formatCurrency(Number(ord.totalAmount))}
                       </td>
                       <td className="py-3 text-orange-600 font-semibold">
-                        -₹{Number(ord.commissionAmount).toLocaleString()}
+                        -{formatCurrency(Number(ord.commissionAmount))}
                       </td>
                       <td className="py-3 font-black text-emerald-700 text-right">
-                        ₹{Number(ord.netPayable).toLocaleString()}
+                        {formatCurrency(Number(ord.netPayable))}
                       </td>
                     </tr>
                   ))}
@@ -425,7 +427,7 @@ export default function MerchantSettlementsPage() {
                           Gross Sales
                         </span>
                         <span className="font-bold text-gray-900">
-                          ₹{h.grossAmount.toLocaleString()}
+                          {formatCurrency(Number(h.grossAmount))}
                         </span>
                       </div>
                       <div>
@@ -433,7 +435,7 @@ export default function MerchantSettlementsPage() {
                           Net Payout
                         </span>
                         <span className="font-black text-emerald-800">
-                          ₹{h.netPayable.toLocaleString()}
+                          {formatCurrency(Number(h.netPayable))}
                         </span>
                       </div>
                     </div>
@@ -470,13 +472,13 @@ export default function MerchantSettlementsPage() {
                         </td>
                         <td className="py-3 text-gray-600">{h.orderCount}</td>
                         <td className="py-3 font-bold text-gray-900">
-                          ₹{h.grossAmount.toLocaleString()}
+                          {formatCurrency(Number(h.grossAmount))}
                         </td>
                         <td className="py-3 text-orange-600 font-semibold">
-                          -₹{h.commissionAmount.toLocaleString()}
+                          -{formatCurrency(Number(h.commissionAmount))}
                         </td>
                         <td className="py-3 font-black text-emerald-700">
-                          ₹{h.netPayable.toLocaleString()}
+                          {formatCurrency(Number(h.netPayable))}
                         </td>
                         <td className="py-3">{getStatusPill(h.status)}</td>
                         <td className="py-3 font-mono text-gray-500 text-right">

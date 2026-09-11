@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { getApiBaseUrl } from '@foodhub/config';
 import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
@@ -101,7 +103,7 @@ export default function ActiveJobCard({ job: currentJob, onReload }: { job: any,
           </div>
         </div>
         <div className="flex justify-between text-xs font-bold pt-2">
-          <span>Payout: ₹{currentJob.riderPayout || currentJob.estimatedEarnings || currentJob.deliveryFee || 65}</span>
+          <span>Payout: {formatCurrency(currentJob.riderPayout || currentJob.estimatedEarnings || currentJob.deliveryFee || 65)}</span>
           <span className="text-gray-500">{currentJob.distanceKm ? `${currentJob.distanceKm.toFixed(1)} km` : 'Calculating...'}</span>
         </div>
       </div>

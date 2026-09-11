@@ -1,0 +1,1295 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PrismaService } from '../database/prisma.service';
+import { OrderLifecycleService } from '../orders/order-lifecycle.service';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { ORDER_EVENTS } from '../orders/orders.events';
+import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
+
+@ApiTags('Delivery Jobs Lifecycle')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('delivery')
+export class DeliveryJobsController {
+  private readonly logger = new Logger(DeliveryJobsController.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lifecycleService: OrderLifecycleService,
+    private readonly ordersGateway: OrdersGateway,
+  ) {}
+
+  private async getDriverFromReq(req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) return null;
+
+    const role = (req.user?.role || '').toUpperCase();
+    if (role !== 'DELIVERY_PARTNER' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    try {
+      return await this.prisma.driver.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          isApproved: true,
+          currentLat: true,
+          currentLng: true,
+          avgRating: true,
+          user: { select: { id: true, isActive: true, phone: true, profile: true } },
+          vehicles: true,
+          deliveryJobs: {
+            select: {
+              id: true,
+              orderId: true,
+              status: true,
+              order: { select: { id: true, orderNumber: true, status: true } },
+            },
+          },
+        },
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `getDriverFromReq failed for userId ${userId}: ${err?.message}`,
+        err?.stack,
+      );
+      throw err;
+    }
+  }
+
+  @Get('me/status')
+  @ApiOperation({ summary: 'Get current authenticated driver availability and presence status' })
+  async getMyStatus(@Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const activeJobs = (driver.deliveryJobs || []).filter((j) =>
+        [
+          DeliveryJobStatus.ASSIGNED as string,
+          DeliveryJobStatus.ARRIVED as string,
+          DeliveryJobStatus.PICKED_UP as string,
+        ].includes(j.status as string),
+      );
+
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
+
+      let operationalStatus = 'ONLINE_AVAILABLE';
+      let unavailabilityReason: string | null = null;
+
+      if (!driver.user?.isActive) {
+        operationalStatus = 'SUSPENDED';
+        unavailabilityReason = 'User account suspended';
+      } else if (!driver.isApproved) {
+        operationalStatus = 'PENDING_APPROVAL';
+        unavailabilityReason = 'Pending admin approval';
+      } else if (driver.status === DriverStatus.OFFLINE) {
+        operationalStatus = 'OFFLINE';
+        unavailabilityReason = 'Rider is currently offline';
+      } else if (activeJobs.length >= maxActiveOrders) {
+        operationalStatus = 'BUSY';
+        unavailabilityReason = `Rider has reached max capacity (${maxActiveOrders} active orders)`;
+      }
+
+      return {
+        driverId: driver.id,
+        userId: driver.userId,
+        operationalStatus,
+        dutyStatus: driver.status === DriverStatus.ONLINE ? 'ONLINE' : 'OFFLINE',
+        isAvailable:
+          operationalStatus === 'ONLINE_AVAILABLE' ||
+          (operationalStatus !== 'SUSPENDED' &&
+            operationalStatus !== 'PENDING_APPROVAL' &&
+            operationalStatus !== 'OFFLINE' &&
+            operationalStatus !== 'BUSY'),
+        unavailabilityReason,
+        isApproved: driver.isApproved,
+        activeOrderCount: activeJobs.length,
+        activeDeliveries: activeJobs.map((j) => ({
+          jobId: j.id,
+          orderId: j.orderId,
+          orderNumber: j.order?.orderNumber,
+          status: j.status,
+        })),
+        // Legacy field — first active job for backwards compat
+        activeDelivery:
+          activeJobs.length > 0
+            ? {
+                jobId: activeJobs[0].id,
+                orderId: activeJobs[0].orderId,
+                orderNumber: activeJobs[0].order?.orderNumber,
+                status: activeJobs[0].status,
+              }
+            : null,
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`getMyStatus failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to fetch driver status',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('me/go-online')
+  @ApiOperation({ summary: 'Delivery partner enables availability (Goes ONLINE)' })
+  async goOnline(@Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      if (!driver.user?.isActive) {
+        throw new BadRequestException('Cannot go online. Account is suspended or inactive.');
+      }
+
+      if (!driver.isApproved) {
+        throw new BadRequestException('Cannot go online. Account is pending admin approval.');
+      }
+
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.ONLINE,
+        },
+      });
+
+      this.logger.log(
+        `[PRESENCE] driver=${driver.id.slice(0, 8)} action=ONLINE databaseStatus=ONLINE socketBroadcast=true`,
+      );
+
+      this.ordersGateway.emitToAdmin(ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+        timestamp: new Date().toISOString(),
+      });
+
+      this.ordersGateway.emitToDriver(driver.id, ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        message: 'You are now online and available for deliveries',
+        dutyStatus: 'ONLINE',
+        operationalStatus: 'ONLINE_AVAILABLE',
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`goOnline failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to go online',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('me/go-offline')
+  @ApiOperation({ summary: 'Delivery partner disables availability (Goes OFFLINE)' })
+  async goOffline(@Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const activeJob = (driver.deliveryJobs || []).find((j) =>
+        [
+          DeliveryJobStatus.ASSIGNED as string,
+          DeliveryJobStatus.ARRIVED as string,
+          DeliveryJobStatus.PICKED_UP as string,
+        ].includes(j.status as string),
+      );
+
+      if (activeJob) {
+        throw new BadRequestException(
+          'You have an active delivery. Complete the delivery before going offline.',
+        );
+      }
+
+      await this.prisma.driver.update({
+        where: { id: driver.id },
+        data: {
+          status: DriverStatus.OFFLINE,
+        },
+      });
+
+      this.logger.log(
+        `[PRESENCE] driver=${driver.id.slice(0, 8)} action=OFFLINE databaseStatus=OFFLINE socketBroadcast=true`,
+      );
+
+      this.ordersGateway.emitToAdmin(ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+        timestamp: new Date().toISOString(),
+      });
+
+      this.ordersGateway.emitToDriver(driver.id, ORDER_EVENTS.DRIVER_STATUS_CHANGED, {
+        driverId: driver.id,
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        message: 'You are now offline',
+        dutyStatus: 'OFFLINE',
+        operationalStatus: 'OFFLINE',
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`goOffline failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to go offline',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('me/heartbeat')
+  @ApiOperation({ summary: 'Delivery partner presence heartbeat & live GPS ping' })
+  async heartbeat(@Body('lat') lat?: number, @Body('lng') lng?: number, @Request() req?: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      if (lat && lng) {
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE drivers SET current_lat = $1, current_lng = $2, last_seen_at = NOW() WHERE id = $3::uuid`,
+          lat,
+          lng,
+          driver.id,
+        );
+      } else {
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE drivers SET last_seen_at = NOW() WHERE id = $1::uuid`,
+          driver.id,
+        );
+      }
+
+      return {
+        status: 'OK',
+        timestamp: new Date(),
+      };
+    } catch (err: any) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) throw err;
+      this.logger.error(`heartbeat failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Heartbeat failed',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Patch('me/status')
+  @ApiOperation({ summary: 'Update rider presence status (ONLINE or OFFLINE)' })
+  async updateMyStatus(@Body('status') status: string, @Request() req: any) {
+    if (status === 'ONLINE') return this.goOnline(req);
+    if (status === 'OFFLINE') return this.goOffline(req);
+    throw new BadRequestException('Invalid status value. Use "ONLINE" or "OFFLINE".');
+  }
+
+  @Get('jobs/available')
+  @ApiOperation({ summary: 'Get available delivery jobs for orders ready for pickup' })
+  async getAvailableJobs(@Request() req: any) {
+    const role = (req.user?.role || '').toUpperCase();
+    if (role !== 'DELIVERY_PARTNER' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Only delivery partners can view available delivery jobs.');
+    }
+
+    const driver = await this.getDriverFromReq(req);
+    let rejectedJobIds: string[] = [];
+    if (driver) {
+      const rejections = await this.prisma.deliveryJobRejection.findMany({
+        where: { driverId: driver.id },
+        select: { deliveryJobId: true },
+      });
+      rejectedJobIds = rejections.map((r) => r.deliveryJobId);
+    }
+
+    const jobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        status: DeliveryJobStatus.AVAILABLE,
+        driverId: null,
+        order: {
+          status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
+        },
+        id: {
+          notIn: rejectedJobIds,
+        },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            totalAmount: true,
+            deliveryFee: true,
+            deliveryAddress: true,
+            orderItems: {
+              include: { foodItem: true },
+            },
+            customer: {
+              include: { user: { include: { profile: true } } },
+            },
+            restaurant: {
+              select: {
+                id: true,
+                name: true,
+                addressLine: true,
+                latitude: true,
+                longitude: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return jobs.map((job) => {
+      const dropAddr: any = job.dropAddressJson || job.order?.deliveryAddress || {};
+      const dropAddressText =
+        typeof dropAddr === 'string'
+          ? dropAddr
+          : dropAddr.street ||
+            dropAddr.formattedAddress ||
+            [dropAddr.addressLine1, dropAddr.city].filter(Boolean).join(', ') ||
+            'Customer Location';
+
+      const customerName = job.order?.customer?.user?.profile
+        ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
+        : dropAddr.contactName || 'Customer';
+
+      return {
+        id: job.id,
+        orderId: job.orderId,
+        orderNumber: job.order.orderNumber,
+        restaurantName: job.order.restaurant.name,
+        restaurantAddress: job.order.restaurant.addressLine,
+        restaurantLat:
+          job.order.restaurant.latitude !== null ? Number(job.order.restaurant.latitude) : null,
+        restaurantLng:
+          job.order.restaurant.longitude !== null ? Number(job.order.restaurant.longitude) : null,
+        customerName,
+        customerAddress: dropAddressText,
+        distanceKm: job.distanceKm,
+        riderPayout: Number(
+          job.riderPayout || Math.max(30, Math.round(Number(job.deliveryFee || 40) * 0.8)),
+        ),
+        estimatedEarnings: Number(
+          job.riderPayout || Math.max(30, Math.round(Number(job.deliveryFee || 40) * 0.8)),
+        ),
+        estimatedTimeMins: Math.max(15, Math.ceil((job.distanceKm / 25) * 60) + 10),
+        status: job.status,
+        offeredAt: job.offeredAt,
+      };
+    });
+  }
+
+  private formatJobPayload(job: any) {
+    const pickupAddr: any = job.pickupAddressJson || {};
+    const dropAddr: any = job.dropAddressJson || job.order?.deliveryAddress || {};
+
+    const dropAddressText =
+      typeof dropAddr === 'string'
+        ? dropAddr
+        : dropAddr.street ||
+          dropAddr.formattedAddress ||
+          [dropAddr.addressLine1, dropAddr.city].filter(Boolean).join(', ') ||
+          'Customer Location';
+
+    const customerName = job.order?.customer?.user?.profile
+      ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
+      : dropAddr.contactName || 'Customer';
+
+    const customerPhone = job.order?.customer?.user?.phone || dropAddr.phone || null;
+
+    const restLat =
+      job.order?.restaurant?.latitude !== null && job.order?.restaurant?.latitude !== undefined
+        ? Number(job.order.restaurant.latitude)
+        : null;
+    const restLng =
+      job.order?.restaurant?.longitude !== null && job.order?.restaurant?.longitude !== undefined
+        ? Number(job.order.restaurant.longitude)
+        : null;
+    const custLat =
+      dropAddr.latitude !== null && dropAddr.latitude !== undefined
+        ? Number(dropAddr.latitude)
+        : null;
+    const custLng =
+      dropAddr.longitude !== null && dropAddr.longitude !== undefined
+        ? Number(dropAddr.longitude)
+        : null;
+
+    return {
+      id: job.id,
+      orderId: job.orderId,
+      orderNumber: job.order?.orderNumber || 'FH-ORDER',
+      status: job.order?.status,
+      jobStatus: job.status,
+      paymentMethod: job.order?.paymentMethod,
+      codAmountToCollect: job.order?.paymentMethod === 'COD' ? Number(job.order.totalAmount) : 0,
+      estimatedEarnings: Number(job.riderPayout || 40),
+      riderPayout: Number(job.riderPayout || 40),
+      restaurantName: job.order?.restaurant?.name || 'Restaurant Kitchen',
+      restaurantAddress: job.order?.restaurant?.addressLine,
+      restaurantPhone: job.order?.restaurant?.phone,
+      restaurantLat: restLat,
+      restaurantLng: restLng,
+      customerName,
+      customerAddress: dropAddressText,
+      customerPhone,
+      customerLat: custLat,
+      customerLng: custLng,
+      distanceKm: job.distanceKm,
+      items: (job.order?.orderItems || []).map((item: any) => ({
+        name: item.foodItem?.name || 'Item',
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+      })),
+    };
+  }
+
+  @Get('active-jobs')
+  @ApiOperation({ summary: 'Get all active concurrent delivery jobs for authenticated driver' })
+  async getActiveJobs(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+    }
+
+    const jobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        driverId: driver.id,
+        order: {
+          status: {
+            in: [
+              OrderStatus.DRIVER_ASSIGNED,
+              OrderStatus.ARRIVED_AT_RESTAURANT,
+              OrderStatus.PICKED_UP,
+              OrderStatus.OUT_FOR_DELIVERY,
+            ],
+          },
+        },
+      },
+      include: {
+        order: {
+          include: {
+            restaurant: true,
+            orderItems: { include: { foodItem: true } },
+            customer: { include: { user: { include: { profile: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return jobs.map((job) => this.formatJobPayload(job));
+  }
+
+    @Get('stats')
+  @ApiOperation({ summary: 'Get earnings & delivery statistics for driver' })
+  async getDriverStats(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) {
+      return {
+        todayEarnings: 0,
+        completedDeliveries: 0,
+        weeklyEarnings: 0,
+        monthlyEarnings: 0,
+        totalEarnings: 0,
+        acceptanceRate: null,
+        completionRate: null,
+        avgRating: null,
+        totalRatings: 0,
+        walletBalance: 0,
+        dutyStatus: 'ONLINE',
+        dailyEarningsBreakdown: [],
+        pendingSettlement: 0,
+        availableForSettlement: 0,
+        settledAmount: 0,
+      };
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - 7);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const monthStart = new Date(now);
+    monthStart.setDate(monthStart.getDate() - 30);
+    monthStart.setHours(0, 0, 0, 0);
+
+    // Canonical source of earnings is RiderSettlement
+    const allSettlements = await this.prisma.riderSettlement.findMany({
+      where: { driverId: driver.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const sumPayout = (settlements: typeof allSettlements) =>
+      settlements.reduce((sum, s) => sum + Number(s.netPayable || 0), 0);
+
+    const todaySettlements = allSettlements.filter(s => s.createdAt >= todayStart);
+    const weeklySettlements = allSettlements.filter(s => s.createdAt >= weekStart);
+    const monthlySettlements = allSettlements.filter(s => s.createdAt >= monthStart);
+
+    const dailyEarningsBreakdown: { date: string; day: string; pay: number }[] = [];
+    const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setDate(dayStart.getDate() - i);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const daySettlements = allSettlements.filter(
+        s => s.createdAt >= dayStart && s.createdAt <= dayEnd,
+      );
+      dailyEarningsBreakdown.push({
+        date: dayStart.toISOString().slice(0, 10),
+        day: DAY_NAMES[dayStart.getDay()],
+        pay: Math.round(sumPayout(daySettlements)),
+      });
+    }
+
+    const acceptedJobsCount = await this.prisma.deliveryJob.count({
+      where: { driverId: driver.id },
+    });
+    const rejectedJobsCount = await this.prisma.deliveryJobRejection.count({
+      where: { driverId: driver.id },
+    });
+    const totalOfferedJobs = acceptedJobsCount + rejectedJobsCount;
+    const acceptanceRate = totalOfferedJobs > 0 ? Math.round((acceptedJobsCount / totalOfferedJobs) * 100) : null;
+    const completionRate = acceptedJobsCount > 0 ? Math.round((allSettlements.length / acceptedJobsCount) * 100) : null;
+
+    const ratings = await this.prisma.driverReview.findMany({
+      where: { driverId: driver.id },
+    });
+    const totalRatings = ratings.length;
+    const avgRating = totalRatings > 0 
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings
+      : null;
+
+    const userWallet = await this.prisma.wallet.findUnique({
+      where: { userId: driver.userId }
+    });
+    const walletBalance = Number(userWallet?.balance || 0);
+
+    const pendingSettlement = sumPayout(allSettlements.filter(s => s.status === 'ELIGIBLE' || s.status === 'PENDING'));
+    const settledAmount = sumPayout(allSettlements.filter(s => s.status === 'PAID'));
+
+    return {
+      todayEarnings: sumPayout(todaySettlements),
+      completedDeliveries: allSettlements.length,
+      weeklyEarnings: sumPayout(weeklySettlements),
+      monthlyEarnings: sumPayout(monthlySettlements),
+      totalEarnings: sumPayout(allSettlements),
+      pendingSettlement,
+      availableForSettlement: pendingSettlement,
+      settledAmount,
+      acceptanceRate,
+      completionRate,
+      avgRating,
+      totalRatings,
+      walletBalance,
+      dutyStatus: driver.status === DriverStatus.OFFLINE ? 'OFFLINE' : 'ONLINE',
+      dailyEarningsBreakdown,
+    };
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get canonical settlement ledger history for driver' })
+  async getDriverHistory(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) return [];
+
+    const settlements = await this.prisma.riderSettlement.findMany({
+      where: { driverId: driver.id },
+      include: {
+        order: {
+          select: { orderNumber: true, restaurant: { select: { name: true } }, deliveryAddress: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return settlements.map(s => ({
+      id: s.id,
+      orderId: s.orderId,
+      orderNumber: s.order?.orderNumber,
+      restaurantName: s.order?.restaurant?.name,
+      customerAddress: (s.order?.deliveryAddress as any)?.addressLine1 || 'Customer Address',
+      payout: Number(s.netPayable),
+      deliveryFee: Number(s.netPayable),
+      status: s.status,
+      createdAt: s.createdAt,
+    }));
+  }
+
+  @Get('available')
+  @ApiOperation({ summary: 'Get available delivery jobs (alias)' })
+  async getAvailableJobsAlias(@Request() req: any) {
+    return this.getAvailableJobs(req);
+  }
+
+  @Patch('duty-status')
+  @ApiOperation({ summary: 'Toggle driver online/offline duty status' })
+  async toggleDutyStatus(@Body('status') status: string, @Request() req: any) {
+    if (status === 'ONLINE') return this.goOnline(req);
+    if (status === 'OFFLINE') return this.goOffline(req);
+    throw new BadRequestException('Invalid status value. Use "ONLINE" or "OFFLINE".');
+  }
+
+  @Post('duty/toggle')
+  @ApiOperation({ summary: 'Toggle driver duty online/offline (alias)' })
+  async toggleDutyPost(
+    @Body('isOnline') isOnline: boolean,
+    @Body('status') status: string,
+    @Request() req: any,
+  ) {
+    const shouldGoOnline = isOnline === true || status === 'ONLINE';
+    if (shouldGoOnline) {
+      return this.goOnline(req);
+    } else {
+      return this.goOffline(req);
+    }
+  }
+
+  @Post('jobs/:id/decline')
+  @ApiOperation({ summary: 'Rider declines an available delivery job' })
+  async declineJob(@Param('id') id: string, @Body('reason') reason: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: {
+          OR: [{ id }, { orderId: id }],
+        },
+      });
+
+      if (!job) {
+        throw new NotFoundException('Delivery job not found.');
+      }
+
+      if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
+        throw new ConflictException('This delivery job is no longer available.');
+      }
+
+      await this.prisma.deliveryJobRejection.upsert({
+        where: {
+          deliveryJobId_driverId: {
+            deliveryJobId: job.id,
+            driverId: driver.id,
+          },
+        },
+        create: {
+          deliveryJobId: job.id,
+          driverId: driver.id,
+          rejectionReason: reason || null,
+        },
+        update: {
+          rejectionReason: reason || null,
+          rejectedAt: new Date(),
+        },
+      });
+
+      return { success: true, message: 'Job declined successfully.' };
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`declineJob failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to decline delivery job',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/accept')
+  @ApiOperation({ summary: 'Rider accepts delivery job (Atomic conditional transaction)' })
+  async acceptJob(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver) {
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+      }
+
+      const activeJobCount = await this.prisma.deliveryJob.count({
+        where: {
+          driverId: driver.id,
+          status: {
+            in: [
+              DeliveryJobStatus.ASSIGNED,
+              DeliveryJobStatus.ARRIVED,
+              DeliveryJobStatus.PICKED_UP,
+            ],
+          },
+        },
+      });
+
+      const maxActiveOrders = parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
+      if (activeJobCount >= maxActiveOrders) {
+        throw new ConflictException(
+          `You have reached the maximum of ${maxActiveOrders} simultaneous active deliveries. Complete one before accepting another.`,
+        );
+      }
+
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: {
+          OR: [{ id }, { orderId: id }],
+        },
+      });
+
+      if (!job) {
+        throw new NotFoundException('Delivery job not found.');
+      }
+
+      if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
+        throw new ConflictException(
+          'This delivery job has already been claimed by another delivery partner.',
+        );
+      }
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.lifecycleService.transition(
+        job.orderId,
+        OrderStatus.DRIVER_ASSIGNED,
+        actor,
+      );
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`acceptJob failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to accept delivery job',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/arrived')
+  @ApiOperation({ summary: 'Rider arrives at pickup restaurant' })
+  async arrivedAtRestaurant(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
+
+      return await this.lifecycleService.transition(
+        job.orderId,
+        OrderStatus.ARRIVED_AT_RESTAURANT,
+        actor,
+      );
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`arrivedAtRestaurant failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to arrived',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/picked-up')
+  @ApiOperation({ summary: 'Rider picks up order from restaurant' })
+  async pickedUpOrder(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
+
+      return await this.lifecycleService.transition(job.orderId, OrderStatus.PICKED_UP, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`pickedUpOrder failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to picked up',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/start-delivery')
+  @ApiOperation({ summary: 'Rider starts delivery to customer location' })
+  async startDelivery(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
+
+      return await this.lifecycleService.transition(
+        job.orderId,
+        OrderStatus.OUT_FOR_DELIVERY,
+        actor,
+      );
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`startDelivery failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to update job status to out for delivery',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/delivered')
+  @ApiOperation({ summary: 'Rider marks order as delivered to customer' })
+  async markDelivered(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      const job = await this.prisma.deliveryJob.findFirst({
+        where: { OR: [{ id }, { orderId: id }] },
+      });
+      if (!job) throw new NotFoundException('Delivery job not found.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver?.id,
+      };
+
+      return await this.lifecycleService.transition(job.orderId, OrderStatus.DELIVERED, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`markDelivered failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to mark order as delivered',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/verify-pickup')
+  @ApiOperation({ summary: 'Rider verifies 4-digit pickup code provided by restaurant staff' })
+  async verifyPickupOtp(@Param('id') id: string, @Body('otp') otp: string, @Request() req: any) {
+    try {
+      if (!otp) throw new BadRequestException('Pickup verification code is required.');
+      const driver = await this.getDriverFromReq(req);
+      if (!driver)
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.lifecycleService.verifyPickupOtp(id, otp, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`verifyPickupOtp failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to verify pickup OTP',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/verify-pickup-qr')
+  @ApiOperation({ summary: 'Rider verifies pickup by scanning HMAC signed QR code' })
+  async verifyPickupQr(
+    @Param('id') id: string,
+    @Body('qrToken') qrToken: string,
+    @Request() req: any,
+  ) {
+    try {
+      if (!qrToken) throw new BadRequestException('QR verification token is required.');
+      const driver = await this.getDriverFromReq(req);
+      if (!driver)
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.lifecycleService.verifyPickupQr(id, qrToken, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`verifyPickupQr failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to verify pickup QR token',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('jobs/:id/arrived-at-customer')
+  @ApiOperation({ summary: 'Rider signals arrival at customer delivery location' })
+  async arrivedAtCustomer(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver)
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.lifecycleService.riderArrivedAtCustomer(id, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`arrivedAtCustomer failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to record arrival at customer location',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('orders/:orderId/arrived')
+  @ApiOperation({ summary: 'Rider signals arrival at customer delivery location (order alias)' })
+  async arrivedAtCustomerAlias(@Param('orderId') orderId: string, @Request() req: any) {
+    return this.arrivedAtCustomer(orderId, req);
+  }
+
+  @Post('jobs/:id/complete-delivery')
+  @ApiOperation({ summary: 'Rider confirms delivery completion' })
+  async completeDelivery(@Param('id') id: string, @Request() req: any) {
+    try {
+      const driver = await this.getDriverFromReq(req);
+      if (!driver)
+        throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+      const actor = {
+        userId: req.user?.id || req.user?.sub,
+        role: req.user?.role,
+        driverId: driver.id,
+      };
+
+      return await this.lifecycleService.completeDelivery(id, actor);
+    } catch (err: any) {
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        throw err;
+      }
+      this.logger.error(`completeDelivery failed: ${err?.message}`, err?.stack);
+      throw new InternalServerErrorException({
+        message: err?.message || 'Failed to complete delivery',
+        details: err?.stack || String(err),
+      });
+    }
+  }
+
+  @Post('orders/:id/complete-delivery')
+  @ApiOperation({ summary: 'Rider confirms delivery completion (order alias)' })
+  async completeDeliveryAlias(@Param('id') id: string, @Request() req: any) {
+    return this.completeDelivery(id, req);
+  }
+
+  @Post('jobs/:id/unassign')
+  @ApiOperation({ summary: 'Unassign driver from delivery job and return to pool' })
+  async unassignJob(@Param('id') id: string, @Request() req: any) {
+    const job = await this.prisma.deliveryJob.findFirst({
+      where: { OR: [{ id }, { orderId: id }] },
+    });
+    if (!job) throw new NotFoundException('Delivery job not found.');
+
+    const driver = await this.getDriverFromReq(req);
+    const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+
+    if (!isAdmin && (!driver || job.driverId !== driver.id)) {
+      throw new ForbiddenException('You do not have permission to unassign this delivery job.');
+    }
+
+    const actor = {
+      userId: req.user?.id || req.user?.sub,
+      role: req.user?.role,
+      driverId: driver?.id,
+    };
+
+    return this.lifecycleService.unassignRiderFromOrder(job.orderId, actor);
+  }
+
+  @Post('jobs/reset-my-active')
+  @ApiOperation({ summary: 'Reset active assigned jobs for current rider' })
+  async resetMyActiveJobs(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver)
+      throw new ForbiddenException('Authenticated user is not a registered delivery partner.');
+
+    const activeJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        driverId: driver.id,
+        status: {
+          in: [DeliveryJobStatus.ASSIGNED, DeliveryJobStatus.ARRIVED, DeliveryJobStatus.PICKED_UP],
+        },
+      },
+    });
+
+    for (const job of activeJobs) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.deliveryJob.update({
+          where: { id: job.id },
+          data: {
+            driverId: null,
+            status: DeliveryJobStatus.AVAILABLE,
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
+
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            status: OrderStatus.PREPARING,
+            assignedRestaurantDriverId: null,
+          },
+        });
+      });
+    }
+
+    return {
+      success: true,
+      message: `Unassigned ${activeJobs.length} active delivery jobs.`,
+      count: activeJobs.length,
+    };
+  }
+
+  @Post('admin/unassign-all')
+  @ApiOperation({ summary: 'Admin unassigns all assigned active rider jobs' })
+  async unassignAllRiderJobs(@Request() req: any) {
+    const assignedJobs = await this.prisma.deliveryJob.findMany({
+      where: {
+        status: {
+          in: [DeliveryJobStatus.ASSIGNED, DeliveryJobStatus.ARRIVED, DeliveryJobStatus.PICKED_UP],
+        },
+      },
+    });
+
+    for (const job of assignedJobs) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.deliveryJob.update({
+          where: { id: job.id },
+          data: {
+            driverId: null,
+            status: DeliveryJobStatus.AVAILABLE,
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
+
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            status: OrderStatus.PREPARING,
+            assignedRestaurantDriverId: null,
+          },
+        });
+      });
+    }
+
+    return {
+      success: true,
+      message: `Successfully unassigned ${assignedJobs.length} active delivery jobs across all riders.`,
+      count: assignedJobs.length,
+    };
+  }
+
+  @Get('ratings')
+  @ApiOperation({ summary: 'Get canonical ratings distribution for driver' })
+  async getDriverRatings(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver) return { average: 0, total: 0, distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 } };
+
+    const reviews = await this.prisma.driverReview.findMany({
+      where: { driverId: driver.id },
+      select: { rating: true },
+    });
+
+    const total = reviews.length;
+    let sum = 0;
+    const distribution = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+
+    for (const r of reviews) {
+      sum += r.rating;
+      if (distribution[r.rating.toString()] !== undefined) {
+        distribution[r.rating.toString()]++;
+      }
+    }
+
+    const average = total > 0 ? Number((sum / total).toFixed(1)) : 0;
+
+    return { average, total, distribution };
+  }
+
+  @Get('notifications')
+  @ApiOperation({ summary: 'Get canonical notifications for driver' })
+  async getDriverNotifications(@Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver || !driver.userId) return [];
+
+    const notifications = await this.prisma.notification.findMany({
+      where: { userId: driver.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return notifications.map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      status: n.status,
+      createdAt: n.createdAt,
+    }));
+  }
+
+  @Patch('notifications/:id/read')
+  @ApiOperation({ summary: 'Mark a notification as read' })
+  async markNotificationRead(@Param('id') id: string, @Request() req: any) {
+    const driver = await this.getDriverFromReq(req);
+    if (!driver || !driver.userId) throw new ForbiddenException();
+
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId: driver.userId },
+    });
+    if (!notification) throw new NotFoundException('Notification not found');
+
+    await this.prisma.notification.update({
+      where: { id },
+      data: { status: 'READ' },
+    });
+
+    return { success: true };
+  }
+
+}

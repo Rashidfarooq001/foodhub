@@ -1,0 +1,98 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { CouponsService } from './coupons.service';
+import { CreateCouponDto } from './dto/create-coupon.dto';
+import { ValidateCouponDto } from './dto/validate-coupon.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+@ApiTags('Coupons (Phase 15)')
+@Controller('coupons')
+export class CouponsController {
+  constructor(private readonly couponsService: CouponsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List all active platform coupons' })
+  async listActive() {
+    return this.couponsService.listActiveCoupons();
+  }
+
+  @Post('validate')
+  @ApiOperation({ summary: 'Validate a coupon code and preview discount amount' })
+  async validate(@Request() req: any, @Body() dto: ValidateCouponDto) {
+    const customerId = req.user?.id; // Optional for validation preview
+    return this.couponsService.validateCoupon(
+      dto.code,
+      customerId,
+      dto.subtotal,
+      dto.restaurantId,
+    );
+  }
+
+  @Get('suggest')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Suggest the best available coupon for a given subtotal' })
+  @ApiQuery({ name: 'subtotal', description: 'Order subtotal in ₹' })
+  async suggest(@Request() req: any, @Query('subtotal') subtotal: string) {
+    return this.couponsService.suggestBestCoupon(req.user.id, Number(subtotal) || 0);
+  }
+
+  // ---- Admin-only routes ----
+
+  @Get('admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: List all coupons' })
+  async listAllAdmin() {
+    return this.couponsService.listAllCoupons();
+  }
+
+  @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Create a new coupon' })
+  async create(@Body() dto: CreateCouponDto) {
+    return this.couponsService.createCoupon(dto);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Deactivate a coupon' })
+  async deactivate(@Param('id') id: string) {
+    return this.couponsService.deactivateCoupon(id);
+  }
+
+  @Delete(':id/hard')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Hard delete a coupon' })
+  async deleteCoupon(@Param('id') id: string) {
+    return this.couponsService.deleteCoupon(id);
+  }
+
+  @Post(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN')
+  @ApiOperation({ summary: 'Admin: Update a coupon' })
+  async update(@Param('id') id: string, @Body() dto: CreateCouponDto) {
+    return this.couponsService.updateCoupon(id, dto);
+  }
+}

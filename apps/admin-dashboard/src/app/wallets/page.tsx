@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { Wallet, TrendingUp, RefreshCw, User, Bike, DollarSign } from 'lucide-react';
 import { adminFetch } from '../../utils/admin-fetch';
@@ -105,7 +107,7 @@ export default function AdminWalletsPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="font-black text-sm text-emerald-700 block">₹{c.balance}</span>
+                    <span className="font-black text-sm text-emerald-700 block">{formatCurrency(c.balance)}</span>
                     <span className="text-[9px] font-bold text-emerald-600 uppercase">
                       Available
                     </span>
@@ -130,7 +132,7 @@ export default function AdminWalletsPage() {
                     <tr key={c.id || c.phone} className="hover:bg-gray-50/50">
                       <td className="py-3 font-bold text-gray-900">{c.name}</td>
                       <td className="py-3 text-gray-500 font-mono">{c.phone}</td>
-                      <td className="py-3 font-black text-emerald-700">₹{c.balance}</td>
+                      <td className="py-3 font-black text-emerald-700">{formatCurrency(c.balance)}</td>
                       <td className="py-3 text-gray-600 text-right">{c.txCount} txs</td>
                     </tr>
                   ))}
@@ -175,7 +177,7 @@ export default function AdminWalletsPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="font-black text-sm text-teal-700 block">₹{d.balance}</span>
+                    <span className="font-black text-sm text-teal-700 block">{formatCurrency(d.balance)}</span>
                     <span className="text-[9px] font-bold text-teal-600 uppercase">Settled</span>
                   </div>
                 </div>
@@ -200,7 +202,7 @@ export default function AdminWalletsPage() {
                       <td className="py-3 font-bold text-gray-900">{d.name}</td>
                       <td className="py-3 text-gray-500 font-mono">{d.phone}</td>
                       <td className="py-3 text-gray-700">{d.vehicle}</td>
-                      <td className="py-3 font-black text-teal-700">₹{d.balance}</td>
+                      <td className="py-3 font-black text-teal-700">{formatCurrency(d.balance)}</td>
                       <td className="py-3 text-gray-600 text-right">{d.txCount} trips</td>
                     </tr>
                   ))}

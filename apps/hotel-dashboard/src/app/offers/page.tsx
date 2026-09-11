@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { Tag, Plus, CheckCircle2, Ticket } from 'lucide-react';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -93,9 +95,9 @@ export default function HotelOffersPage() {
                 </span>
               </div>
               <p className="text-base font-bold text-gray-900">
-                {off.discount} on orders above ₹{off.minOrder}
+                {off.discount} on orders above {formatCurrency(off.minOrder)}
               </p>
-              <p className="text-xs text-gray-500">Max Discount: ₹{off.maxDiscount}</p>
+              <p className="text-xs text-gray-500">Max Discount: {formatCurrency(off.maxDiscount)}</p>
             </div>
           ))}
         </div>

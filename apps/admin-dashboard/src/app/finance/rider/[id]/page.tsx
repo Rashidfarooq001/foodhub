@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useEffect, useState } from 'react';
 import { adminFetch } from '../../../../utils/admin-fetch';
 import { ArrowLeft, Bike } from 'lucide-react';
@@ -62,15 +64,15 @@ export default function RiderFinanceDetailPage() {
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gross Payout</p>
-          <p className="text-2xl font-black text-gray-900">?{Number(stats.totalEarnings || 0).toFixed(2)}</p>
+          <p className="text-2xl font-black text-gray-900">{formatCurrency(Number(stats.totalEarnings || 0))}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Amount Paid</p>
-          <p className="text-2xl font-black text-green-600">?{Number(stats.paidAmount || 0).toFixed(2)}</p>
+          <p className="text-2xl font-black text-green-600">{formatCurrency(Number(stats.paidAmount || 0))}</p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pending</p>
-          <p className="text-2xl font-black text-red-600">?{Number(stats.pendingAmount || 0).toFixed(2)}</p>
+          <p className="text-2xl font-black text-red-600">{formatCurrency(Number(stats.pendingAmount || 0))}</p>
         </div>
       </div>
 
@@ -99,9 +101,9 @@ export default function RiderFinanceDetailPage() {
                   <tr key={i} className="hover:bg-gray-50/50">
                     <td className="p-4 font-mono text-xs">{d.orderNumber || d.orderId?.slice(0, 8)}</td>
                     <td className="p-4 text-gray-500">{d.deliveredAt ? new Date(d.deliveredAt).toLocaleDateString() : '-'}</td>
-                    <td className="p-4 text-gray-900">?{Number(d.basePayout || 0).toFixed(2)}</td>
-                    <td className="p-4 text-gray-900">?{Number(d.distancePayout || 0).toFixed(2)}</td>
-                    <td className="p-4 text-purple-700 font-bold text-right">?{Number(d.totalEarning || 0).toFixed(2)}</td>
+                    <td className="p-4 text-gray-900">{formatCurrency(Number(d.basePayout || 0))}</td>
+                    <td className="p-4 text-gray-900">{formatCurrency(Number(d.distancePayout || 0))}</td>
+                    <td className="p-4 text-purple-700 font-bold text-right">{formatCurrency(Number(d.totalEarning || 0))}</td>
                   </tr>
                 ))
               )}

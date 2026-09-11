@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -240,7 +242,7 @@ export default function HotelDashboardPage() {
               <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
             </div>
             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2">
-              ₹{kpi.activeRevenue.toLocaleString()}
+              {formatCurrency(Number(kpi.activeRevenue))}
             </h2>
           </div>
           <p className="mt-2 text-[10px] sm:text-xs font-bold text-emerald-600">Gross food sales</p>
@@ -324,7 +326,7 @@ export default function HotelDashboardPage() {
           <div className="p-3 rounded-2xl bg-white border border-gray-100 space-y-0.5">
             <span className="text-[9px] font-bold text-gray-400 uppercase block">Weekly Sales</span>
             <span className="text-base sm:text-lg font-black text-gray-900">
-              ₹{kpi.activeRevenue.toLocaleString()}
+              {formatCurrency(Number(kpi.activeRevenue))}
             </span>
             <span className="text-[9px] text-gray-400 block">Food subtotal</span>
           </div>
@@ -334,7 +336,7 @@ export default function HotelDashboardPage() {
               Sec 9(5) GST ({gstRate}%)
             </span>
             <span className="text-base sm:text-lg font-black text-teal-800">
-              ₹{Math.round(kpi.activeRevenue * (gstRate / 100)).toLocaleString()}
+              {formatCurrency(Math.round(kpi.activeRevenue * (gstRate / 100)))}
             </span>
             <span className="text-[9px] text-teal-600 font-bold block">Remitted by ZaykaFood</span>
           </div>
@@ -352,7 +354,7 @@ export default function HotelDashboardPage() {
               Net Payout
             </span>
             <span className="text-base sm:text-lg font-black text-emerald-800">
-              ₹{kpi.activeNetPayout.toLocaleString()}
+              {formatCurrency(Number(kpi.activeNetPayout))}
             </span>
             <span className="text-[9px] text-emerald-600 font-bold block">To Bank Account</span>
           </div>

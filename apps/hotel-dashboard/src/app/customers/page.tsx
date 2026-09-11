@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React from 'react';
 import { Users, Heart } from 'lucide-react';
 
@@ -60,7 +62,7 @@ export default function HotelCustomersPage() {
                   <p className="text-[10px] text-gray-400">{c.phone}</p>
                 </td>
                 <td className="px-6 py-4 font-black text-gray-900">{c.totalOrders} Orders</td>
-                <td className="px-6 py-4 font-black text-emerald-600">₹{c.totalSpent}</td>
+                <td className="px-6 py-4 font-black text-emerald-600">{formatCurrency(c.totalSpent)}</td>
                 <td className="px-6 py-4 text-gray-600">{c.favorite}</td>
               </tr>
             ))}

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -149,7 +151,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                             Addons: {item.addons.map((a) => a.name).join(', ')}
                           </p>
                         )}
-                        <p className="text-xs font-black text-gray-900 mt-1">₹{item.price}</p>
+                        <p className="text-xs font-black text-gray-900 mt-1">{formatCurrency(item.price)}</p>
                       </div>
                     </div>
 
@@ -181,7 +183,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               <div className="space-y-2 border-t border-gray-100 pt-4 text-xs">
                 <div className="flex justify-between text-gray-600">
                   <span>Item Subtotal</span>
-                  <span className="font-bold">₹{subtotal}</span>
+                  <span className="font-bold">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery Fee</span>
@@ -203,7 +205,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-3 text-base font-black text-gray-900">
                   <span>To Pay</span>
-                  <span className="text-orange-600">₹{payableTotal}</span>
+                  <span className="text-orange-600">{formatCurrency(payableTotal)}</span>
                 </div>
               </div>
             </>
@@ -219,7 +221,7 @@ export const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
             >
               <span>Proceed to Checkout</span>
               <span className="flex items-center gap-1.5">
-                ₹{payableTotal} <ArrowRight className="h-4 w-4" />
+                {formatCurrency(payableTotal)} <ArrowRight className="h-4 w-4" />
               </span>
             </button>
           </div>

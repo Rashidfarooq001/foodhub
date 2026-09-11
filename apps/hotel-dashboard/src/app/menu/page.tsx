@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import {
   Plus,
@@ -552,7 +554,7 @@ export default function HotelMenuPage() {
                         )}
                         <div className="mt-1.5 flex items-center gap-2">
                           <span className="text-sm sm:text-base font-black text-gray-900">
-                            ₹{item.price ?? 0}
+                            {formatCurrency(item.price ?? 0)}
                           </span>
                           {hasVariants && (
                             <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
@@ -580,7 +582,7 @@ export default function HotelMenuPage() {
                               </span>
                               <div className="flex items-center gap-1.5">
                                 <span className="font-black text-orange-600 text-[11px]">
-                                  ₹{v.price}
+                                  {formatCurrency(v.price)}
                                 </span>
                                 {v.id && (
                                   <button

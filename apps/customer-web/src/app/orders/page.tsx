@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
@@ -309,7 +311,7 @@ export default function OrderHistoryPage() {
                       </p>
                     </div>
                     <span className="text-base font-black text-gray-900">
-                      ₹{ord.totalAmount.toFixed(2)}
+                      {formatCurrency(Number(ord.totalAmount))}
                     </span>
                   </div>
 

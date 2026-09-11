@@ -1,5 +1,7 @@
 'use client';
 
+import { formatCurrency } from '@foodhub/utils';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DollarSign, MapPin, Bike, RefreshCw, ArrowRight } from 'lucide-react';
@@ -174,7 +176,7 @@ export default function AvailableOrdersPage() {
                         #{job.orderNumber || job.id.slice(0, 8)}
                       </span>
                       <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-                        Payout: ?{job.estimatedEarnings || job.deliveryFee || 65}
+                        Payout: {formatCurrency(job.estimatedEarnings || job.deliveryFee || 65)}
                       </span>
                     </div>
 
