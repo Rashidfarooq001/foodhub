@@ -53,20 +53,7 @@ export class OrdersRepository {
           },
         },
         orderTimelines: { orderBy: { createdAt: 'asc' } },
-        deliveryJob: {
-          include: {
-            driver: {
-              include: { user: { include: { profile: true } } },
-            },
-            pendingDriver: {
-              include: { user: { include: { profile: true } } },
-            },
-            rejections: {
-              orderBy: { rejectedAt: 'desc' },
-              take: 1,
-            }
-          },
-        },
+        deliveryJob: true,
         tracking: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -103,13 +90,6 @@ export class OrdersRepository {
             driver: {
               include: { user: { include: { profile: true } } },
             },
-            pendingDriver: {
-              include: { user: { include: { profile: true } } },
-            },
-            rejections: {
-              orderBy: { rejectedAt: 'desc' },
-              take: 1,
-            }
           },
         },
         tracking: true,
@@ -143,13 +123,6 @@ export class OrdersRepository {
             driver: {
               include: { user: { include: { profile: true } } },
             },
-            pendingDriver: {
-              include: { user: { include: { profile: true } } },
-            },
-            rejections: {
-              orderBy: { rejectedAt: 'desc' },
-              take: 1,
-            }
           },
         },
         payments: true,

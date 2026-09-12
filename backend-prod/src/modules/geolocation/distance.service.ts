@@ -1,0 +1,130 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
+import { GeolocationService } from './geolocation.service';
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export interface DeliveryDistanceResult {
+  valid: boolean;
+  serviceable: boolean;
+  routeAvailable: boolean;
+  distanceKm: number | null;
+  etaMinutes: number | null;
+  radiusKm: number;
+  distanceType: 'MAPPLS_ROAD_ROUTING';
+  reason?: string;
+}
+
+@Injectable()
+export class DistanceService {
+  private readonly logger = new Logger(DistanceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly geoService: GeolocationService,
+  ) {}
+
+  /**
+   * Validates coordinate values to ensure they are valid non-zero geographic numbers.
+   */
+  validateCoordinates(lat?: number | null, lng?: number | null): boolean {
+    if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
+    if (isNaN(lat) || isNaN(lng)) return false;
+    if (lat === 0 && lng === 0) return false;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+    return true;
+  }
+
+  /**
+   * Authoritative Delivery Distance Calculation (Point A: Restaurant -> Point B: Verified Customer Address)
+   * Exclusively uses Mappls Routing / Distance Matrix (No Haversine).
+   */
+  async getDeliveryDistance(
+    restaurantId: string,
+    customerLat: number,
+    customerLng: number,
+  ): Promise<DeliveryDistanceResult> {
+    const hasCustomerCoords = this.validateCoordinates(customerLat, customerLng);
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+    });
+    const hasRestCoords = restaurant
+      ? this.validateCoordinates(restaurant.latitude, restaurant.longitude)
+      : false;
+
+    this.logger.log(
+      `[Mappls Route] restaurantId: ${restaurantId} | customer coordinates present: ${hasCustomerCoords} | restaurant coordinates present: ${hasRestCoords}`,
+    );
+
+    if (!hasCustomerCoords) {
+      return {
+        valid: false,
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
+        radiusKm: 0,
+        distanceType: 'MAPPLS_ROAD_ROUTING',
+        reason: 'INVALID_CUSTOMER_COORDINATES',
+      };
+    }
+
+    if (!restaurant || !hasRestCoords) {
+      return {
+        valid: false,
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
+        radiusKm: 0,
+        distanceType: 'MAPPLS_ROAD_ROUTING',
+        reason: 'INVALID_RESTAURANT_COORDINATES',
+      };
+    }
+
+    const radiusKm = Number(restaurant.deliveryRadius || 15.0);
+
+    try {
+      const { distanceKm, etaMinutes } = await this.geoService.calculateDistanceAndEta(
+        restaurant.latitude,
+        restaurant.longitude,
+        customerLat,
+        customerLng,
+      );
+
+      if (distanceKm == null || distanceKm < 0 || !Number.isFinite(distanceKm)) {
+        throw new Error(`Invalid distance returned: ${distanceKm}`);
+      }
+
+      const serviceable = distanceKm <= radiusKm;
+
+      return {
+        valid: serviceable,
+        serviceable,
+        routeAvailable: true,
+        distanceKm,
+        etaMinutes,
+        radiusKm,
+        distanceType: 'MAPPLS_ROAD_ROUTING',
+        reason: serviceable ? undefined : 'OUTSIDE_DELIVERY_RADIUS',
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Distance calculation failed for restaurant ${restaurantId}: ${error?.message || error}`,
+      );
+      return {
+        valid: false,
+        serviceable: false,
+        routeAvailable: false,
+        distanceKm: null,
+        etaMinutes: null,
+        radiusKm,
+        distanceType: 'MAPPLS_ROAD_ROUTING',
+        reason: 'ROUTE_CALCULATION_FAILED',
+      };
+    }
+  }
+}

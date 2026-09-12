@@ -207,6 +207,7 @@ export default function HotelOrdersPage() {
             driverPhone: driverObj?.user?.phone,
             cancellationReason: o.cancellationReason,
             rejectionReason: o.rejectionReason,
+            deliveryJob: o.deliveryJob,
             items: itemsArr,
           };
         });
@@ -244,6 +245,7 @@ export default function HotelOrdersPage() {
 
     socket.on('order.created', handleRealtimeUpdate);
     socket.on('order.status_updated', handleRealtimeUpdate);
+    socket.on('order_rider_rejected', handleRealtimeUpdate);
 
     return () => {
       socket.disconnect();
@@ -492,9 +494,17 @@ export default function HotelOrdersPage() {
         );
       case 'PREPARING':
         if (o?.deliveryJob?.pendingDriverId) {
+          const riderName = o.deliveryJob.pendingDriver?.user?.profile?.firstName || 'Rider';
           return (
             <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
-              AWAITING RIDER ACCEPTANCE
+              Job assigned to {riderName} — Waiting for rider response
+            </span>
+          );
+        }
+        if (!o?.deliveryJob?.driverId && o?.deliveryJob?.rejections?.length > 0) {
+          return (
+            <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800 animate-pulse">
+              Rider Rejected
             </span>
           );
         }
@@ -503,10 +513,31 @@ export default function HotelOrdersPage() {
             PREPARING
           </span>
         );
+      case 'READY_FOR_PICKUP':
+        if (o?.deliveryJob?.pendingDriverId) {
+          const riderName = o.deliveryJob.pendingDriver?.user?.profile?.firstName || 'Rider';
+          return (
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
+              Job assigned to {riderName} — Waiting for rider response
+            </span>
+          );
+        }
+        if (!o?.deliveryJob?.driverId && o?.deliveryJob?.rejections?.length > 0) {
+          return (
+            <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800 animate-pulse">
+              Rider Rejected
+            </span>
+          );
+        }
+        return (
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 animate-pulse">
+            READY FOR PICKUP
+          </span>
+        );
       case 'DRIVER_ASSIGNED':
         return (
           <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-black text-purple-800">
-            RIDER ASSIGNED
+            Rider Accepted
           </span>
         );
       case 'ARRIVED_AT_RESTAURANT':

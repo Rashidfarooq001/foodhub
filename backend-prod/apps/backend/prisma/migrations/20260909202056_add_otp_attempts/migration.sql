@@ -1,0 +1,1 @@
+﻿ALTER TABLE "otps" ADD COLUMN "attempts" INT4 NOT NULL DEFAULT 0;
