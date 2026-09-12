@@ -487,8 +487,13 @@ export default function DeliveryDashboardPage() {
                 >
                   <div className="space-y-2">
                     {job.isOffer && (
-                      <div className="bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider py-1 px-3 rounded-lg inline-block mb-1">
-                        ✨ NEW DELIVERY REQUEST
+                      <div className="bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider py-1.5 px-3 rounded-lg flex items-center justify-between mb-1">
+                        <span>✨ NEW DELIVERY REQUEST — YOU WERE SELECTED</span>
+                        {job.expiresInSeconds != null && (
+                          <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-md text-[10px] font-black">
+                            {job.expiresInSeconds}s
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">

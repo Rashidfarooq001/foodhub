@@ -343,23 +343,34 @@ export class DeliveryJobsController {
       where: {
         status: DeliveryJobStatus.AVAILABLE,
         driverId: null,
-        order: {
-          status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
-        },
         id: {
           notIn: rejectedJobIds,
         },
         OR: [
-          // 1. Explicitly offered to this rider and not expired
-          { order: { deliveryOffers: { some: { driverId: driver?.id, status: 'PENDING', createdAt: { gt: twoMinsAgo } } } } },
-          // 2. Or, general pool (no valid pending or accepted offers exist for this order)
-          { order: { deliveryOffers: { none: { 
-            OR: [
-              { status: 'ACCEPTED' },
-              { status: 'PENDING', createdAt: { gt: twoMinsAgo } }
-            ]
-          } } } }
-        ]
+          // 1. Explicitly offered to this rider (PENDING, not expired) — order can be ACCEPTED or PREPARING
+          {
+            order: {
+              status: { in: [OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
+              deliveryOffers: {
+                some: { driverId: driver?.id, status: 'PENDING', createdAt: { gt: twoMinsAgo } },
+              },
+            },
+          },
+          // 2. General pool: order is PREPARING with no active/valid pending offer for any rider
+          {
+            order: {
+              status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
+              deliveryOffers: {
+                none: {
+                  OR: [
+                    { status: 'ACCEPTED' },
+                    { status: 'PENDING', createdAt: { gt: twoMinsAgo } },
+                  ],
+                },
+              },
+            },
+          },
+        ],
       },
       include: {
         order: {
@@ -386,8 +397,11 @@ export class DeliveryJobsController {
               },
             },
             deliveryOffers: {
-              select: { driverId: true, status: true }
-            }
+              where: { driverId: driver?.id, status: 'PENDING', createdAt: { gt: twoMinsAgo } },
+              select: { driverId: true, status: true, createdAt: true },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         },
       },
@@ -408,9 +422,14 @@ export class DeliveryJobsController {
         ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
         : dropAddr.contactName || 'Customer';
 
-      const isOffer = job.order?.deliveryOffers?.some(
-        o => o.driverId === driver?.id && o.status === 'PENDING'
-      ) || false;
+      // The targeted offer for THIS rider specifically
+      const myOffer = job.order?.deliveryOffers?.[0];
+      const isOffer = !!myOffer;
+      const offeredAt = myOffer?.createdAt ?? null;
+      // Seconds remaining before offer expires (120s window)
+      const expiresInSeconds = offeredAt
+        ? Math.max(0, Math.round(120 - (Date.now() - new Date(offeredAt).getTime()) / 1000))
+        : null;
 
       return {
         id: job.id,
@@ -433,7 +452,9 @@ export class DeliveryJobsController {
         ),
         estimatedTimeMins: Math.max(15, Math.ceil((job.distanceKm / 25) * 60) + 10),
         status: job.status,
-        offeredAt: job.offeredAt,
+        isOffer,
+        offeredAt,
+        expiresInSeconds,
       };
     });
   }
