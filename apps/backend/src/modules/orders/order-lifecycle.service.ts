@@ -236,7 +236,6 @@ export class OrderLifecycleService {
 
     const deliveryJobPayload = {
       create: {
-        orderId: order.id,
         pendingDriverId: driver.id,
         offerExpiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         status: DeliveryJobStatus.AVAILABLE,
