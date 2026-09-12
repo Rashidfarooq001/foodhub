@@ -77,6 +77,8 @@ interface OrderRecord {
   driverPhone?: string;
   cancellationReason?: string;
   rejectionReason?: string;
+  assignedFoodHubDriver?: any;
+  deliveryJob?: any;
   items: OrderItem[];
 }
 
