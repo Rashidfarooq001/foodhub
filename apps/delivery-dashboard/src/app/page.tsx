@@ -1,7 +1,5 @@
 'use client';
 
-import { formatCurrency } from '@foodhub/utils';
-
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -387,7 +385,7 @@ export default function DeliveryDashboardPage() {
             <DollarSign className="h-6 w-6 rounded-xl bg-emerald-50 p-1.5 text-emerald-600" />
           </div>
           <h2 className="text-lg sm:text-2xl font-black text-gray-900">
-              {formatCurrency(stats?.todayEarnings ?? 0)}
+              ₹{stats?.todayEarnings ?? 0}
           </h2>
           <span className="text-[10px] text-emerald-600 font-bold block">
             Settled to Bank Cycle
@@ -483,25 +481,15 @@ export default function DeliveryDashboardPage() {
               return (
                 <div
                   key={job.id}
-                  className={`rounded-2xl border ${job.isOffer ? 'border-purple-400 bg-purple-50 ring-2 ring-purple-100 shadow-md' : 'border-gray-200 bg-white'} p-4 shadow-sm space-y-3 flex flex-col justify-between hover:border-emerald-300 transition`}
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3 flex flex-col justify-between hover:border-emerald-300 transition"
                 >
                   <div className="space-y-2">
-                    {job.isOffer && (
-                      <div className="bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider py-1.5 px-3 rounded-lg flex items-center justify-between mb-1">
-                        <span>✨ NEW DELIVERY REQUEST — YOU WERE SELECTED</span>
-                        {job.expiresInSeconds != null && (
-                          <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-md text-[10px] font-black">
-                            {job.expiresInSeconds}s
-                          </span>
-                        )}
-                      </div>
-                    )}
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <span className="text-xs font-black text-gray-900">
                         #{job.orderNumber || job.id.slice(0, 8)}
                       </span>
                       <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                        Payout: {formatCurrency(job.estimatedEarnings || job.deliveryFee || 65)}
+                        Payout: ₹{job.estimatedEarnings || job.deliveryFee || 65}
                       </span>
                     </div>
 

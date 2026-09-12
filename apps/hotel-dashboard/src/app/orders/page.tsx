@@ -1,7 +1,5 @@
 'use client';
 
-import { formatCurrency } from '@foodhub/utils';
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
@@ -78,7 +76,6 @@ interface OrderRecord {
   driverName?: string;
   driverPhone?: string;
   cancellationReason?: string;
-  deliveryOffers?: any[];
   rejectionReason?: string;
   items: OrderItem[];
 }
@@ -208,7 +205,6 @@ export default function HotelOrdersPage() {
             driverPhone: driverObj?.user?.phone,
             cancellationReason: o.cancellationReason,
             rejectionReason: o.rejectionReason,
-            deliveryOffers: o.deliveryOffers || [],
             items: itemsArr,
           };
         });
@@ -478,21 +474,8 @@ export default function HotelOrdersPage() {
     }).length;
   };
 
-    const getStatusBadge = (order: OrderRecord) => {
-    const offer = order.deliveryOffers && order.deliveryOffers.length > 0 ? order.deliveryOffers[0] : null;
-    if (offer) {
-      if (offer.status === 'PENDING') {
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800 animate-pulse">Awaiting Rider Response</span>;
-      }
-      if (offer.status === 'REJECTED') {
-        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">Rider Declined</span>;
-      }
-      if (offer.status === 'EXPIRED') {
-        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">Offer Expired</span>;
-      }
-    }
-
-    switch (order.status) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case 'PENDING':
         return (
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 animate-pulse">
@@ -550,38 +533,6 @@ export default function HotelOrdersPage() {
           </span>
         );
     }
-  };
-  const renderAssignRiderSection = (o: OrderRecord) => {
-    if (!['ACCEPTED', 'PREPARING'].includes(o.status)) return null;
-
-    const pendingOffer = o.deliveryOffers?.find((offer) => offer.status === 'PENDING');
-    const latestRejectedOrExpired = o.deliveryOffers
-      ?.filter((offer) => ['REJECTED', 'EXPIRED'].includes(offer.status))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-    if (pendingOffer) {
-      return (
-        <div className="w-full rounded-2xl bg-purple-50 border border-purple-200 py-3 px-4 text-xs font-black text-purple-700 shadow-sm flex items-center justify-center gap-2 min-h-[44px] animate-pulse">
-          <Clock className="h-4 w-4" /> Waiting for rider response...
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2 w-full">
-        {latestRejectedOrExpired && (
-          <div className="text-[10px] font-bold text-rose-600 text-center uppercase tracking-wider">
-            {latestRejectedOrExpired.status === 'REJECTED' ? 'Rider Rejected' : 'Offer Expired'}
-          </div>
-        )}
-        <button
-          onClick={() => handleOpenAssignRiderModal(o)}
-          className="w-full rounded-2xl bg-purple-600 py-3 px-4 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
-        >
-          <UserCheck className="h-4 w-4" /> {latestRejectedOrExpired ? 'ASSIGN ANOTHER RIDER' : 'SELECT & ASSIGN RIDER'}
-        </button>
-      </div>
-    );
   };
 
   return (
@@ -684,7 +635,7 @@ export default function HotelOrdersPage() {
                   <h3 className="text-sm font-black text-gray-900 mt-0.5">{o.customerName}</h3>
                   <p className="text-[11px] font-bold text-gray-500">{o.customerPhone}</p>
                 </div>
-                {getStatusBadge(o)}
+                {getStatusBadge(o.status)}
               </div>
 
               <div className="rounded-2xl bg-gray-50 p-3 space-y-1.5 text-xs">
@@ -698,14 +649,14 @@ export default function HotelOrdersPage() {
                         </span>
                       )}
                     </span>
-                    <span className="font-bold text-gray-900">{formatCurrency(i.price * i.quantity)}</span>
+                    <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
                   </div>
                 ))}
               </div>
 
               <div className="flex items-center justify-between text-xs font-black text-gray-900 border-t border-gray-100 pt-3">
                 <span>
-                  Total: {formatCurrency(o.totalAmount)} ({o.paymentMethod})
+                  Total: ₹{o.totalAmount} ({o.paymentMethod})
                 </span>
                 <button
                   onClick={() => setSelectedOrder(o)}
@@ -756,7 +707,14 @@ export default function HotelOrdersPage() {
                   </button>
                 )}
 
-                {renderAssignRiderSection(o)}
+                {['ACCEPTED', 'PREPARING'].includes(o.status) && (
+                  <button
+                    onClick={() => handleOpenAssignRiderModal(o)}
+                    className="w-full rounded-2xl bg-purple-600 py-3 text-xs font-black text-white shadow-md hover:bg-purple-700 flex items-center justify-center gap-1.5 min-h-[44px]"
+                  >
+                    <UserCheck className="h-4 w-4" /> SELECT &amp; ASSIGN RIDER
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -816,12 +774,12 @@ export default function HotelOrdersPage() {
                       ))}
                     </td>
                     <td className="px-6 py-4 font-black text-gray-900">
-                      {formatCurrency(o.totalAmount)}
+                      ₹{o.totalAmount}
                       <span className="block text-[10px] font-bold text-gray-400 uppercase">
                         {o.paymentMethod}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(o)}</td>
+                    <td className="px-6 py-4">{getStatusBadge(o.status)}</td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         {/* PENDING ACTIONS */}
@@ -867,9 +825,14 @@ export default function HotelOrdersPage() {
                         )}
 
                         {/* SELECT & ASSIGN RIDER ACTION */}
-                        <div className="min-w-[200px] shrink-0">
-                          {renderAssignRiderSection(o)}
-                        </div>
+                        {['ACCEPTED', 'PREPARING'].includes(o.status) && (
+                          <button
+                            onClick={() => handleOpenAssignRiderModal(o)}
+                            className="rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-black text-white shadow-sm hover:bg-purple-700 flex items-center gap-1 shrink-0"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" /> SELECT RIDER
+                          </button>
+                        )}
 
                         {['DRIVER_ASSIGNED', 'ARRIVED_AT_RESTAURANT'].includes(o.status) && (
                           <button
@@ -952,21 +915,16 @@ export default function HotelOrdersPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="text-sm font-black text-gray-900">{r.name}</h4>
-                              <span className={`rounded-full text-[9px] font-black px-2 py-0.5 uppercase tracking-wide
-                                ${r.status === 'ONLINE' ? 'bg-emerald-100 text-emerald-800' : 
-                                  r.status === 'BUSY' ? 'bg-amber-100 text-amber-800' :
-                                  r.status === 'OUT_FOR_DELIVERY' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'}`}
-                              >
-                                {r.status?.replace(/_/g, ' ')}
+                              <span className="rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5">
+                                ONLINE
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 font-bold mt-0.5">
                               {r.vehicleType} • {r.vehicleNumber} • {r.phone}
                             </p>
-                            <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
+                            <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 mt-1">
                               <span className="text-amber-600 font-black">★ {r.rating}</span>
-                              <span className="text-purple-600 bg-purple-50 px-1.5 rounded">Active Orders: {r.activeJobsCount || 0}</span>
+                              <span>{r.completedCount} deliveries completed</span>
                               <span className="text-emerald-700 font-bold">
                                 {r.distanceText ||
                                   (r.distanceKm != null && r.distanceKm !== 999
@@ -1156,7 +1114,7 @@ export default function HotelOrdersPage() {
               </div>
               <div>
                 <span className="text-[10px] uppercase text-gray-400 block font-bold">Status</span>
-                <div className="mt-1">{getStatusBadge(selectedOrder)}</div>
+                <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
               </div>
             </div>
 
@@ -1186,7 +1144,7 @@ export default function HotelOrdersPage() {
                         </p>
                       )}
                     </div>
-                    <span className="font-bold text-gray-900">{formatCurrency(i.price * i.quantity)}</span>
+                    <span className="font-bold text-gray-900">₹{i.price * i.quantity}</span>
                   </div>
                 ))}
               </div>
@@ -1195,19 +1153,19 @@ export default function HotelOrdersPage() {
             <div className="space-y-1.5 text-xs border-t border-gray-100 pt-4">
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Subtotal</span>
-                <span>{formatCurrency(selectedOrder.subtotal)}</span>
+                <span>₹{selectedOrder.subtotal}</span>
               </div>
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Delivery Fee</span>
-                <span>{formatCurrency(selectedOrder.deliveryFee)}</span>
+                <span>₹{selectedOrder.deliveryFee}</span>
               </div>
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Taxes &amp; Fees</span>
-                <span>{formatCurrency(selectedOrder.taxAmount)}</span>
+                <span>₹{selectedOrder.taxAmount}</span>
               </div>
               <div className="flex justify-between text-sm font-black text-gray-900 pt-2 border-t border-gray-100">
                 <span>Total Amount ({selectedOrder.paymentMethod})</span>
-                <span className="text-orange-600">{formatCurrency(selectedOrder.totalAmount)}</span>
+                <span className="text-orange-600">₹{selectedOrder.totalAmount}</span>
               </div>
             </div>
           </div>
@@ -1264,7 +1222,3 @@ export default function HotelOrdersPage() {
     </div>
   );
 }
-
-
-
-

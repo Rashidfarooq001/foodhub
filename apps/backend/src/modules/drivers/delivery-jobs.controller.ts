@@ -337,40 +337,16 @@ export class DeliveryJobsController {
       rejectedJobIds = rejections.map((r) => r.deliveryJobId);
     }
 
-    const twoMinsAgo = new Date(Date.now() - 120 * 1000);
-
     const jobs = await this.prisma.deliveryJob.findMany({
       where: {
         status: DeliveryJobStatus.AVAILABLE,
         driverId: null,
+        order: {
+          status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
+        },
         id: {
           notIn: rejectedJobIds,
         },
-        OR: [
-          // 1. Explicitly offered to this rider (PENDING, not expired) — order can be ACCEPTED or PREPARING
-          {
-            order: {
-              status: { in: [OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
-              deliveryOffers: {
-                some: { driverId: driver?.id, status: 'PENDING', createdAt: { gt: twoMinsAgo } },
-              },
-            },
-          },
-          // 2. General pool: order is PREPARING with no active/valid pending offer for any rider
-          {
-            order: {
-              status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
-              deliveryOffers: {
-                none: {
-                  OR: [
-                    { status: 'ACCEPTED' },
-                    { status: 'PENDING', createdAt: { gt: twoMinsAgo } },
-                  ],
-                },
-              },
-            },
-          },
-        ],
       },
       include: {
         order: {
@@ -396,12 +372,6 @@ export class DeliveryJobsController {
                 phone: true,
               },
             },
-            deliveryOffers: {
-              where: { driverId: driver?.id, status: 'PENDING', createdAt: { gt: twoMinsAgo } },
-              select: { driverId: true, status: true, createdAt: true },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-            },
           },
         },
       },
@@ -421,15 +391,6 @@ export class DeliveryJobsController {
       const customerName = job.order?.customer?.user?.profile
         ? `${job.order.customer.user.profile.firstName} ${job.order.customer.user.profile.lastName || ''}`.trim()
         : dropAddr.contactName || 'Customer';
-
-      // The targeted offer for THIS rider specifically
-      const myOffer = job.order?.deliveryOffers?.[0];
-      const isOffer = !!myOffer;
-      const offeredAt = myOffer?.createdAt ?? null;
-      // Seconds remaining before offer expires (120s window)
-      const expiresInSeconds = offeredAt
-        ? Math.max(0, Math.round(120 - (Date.now() - new Date(offeredAt).getTime()) / 1000))
-        : null;
 
       return {
         id: job.id,
@@ -452,9 +413,7 @@ export class DeliveryJobsController {
         ),
         estimatedTimeMins: Math.max(15, Math.ceil((job.distanceKm / 25) * 60) + 10),
         status: job.status,
-        isOffer,
-        offeredAt,
-        expiresInSeconds,
+        offeredAt: job.offeredAt,
       };
     });
   }
@@ -773,28 +732,6 @@ export class DeliveryJobsController {
         },
       });
 
-      // Handle direct offer rejection
-      const activeOffer = await this.prisma.deliveryOffer.findFirst({
-        where: { orderId: job.orderId, driverId: driver.id, status: 'PENDING' }
-      });
-
-      if (activeOffer) {
-        const result = await this.prisma.deliveryOffer.updateMany({
-          where: { id: activeOffer.id, status: 'PENDING' },
-          data: { status: 'REJECTED' }
-        });
-        
-        if (result.count > 0) {
-          // Notify restaurant that the rider rejected the offer
-          const order = await this.prisma.order.findUnique({ where: { id: job.orderId } });
-          if (order) {
-            this.ordersGateway.emitToRestaurant(order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, {
-              orderId: order.id,
-            });
-          }
-        }
-      }
-
       return { success: true, message: 'Job declined successfully.' };
     } catch (err: any) {
       if (
@@ -856,41 +793,6 @@ export class DeliveryJobsController {
         throw new ConflictException(
           'This delivery job has already been claimed by another delivery partner.',
         );
-      }
-
-      // Check if there's a PENDING offer
-      const activeOffer = await this.prisma.deliveryOffer.findFirst({
-        where: { orderId: job.orderId, status: 'PENDING' }
-      });
-
-      if (activeOffer) {
-        const isExpired = Date.now() - new Date(activeOffer.createdAt).getTime() > 120 * 1000;
-        
-        if (isExpired) {
-          await this.prisma.deliveryOffer.updateMany({
-            where: { id: activeOffer.id, status: 'PENDING' },
-            data: { status: 'EXPIRED' }
-          });
-          
-          if (activeOffer.driverId === driver.id) {
-            throw new ConflictException('This delivery offer has expired.');
-          }
-          // If expired and was for someone else, we just continue to allow the pool acceptance.
-        } else {
-          if (activeOffer.driverId !== driver.id) {
-            throw new ConflictException('This delivery job is currently offered to another partner.');
-          }
-
-          // Mark offer as accepted atomically
-          const result = await this.prisma.deliveryOffer.updateMany({
-            where: { id: activeOffer.id, status: 'PENDING' },
-            data: { status: 'ACCEPTED' }
-          });
-          
-          if (result.count === 0) {
-            throw new ConflictException('This offer is no longer available.');
-          }
-        }
       }
 
       const actor = {
@@ -1391,7 +1293,3 @@ export class DeliveryJobsController {
   }
 
 }
-
-
-
-

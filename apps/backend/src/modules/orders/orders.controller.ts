@@ -207,6 +207,7 @@ export class OrdersController {
       const drivers = await this.prisma.driver.findMany({
         where: {
           isApproved: true,
+          status: 'ONLINE',
           user: { isActive: true },
           currentLat: { gte: restLat - latDiff, lte: restLat + latDiff },
           currentLng: { gte: restLng - lngDiff, lte: restLng + lngDiff },
@@ -246,7 +247,7 @@ export class OrdersController {
 
     
     const filteredDrivers = drivers.filter(d => {
-      if (!d.user?.isActive || !d.isApproved) return false;
+      if (!d.user?.isActive || !d.isApproved || d.status === DriverStatus.OFFLINE) return false;
       if (!d.currentLat || !d.currentLng) return false;
       
       const distanceKm = getHaversine(restLat, restLng, d.currentLat, d.currentLng);
@@ -283,13 +284,10 @@ export class OrdersController {
       // Real calculated rating
       const avgRating = Number(d.avgRating) > 0 ? Number(d.avgRating) : 5.0;
 
-      // Workload Status calculation
-      let status = 'ONLINE';
+      // Real status calculation
+      let status = 'ONLINE_AVAILABLE';
       let isAvailable = true;
       let unavailabilityReason: string | null = null;
-      
-      const hasOutForDelivery = activeJobs.some(j => j.status === DeliveryJobStatus.PICKED_UP);
-      const isAtCapacity = activeJobs.length >= parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10);
 
       if (!d.user?.isActive) {
         status = 'SUSPENDED';
@@ -303,20 +301,10 @@ export class OrdersController {
         status = 'OFFLINE';
         isAvailable = false;
         unavailabilityReason = 'Rider is currently offline';
-      } else if (hasOutForDelivery) {
-        status = 'OUT_FOR_DELIVERY';
-        if (isAtCapacity) {
-          isAvailable = false;
-          unavailabilityReason = `Max capacity (${activeJobs.length} active orders)`;
-        }
-      } else if (activeJobs.length > 0) {
+      } else if (activeJobs.length >= parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS || '10', 10)) {
         status = 'BUSY';
-        if (isAtCapacity) {
-          isAvailable = false;
-          unavailabilityReason = `Max capacity (${activeJobs.length} active orders)`;
-        }
-      } else {
-        status = 'ONLINE';
+        isAvailable = false;
+        unavailabilityReason = `Rider is at max capacity (${activeJobs.length} active orders)`;
       }
 
       return {
@@ -340,7 +328,6 @@ export class OrdersController {
         vehicleNumber: vehicle?.vehicleNumber || 'N/A',
         distanceKm,
         distanceText,
-        activeJobsCount: activeJobs.length,
       };
     });
   }

@@ -1,1 +1,0 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { const dups = await prisma.$queryRawUnsafe('SELECT order_id, COUNT(*) as c FROM coupon_usages GROUP BY order_id HAVING COUNT(*) > 1'); console.log('Duplicates:', dups); } run().finally(() => prisma.$disconnect());
