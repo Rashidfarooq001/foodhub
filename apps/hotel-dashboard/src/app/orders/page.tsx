@@ -140,6 +140,7 @@ export default function HotelOrdersPage() {
     try {
       const res = await fetch(`${API_BASE}/orders`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        cache: 'no-store',
       });
       if (res.ok) {
         const data = await res.json();
@@ -222,6 +223,13 @@ export default function HotelOrdersPage() {
   };
 
   useEffect(() => {
+    if (selectedOrder) {
+      const updated = orders.find(o => o.id === selectedOrder.id);
+      if (updated) setSelectedOrder(updated);
+    }
+  }, [orders]);
+
+  useEffect(() => {
     fetchOrders();
 
     const socketUrl = API_BASE.replace('/api/v1', '');
@@ -246,6 +254,7 @@ export default function HotelOrdersPage() {
     socket.on('order.created', handleRealtimeUpdate);
     socket.on('order.status_updated', handleRealtimeUpdate);
     socket.on('order_rider_rejected', handleRealtimeUpdate);
+    socket.on('order_rider_offered', handleRealtimeUpdate);
 
     return () => {
       socket.disconnect();
@@ -1262,3 +1271,4 @@ export default function HotelOrdersPage() {
     </div>
   );
 }
+
