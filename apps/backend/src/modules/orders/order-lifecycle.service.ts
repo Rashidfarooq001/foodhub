@@ -141,7 +141,7 @@ export class OrderLifecycleService {
         isApproved: true,
         currentLat: true,
         currentLng: true,
-        user: { select: { id: true, isActive: true, profile: true } },
+        user: { select: { id: true, isActive: true, phone: true, profile: true } },
         deliveryJobs: { select: { id: true, status: true } },
       },
     });
@@ -237,8 +237,9 @@ export class OrderLifecycleService {
     const deliveryJobPayload = {
       create: {
         orderId: order.id,
-        driverId: driver.id,
-        status: DeliveryJobStatus.ASSIGNED,
+        pendingDriverId: driver.id,
+        offerExpiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        status: DeliveryJobStatus.AVAILABLE,
         pickupAddressJson: pickupAddress,
         dropAddressJson: dropAddress,
         distanceKm,
@@ -249,8 +250,8 @@ export class OrderLifecycleService {
         pickupOtpAttempts: 0,
       },
       update: {
-        driverId: driver.id,
-        status: DeliveryJobStatus.ASSIGNED,
+        pendingDriverId: driver.id,
+        offerExpiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         pickupAddressJson: pickupAddress,
         pickupOtpHash,
         pickupOtpExpiresAt,
@@ -258,15 +259,33 @@ export class OrderLifecycleService {
       },
     };
 
-    const updatedOrder = await this.updateOrderStatus(
-      order.id,
-      OrderStatus.DRIVER_ASSIGNED,
-      actor.userId,
-      {
-        riderId: driver.id,
-        deliveryJobPayload,
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        deliveryJob: {
+          upsert: deliveryJobPayload,
+        },
       },
-    );
+      include: { restaurant: true, customer: true, deliveryJob: true, orderItems: true },
+    });
+
+    this.gateway.emitToUser(driver.user.id, 'rider_offer_received', {
+      orderId: order.id,
+      restaurantName: order.restaurant.name,
+      restaurantAddress: order.restaurant.addressLine,
+      payout: riderPayout,
+      distanceKm,
+      expiresAt: deliveryJobPayload.create.offerExpiresAt,
+    });
+
+    this.gateway.emitToRestaurant(order.restaurantId, 'order_rider_offered', {
+      orderId: order.id,
+      pendingDriver: {
+        id: driver.id,
+        name: driver.user?.profile?.firstName || 'Rider',
+        phone: driver.user?.phone,
+      }
+    });
 
     return updatedOrder;
   }
@@ -934,6 +953,15 @@ export class OrderLifecycleService {
             );
           }
 
+          if (existingJob.pendingDriverId) {
+            if (existingJob.pendingDriverId !== actor.driverId) {
+              throw new ConflictException('This delivery job is currently offered to another delivery partner.');
+            }
+            if (existingJob.offerExpiresAt && existingJob.offerExpiresAt < new Date()) {
+              throw new ConflictException('This delivery offer has expired.');
+            }
+          }
+
           updatedJob = await tx.deliveryJob.update({
             where: { id: existingJob.id },
             data: {
@@ -945,7 +973,7 @@ export class OrderLifecycleService {
           });
         }
 
-} else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
+      } else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
         if (order.deliveryJob) {
           updatedJob = await tx.deliveryJob.update({
             where: { id: order.deliveryJob.id },

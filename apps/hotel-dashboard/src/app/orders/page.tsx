@@ -474,7 +474,7 @@ export default function HotelOrdersPage() {
     }).length;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, o?: OrderRecord) => {
     switch (status) {
       case 'PENDING':
         return (
@@ -489,8 +489,15 @@ export default function HotelOrdersPage() {
           </span>
         );
       case 'PREPARING':
+        if (o?.deliveryJob?.pendingDriverId) {
+          return (
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
+              AWAITING RIDER ACCEPTANCE
+            </span>
+          );
+        }
         return (
-          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
+          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800 animate-pulse">
             PREPARING
           </span>
         );
@@ -635,7 +642,7 @@ export default function HotelOrdersPage() {
                   <h3 className="text-sm font-black text-gray-900 mt-0.5">{o.customerName}</h3>
                   <p className="text-[11px] font-bold text-gray-500">{o.customerPhone}</p>
                 </div>
-                {getStatusBadge(o.status)}
+                {getStatusBadge(o.status, o)}
               </div>
 
               <div className="rounded-2xl bg-gray-50 p-3 space-y-1.5 text-xs">
@@ -779,7 +786,7 @@ export default function HotelOrdersPage() {
                         {o.paymentMethod}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(o.status)}</td>
+                    <td className="px-6 py-4">{getStatusBadge(o.status, o)}</td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         {/* PENDING ACTIONS */}
@@ -1114,7 +1121,7 @@ export default function HotelOrdersPage() {
               </div>
               <div>
                 <span className="text-[10px] uppercase text-gray-400 block font-bold">Status</span>
-                <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                <div className="mt-1">{getStatusBadge(selectedOrder.status, selectedOrder)}</div>
               </div>
             </div>
 

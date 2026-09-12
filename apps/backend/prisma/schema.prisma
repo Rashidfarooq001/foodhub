@@ -1092,7 +1092,8 @@ model Driver {
   locations        DriverLocation[]
   shifts           DriverShift[]
   assignments      DeliveryAssignment[]
-  deliveryJobs     DeliveryJob[]
+  deliveryJobs     DeliveryJob[]          @relation(name: "DeliveryJobDriver")
+  pendingDeliveryJobs DeliveryJob[]       @relation(name: "DeliveryJobPendingDriver")
   histories        DeliveryHistory[]
   driverWallet     DriverWallet?
   reviews          DriverReview[]

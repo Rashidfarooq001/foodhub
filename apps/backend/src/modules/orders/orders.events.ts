@@ -14,6 +14,9 @@ export const ORDER_EVENTS = {
   ORDER_OUT_FOR_DELIVERY: 'order.out_for_delivery',
   ORDER_RIDER_ARRIVED: 'order.rider_arrived',
   RIDER_ARRIVED: 'order.rider_arrived', // Alias
+  RIDER_OFFER_RECEIVED: 'rider_offer_received',
+  ORDER_RIDER_OFFERED: 'order_rider_offered',
+  ORDER_RIDER_REJECTED: 'order_rider_rejected',
   ORDER_DELIVERED: 'order.delivered',
   ORDER_CANCELLED: 'order.cancelled',
   ORDER_REJECTED: 'order.rejected',

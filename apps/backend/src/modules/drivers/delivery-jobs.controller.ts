@@ -341,8 +341,18 @@ export class DeliveryJobsController {
       where: {
         status: DeliveryJobStatus.AVAILABLE,
         driverId: null,
+        OR: [
+          { pendingDriverId: null },
+          { 
+            pendingDriverId: driver?.id, 
+            offerExpiresAt: { gt: new Date() } 
+          },
+          {
+            offerExpiresAt: { lte: new Date() }
+          }
+        ],
         order: {
-          status: { in: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED] },
+          status: { in: [OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP, OrderStatus.DRIVER_ASSIGNED] },
         },
         id: {
           notIn: rejectedJobIds,
@@ -710,29 +720,50 @@ export class DeliveryJobsController {
         throw new NotFoundException('Delivery job not found.');
       }
 
-      if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
-        throw new ConflictException('This delivery job is no longer available.');
-      }
+        if (job.status !== DeliveryJobStatus.AVAILABLE || job.driverId) {
+          throw new ConflictException('This delivery job is no longer available.');
+        }
 
-      await this.prisma.deliveryJobRejection.upsert({
-        where: {
-          deliveryJobId_driverId: {
-            deliveryJobId: job.id,
-            driverId: driver.id,
-          },
-        },
-        create: {
-          deliveryJobId: job.id,
-          driverId: driver.id,
-          rejectionReason: reason || null,
-        },
-        update: {
-          rejectionReason: reason || null,
-          rejectedAt: new Date(),
-        },
-      });
+        await this.prisma.$transaction(async (tx) => {
+          await tx.deliveryJobRejection.upsert({
+            where: {
+              deliveryJobId_driverId: {
+                deliveryJobId: job.id,
+                driverId: driver.id,
+              },
+            },
+            create: {
+              deliveryJobId: job.id,
+              driverId: driver.id,
+              rejectionReason: reason || null,
+            },
+            update: {
+              rejectionReason: reason || null,
+              rejectedAt: new Date(),
+            },
+          });
 
-      return { success: true, message: 'Job declined successfully.' };
+          if (job.pendingDriverId === driver.id) {
+            await tx.deliveryJob.update({
+              where: { id: job.id },
+              data: {
+                pendingDriverId: null,
+                offerExpiresAt: null,
+              }
+            });
+
+            const order = await tx.order.findUnique({ where: { id: job.orderId }, select: { restaurantId: true, id: true } });
+            if (order) {
+               this.ordersGateway.emitToRestaurant(order.restaurantId, 'order_rider_rejected', {
+                 orderId: order.id,
+                 driverId: driver.id,
+                 reason: reason
+               });
+            }
+          }
+        });
+
+        return { success: true, message: 'Job declined successfully.' };
     } catch (err: any) {
       if (
         err instanceof ForbiddenException ||
