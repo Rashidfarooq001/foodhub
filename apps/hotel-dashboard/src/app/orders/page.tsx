@@ -239,7 +239,7 @@ export default function HotelOrdersPage() {
 
     socket.on('connect', () => {
       if (restaurantId) {
-        socket.emit('joinRestaurant', { restaurantId });
+        socket.emit('joinRestaurant', { restaurantId, token: accessToken });
       }
       if (hasConnectedOnce.current) {
         fetchOrders();
@@ -1271,4 +1271,5 @@ export default function HotelOrdersPage() {
     </div>
   );
 }
+
 
