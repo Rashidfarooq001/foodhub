@@ -127,7 +127,7 @@ export class OrderLifecycleService {
 
     
 
-    if (!['PENDING', 'ACCEPTED', 'PREPARING', 'DRIVER_ASSIGNED'].includes(order.status)) {
+    if (!['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED'].includes(order.status)) {
       throw new BadRequestException(
         `Cannot assign rider to order in current state "${order.status}".`,
       );
@@ -965,6 +965,8 @@ export class OrderLifecycleService {
             where: { id: existingJob.id },
             data: {
               driverId: actor.driverId,
+              pendingDriverId: null,
+              offerExpiresAt: null,
               status: DeliveryJobStatus.ASSIGNED,
               acceptedAt: now,
             },
@@ -1161,9 +1163,9 @@ export class OrderLifecycleService {
 
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
-      ACCEPTED: [OrderStatus.PREPARING, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
-      PREPARING: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-      READY_FOR_PICKUP: [], // Removed from lifecycle  kept in map to avoid exhaustiveness error
+      ACCEPTED: [OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
+      PREPARING: [OrderStatus.READY_FOR_PICKUP, OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+      READY_FOR_PICKUP: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
       ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],

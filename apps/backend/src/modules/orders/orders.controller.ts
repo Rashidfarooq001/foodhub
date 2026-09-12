@@ -429,7 +429,7 @@ export class OrdersController {
   @Post(':id/ready')
   @ApiOperation({
     summary:
-      'Restaurant marks order ready — triggers driver dispatch (PREPARING → DRIVER_ASSIGNED)',
+      'Restaurant marks order ready — triggers driver dispatch (PREPARING → READY_FOR_PICKUP)',
   })
   async markOrderReady(@Param('id') id: string, @Request() req: any) {
     try {
@@ -438,7 +438,7 @@ export class OrdersController {
         role: req.user?.role,
         restaurantId: req.user?.restaurantId,
       };
-      return await this.lifecycleService.transition(id, OrderStatus.DRIVER_ASSIGNED, actor);
+      return await this.lifecycleService.transition(id, OrderStatus.READY_FOR_PICKUP, actor);
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       this.logger.error(
