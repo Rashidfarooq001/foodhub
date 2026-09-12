@@ -1189,6 +1189,8 @@ model DeliveryJob {
   arrivedAt          DateTime?         @map("arrived_at")
   pickedAt           DateTime?         @map("picked_at")
   deliveredAt        DateTime?         @map("delivered_at")
+  pendingDriverId    String?           @map("pending_driver_id") @db.Uuid
+  offerExpiresAt     DateTime?         @map("offer_expires_at")
   pickupOtpHash      String?           @map("pickup_otp_hash")
   pickupOtpExpiresAt DateTime?         @map("pickup_otp_expires_at")
   pickupOtpAttempts  Int               @default(0) @map("pickup_otp_attempts")
@@ -1196,9 +1198,10 @@ model DeliveryJob {
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
 
-  order      Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  driver     Driver?                @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  rejections DeliveryJobRejection[]
+  order         Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver        Driver?                @relation(name: "DeliveryJobDriver", fields: [driverId], references: [id], onDelete: SetNull)
+  pendingDriver Driver?                @relation(name: "DeliveryJobPendingDriver", fields: [pendingDriverId], references: [id], onDelete: SetNull)
+  rejections    DeliveryJobRejection[]
 
   @@index([status])
   @@index([driverId])
