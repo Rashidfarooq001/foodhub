@@ -496,6 +496,21 @@ export default function HotelOrdersPage() {
           </span>
         );
       case 'ACCEPTED':
+        if (o?.deliveryJob?.pendingDriverId) {
+          const riderName = o.deliveryJob.pendingDriver?.user?.profile?.firstName || 'Rider';
+          return (
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-800">
+              Job assigned to {riderName} — Waiting for rider response
+            </span>
+          );
+        }
+        if (!o?.deliveryJob?.driverId && o?.deliveryJob?.rejections?.length > 0) {
+          return (
+            <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800 animate-pulse">
+              Rider Rejected
+            </span>
+          );
+        }
         return (
           <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">
             ACCEPTED
