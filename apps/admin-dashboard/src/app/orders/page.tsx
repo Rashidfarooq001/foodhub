@@ -12,13 +12,17 @@ import { getApiBaseUrl } from '@foodhub/config';
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchOrders = async (silent = false) => {
-    if (!silent) setIsLoading(true);
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
     try {
       let query = '/orders?page=1&limit=200';
       if (statusFilter !== 'ALL') {
@@ -34,9 +38,13 @@ export default function AdminOrdersPage() {
       if (res.ok) {
         const data = await res.json();
         setOrders(Array.isArray(data) ? data : (data.orders ?? []));
+        setError(null);
+      } else {
+        const errData = await res.json();
+        setError(errData.message || 'Failed to load orders');
       }
-    } catch {
-      /* offline */
+    } catch (err: any) {
+      setError(err.message || 'Network error occurred');
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -194,7 +202,13 @@ export default function AdminOrdersPage() {
           Global Orders ({filtered.length})
         </h2>
 
-        {isLoading ? (
+        {error ? (
+          <div className="py-12 flex flex-col items-center justify-center text-center bg-red-50/50 rounded-2xl border border-dashed border-red-200">
+            <span className="text-sm font-bold text-red-600 mb-2">Unable to load orders</span>
+            <span className="text-xs text-red-500 mb-4">{error}</span>
+            <button onClick={() => fetchOrders()} className="px-4 py-2 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-50">Retry</button>
+          </div>
+        ) : isLoading ? (
           <div className="py-12 text-center text-xs font-bold text-gray-400">
             Loading platform orders...
           </div>
