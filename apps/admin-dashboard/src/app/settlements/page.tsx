@@ -158,28 +158,28 @@ export default function AdminFinancePage() {
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Food Sales</span>
             <TrendingUp size={16} className="text-green-500" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900">{formatCurrency(Number(stats.totalGrossSales || 0))}</h2>
+          <h2 className="text-2xl font-black text-slate-900">{formatCurrency(Number(stats.grossSales || 0))}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Platform Revenue</span>
             <CreditCard size={16} className="text-purple-500" />
           </div>
-          <h2 className="text-2xl font-black text-purple-700">{formatCurrency(Number(stats.totalCommission || 0))}</h2>
+          <h2 className="text-2xl font-black text-purple-700">{formatCurrency(Number(stats.zaykaRevenue || 0))}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Restaurants</span>
             <Store size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.totalRestaurantPending || 0))}</h2>
+          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.pendingRestaurantSettlements || 0))}</h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Riders</span>
             <Bike size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.totalRiderPending || 0))}</h2>
+          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.pendingRiderSettlements || 0))}</h2>
         </div>
       </div>
 
