@@ -1151,6 +1151,7 @@ export class OrdersService implements OnApplicationBootstrap {
         orderNumber: true,
         status: true,
         customerId: true,
+        customer: { select: { userId: true } },
         restaurantId: true,
         assignedRestaurantDriverId: true,
         deliveryAddress: true,
@@ -1176,7 +1177,7 @@ export class OrdersService implements OnApplicationBootstrap {
     if (!order) throw new BadRequestException(`Order ${orderId} not found`);
 
     const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
-    let isAuthorized = isAdmin || order.customerId === userId;
+    let isAuthorized = isAdmin || order.customer?.userId === userId || order.customerId === userId;
 
     if (!isAuthorized && (role === 'RESTAURANT_OWNER' || role === 'RESTAURANT_MANAGER' || role === 'RESTAURANT_STAFF')) {
       const isOwner = order.restaurant.ownerId === userId;

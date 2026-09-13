@@ -156,7 +156,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     try {
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
-        include: { deliveryJob: true },
+        include: { deliveryJob: true, customer: true },
       });
 
       if (!order) {
@@ -164,7 +164,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
 
       const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-      const isCustomer = order.customerId === user.id;
+      const isCustomer = order.customer?.userId === user.id || order.customerId === user.id;
       const isRestaurant = user.restaurantId && order.restaurantId === user.restaurantId;
       const isAssignedDriver =
         (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
