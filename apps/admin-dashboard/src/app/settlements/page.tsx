@@ -17,7 +17,42 @@ export default function AdminFinancePage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean; type: 'restaurant'|'rider'; id: string; name: string; amount: number; error: string | null; processing: boolean } | null>(null);
+  const [paymentModal, setPaymentModal] = useState<{
+    isOpen: boolean;
+    type: 'restaurant' | 'rider';
+    id: string;
+    name: string;
+    amount: number;
+    error: string | null;
+    processing: boolean;
+  } | null>(null);
+  const [invoiceModal, setInvoiceModal] = useState<{
+    isOpen: boolean;
+    loading: boolean;
+    invoice: any;
+    error: string | null;
+    type: 'restaurant' | 'rider';
+    name: string;
+  } | null>(null);
+
+  const handleViewInvoice = async (id: string, type: 'restaurant' | 'rider', name: string) => {
+    setInvoiceModal({ isOpen: true, loading: true, invoice: null, error: null, type, name });
+    try {
+      const res = await adminFetch(`/settlements/invoices/recipient/${id}?periodType=${period}`);
+      if (!res.ok) throw new Error('Invoice not found');
+      const invoice = await res.json();
+      setInvoiceModal({ isOpen: true, loading: false, invoice, error: null, type, name });
+    } catch (err: any) {
+      setInvoiceModal({
+        isOpen: true,
+        loading: false,
+        invoice: null,
+        error: err.message,
+        type,
+        name,
+      });
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -26,11 +61,11 @@ export default function AdminFinancePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       const [resStats, resRest, resRider] = await Promise.all([
         adminFetch(`/settlements/overview?periodType=${period}`),
         adminFetch(`/settlements/restaurants?periodType=${period}`),
-        adminFetch(`/settlements/riders?periodType=${period}`)
+        adminFetch(`/settlements/riders?periodType=${period}`),
       ]);
 
       if (resStats.ok) {
@@ -48,7 +83,7 @@ export default function AdminFinancePage() {
         setRiders(data.data || []);
       }
     } catch (error) {
-      console.error("Error fetching settlements:", error);
+      console.error('Error fetching settlements:', error);
     } finally {
       setLoading(false);
     }
@@ -59,9 +94,10 @@ export default function AdminFinancePage() {
     setPaymentModal({ ...paymentModal, processing: true, error: null });
 
     try {
-      const endpoint = paymentModal.type === 'restaurant' 
-        ? `/settlements/restaurant/${paymentModal.id}/record-payment`
-        : `/settlements/rider/${paymentModal.id}/record-payment`;
+      const endpoint =
+        paymentModal.type === 'restaurant'
+          ? `/settlements/restaurant/${paymentModal.id}/record-payment`
+          : `/settlements/rider/${paymentModal.id}/record-payment`;
 
       const res = await adminFetch(endpoint, {
         method: 'POST',
@@ -70,7 +106,7 @@ export default function AdminFinancePage() {
           paymentMethod: 'OTHER',
           transactionReference: 'MANUAL_DASHBOARD',
           periodType: period,
-        })
+        }),
       });
 
       if (!res.ok) {
@@ -89,18 +125,148 @@ export default function AdminFinancePage() {
   const filteredRestaurants = restaurants.filter(
     (r) =>
       r.restaurant?.name?.toLowerCase().includes(search.toLowerCase()) &&
-      (statusFilter === 'All' || r.status === statusFilter.toUpperCase())
+      (statusFilter === 'All' || r.status === statusFilter.toUpperCase()),
   );
 
-  const filteredRiders = riders.filter(
-    (r) => {
-      const name = `${r.driver?.user?.profile?.firstName || ''} ${r.driver?.user?.profile?.lastName || ''}`.toLowerCase();
-      return name.includes(search.toLowerCase()) && (statusFilter === 'All' || r.settlementStatus === statusFilter.toUpperCase());
-    }
-  );
+  const filteredRiders = riders.filter((r) => {
+    const name =
+      `${r.driver?.user?.profile?.firstName || ''} ${r.driver?.user?.profile?.lastName || ''}`.toLowerCase();
+    return (
+      name.includes(search.toLowerCase()) &&
+      (statusFilter === 'All' || r.settlementStatus === statusFilter.toUpperCase())
+    );
+  });
 
   return (
     <div className="space-y-6 w-full pb-16 relative">
+      {/* Invoice Modal */}
+      {invoiceModal?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                Settlement Invoice
+              </h3>
+              <button
+                onClick={() => setInvoiceModal(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {invoiceModal.loading ? (
+              <div className="py-12 text-center text-slate-500 font-medium">Loading invoice...</div>
+            ) : invoiceModal.error ? (
+              <div className="py-12 text-center text-red-500 font-medium">{invoiceModal.error}</div>
+            ) : invoiceModal.invoice ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-6 rounded-xl border border-slate-100">
+                  <div>
+                    <div className="text-slate-500 mb-1">Invoice Number</div>
+                    <div className="font-bold text-slate-900">
+                      {invoiceModal.invoice.invoice_number}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 mb-1">Settlement ID</div>
+                    <div className="font-bold text-slate-900">{invoiceModal.invoice.id}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 mb-1">Recipient</div>
+                    <div className="font-bold text-slate-900">
+                      {invoiceModal.name}{' '}
+                      <span className="text-xs font-normal text-slate-500">
+                        ({invoiceModal.invoice.recipient_type})
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 mb-1">Payout Period</div>
+                    <div className="font-bold text-slate-900">
+                      {new Date(invoiceModal.invoice.period_start).toLocaleDateString()} -{' '}
+                      {new Date(invoiceModal.invoice.period_end).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 mb-1">Payment Method</div>
+                    <div className="font-bold text-slate-900">
+                      {invoiceModal.invoice.payment_method}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 mb-1">Payment Date</div>
+                    <div className="font-bold text-slate-900">
+                      {new Date(invoiceModal.invoice.payment_date).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-slate-100 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100">
+                      <tr>
+                        <th className="px-4 py-3">Description</th>
+                        <th className="px-4 py-3 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 font-medium">
+                      <tr>
+                        <td className="px-4 py-3 text-slate-700">Gross Earnings</td>
+                        <td className="px-4 py-3 text-right text-slate-900">
+                          {formatCurrency(Number(invoiceModal.invoice.gross_amount))}
+                        </td>
+                      </tr>
+                      {invoiceModal.type === 'restaurant' && (
+                        <>
+                          <tr>
+                            <td className="px-4 py-3 text-slate-600 pl-8">- Commission</td>
+                            <td className="px-4 py-3 text-right text-red-600">
+                              -{formatCurrency(Number(invoiceModal.invoice.commission_amount))}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-slate-600 pl-8">- GST on Commission</td>
+                            <td className="px-4 py-3 text-right text-red-600">
+                              -{formatCurrency(Number(invoiceModal.invoice.commission_gst))}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+                      <tr>
+                        <td className="px-4 py-3 text-slate-600 pl-8">- Other Deductions</td>
+                        <td className="px-4 py-3 text-right text-red-600">
+                          -{formatCurrency(Number(invoiceModal.invoice.deductions))}
+                        </td>
+                      </tr>
+                      <tr className="bg-slate-50">
+                        <td className="px-4 py-4 font-bold text-slate-900">Net Payable</td>
+                        <td className="px-4 py-4 font-black text-right text-green-600 text-lg">
+                          {formatCurrency(Number(invoiceModal.invoice.net_payable))}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-between items-center bg-green-50 text-green-800 px-4 py-3 rounded-lg font-bold border border-green-100">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={20} />
+                    Status: {invoiceModal.invoice.status}
+                  </div>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm font-medium text-sm"
+                  >
+                    Print / PDF
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {/* Payment Confirmation Modal */}
       {paymentModal?.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -108,16 +274,26 @@ export default function AdminFinancePage() {
             <h3 className="text-xl font-bold text-gray-900 mb-4">Confirm Payment</h3>
             <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">{paymentModal.type === 'restaurant' ? 'Restaurant' : 'Delivery Partner'}:</span>
+                <span className="text-gray-500">
+                  {paymentModal.type === 'restaurant' ? 'Restaurant' : 'Delivery Partner'}:
+                </span>
                 <span className="font-bold text-gray-900">{paymentModal.name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Amount Payable:</span>
-                <span className="font-bold text-purple-700">{formatCurrency(Number(paymentModal.amount))}</span>
+                <span className="font-bold text-purple-700">
+                  {formatCurrency(Number(paymentModal.amount))}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Period:</span>
-                <span className="font-bold text-gray-900">{period === 'current' ? 'Last 7 Days' : period === 'monthly' ? 'Last 30 Days' : period}</span>
+                <span className="font-bold text-gray-900">
+                  {period === 'current'
+                    ? 'Last 7 Days'
+                    : period === 'monthly'
+                      ? 'Last 30 Days'
+                      : period}
+                </span>
               </div>
             </div>
 
@@ -128,14 +304,14 @@ export default function AdminFinancePage() {
             )}
 
             <div className="flex gap-3 justify-end">
-              <button 
+              <button
                 onClick={() => setPaymentModal(null)}
                 disabled={paymentModal.processing}
                 className="px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handlePay}
                 disabled={paymentModal.processing}
                 className="px-4 py-2 font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm disabled:opacity-50 transition flex items-center gap-2"
@@ -149,37 +325,55 @@ export default function AdminFinancePage() {
 
       <div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Finance & Settlements</h1>
-        <p className="text-slate-500 text-sm mt-1">Platform revenue, payouts, and financial health.</p>
+        <p className="text-slate-500 text-sm mt-1">
+          Platform revenue, payouts, and financial health.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Food Sales</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Gross Food Sales
+            </span>
             <TrendingUp size={16} className="text-green-500" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900">{formatCurrency(Number(stats.grossSales || 0))}</h2>
+          <h2 className="text-2xl font-black text-slate-900">
+            {formatCurrency(Number(stats.grossSales || 0))}
+          </h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Platform Revenue</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Platform Revenue
+            </span>
             <CreditCard size={16} className="text-purple-500" />
           </div>
-          <h2 className="text-2xl font-black text-purple-700">{formatCurrency(Number(stats.zaykaRevenue || 0))}</h2>
+          <h2 className="text-2xl font-black text-purple-700">
+            {formatCurrency(Number(stats.zaykaRevenue || 0))}
+          </h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Restaurants</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Pending Restaurants
+            </span>
             <Store size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.pendingRestaurantSettlements || 0))}</h2>
+          <h2 className="text-2xl font-black text-amber-600">
+            {formatCurrency(Number(stats.pendingRestaurantSettlements || 0))}
+          </h2>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Riders</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Pending Riders
+            </span>
             <Bike size={16} className="text-amber-500" />
           </div>
-          <h2 className="text-2xl font-black text-amber-600">{formatCurrency(Number(stats.pendingRiderSettlements || 0))}</h2>
+          <h2 className="text-2xl font-black text-amber-600">
+            {formatCurrency(Number(stats.pendingRiderSettlements || 0))}
+          </h2>
         </div>
       </div>
 
@@ -294,11 +488,15 @@ export default function AdminFinancePage() {
                       <div className="flex flex-col text-xs text-slate-500 min-w-[130px] gap-0.5 leading-tight mt-1">
                         <div className="flex justify-between">
                           <span>Commission</span>
-                          <span className="font-medium text-slate-700">{formatCurrency(Number(r.commissionAmount || 0))}</span>
+                          <span className="font-medium text-slate-700">
+                            {formatCurrency(Number(r.commissionAmount || 0))}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>+ GST 18%</span>
-                          <span className="font-medium text-slate-700">{formatCurrency(Number(r.commissionGst || 0))}</span>
+                          <span className="font-medium text-slate-700">
+                            {formatCurrency(Number(r.commissionGst || 0))}
+                          </span>
                         </div>
                         <div className="flex justify-between mt-0.5 pt-0.5 border-t border-slate-200 font-bold text-slate-900">
                           <span>= Total</span>
@@ -325,10 +523,30 @@ export default function AdminFinancePage() {
                     <td className="p-4 flex items-center gap-3">
                       {r.status === 'PENDING' && Number(r.pendingAmount) > 0 && (
                         <button
-                          onClick={() => setPaymentModal({ isOpen: true, type: 'restaurant', id: r.restaurant.id, name: r.restaurant.name, amount: Number(r.pendingAmount), error: null, processing: false })}
+                          onClick={() =>
+                            setPaymentModal({
+                              isOpen: true,
+                              type: 'restaurant',
+                              id: r.restaurant.id,
+                              name: r.restaurant.name,
+                              amount: Number(r.pendingAmount),
+                              error: null,
+                              processing: false,
+                            })
+                          }
                           className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-xs transition shadow-sm"
                         >
                           PAY
+                        </button>
+                      )}
+                      {r.status === 'PAID' && (
+                        <button
+                          onClick={() =>
+                            handleViewInvoice(r.restaurant.id, 'restaurant', r.restaurant.name)
+                          }
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition border border-slate-200"
+                        >
+                          VIEW INVOICE
                         </button>
                       )}
                       <Link
@@ -350,7 +568,9 @@ export default function AdminFinancePage() {
                       {`${r.driver.user?.profile?.firstName || ''} ${r.driver.user?.profile?.lastName || ''}`.trim()}
                     </td>
                     <td className="p-4 text-slate-600">{r.completedDeliveries}</td>
-                    <td className="p-4 font-medium">{formatCurrency(Number(r.totalEarnings || 0))}</td>
+                    <td className="p-4 font-medium">
+                      {formatCurrency(Number(r.totalEarnings || 0))}
+                    </td>
                     <td className="p-4 font-bold text-slate-900">
                       {formatCurrency(Number(r.totalEarnings || 0))}
                     </td>
@@ -370,10 +590,34 @@ export default function AdminFinancePage() {
                     <td className="p-4 flex items-center gap-3">
                       {r.settlementStatus === 'PENDING' && Number(r.pendingAmount) > 0 && (
                         <button
-                          onClick={() => setPaymentModal({ isOpen: true, type: 'rider', id: r.driver.id, name: `${r.driver.user?.profile?.firstName || ''} ${r.driver.user?.profile?.lastName || ''}`.trim(), amount: Number(r.pendingAmount), error: null, processing: false })}
+                          onClick={() =>
+                            setPaymentModal({
+                              isOpen: true,
+                              type: 'rider',
+                              id: r.driver.id,
+                              name: `${r.driver.user?.profile?.firstName || ''} ${r.driver.user?.profile?.lastName || ''}`.trim(),
+                              amount: Number(r.pendingAmount),
+                              error: null,
+                              processing: false,
+                            })
+                          }
                           className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-xs transition shadow-sm"
                         >
                           PAY
+                        </button>
+                      )}
+                      {r.settlementStatus === 'PAID' && (
+                        <button
+                          onClick={() =>
+                            handleViewInvoice(
+                              r.driver.id,
+                              'rider',
+                              `${r.driver.user?.profile?.firstName || ''} ${r.driver.user?.profile?.lastName || ''}`.trim(),
+                            )
+                          }
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition border border-slate-200"
+                        >
+                          VIEW INVOICE
                         </button>
                       )}
                       <Link
