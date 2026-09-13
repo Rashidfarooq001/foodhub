@@ -297,11 +297,11 @@ export default function AdminFinancePage() {
                           <span className="font-medium text-slate-900">{formatCurrency(Number(r.commissionAmount || 0))}</span>
                         </span>
                         <span className="text-slate-600 flex justify-between">
-                          <span>GST (18%):</span>
+                          <span>GST on Commission (18%):</span>
                           <span className="font-medium text-slate-900">{formatCurrency(Number(r.commissionGst || 0))}</span>
                         </span>
                         <div className="mt-1 pt-1 border-t border-slate-100 flex justify-between text-slate-900 font-bold">
-                          <span>Total Deduction:</span>
+                          <span>Total Platform Deduction:</span>
                           <span>{formatCurrency(Number(r.commissionTotal || 0))}</span>
                         </div>
                       </div>
