@@ -54,25 +54,65 @@ export default function RestaurantFinanceDetailPage() {
             {restaurant.name || 'Restaurant'}
           </h1>
           <p className="text-sm text-gray-500">Ledger & Settlement Details</p>
+          <div className="mt-2 text-xs text-gray-500 space-y-1">
+            <p>
+              <span className="font-semibold text-gray-700">Settlement Period:</span>{' '}
+              {new Date(data?.period?.periodStart).toLocaleDateString()} &ndash;{' '}
+              {new Date(data?.period?.periodEnd).toLocaleDateString()}
+            </p>
+            <p>
+              <span className="font-semibold text-gray-700">Payment Date:</span>{' '}
+              {stats.status === 'PAID' ? (
+                stats.settledAt ? (
+                  new Date(stats.settledAt).toLocaleDateString()
+                ) : (
+                  new Date().toLocaleDateString()
+                )
+              ) : (
+                <span className="text-orange-500 font-medium">Not paid</span>
+              )}
+            </p>
+            {stats.status === 'PAID' && (
+              <p>
+                <span className="font-semibold text-gray-700">Payment Method:</span> MANUAL
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Orders</p>
-          <p className="text-2xl font-black text-gray-900">{stats.orderCount || orders.length || 0}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+            Total Orders
+          </p>
+          <p className="text-2xl font-black text-gray-900">
+            {stats.orderCount || orders.length || 0}
+          </p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gross Sales</p>
-          <p className="text-2xl font-black text-gray-900">{formatCurrency(Number(stats.grossSales || 0))}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+            Gross Sales
+          </p>
+          <p className="text-2xl font-black text-gray-900">
+            {formatCurrency(Number(stats.grossSales || 0))}
+          </p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Net Payable</p>
-          <p className="text-2xl font-black text-purple-600">{formatCurrency(Number(stats.netPayable || 0))}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+            Net Payable
+          </p>
+          <p className="text-2xl font-black text-purple-600">
+            {formatCurrency(Number(stats.netPayable || 0))}
+          </p>
         </div>
         <div className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Amount Paid</p>
-          <p className="text-2xl font-black text-green-600">{formatCurrency(Number(stats.paidAmount || 0))}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+            Amount Paid
+          </p>
+          <p className="text-2xl font-black text-green-600">
+            {formatCurrency(Number(stats.paidAmount || 0))}
+          </p>
         </div>
       </div>
 
@@ -84,26 +124,63 @@ export default function RestaurantFinanceDetailPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-white">
               <tr className="border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-bold">Order ID</th>
-                <th className="p-4 font-bold">Gross</th>
-                <th className="p-4 font-bold">Commission</th>
-                <th className="p-4 font-bold">GST on Comm</th>
-                <th className="p-4 font-bold text-right">Net Payout</th>
+                <th className="p-4 font-bold">ORDER ID</th>
+                <th className="p-4 font-bold">DATE</th>
+                <th className="p-4 font-bold">GROSS</th>
+                <th className="p-4 font-bold">COMMISSION</th>
+                <th className="p-4 font-bold">GST ON COMMISSION</th>
+                <th className="p-4 font-bold text-right">NET PAYOUT</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-center text-gray-500">No orders found in this period.</td>
+                  <td colSpan={6} className="p-4 text-center text-gray-500">
+                    No orders found in this period.
+                  </td>
                 </tr>
               ) : (
                 orders.map((o: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50/50">
-                    <td className="p-4 font-mono text-xs">{o.orderNumber || o.orderId?.slice(0, 8)}</td>
-                    <td className="p-4 text-gray-900">{formatCurrency(Number(o.totalAmount || 0))}</td>
-                    <td className="p-4 text-red-600">-{formatCurrency(Number(o.commissionAmount || 0))}</td>
-                    <td className="p-4 text-red-600">-{formatCurrency(Number(o.commissionAmount || 0) * 0.18)}</td>
-                    <td className="p-4 text-purple-700 font-bold text-right">{formatCurrency(Number(o.netPayable || 0))}</td>
+                    <td className="p-4 font-mono text-xs">
+                      {o.orderNumber || o.orderId?.slice(0, 8)}
+                    </td>
+                    <td className="p-4 text-gray-500 text-xs">
+                      {o.orderDate ? (
+                        <>
+                          <div>
+                            {new Date(o.orderDate).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </div>
+                          <div>
+                            {new Date(o.orderDate).toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
+                    <td className="p-4 text-gray-900">
+                      {formatCurrency(Number(o.totalAmount || 0))}
+                    </td>
+                    <td className="p-4 text-red-600">
+                      -{formatCurrency(Number(o.commissionAmount || 0))}
+                    </td>
+                    <td className="p-4 text-red-600">
+                      -
+                      {formatCurrency(
+                        Number(o.commissionGst ?? Number(o.commissionAmount || 0) * 0.18),
+                      )}
+                    </td>
+                    <td className="p-4 text-purple-700 font-bold text-right">
+                      {formatCurrency(Number(o.netPayable || 0))}
+                    </td>
                   </tr>
                 ))
               )}
