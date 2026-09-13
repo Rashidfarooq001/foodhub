@@ -290,18 +290,18 @@ export default function AdminFinancePage() {
                     <td className="p-4 font-bold">{r.restaurant.name}</td>
                     <td className="p-4 text-slate-600">{r.orderCount}</td>
                     <td className="p-4 font-medium">{formatCurrency(Number(r.grossSales || 0))}</td>
-                    <td className="p-4">
-                      <div className="flex flex-col text-sm min-w-[180px]">
-                        <span className="text-slate-600 flex justify-between">
-                          <span>Commission (13%):</span>
-                          <span className="font-medium text-slate-900">{formatCurrency(Number(r.commissionAmount || 0))}</span>
-                        </span>
-                        <span className="text-slate-600 flex justify-between">
-                          <span>GST on Commission (18%):</span>
-                          <span className="font-medium text-slate-900">{formatCurrency(Number(r.commissionGst || 0))}</span>
-                        </span>
-                        <div className="mt-1 pt-1 border-t border-slate-100 flex justify-between text-slate-900 font-bold">
-                          <span>Total Platform Deduction:</span>
+                    <td className="p-4 align-top">
+                      <div className="flex flex-col text-xs text-slate-500 min-w-[130px] gap-0.5 leading-tight mt-1">
+                        <div className="flex justify-between">
+                          <span>Commission</span>
+                          <span className="font-medium text-slate-700">{formatCurrency(Number(r.commissionAmount || 0))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>+ GST 18%</span>
+                          <span className="font-medium text-slate-700">{formatCurrency(Number(r.commissionGst || 0))}</span>
+                        </div>
+                        <div className="flex justify-between mt-0.5 pt-0.5 border-t border-slate-200 font-bold text-slate-900">
+                          <span>= Total</span>
                           <span>{formatCurrency(Number(r.commissionTotal || 0))}</span>
                         </div>
                       </div>
