@@ -69,7 +69,7 @@ export default function CheckoutPage() {
     deliveryRadius: number;
   } | null>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'COD'>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD'>('UPI');
   const [instructions, setInstructions] = useState('');
   const [alwaysSendCutlery, setAlwaysSendCutlery] = useState(false);
   const [tipAmount, setTipAmount] = useState<number>(0);
@@ -532,8 +532,7 @@ export default function CheckoutPage() {
         locationSource: (selectedAddress as any).locationSource || 'CURRENT_GPS',
       };
 
-      const validPaymentMethod =
-        paymentMethod === 'COD' ? 'COD' : paymentMethod === 'CARD' ? 'CARD' : 'UPI';
+      const validPaymentMethod = paymentMethod === 'CARD' ? 'CARD' : 'UPI';
 
       const createOrderPayload = {
         restaurantId: cartRestaurantId,
@@ -594,13 +593,7 @@ export default function CheckoutPage() {
       const createdOrder = await orderRes.json();
       const orderId = createdOrder.id;
 
-      // CASH ON DELIVERY (COD) FLOW
-      if (paymentMethod === 'COD') {
-        clearCart();
-        setIsPlacing(false);
-        router.push(`/orders/${orderId}/track`);
-        return;
-      }
+      // CASH ON DELIVERY (COD) FLOW REMOVED
 
       // ONLINE PAYMENT FLOW (Razorpay)
       const isScriptLoaded = await loadRazorpayScript();
@@ -1045,13 +1038,13 @@ export default function CheckoutPage() {
                 <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-gray-400" />Payment method</h2>
                 <button 
-                  onClick={() => setPaymentMethod(prev => prev === 'COD' ? 'UPI' : 'COD')}
+                  onClick={() => setPaymentMethod(prev => prev === 'CARD' ? 'UPI' : 'CARD')}
                   className="text-xs font-medium text-orange-600 px-3 py-1.5 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
                 >Change</button>
              </div>
              <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-900">
-                  {paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'}
+                  {paymentMethod === 'UPI' ? 'UPI Payment' : 'Card / NetBanking'}
                 </span>
              </div>
           </div>
