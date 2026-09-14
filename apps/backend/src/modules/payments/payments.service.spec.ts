@@ -1,6 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../database/prisma.service';
+import { OrdersGateway } from '../orders/orders.gateway';
+import { WebPushService } from '../notifications/webpush.service';
 import { BadRequestException } from '@nestjs/common';
 import * as crypto from 'crypto';
 
@@ -26,7 +28,12 @@ describe('PaymentsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PaymentsService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        PaymentsService, 
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: OrdersGateway, useValue: {} },
+        { provide: WebPushService, useValue: {} }
+      ],
     }).compile();
 
     service = module.get<PaymentsService>(PaymentsService);
@@ -54,7 +61,7 @@ describe('PaymentsService', () => {
       const secret = process.env['RAZORPAY_KEY_SECRET'] ?? 'placeholder_secret';
       const rzpOrderId = 'order_test_123';
       const rzpPaymentId = 'pay_test_456';
-      const body = `${rzpOrderId}|${rzpPaymentId}`;
+      const body =  + "" + ${rzpOrderId}| + "" + ;
       const validSig = crypto.createHmac('sha256', secret).update(body).digest('hex');
 
       mockPrisma.payment.findUnique.mockResolvedValueOnce({
@@ -74,4 +81,3 @@ describe('PaymentsService', () => {
     });
   });
 });
-
