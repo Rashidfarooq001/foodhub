@@ -110,11 +110,11 @@ export default function SignupPage() {
       }
 
       // Phone available -> Trigger MSG91 OTP without creating account
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
+      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '';
       const tokenAuth =
         process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
         process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        '556022TLShucwZ86a6d8a7bP1';
+        '';
       const identifier = formatIdentifier(phone);
 
       const configuration = {

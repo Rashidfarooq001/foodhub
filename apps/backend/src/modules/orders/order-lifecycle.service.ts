@@ -39,7 +39,8 @@ export function signQrToken(payload: {
   driverId: string;
   expiresAt: number;
 }): string {
-  const secret = process.env.JWT_SECRET || 'foodhub_super_secret_jwt_key_2026';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not defined');
   const dataStr = `${payload.orderId}:${payload.deliveryJobId}:${payload.restaurantId}:${payload.driverId}:${payload.expiresAt}`;
   const signature = crypto.createHmac('sha256', secret).update(dataStr).digest('hex');
   return Buffer.from(JSON.stringify({ ...payload, signature })).toString('base64url');
@@ -60,8 +61,9 @@ export function verifyQrToken(token: string): {
       return null;
     if (Date.now() > expiresAt) return null;
 
-    const secret = process.env.JWT_SECRET || 'foodhub_super_secret_jwt_key_2026';
-    const dataStr = `${orderId}:${deliveryJobId}:${restaurantId}:${driverId}:${expiresAt}`;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not defined');
+  const dataStr = `${orderId}:${deliveryJobId}:${restaurantId}:${driverId}:${expiresAt}`;
     const expectedSig = crypto.createHmac('sha256', secret).update(dataStr).digest('hex');
     if (signature !== expectedSig) return null;
 

@@ -89,9 +89,10 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     if (!token) return null;
 
     try {
-      const secret =
-        this.configService.get<string>('JWT_SECRET') ||
-        'super-secret-jwt-key-foodhub-2026-enterprise';
+      const secret = this.configService.get<string>('JWT_SECRET');
+      if (!secret) {
+        throw new Error('JWT_SECRET is not defined');
+      }
       const decoded: any = this.jwtService.verify(token, { secret });
       
       // Phase 10: Prevent Pre-Auth Tokens from connecting to Socket.IO

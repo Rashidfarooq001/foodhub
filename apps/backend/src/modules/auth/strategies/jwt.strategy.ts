@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey:
         (configService ? configService.get<string>('JWT_SECRET') : process.env.JWT_SECRET) ||
-        'super-secret-jwt-key-foodhub-2026-enterprise',
+        (() => { throw new Error('JWT_SECRET is not defined'); })(),
     });
   }
 

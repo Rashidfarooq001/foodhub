@@ -164,7 +164,7 @@ export function getMapplsApiKey(): string {
   return (
     process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
     process.env.MAPPLS_API_KEY ||
-    'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi'
+    ''
   );
 }
 

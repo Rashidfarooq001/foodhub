@@ -62,12 +62,12 @@ export function useMsg91Widget(options: UseMsg91WidgetOptions) {
     setIsLoading(true);
 
     const widgetId =
-      options.widgetId || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
+      options.widgetId || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '';
     const tokenAuth =
       options.tokenAuth ||
       process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
       process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-      '556022TLShucwZ86a6d8a7bP1';
+      '';
     const identifier = formatIdentifier(inputPhone);
 
     const configuration = {
