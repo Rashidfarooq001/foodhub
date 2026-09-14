@@ -76,7 +76,7 @@ export class OtpService {
 
     const mobileFor91 = `91${cleanDigits.slice(-10)}`;
 
-    if (cleanDigits === '9999999999') {
+    if (cleanDigits === '9999999999' && process.env.ENABLE_TEST_BYPASS === 'true') {
       this.logger.log(`[OTP Gateway] Bypassing MSG91 API for TEST PHONE ${cleanDigits}`);
       return { message: 'OTP sent successfully', cooldownSec: this.OTP_COOLDOWN_SEC };
     }
@@ -110,7 +110,7 @@ export class OtpService {
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const cleanDigits = (phone || '').replace(/\D/g, '');
 
-    if (cleanDigits === '9999999999' && rawOtp === '1234') {
+    if (cleanDigits === '9999999999' && rawOtp === '1234' && process.env.ENABLE_TEST_BYPASS === 'true') {
       this.logger.log(`[OTP Gateway] Bypassing verify for TEST PHONE ${cleanDigits}`);
       return true;
     }
