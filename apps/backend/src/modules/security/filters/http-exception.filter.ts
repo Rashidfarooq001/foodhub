@@ -24,22 +24,25 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : null;
 
     let message = 'Internal server error';
-    if (typeof exceptionResponse === 'string') {
-      message = exceptionResponse;
-    } else if (
-      exceptionResponse &&
-      typeof exceptionResponse === 'object' &&
-      'message' in exceptionResponse
-    ) {
-      const msg = (exceptionResponse as any).message;
-      message = Array.isArray(msg) ? msg.join('; ') : String(msg);
-    } else if (exception instanceof Error) {
-      message = exception.message;
+    if (status !== HttpStatus.INTERNAL_SERVER_ERROR) {
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else if (
+        exceptionResponse &&
+        typeof exceptionResponse === 'object' &&
+        'message' in exceptionResponse
+      ) {
+        const msg = (exceptionResponse as any).message;
+        message = Array.isArray(msg) ? msg.join('; ') : String(msg);
+      } else if (exception instanceof Error) {
+        message = exception.message;
+      }
     }
 
     if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+      const originalMessage = exception instanceof Error ? exception.message : 'Unknown error';
       this.logger.error(
-        `[${requestId}] ${request.method} ${request.url} - ${message}`,
+        `[${requestId}] ${request.method} ${request.url} - ${originalMessage}`,
         exception instanceof Error ? exception.stack : '',
       );
     } else {

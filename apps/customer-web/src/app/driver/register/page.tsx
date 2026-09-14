@@ -54,21 +54,29 @@ export default function DriverRegisterPage() {
     setErrorMsg("");
     setIsVerifyingPhone(true);
     try {
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || "3668626d5043313835303335";
-      const tokenAuth = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || "556022TLShucwZ86a6d8a7bP1";
-      const identifier = formatIdentifier(form.phone);
-      const configuration = {
-        widgetId,
-        tokenAuth,
-        identifier,
-        success: (data: any) => { setIsPhoneVerified(true); setIsVerifyingPhone(false); },
-        failure: (error: any) => { setErrorMsg(error.message || "OTP Verification failed"); setIsVerifyingPhone(false); }
-      };
-      if ((window as any).initSendOTP) {
-        (window as any).initSendOTP(configuration);
-      } else {
-        throw new Error("OTP service unavailable");
+      const sendRes = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.phone }),
+      });
+      if (!sendRes.ok) throw new Error('Failed to send OTP');
+
+      const otp = window.prompt('Enter the 4-digit OTP sent to your phone:');
+      if (!otp) {
+        setIsVerifyingPhone(false);
+        return;
       }
+
+      const verifyRes = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.phone, otp, targetRole: 'RIDER' }),
+      });
+      
+      if (!verifyRes.ok) throw new Error('Invalid OTP');
+      
+      setIsPhoneVerified(true);
+      setIsVerifyingPhone(false);
     } catch (err: any) {
       setErrorMsg(err.message || "Connection error");
       setIsVerifyingPhone(false);

@@ -90,51 +90,6 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'Failed to request reset OTP.');
       }
 
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth =
-        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
-        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        '556022TLShucwZ86a6d8a7bP1';
-      const identifier = formatIdentifier(phone);
-
-      const configuration = {
-        widgetId,
-        tokenAuth,
-        identifier,
-        exposeMethods: true,
-        captchaRenderId: '',
-        success: (msgData: any) => {
-          const token =
-            typeof msgData === 'string'
-              ? msgData
-              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
-          if (token) {
-            handleVerifyResetWidgetToken(token);
-          } else {
-            setError('Verification succeeded on MSG91, but token was missing.');
-            setIsLoading(false);
-          }
-        },
-        failure: (err: any) => {
-          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-          setIsLoading(false);
-        },
-      };
-
-      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
-        try {
-          (window as any).initSendOTP(configuration);
-          if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(
-              identifier,
-              () => {},
-              (err: any) => console.error('[MSG91 Reset] sendOtp error:', err),
-            );
-          }
-        } catch (widgetErr: any) {
-          console.warn('[MSG91 Reset] initSendOTP exception:', widgetErr);
-        }
-      }
 
       setForgotStep('VERIFY_OTP');
       setCooldown(30);
@@ -184,22 +139,6 @@ export default function ForgotPasswordPage() {
     }
     setError('');
     setIsLoading(true);
-
-    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
-      try {
-        (window as any).verifyOtp(
-          enteredOtp,
-          () => {},
-          (err: any) => {
-            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-            setIsLoading(false);
-          },
-        );
-        return;
-      } catch (verifyErr: any) {
-        console.warn('[MSG91 Reset] verifyOtp exception:', verifyErr);
-      }
-    }
 
     try {
       const res = await fetch(`${API_BASE}/auth/verify-reset-token`, {

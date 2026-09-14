@@ -109,51 +109,16 @@ export default function SignupPage() {
         throw new Error(checkData.message || 'Phone number is already registered. Please login.');
       }
 
-      // Phone available -> Trigger MSG91 OTP without creating account
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '';
-      const tokenAuth =
-        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
-        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        '';
-      const identifier = formatIdentifier(phone);
-
-      const configuration = {
-        widgetId,
-        tokenAuth,
-        identifier,
-        exposeMethods: true,
-        captchaRenderId: '',
-        success: (msgData: any) => {
-          const token =
-            typeof msgData === 'string'
-              ? msgData
-              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
-          if (token) {
-            handleCompleteSignupWithWidgetToken(token);
-          } else {
-            setError('Verification succeeded on MSG91, but token was missing.');
-            setIsLoading(false);
-          }
-        },
-        failure: (err: any) => {
-          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-          setIsLoading(false);
-        },
-      };
-
-      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
-        try {
-          (window as any).initSendOTP(configuration);
-          if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(
-              identifier,
-              () => {},
-              (err: any) => console.error('[MSG91 Signup] sendOtp error:', err),
-            );
-          }
-        } catch (widgetErr: any) {
-          console.warn('[MSG91 Signup] initSendOTP exception:', widgetErr);
-        }
+      // Send OTP via backend
+      const sendRes = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      
+      const sendData = await sendRes.json().catch(() => ({}));
+      if (!sendRes.ok) {
+        throw new Error(sendData.message || 'Failed to send OTP.');
       }
 
       setSignupStep('VERIFY_OTP');
@@ -225,22 +190,6 @@ export default function SignupPage() {
     }
     setError('');
     setIsLoading(true);
-
-    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
-      try {
-        (window as any).verifyOtp(
-          enteredOtp,
-          () => {},
-          (err: any) => {
-            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-            setIsLoading(false);
-          },
-        );
-        return;
-      } catch (verifyErr: any) {
-        console.warn('[MSG91 Signup] verifyOtp exception:', verifyErr);
-      }
-    }
 
     try {
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {

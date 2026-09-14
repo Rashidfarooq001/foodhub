@@ -121,59 +121,23 @@ export default function DeliveryLoginPage() {
     setError('');
     setIsLoading(true);
 
-    const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-    const tokenAuth =
-      process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
-      process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-      '556022TLShucwZ86a6d8a7bP1';
-    const identifier = formatIdentifier(phone);
-
-    const configuration = {
-      widgetId,
-      tokenAuth,
-      identifier,
-      exposeMethods: true,
-      captchaRenderId: '',
-      success: (data: any) => {
-        const token =
-          typeof data === 'string'
-            ? data
-            : data?.message || data?.jwtToken || data?.accessToken || data?.token;
-        if (token) {
-          handleWidgetSuccess(token);
-        } else {
-          setError('Verification succeeded on MSG91, but token was missing.');
-          setIsLoading(false);
-        }
-      },
-      failure: (err: any) => {
-        setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-        setIsLoading(false);
-      },
-    };
-
-    if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
-      try {
-        (window as any).initSendOTP(configuration);
-        if (typeof (window as any).sendOtp === 'function') {
-          (window as any).sendOtp(
-            identifier,
-            () => {},
-            (err: any) => console.error('[MSG91 Delivery] sendOtp error:', err),
-          );
-        }
-        setStep('OTP');
-        setCooldown(30);
-        setIsLoading(false);
-        return;
-      } catch (widgetErr: any) {
-        console.warn('[MSG91 Delivery] initSendOTP exception:', widgetErr?.message || widgetErr);
+    try {
+      const sendRes = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const sendData = await sendRes.json().catch(() => ({}));
+      if (!sendRes.ok) {
+        throw new Error(sendData.message || 'Failed to send OTP.');
       }
+      setStep('OTP');
+      setCooldown(30);
+    } catch (err: any) {
+      setError(err.message || 'OTP request failed.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setStep('OTP');
-    setCooldown(30);
-    setIsLoading(false);
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -186,20 +150,36 @@ export default function DeliveryLoginPage() {
     setError('');
     setIsLoading(true);
 
-    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
-      try {
-        (window as any).verifyOtp(
-          enteredOtp,
-          () => {},
-          (err: any) => {
-            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-            setIsLoading(false);
-          },
-        );
-        return;
-      } catch (verifyErr: any) {
-        console.warn('[MSG91 Delivery] verifyOtp exception:', verifyErr);
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp: enteredOtp, targetRole: 'DELIVERY' }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || 'OTP verification failed');
       }
+
+      setAuth(
+        {
+          id: data.user.id,
+          email: data.user.email,
+          phone: data.user.phone,
+          role: data.user.role,
+          name: data.user.profile?.firstName || data.user.name || 'Courier Partner',
+        },
+        data.tokens.accessToken,
+        data.tokens.refreshToken || data.tokens.accessToken,
+      );
+
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'OTP verification failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 

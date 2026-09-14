@@ -173,7 +173,7 @@ export function getMapplsClientId(): string {
 }
 
 export function getMapplsClientSecret(): string {
-  return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_SECRET || process.env.MAPPLS_CLIENT_SECRET || '';
+  return process.env.MAPPLS_CLIENT_SECRET || '';
 }
 
 export const API_CONFIG = {
