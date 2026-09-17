@@ -250,12 +250,12 @@ export class AuthService {
       throw new BadRequestException('Passwords do not match');
     }
 
-    const cleanDigits = dto.phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
+    let formattedPhone: string;
+    try {
+      formattedPhone = normalizeIndianPhone(dto.phone);
+    } catch {
       throw new BadRequestException('Please provide a valid 10-digit mobile number');
     }
-
-    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
 
     const existingUser = await this.usersService.findUserByPhone(formattedPhone);
     if (existingUser) {
@@ -400,11 +400,12 @@ export class AuthService {
       throw new BadRequestException('Passwords do not match');
     }
 
-    const cleanDigits = dto.phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
-      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    let formattedPhone: string;
+    try {
+      formattedPhone = normalizeIndianPhone(dto.phone);
+    } catch {
+      throw new BadRequestException('Please provide a valid 10-digit Indian mobile number');
     }
-    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
     const cleanEmail = dto.email.trim().toLowerCase();
 
     const existingUser = await (this.usersService as any).prisma.user.findFirst({
@@ -546,11 +547,12 @@ export class AuthService {
       throw new BadRequestException('Passwords do not match');
     }
 
-    const cleanDigits = dto.phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10) {
-      throw new BadRequestException('Please provide a valid 10-digit mobile number');
+    let formattedPhone: string;
+    try {
+      formattedPhone = normalizeIndianPhone(dto.phone);
+    } catch {
+      throw new BadRequestException('Please provide a valid 10-digit Indian mobile number');
     }
-    const formattedPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
     const cleanEmail = dto.email.trim().toLowerCase();
 
     const existingUser = await (this.usersService as any).prisma.user.findFirst({
@@ -1062,12 +1064,12 @@ export class AuthService {
         );
       }
     } else {
-      // Existing account: reject any CUSTOMER signup attempt regardless of role or password presence
-      if (normalizedTarget === 'CUSTOMER') {
+      // Existing account: allow CUSTOMER OTP login, but block cross-portal access
+      if (normalizedTarget === 'CUSTOMER' && user.role !== 'CUSTOMER') {
         this.logger.warn(
-          `[verifyOtp] Rejected CUSTOMER signup: phone already registered as role=${user.role}`,
+          `[verifyOtp] Rejected CUSTOMER OTP login: phone registered as role=${user.role}`,
         );
-        throw new BadRequestException(
+        throw new UnauthorizedException(
           'An account with this phone number already exists. Please use the correct login portal.',
         );
       }
@@ -1315,7 +1317,7 @@ export class AuthService {
 
     // Issue short-lived, single-use password reset token (valid 10 minutes)
     const resetToken = `rst_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
-    await this.redisService.getClient().setex(`reset_token:${resetToken}`, 600, JSON.stringify({ userId: user.id, phone: user.phone }));
+    await this.redisService.getClient().setex(`reset_token:${resetToken}`, 600, JSON.stringify({ userId: user.id, phone: user.phone, expiresAt: Date.now() + 600_000 }));
 
     this.logger.log(
       `[Backend ForgotPassword] Issued reset token for user ID=${user.id}, phone=${user.phone}`,

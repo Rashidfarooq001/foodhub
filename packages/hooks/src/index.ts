@@ -8,5 +8,5 @@ export * from './use-pagination.js';
 export * from './use-infinite-scroll.js';
 export * from './use-modal.js';
 export * from './use-disclosure.js';
-export * from './use-msg91-widget.js';
+// export * from './use-msg91-widget.js';
 export * from './use-session-timeout.js';
