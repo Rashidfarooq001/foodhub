@@ -54,14 +54,32 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  const handleIdentifierSubmit = (e: React.FormEvent) => {
+  const handleIdentifierSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier) {
       setError('Admin identifier is required');
       return;
     }
+    setLoading(true);
     setError('');
-    setStep(2);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/admin/verify-identifier`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Admin account not found for this identifier.');
+      }
+      setStep(2);
+    } catch (err: any) {
+      setError('Admin account not found for this identifier.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSecurityVerify = async (e: React.FormEvent) => {
@@ -77,7 +95,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch(`${API_BASE}/auth/admin/verify-security-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dob, favoritePerson }),
+        body: JSON.stringify({ identifier, dob, favoritePerson }),
       });
 
       const data = await res.json().catch(() => ({}));
