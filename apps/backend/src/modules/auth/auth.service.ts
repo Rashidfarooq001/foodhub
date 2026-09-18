@@ -1728,8 +1728,30 @@ export class AuthService {
   // Rate-limiting memory store for admin recovery attempts (IP -> { count, resetTime })
   private recoveryAttemptsMap = new Map<string, { count: number; resetTime: number }>();
 
+  async verifyAdminIdentifier(identifier: string) {
+    const cleanId = (identifier || '').trim();
+    if (!cleanId) {
+      throw new BadRequestException('Identifier is required');
+    }
+
+    const adminUser = await (this.usersService as any).prisma.user.findFirst({
+      where: {
+        OR: [{ phone: cleanId }, { email: cleanId }],
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+        isActive: true,
+      },
+    });
+
+    if (!adminUser) {
+      // Safe error that doesn't reveal too much, but stops the flow
+      throw new UnauthorizedException('Admin account not found for this identifier.');
+    }
+
+    return { success: true, message: 'Admin verified.' };
+  }
+
   async verifyAdminSecurityQuestions(
-    dto: { dob: string; favoritePerson: string },
+    dto: { identifier: string; dob: string; favoritePerson: string },
     ipAddress?: string,
   ) {
     const ipKey = ipAddress || 'global_ip';
@@ -1750,26 +1772,19 @@ export class AuthService {
 
     const cleanDob = (dto.dob || '').trim();
     const cleanPerson = (dto.favoritePerson || '').trim().toLowerCase();
+    const cleanId = (dto.identifier || '').trim();
 
-    if (!cleanDob || !cleanPerson) {
-      throw new BadRequestException('Both Date of Birth and Favorite Person are required.');
+    if (!cleanDob || !cleanPerson || !cleanId) {
+      throw new BadRequestException('Identifier, Date of Birth and Favorite Person are required.');
     }
 
-    const adminUsers = await (this.usersService as any).prisma.user.findMany({
+    let adminUser = await (this.usersService as any).prisma.user.findFirst({
       where: {
-        OR: [
-          { role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] } },
-          { phone: process.env.ADMIN_PHONE_OVERRIDE || '+910000000000' },
-          { email: 'www.rashidreshi2005@gmail.com' },
-          { phone: process.env.ADMIN_PHONE || '+910000000000' },
-        ],
+        OR: [{ phone: cleanId }, { email: cleanId }],
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
         isActive: true,
       },
     });
-
-    let adminUser =
-      adminUsers.find((u: any) => u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) ||
-      adminUsers[0];
 
     if (!adminUser) {
       throw new UnauthorizedException('Unable to verify the recovery information.');

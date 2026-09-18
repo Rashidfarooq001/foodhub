@@ -30,7 +30,7 @@ import { RequestPhoneChangeOtpDto, VerifyPhoneChangeOtpDto } from './dto/change-
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import {
   AdminTwoPasswordLoginDto,
-  AdminVerifySecurityQuestionsDto,
+  AdminVerifySecurityQuestionsDto, AdminVerifyIdentifierDto,
   AdminResetPasswordDto,
   AdminChangeSecurityQuestionsDto,
 } from './dto/admin-login.dto';
@@ -191,6 +191,13 @@ export class AuthController {
     const ua = req.headers['user-agent'];
     return this.authService.adminTwoPasswordLogin(dto, ip, ua);
   }
+  @Public()
+  @Post('admin/verify-identifier')
+  @HttpCode(HttpStatus.OK)
+  async verifyAdminIdentifier(@Body() dto: AdminVerifyIdentifierDto) {
+    return this.authService.verifyAdminIdentifier(dto.identifier);
+  }
+
   @Public()
   @Post('admin/verify-security-questions')
   @HttpCode(HttpStatus.OK)

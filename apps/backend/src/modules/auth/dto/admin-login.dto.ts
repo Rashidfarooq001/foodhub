@@ -16,6 +16,10 @@ export class AdminTwoPasswordLoginDto {
 }
 
 export class AdminVerifySecurityQuestionsDto {
+  @IsString()
+  @IsNotEmpty()
+  identifier!: string;
+
   @ApiProperty({ example: '2005-01-01', description: 'Date of birth in YYYY-MM-DD format' })
   @IsString()
   @IsNotEmpty()
@@ -73,4 +77,10 @@ export class AdminVerifyOtpDto {
   @IsString()
   @IsNotEmpty()
   otp!: string;
+}
+
+export class AdminVerifyIdentifierDto {
+  @IsString()
+  @IsNotEmpty()
+  identifier!: string;
 }
