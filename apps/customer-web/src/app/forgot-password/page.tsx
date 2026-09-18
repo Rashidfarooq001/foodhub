@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
   const [forgotStep, setForgotStep] = useState<'SEND_OTP' | 'VERIFY_OTP' | 'NEW_PASSWORD'>(
     'SEND_OTP',
   );
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '']);
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
 
     // INVALIDATE PREVIOUS VERIFICATION & TOKEN STATE ON RESEND
     setResetToken('');
-    setOtp(['', '', '', '', '', '']);
+    setOtp(['', '', '', '']);
     setError('');
     setSuccessMsg('');
     setIsLoading(true);
@@ -178,8 +178,8 @@ export default function ForgotPasswordPage() {
   const handleVerifyResetOtpManual = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join('');
-    if (enteredOtp.length < 6) {
-      setError('Please enter the 6-digit OTP code');
+    if (enteredOtp.length < 4) {
+      setError('Please enter the 4-digit OTP code');
       return;
     }
     setError('');
@@ -388,7 +388,7 @@ export default function ForgotPasswordPage() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-2 text-center">
-                Enter 6-Digit MSG91 OTP
+                Enter 4-Digit MSG91 OTP
               </label>
               <div className="flex justify-center gap-3">
                 {otp.map((digit, idx) => (
@@ -405,7 +405,7 @@ export default function ForgotPasswordPage() {
                       const next = [...otp];
                       next[idx] = e.target.value.substring(e.target.value.length - 1);
                       setOtp(next);
-                      if (e.target.value && idx < 5) otpInputsRef.current[idx + 1]?.focus();
+                      if (e.target.value && idx < 3) otpInputsRef.current[idx + 1]?.focus();
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
