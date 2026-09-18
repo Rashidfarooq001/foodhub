@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuthStore } from '../../stores/use-admin-auth-store';
 import { getApiBaseUrl } from '@foodhub/config';
@@ -223,12 +224,20 @@ export default function AdminLoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Authenticating…
+                  Authenticating...
                 </>
               ) : (
                 'Sign in'
               )}
             </button>
+            <div className="text-center pt-2">
+              <Link 
+                href="/forgot-password" 
+                className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+              >
+                Forgot Password?
+              </Link>
+            </div>
           </form>
 
           <p className="mt-8 text-center text-xs text-gray-400">
