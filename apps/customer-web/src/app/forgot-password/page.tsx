@@ -165,7 +165,7 @@ export default function ForgotPasswordPage() {
       }
 
       setResetToken(data.resetToken);
-      setSuccessMsg('OTP verified successfully! Please enter your new password.');
+      setSuccessMsg('');
       setForgotStep('NEW_PASSWORD');
     } catch (err: any) {
       setError(err.message || 'OTP verification failed.');
@@ -217,7 +217,7 @@ export default function ForgotPasswordPage() {
       }
 
       setResetToken(data.resetToken);
-      setSuccessMsg('OTP verified successfully! Please enter your new password.');
+      setSuccessMsg('');
       setForgotStep('NEW_PASSWORD');
     } catch (err: any) {
       setError(err.message || 'OTP verification failed.');
