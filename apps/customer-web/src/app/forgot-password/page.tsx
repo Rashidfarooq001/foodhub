@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useMsg91Widget } from '@/hooks/use-msg91-widget';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -20,7 +19,6 @@ import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function ForgotPasswordPage() {
-  const { launchWidget, isWidgetLoading } = useMsg91Widget();
   const router = useRouter();
   const { setAuth } = useAuthStore();
 
@@ -65,7 +63,6 @@ export default function ForgotPasswordPage() {
     return cleaned.length === 10 ? `91${cleaned}` : cleaned;
   };
 
-  
   const handleSendResetOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanDigits = phone.replace(/\D/g, '');
@@ -74,18 +71,79 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    // INVALIDATE PREVIOUS VERIFICATION & TOKEN STATE ON RESEND
     setResetToken('');
+    setOtp(['', '', '', '', '', '']);
     setError('');
     setSuccessMsg('');
+    setIsLoading(true);
 
     try {
-      const accessToken = await launchWidget(phone);
-      await handleVerifyResetWidgetToken(accessToken);
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to request reset OTP.');
+      }
+
+      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
+      const tokenAuth =
+        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
+        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
+        '556022TLShucwZ86a6d8a7bP1';
+      const identifier = formatIdentifier(phone);
+
+      const configuration = {
+        widgetId,
+        tokenAuth,
+        identifier,
+        exposeMethods: true,
+        captchaRenderId: '',
+        success: (msgData: any) => {
+          const token =
+            typeof msgData === 'string'
+              ? msgData
+              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
+          if (token) {
+            handleVerifyResetWidgetToken(token);
+          } else {
+            setError('Verification succeeded on MSG91, but token was missing.');
+            setIsLoading(false);
+          }
+        },
+        failure: (err: any) => {
+          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
+          setIsLoading(false);
+        },
+      };
+
+      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
+        try {
+          (window as any).initSendOTP(configuration);
+          if (typeof (window as any).sendOtp === 'function') {
+            (window as any).sendOtp(
+              identifier,
+              () => {},
+              (err: any) => console.error('[MSG91 Reset] sendOtp error:', err),
+            );
+          }
+        } catch (widgetErr: any) {
+          console.warn('[MSG91 Reset] initSendOTP exception:', widgetErr);
+        }
+      }
+
+      setForgotStep('VERIFY_OTP');
+      setCooldown(30);
     } catch (err: any) {
       setError(err.message || 'Error requesting reset code.');
+    } finally {
+      setIsLoading(false);
     }
   };
-
 
   const handleVerifyResetWidgetToken = async (accessToken: string) => {
     setError('');
@@ -117,7 +175,56 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  
+  const handleVerifyResetOtpManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const enteredOtp = otp.join('');
+    if (enteredOtp.length < 6) {
+      setError('Please enter the 6-digit OTP code');
+      return;
+    }
+    setError('');
+    setIsLoading(true);
+
+    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
+      try {
+        (window as any).verifyOtp(
+          enteredOtp,
+          () => {},
+          (err: any) => {
+            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
+            setIsLoading(false);
+          },
+        );
+        return;
+      } catch (verifyErr: any) {
+        console.warn('[MSG91 Reset] verifyOtp exception:', verifyErr);
+      }
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-reset-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          otp: enteredOtp,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'OTP verification failed.');
+      }
+
+      setResetToken(data.resetToken);
+      setSuccessMsg('OTP verified successfully! Please enter your new password.');
+      setForgotStep('NEW_PASSWORD');
+    } catch (err: any) {
+      setError(err.message || 'OTP verification failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSetNewPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,7 +324,9 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-gray-500">
             {forgotStep === 'SEND_OTP'
               ? 'Enter your registered mobile number for password reset'
-              : 'Create a new secure password for your account'}
+              : forgotStep === 'VERIFY_OTP'
+                ? 'Enter 4-digit SMS OTP sent to your mobile number'
+                : 'Create a new secure password for your account'}
           </p>
         </div>
 
@@ -255,10 +364,10 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isLoading || isWidgetLoading}
+              disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <span>{isLoading || isWidgetLoading ? 'Launching secure OTP portal...' : 'Send Password Reset OTP'}</span>
+              <span>{isLoading ? 'Sending Reset OTP...' : 'Send Password Reset OTP'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -266,6 +375,81 @@ export default function ForgotPasswordPage() {
               <Link href="/login" className="text-xs font-bold text-gray-500 hover:text-orange-600">
                 Back to Sign In
               </Link>
+            </div>
+          </form>
+        ) : forgotStep === 'VERIFY_OTP' ? (
+          <form onSubmit={handleVerifyResetOtpManual} className="space-y-5">
+            <div className="rounded-2xl bg-orange-50 p-3 text-center border border-orange-100">
+              <p className="text-xs font-bold text-orange-900">Verify Password Reset Mobile</p>
+              <p className="text-[11px] text-orange-700 mt-0.5">
+                OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">
+                Enter 6-Digit MSG91 OTP
+              </label>
+              <div className="flex justify-center gap-3">
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => {
+                      otpInputsRef.current[idx] = el;
+                    }}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                      if (!/^\d*$/.test(e.target.value)) return;
+                      const next = [...otp];
+                      next[idx] = e.target.value.substring(e.target.value.length - 1);
+                      setOtp(next);
+                      if (e.target.value && idx < 5) otpInputsRef.current[idx + 1]?.focus();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+                        otpInputsRef.current[idx - 1]?.focus();
+                      }
+                    }}
+                    className="h-12 w-12 rounded-2xl border-2 border-gray-200 text-center text-lg font-black text-gray-900 focus:border-orange-500 focus:outline-none"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              <span>{isLoading ? 'Verifying OTP...' : 'Verify OTP & Set New Password'}</span>
+            </button>
+
+            <div className="flex items-center justify-between text-xs pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotStep('SEND_OTP');
+                  setError('');
+                }}
+                className="flex items-center gap-1 font-bold text-gray-500 hover:text-orange-600"
+              >
+                <Edit2 className="h-3.5 w-3.5" /> Edit Mobile Number
+              </button>
+
+              {cooldown > 0 ? (
+                <span className="font-bold text-gray-400">Resend in {cooldown}s</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleSendResetOtp()}
+                  className="flex items-center gap-1 font-bold text-orange-600 hover:underline"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Resend OTP
+                </button>
+              )}
             </div>
           </form>
         ) : (
@@ -314,7 +498,7 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isLoading || isWidgetLoading}
+              disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
               <CheckCircle2 className="h-4 w-4" />
