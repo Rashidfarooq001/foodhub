@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useMsg91Widget } from '@/hooks/use-msg91-widget';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -19,6 +20,7 @@ import { getApiBaseUrl, isAuthEnabled } from '@foodhub/config';
 const API_BASE = getApiBaseUrl();
 
 export default function ForgotPasswordPage() {
+  const { launchWidget, isWidgetLoading } = useMsg91Widget();
   const router = useRouter();
   const { setAuth } = useAuthStore();
 
@@ -29,7 +31,7 @@ export default function ForgotPasswordPage() {
   const [forgotStep, setForgotStep] = useState<'SEND_OTP' | 'VERIFY_OTP' | 'NEW_PASSWORD'>(
     'SEND_OTP',
   );
-  
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -63,6 +65,7 @@ export default function ForgotPasswordPage() {
     return cleaned.length === 10 ? `91${cleaned}` : cleaned;
   };
 
+  
   const handleSendResetOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanDigits = phone.replace(/\D/g, '');
@@ -71,34 +74,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    // INVALIDATE PREVIOUS VERIFICATION & TOKEN STATE ON RESEND
     setResetToken('');
-    setOtp(['', '', '', '', '', '']);
     setError('');
     setSuccessMsg('');
-    setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to request reset OTP.');
-      }
-
-
-      setForgotStep('VERIFY_OTP');
-      setCooldown(30);
+      const accessToken = await launchWidget(phone);
+      await handleVerifyResetWidgetToken(accessToken);
     } catch (err: any) {
       setError(err.message || 'Error requesting reset code.');
-    } finally {
-      setIsLoading(false);
     }
   };
+
 
   const handleVerifyResetWidgetToken = async (accessToken: string) => {
     setError('');
@@ -130,40 +117,7 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleVerifyResetOtpManual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const enteredOtp = otp.join('');
-    if (enteredOtp.length < 6) {
-      setError('Please enter the complete 6-digit OTP code');
-      return;
-    }
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify-reset-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone,
-          otp: enteredOtp,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'OTP verification failed.');
-      }
-
-      setResetToken(data.resetToken);
-      setSuccessMsg('OTP verified successfully! Please enter your new password.');
-      setForgotStep('NEW_PASSWORD');
-    } catch (err: any) {
-      setError(err.message || 'OTP verification failed.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
 
   const handleSetNewPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,9 +217,7 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-gray-500">
             {forgotStep === 'SEND_OTP'
               ? 'Enter your registered mobile number for password reset'
-              : forgotStep === 'VERIFY_OTP'
-                ? 'Enter 6-digit SMS OTP sent to your mobile number'
-                : 'Create a new secure password for your account'}
+              : 'Create a new secure password for your account'}
           </p>
         </div>
 
@@ -314,17 +266,6 @@ export default function ForgotPasswordPage() {
               <Link href="/login" className="text-xs font-bold text-gray-500 hover:text-orange-600">
                 Back to Sign In
               </Link>
-            </div>
-          </form>
-        )  : (
-                <button
-                  type="button"
-                  onClick={() => handleSendResetOtp()}
-                  className="flex items-center gap-1 font-bold text-orange-600 hover:underline"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Resend OTP
-                </button>
-              )}
             </div>
           </form>
         ) : (
