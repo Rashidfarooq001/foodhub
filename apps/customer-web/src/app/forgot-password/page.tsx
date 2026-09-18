@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
   const [forgotStep, setForgotStep] = useState<'SEND_OTP' | 'VERIFY_OTP' | 'NEW_PASSWORD'>(
     'SEND_OTP',
   );
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -303,10 +303,10 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isWidgetLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
-              <span>{isLoading ? 'Sending Reset OTP...' : 'Send Password Reset OTP'}</span>
+              <span>{isLoading || isWidgetLoading ? 'Launching secure OTP portal...' : 'Send Password Reset OTP'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -316,71 +316,7 @@ export default function ForgotPasswordPage() {
               </Link>
             </div>
           </form>
-        ) : forgotStep === 'VERIFY_OTP' ? (
-          <form onSubmit={handleVerifyResetOtpManual} className="space-y-5">
-            <div className="rounded-2xl bg-orange-50 p-3 text-center border border-orange-100">
-              <p className="text-xs font-bold text-orange-900">Verify Password Reset Mobile</p>
-              <p className="text-[11px] text-orange-700 mt-0.5">
-                OTP code sent to <span className="font-black">+{phone.replace(/\D/g, '')}</span>
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-2 text-center">
-                Enter 6-Digit MSG91 OTP
-              </label>
-              <div className="flex justify-center gap-2">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => {
-                      otpInputsRef.current[idx] = el;
-                    }}
-                    type="text"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => {
-                      if (!/^\d*$/.test(e.target.value)) return;
-                      const next = [...otp];
-                      next[idx] = e.target.value.substring(e.target.value.length - 1);
-                      setOtp(next);
-                      if (e.target.value && idx < 5) otpInputsRef.current[idx + 1]?.focus();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
-                        otpInputsRef.current[idx - 1]?.focus();
-                      }
-                    }}
-                    className="h-12 w-10 rounded-2xl border-2 border-gray-200 text-center text-lg font-black text-gray-900 focus:border-orange-500 focus:outline-none"
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>{isLoading ? 'Verifying OTP...' : 'Verify OTP & Set New Password'}</span>
-            </button>
-
-            <div className="flex items-center justify-between text-xs pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setForgotStep('SEND_OTP');
-                  setError('');
-                }}
-                className="flex items-center gap-1 font-bold text-gray-500 hover:text-orange-600"
-              >
-                <Edit2 className="h-3.5 w-3.5" /> Edit Mobile Number
-              </button>
-
-              {cooldown > 0 ? (
-                <span className="font-bold text-gray-400">Resend in {cooldown}s</span>
-              ) : (
+        )  : (
                 <button
                   type="button"
                   onClick={() => handleSendResetOtp()}
@@ -437,7 +373,7 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isWidgetLoading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-700 disabled:opacity-50"
             >
               <CheckCircle2 className="h-4 w-4" />
