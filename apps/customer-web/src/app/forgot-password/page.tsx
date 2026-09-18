@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
       const tokenAuth =
         process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
         process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        '556022AwCmehfIN6a6dc465P1';
+        widgetId;
       const identifier = formatIdentifier(phone);
 
       const configuration = {
