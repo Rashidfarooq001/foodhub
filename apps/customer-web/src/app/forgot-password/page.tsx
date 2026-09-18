@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
 
     // INVALIDATE PREVIOUS VERIFICATION & TOKEN STATE ON RESEND
     setResetToken('');
-    setOtp(['', '', '', '']);
+    setOtp(['', '', '', '', '', '']);
     setError('');
     setSuccessMsg('');
     setIsLoading(true);

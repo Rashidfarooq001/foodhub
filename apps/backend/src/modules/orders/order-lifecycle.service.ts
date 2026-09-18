@@ -203,10 +203,10 @@ export class OrderLifecycleService {
     const pickupOtpExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     const restLat = Number(order.restaurant.latitude || 0);
-    const restLng = Number(order.restaurant.longitude || 74.5221);
+    const restLng = Number(order.restaurant.longitude || 0);
     const delAddr: any = order.deliveryAddress || {};
     const custLat = Number(delAddr.latitude || 0);
-    const custLng = Number(delAddr.longitude || 74.5228);
+    const custLng = Number(delAddr.longitude || 0);
 
     const distanceKm = delAddr?.distanceKm || 0;
 
@@ -869,10 +869,10 @@ export class OrderLifecycleService {
 
       if (targetStatus === OrderStatus.PREPARING) {
         const restLat = Number(order.restaurant.latitude || 0);
-        const restLng = Number(order.restaurant.longitude || 74.5221);
+        const restLng = Number(order.restaurant.longitude || 0);
         const delAddr = order.deliveryAddress as any;
         const custLat = Number(delAddr?.latitude || 0);
-        const custLng = Number(delAddr?.longitude || 74.5228);
+        const custLng = Number(delAddr?.longitude || 0);
 
         const distanceKm = delAddr?.distanceKm || delAddr?.distanceKm || 0;
 

@@ -526,7 +526,7 @@ export default function CheckoutPage() {
         landmark: selectedAddress.landmark || '',
         city: cleanCity,
         state: cleanState,
-        postalCode: selectedAddress.postalCode || '193502',
+        postalCode: selectedAddress.postalCode || '',
         latitude: selectedAddress.latitude,
         longitude: selectedAddress.longitude,
         locationSource: (selectedAddress as any).locationSource || 'CURRENT_GPS',
