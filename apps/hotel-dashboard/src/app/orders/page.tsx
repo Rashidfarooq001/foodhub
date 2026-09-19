@@ -447,6 +447,8 @@ export default function HotelOrdersPage() {
         matchesStatus = RESTAURANT_ORDER_FILTERS.COMPLETED.includes(o.status as any);
       } else if (filter === 'REJECTED_CANCELLED') {
         matchesStatus = RESTAURANT_ORDER_FILTERS.CANCELLED.includes(o.status as any);
+      } else if (filter === 'ALL') {
+        matchesStatus = true;
       }
 
       if (!matchesStatus) return false;
