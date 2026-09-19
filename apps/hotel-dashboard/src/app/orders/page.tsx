@@ -221,6 +221,7 @@ export default function HotelOrdersPage() {
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
+        setErrorMessage('Failed to fetch orders from server.');
     } finally {
       setIsLoading(false);
     }
@@ -1292,5 +1293,7 @@ export default function HotelOrdersPage() {
     </div>
   );
 }
+
+
 
 
