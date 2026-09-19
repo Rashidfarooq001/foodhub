@@ -38,7 +38,10 @@ export default function AdminFinancePage() {
   const handleViewInvoice = async (id: string, type: 'restaurant' | 'rider', name: string) => {
     setInvoiceModal({ isOpen: true, loading: true, invoice: null, error: null, type, name });
     try {
-      const res = await adminFetch(`/settlements/invoices/recipient/${id}?periodType=${period}`);
+      const endpoint = type === 'restaurant'
+        ? `/settlements/restaurant/${id}/invoice?periodType=${period}`
+        : `/settlements/invoices/recipient/${id}?periodType=${period}`;
+      const res = await adminFetch(endpoint);
       if (!res.ok) throw new Error('Invoice not found');
       const invoice = await res.json();
       setInvoiceModal({ isOpen: true, loading: false, invoice, error: null, type, name });
@@ -165,7 +168,7 @@ export default function AdminFinancePage() {
                   <div>
                     <div className="text-slate-500 mb-1">Invoice Number</div>
                     <div className="font-bold text-slate-900">
-                      {invoiceModal.invoice.invoice_number}
+                      {invoiceModal.invoice.invoiceNumber || invoiceModal.invoice.invoice_number}
                     </div>
                   </div>
                   <div>
@@ -177,27 +180,27 @@ export default function AdminFinancePage() {
                     <div className="font-bold text-slate-900">
                       {invoiceModal.name}{' '}
                       <span className="text-xs font-normal text-slate-500">
-                        ({invoiceModal.invoice.recipient_type})
+                        ({invoiceModal.type})
                       </span>
                     </div>
                   </div>
                   <div>
                     <div className="text-slate-500 mb-1">Payout Period</div>
                     <div className="font-bold text-slate-900">
-                      {new Date(invoiceModal.invoice.period_start).toLocaleDateString()} -{' '}
-                      {new Date(invoiceModal.invoice.period_end).toLocaleDateString()}
+                      {new Date(invoiceModal.invoice.periodStart || invoiceModal.invoice.period_start).toLocaleDateString()} -{' '}
+                      {new Date(invoiceModal.invoice.periodEnd || invoiceModal.invoice.period_end).toLocaleDateString()}
                     </div>
                   </div>
                   <div>
                     <div className="text-slate-500 mb-1">Payment Method</div>
                     <div className="font-bold text-slate-900">
-                      {invoiceModal.invoice.payment_method}
+                      {invoiceModal.invoice.paymentMethod || invoiceModal.invoice.payment_method}
                     </div>
                   </div>
                   <div>
                     <div className="text-slate-500 mb-1">Payment Date</div>
                     <div className="font-bold text-slate-900">
-                      {new Date(invoiceModal.invoice.payment_date).toLocaleString()}
+                      {new Date(invoiceModal.invoice.paymentDate || invoiceModal.invoice.payment_date).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -214,7 +217,7 @@ export default function AdminFinancePage() {
                       <tr>
                         <td className="px-4 py-3 text-slate-700">Gross Earnings</td>
                         <td className="px-4 py-3 text-right text-slate-900">
-                          {formatCurrency(Number(invoiceModal.invoice.gross_amount))}
+                          {formatCurrency(Number(invoiceModal.invoice.grossAmount ?? invoiceModal.invoice.gross_amount))}
                         </td>
                       </tr>
                       {invoiceModal.type === 'restaurant' && (
@@ -222,13 +225,13 @@ export default function AdminFinancePage() {
                           <tr>
                             <td className="px-4 py-3 text-slate-600 pl-8">- Commission</td>
                             <td className="px-4 py-3 text-right text-red-600">
-                              -{formatCurrency(Number(invoiceModal.invoice.commission_amount))}
+                              -{formatCurrency(Number(invoiceModal.invoice.commissionAmount ?? invoiceModal.invoice.commission_amount))}
                             </td>
                           </tr>
                           <tr>
                             <td className="px-4 py-3 text-slate-600 pl-8">- GST on Commission</td>
                             <td className="px-4 py-3 text-right text-red-600">
-                              -{formatCurrency(Number(invoiceModal.invoice.commission_gst))}
+                              -{formatCurrency(Number(invoiceModal.invoice.commissionGst ?? invoiceModal.invoice.commission_gst))}
                             </td>
                           </tr>
                         </>
@@ -236,13 +239,13 @@ export default function AdminFinancePage() {
                       <tr>
                         <td className="px-4 py-3 text-slate-600 pl-8">- Other Deductions</td>
                         <td className="px-4 py-3 text-right text-red-600">
-                          -{formatCurrency(Number(invoiceModal.invoice.deductions))}
+                          -{formatCurrency(Number(invoiceModal.invoice.deductions || 0))}
                         </td>
                       </tr>
                       <tr className="bg-slate-50">
                         <td className="px-4 py-4 font-bold text-slate-900">Net Payable</td>
                         <td className="px-4 py-4 font-black text-right text-green-600 text-lg">
-                          {formatCurrency(Number(invoiceModal.invoice.net_payable))}
+                          {formatCurrency(Number(invoiceModal.invoice.netPayable ?? invoiceModal.invoice.net_payable))}
                         </td>
                       </tr>
                     </tbody>
@@ -252,7 +255,7 @@ export default function AdminFinancePage() {
                 <div className="flex justify-between items-center bg-green-50 text-green-800 px-4 py-3 rounded-lg font-bold border border-green-100">
                   <div className="flex items-center gap-2">
                     <CheckCircle size={20} />
-                    Status: {invoiceModal.invoice.status}
+                    Status: {invoiceModal.invoice.status || 'PAID'}
                   </div>
                   <button
                     onClick={() => window.print()}

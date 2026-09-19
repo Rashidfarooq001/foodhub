@@ -120,6 +120,34 @@ export class SettlementsController {
     return this.settlementsService.getSettlementHistory(restaurantId);
   }
 
+  @Get('restaurant/:restaurantId/invoice')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE', 'RESTAURANT_OWNER')
+  @ApiOperation({ summary: 'Get settlement invoice for a restaurant and period' })
+  async getRestaurantSettlementInvoice(
+    @Param('restaurantId') restaurantId: string,
+    @Query('periodType') periodType?: string,
+    @Query('customStart') customStart?: string,
+    @Query('customEnd') customEnd?: string,
+    @CurrentUser() user?: any,
+  ) {
+    if (user?.role === 'RESTAURANT_OWNER') {
+      const owns =
+        user.restaurantId === restaurantId ||
+        (user.id && (await this.settlementsService.verifyRestaurantOwner(restaurantId, user.id)));
+      if (!owns) {
+        throw new ForbiddenException(
+          'Access denied. You can only view invoices for your own restaurant.',
+        );
+      }
+    }
+    return this.settlementsService.getRestaurantSettlementInvoice(
+      restaurantId,
+      periodType || 'current',
+      customStart,
+      customEnd,
+    );
+  }
+
   @Get('riders')
   @Roles('SUPER_ADMIN', 'ADMIN', 'FINANCE')
   @ApiOperation({ summary: 'Get authoritative rider settlements summary' })

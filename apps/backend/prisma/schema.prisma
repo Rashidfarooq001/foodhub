@@ -487,6 +487,7 @@ model Restaurant {
   foodItems             FoodItem[]
   orders                Order[]
   restaurantSettlements RestaurantSettlement[]
+  settlementInvoices    SettlementInvoice[]
   reviews               RestaurantReview[]
   savedByCustomers      SavedRestaurant[]
 
@@ -1037,6 +1038,33 @@ model Invoice {
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("invoices")
+}
+
+model SettlementInvoice {
+  id              String   @id @default(uuid()) @db.Uuid
+  invoiceNumber   String   @unique @map("invoice_number")
+  restaurantId    String   @map("restaurant_id") @db.Uuid
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  grossAmount     Decimal  @default(0.00) @map("gross_amount") @db.Decimal(10, 2)
+  commissionAmount Decimal @default(0.00) @map("commission_amount") @db.Decimal(10, 2)
+  commissionGst   Decimal  @default(0.00) @map("commission_gst") @db.Decimal(10, 2)
+  commissionTotal Decimal  @default(0.00) @map("commission_total") @db.Decimal(10, 2)
+  netPayable      Decimal  @default(0.00) @map("net_payable") @db.Decimal(10, 2)
+  paidAmount      Decimal  @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
+  pendingAmount   Decimal  @default(0.00) @map("pending_amount") @db.Decimal(10, 2)
+  paymentMethod   String   @default("MANUAL") @map("payment_method")
+  paymentDate     DateTime @map("payment_date")
+  adminId         String?  @map("admin_id") @db.Uuid
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, periodStart, periodEnd], name: "settlement_invoice_unique")
+  @@index([restaurantId])
+  @@map("settlement_invoices")
 }
 
 model Wallet {
