@@ -44,58 +44,71 @@ export default function DeliveryDashboardPage() {
         };
         
         // Fetch individually so one failure doesn't block the rest
-        const fetchStats = fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' })
-          .then(async r => {
-            if (r.ok) {
-              const text = await r.text();
-              if (text) setStats(JSON.parse(text));
+        
+          // Check for 401 Unauthorized across any of the parallel requests
+          const handle401 = (r: Response) => {
+            if (r.status === 401) {
+              const { logout } = useDeliveryAuthStore.getState();
+              logout();
+              window.location.href = '/login';
             }
-          }).catch(console.error);
+          };
 
-        const fetchActiveJobs = fetch(`${API_BASE}/delivery/active-jobs?_t=${Date.now()}`, { headers, cache: 'no-store' })
-          .then(async r => {
-            if (r.ok) {
-              const text = await r.text();
-              try {
-                const parsed = text ? JSON.parse(text) : null;
-                const jobsPayload = parsed?.data || parsed || [];
-                setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
-              } catch (e: any) {
-                setLocationError(`Parse Error: ${e.message}`);
+          const fetchStats = fetch(`${API_BASE}/delivery/stats?_t=${Date.now()}`, { headers, cache: 'no-store' })
+            .then(async r => {
+              handle401(r);
+              if (r.ok) {
+                const text = await r.text();
+                if (text) setStats(JSON.parse(text));
               }
-            } else {
-              setLocationError(`API Error: ${r.status} on active-jobs`);
-            }
-          }).catch((e: any) => {
-            setLocationError(`Network Error: ${e.message}`);
-          });
+            }).catch(console.error);
 
-        const fetchAvailableJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
-          .then(async r => {
-            if (r.ok) {
-              const text = await r.text();
-              try {
-                const parsed = text ? JSON.parse(text) : null;
-                const jobsPayload = parsed?.data || parsed || [];
-                setAvailableJobs(Array.isArray(jobsPayload) ? jobsPayload : []);
-              } catch (e: any) {
-                console.error("Parse Error on available jobs:", e);
+          const fetchActiveJobs = fetch(`${API_BASE}/delivery/active-jobs?_t=${Date.now()}`, { headers, cache: 'no-store' })
+            .then(async r => {
+              handle401(r);
+              if (r.ok) {
+                const text = await r.text();
+                try {
+                  const parsed = text ? JSON.parse(text) : null;
+                  const jobsPayload = parsed?.data || parsed || [];
+                  setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
+                } catch (e: any) {
+                  setLocationError(`Parse Error: ${e.message}`);
+                }
+              } else {
+                setLocationError(`API Error: ${r.status} on active-jobs`);
               }
-            }
-          }).catch(console.error);
+            }).catch((e: any) => {
+              setLocationError(`Network Error: ${e.message}`);
+            });
 
-        const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
-          .then(async r => {
-            if (r.ok) {
-              const text = await r.text();
-              if (text) {
-                const data = JSON.parse(text);
-                setIsOnDuty(data.dutyStatus === 'ONLINE' || data.operationalStatus === 'ONLINE');
+          const fetchAvailableJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
+            .then(async r => {
+              handle401(r);
+              if (r.ok) {
+                const text = await r.text();
+                try {
+                  const parsed = text ? JSON.parse(text) : null;
+                  const jobsPayload = parsed?.data || parsed || [];
+                  setAvailableJobs(Array.isArray(jobsPayload) ? jobsPayload : []);
+                } catch (e: any) {
+                  console.error("Parse Error on available jobs:", e);
+                }
               }
-            }
-          }).catch(console.error);
+            }).catch(console.error);
 
-        await Promise.all([fetchStats, fetchActiveJobs, fetchAvailableJobs, fetchStatus]);
+          const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
+            .then(async r => {
+              handle401(r);
+              if (r.ok) {
+                const text = await r.text();
+                if (text) {
+                  const data = JSON.parse(text);
+                  setIsOnDuty(data.dutyStatus === 'ONLINE' || data.operationalStatus === 'ONLINE');
+                }
+              }
+            }).catch(console.error);
+await Promise.all([fetchStats, fetchActiveJobs, fetchAvailableJobs, fetchStatus]);
       } catch (e: any) {
         console.error("fetchDashboardData top-level error:", e);
       } finally {
