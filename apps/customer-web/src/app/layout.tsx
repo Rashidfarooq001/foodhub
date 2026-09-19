@@ -1,7 +1,8 @@
-import type { Metadata, Viewport } from 'next';
+﻿import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '../providers/app-providers';
+import { ErrorBoundary } from '@foodhub/ui';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://zaykafood.online'),
   title: {
-    default: 'ZaykaFood — Fast Food Delivery in Kashmir | ORDER • DELIVER • ENJOY',
+    default: 'ZaykaFood â€” Fast Food Delivery in Kashmir | ORDER â€¢ DELIVER â€¢ ENJOY',
     template: '%s | Zayka Food',
   },
   description:
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
     canonical: 'https://zaykafood.online',
   },
   openGraph: {
-    title: 'Zayka Food – Online Food Delivery in Kashmir',
+    title: 'Zayka Food â€“ Online Food Delivery in Kashmir',
     description:
       'Order delicious food online with Zayka Food. Discover local restaurants, explore menus, order your favorite meals and get food delivered to your doorstep across Kashmir.',
     url: 'https://zaykafood.online',
@@ -65,7 +66,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Zayka Food – Online Food Delivery in Kashmir',
+    title: 'Zayka Food â€“ Online Food Delivery in Kashmir',
     description:
       'Order delicious food online with Zayka Food. Discover local restaurants, explore menus, order your favorite meals and get food delivered to your doorstep across Kashmir.',
     images: ['https://zaykafood.online/icon.png'],
@@ -160,13 +161,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.className} flex min-h-full w-full max-w-full flex-col font-sans antialiased text-gray-900 bg-white`}
       >
-        <AppProviders>
-          <Navbar />
-          <main className="flex-1 w-full max-w-full min-w-0 pb-20 md:pb-0">{children}</main>
-          <MobileBottomNav />
-          <Footer />
-        </AppProviders>
+        <ErrorBoundary>
+          <AppProviders>
+            <Navbar />
+            <main className="flex-1 w-full max-w-full min-w-0 pb-20 md:pb-0">{children}</main>
+            <MobileBottomNav />
+            <Footer />
+          </AppProviders>
+        </ErrorBoundary>
       </body>
     </html>
   );
 }
+
+

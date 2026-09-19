@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AdminAuthWrapper } from '../components/layout/AdminAuthWrapper';
+import { ErrorBoundary } from '@foodhub/ui';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -35,8 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.className} flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950`}
       >
-        <AdminAuthWrapper>{children}</AdminAuthWrapper>
+        <ErrorBoundary>
+          <AdminAuthWrapper>{children}</AdminAuthWrapper>
+        </ErrorBoundary>
       </body>
     </html>
   );
 }
+

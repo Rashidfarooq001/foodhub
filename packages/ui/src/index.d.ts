@@ -14,3 +14,4 @@ export * from './components/accordion.js';
 export * from './components/tooltip.js';
 export * from './components/theme-provider.js';
 export * from './components/auth-guard.js';
+export * from './components/ErrorBoundary.js';
