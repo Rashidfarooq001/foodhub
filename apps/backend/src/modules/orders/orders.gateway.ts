@@ -30,7 +30,10 @@ const allowedOrigins = [
   'http://localhost:3002',
   'http://localhost:3003',
   'https://zaykafood.online',
-  ...(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+  ...(process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
 ];
 
 @WebSocketGateway({ cors: { origin: allowedOrigins, credentials: true }, namespace: '/orders' })
@@ -94,7 +97,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         throw new Error('JWT_SECRET is not defined');
       }
       const decoded: any = this.jwtService.verify(token, { secret });
-      
+
       // Phase 10: Prevent Pre-Auth Tokens from connecting to Socket.IO
       if (decoded.purpose === 'ADMIN_OTP_VERIFICATION') {
         this.logger.warn(`Rejected socket connection for Pre-Auth Token (Admin: ${decoded.sub})`);
@@ -261,7 +264,10 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
     }
 
-    if (!driverId || (user.driverId !== driverId && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+    if (
+      !driverId ||
+      (user.driverId !== driverId && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')
+    ) {
       return { success: false, message: 'Unauthorized to join this driver channel' };
     }
 
@@ -278,7 +284,10 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     @MessageBody() data?: { token?: string },
   ): { success: boolean; message?: string } {
     const user = this.extractUserFromSocket(client, data?.token);
-    if (!user || (user.role !== 'DRIVER' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+    if (
+      !user ||
+      (user.role !== 'DELIVERY_PARTNER' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')
+    ) {
       return { success: false, message: 'Unauthorized to join available drivers channel' };
     }
     client.join('drivers:available');
@@ -328,13 +337,16 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         // Cache assignment lookup in Redis for 60 seconds to avoid DB query on every tick
         const authKey = `driver_auth_${data.orderId}_${user.driverId}`;
         const cachedAuth = await this.redisService.getClient().get(authKey);
-        
+
         if (cachedAuth === 'true') {
           isAssignedDriver = true;
         } else {
           const order = await this.prisma.order.findUnique({
             where: { id: data.orderId },
-            select: { assignedRestaurantDriverId: true, deliveryJob: { select: { driverId: true } } },
+            select: {
+              assignedRestaurantDriverId: true,
+              deliveryJob: { select: { driverId: true } },
+            },
           });
 
           if (!order) return { success: false, message: 'Order not found' };
@@ -342,7 +354,7 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           isAssignedDriver =
             (user.driverId && order.deliveryJob?.driverId === user.driverId) ||
             (user.driverId && order.assignedRestaurantDriverId === user.driverId);
-            
+
           if (isAssignedDriver) {
             await this.redisService.getClient().setex(authKey, 60, 'true');
           }
@@ -361,11 +373,15 @@ export class OrdersGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
 
       // Write location to Redis directly instead of PostgreSQL
-      await this.redisService.getClient().setex(`driver_loc_${data.orderId}`, 3600, JSON.stringify({
-        lat: sanitizedLoc.lat,
-        lng: sanitizedLoc.lng,
-        updatedAt: sanitizedLoc.updatedAt
-      }));
+      await this.redisService.getClient().setex(
+        `driver_loc_${data.orderId}`,
+        3600,
+        JSON.stringify({
+          lat: sanitizedLoc.lat,
+          lng: sanitizedLoc.lng,
+          updatedAt: sanitizedLoc.updatedAt,
+        }),
+      );
 
       this.emitToOrder(data.orderId, ORDER_EVENTS.DRIVER_LOCATION, sanitizedLoc);
       return { success: true };

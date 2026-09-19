@@ -10,12 +10,11 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { WebPushService } from "../notifications/web-push.service";
+import { WebPushService } from '../notifications/web-push.service';
 import { OrdersGateway } from './orders.gateway';
 import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
 import * as crypto from 'crypto';
-
 
 export interface AuthenticatedActor {
   userId?: string;
@@ -61,9 +60,9 @@ export function verifyQrToken(token: string): {
       return null;
     if (Date.now() > expiresAt) return null;
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET is not defined');
-  const dataStr = `${orderId}:${deliveryJobId}:${restaurantId}:${driverId}:${expiresAt}`;
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET is not defined');
+    const dataStr = `${orderId}:${deliveryJobId}:${restaurantId}:${driverId}:${expiresAt}`;
     const expectedSig = crypto.createHmac('sha256', secret).update(dataStr).digest('hex');
     if (signature !== expectedSig) return null;
 
@@ -77,17 +76,20 @@ export function verifyQrToken(token: string): {
 export class OrderLifecycleService {
   private readonly logger = new Logger(OrderLifecycleService.name);
 
-  
-  async updateOrderStatus(orderId: string, newStatus: OrderStatus, actorId?: string, additionalData?: { riderId?: string; deliveryJobPayload?: any; cancellationReason?: string }) {
+  async updateOrderStatus(
+    orderId: string,
+    newStatus: OrderStatus,
+    actorId?: string,
+    additionalData?: { riderId?: string; deliveryJobPayload?: any; cancellationReason?: string },
+  ) {
     const actor: AuthenticatedActor = { userId: actorId };
     if (additionalData?.riderId) actor.driverId = additionalData.riderId;
 
-    return this.transition(orderId, newStatus, actor, { 
+    return this.transition(orderId, newStatus, actor, {
       deliveryJobPayload: additionalData?.deliveryJobPayload,
-      cancellationReason: additionalData?.cancellationReason
+      cancellationReason: additionalData?.cancellationReason,
     });
   }
-
 
   constructor(
     private readonly prisma: PrismaService,
@@ -95,7 +97,6 @@ export class OrderLifecycleService {
     private readonly webPushService: WebPushService,
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
-    
   ) {}
 
   private isValidUuid(str?: string | null): boolean {
@@ -122,14 +123,14 @@ export class OrderLifecycleService {
     const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
 
     if (!isOwner && !isStaff && !isAdmin) {
-      throw new ForbiddenException(
-        'Access denied. You do not own or manage this restaurant.',
-      );
+      throw new ForbiddenException('Access denied. You do not own or manage this restaurant.');
     }
 
-    
-
-    if (!['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED'].includes(order.status)) {
+    if (
+      !['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED'].includes(
+        order.status,
+      )
+    ) {
       throw new BadRequestException(
         `Cannot assign rider to order in current state "${order.status}".`,
       );
@@ -167,21 +168,27 @@ export class OrderLifecycleService {
       if (!driver.currentLat || !driver.currentLng) {
         throw new BadRequestException('Selected delivery partner location is unavailable.');
       }
-      
+
       const getHaversine = (lat1, lon1, lat2, lon2) => {
         const R = 6371;
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
         const dLon = ((lon2 - lon1) * Math.PI) / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
         return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
       };
 
       const distance = getHaversine(restLat2, restLng2, driver.currentLat, driver.currentLng);
       if (distance > 5.0) {
-        throw new BadRequestException(`Delivery partner is ${distance} km away. Maximum allowed radius is 5.0 km.`);
+        throw new BadRequestException(
+          `Delivery partner is ${distance} km away. Maximum allowed radius is 5.0 km.`,
+        );
       }
     }
-
 
     const activeJobs = (driver.deliveryJobs || []).filter((j) =>
       [
@@ -232,9 +239,10 @@ export class OrderLifecycleService {
 
     const snap: any = order.pricingSnapshot || {};
     const snapRiderPayout = snap.riderPayout;
-    const riderPayout = snapRiderPayout != null 
-      ? Number(snapRiderPayout) 
-      : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+    const riderPayout =
+      snapRiderPayout != null
+        ? Number(snapRiderPayout)
+        : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
 
     const deliveryJobPayload = {
       create: {
@@ -285,7 +293,7 @@ export class OrderLifecycleService {
         id: driver.id,
         name: driver.user?.profile?.firstName || 'Rider',
         phone: driver.user?.phone,
-      }
+      },
     });
 
     return updatedOrder;
@@ -422,31 +430,36 @@ export class OrderLifecycleService {
       throw new BadRequestException('Job is already unassigned.');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.deliveryJob.update({
-        where: { id: job.id },
-        data: {
-          driverId: null,
-          status: 'AVAILABLE',
-          acceptedAt: null,
-          arrivedAt: null,
-          pickedAt: null,
-        },
-      });
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.deliveryJob.update({
+          where: { id: job.id },
+          data: {
+            driverId: null,
+            status: 'AVAILABLE',
+            acceptedAt: null,
+            arrivedAt: null,
+            pickedAt: null,
+          },
+        });
 
-      await tx.order.update({
-        where: { id: job.orderId },
-        data: {
-          status: 'PREPARING',
-          assignedRestaurantDriverId: null,
-        },
-      });
-    }, {
-      maxWait: 15000,
-      timeout: 30000,
-    });
+        await tx.order.update({
+          where: { id: job.orderId },
+          data: {
+            status: 'PREPARING',
+            assignedRestaurantDriverId: null,
+          },
+        });
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000,
+      },
+    );
 
-    this.logger.log(`[STATE MACHINE EVENT] Order #${job.order.orderNumber} unassigned by driver ${actor.driverId}`);
+    this.logger.log(
+      `[STATE MACHINE EVENT] Order #${job.order.orderNumber} unassigned by driver ${actor.driverId}`,
+    );
 
     if (this.gateway) {
       const sanitizedPayload = {
@@ -459,16 +472,20 @@ export class OrderLifecycleService {
       };
 
       this.gateway.emitToOrder(job.order.id, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
-      
+
       const customerUserId = job.order.customerId;
       if (customerUserId) {
         this.gateway.emitToUser(customerUserId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       }
-      
+
       if (job.order.restaurantId) {
-        this.gateway.emitToRestaurant(job.order.restaurantId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
+        this.gateway.emitToRestaurant(
+          job.order.restaurantId,
+          ORDER_EVENTS.STATUS_UPDATED,
+          sanitizedPayload,
+        );
       }
-      
+
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
       if (this.gateway.emitToAvailableDrivers) {
@@ -637,9 +654,11 @@ export class OrderLifecycleService {
 
     // --- 5-HOUR TIMEOUT RACE CONDITION GUARD ---
     const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
-    const isPast5Hours = (Date.now() - new Date(order.createdAt).getTime()) > FIVE_HOURS_MS;
+    const isPast5Hours = Date.now() - new Date(order.createdAt).getTime() > FIVE_HOURS_MS;
     if (isPast5Hours) {
-      throw new BadRequestException('Order has exceeded the maximum 5-hour lifecycle limit and is invalid for delivery.');
+      throw new BadRequestException(
+        'Order has exceeded the maximum 5-hour lifecycle limit and is invalid for delivery.',
+      );
     }
 
     const isAdmin = actor.role === 'ADMIN' || actor.role === 'SUPER_ADMIN';
@@ -661,134 +680,143 @@ export class OrderLifecycleService {
 
     const now = new Date();
 
-    const updatedOrderRecord = await this.prisma.$transaction(async (tx) => {
-      // Re-check status inside transaction for concurrency protection
-      const liveOrder = await tx.order.findUnique({
-        where: { id: order.id },
-        select: { status: true },
-      });
-
-      if (liveOrder?.status === OrderStatus.DELIVERED) {
-        return order;
-      }
-
-      if (liveOrder?.status !== OrderStatus.OUT_FOR_DELIVERY) {
-        throw new ConflictException(
-          `Order status changed to "${liveOrder?.status}" during processing.`,
-        );
-      }
-
-      // Update DeliveryJob if FoodHub rider delivery
-      let updatedJob: any = null;
-      if (order.deliveryJob) {
-        updatedJob = await tx.deliveryJob.update({
-          where: { id: order.deliveryJob.id },
-          data: {
-            status: DeliveryJobStatus.DELIVERED,
-            deliveredAt: now,
-          },
-          select: { id: true, status: true, driverId: true, riderPayout: true, deliveryFee: true },
+    const updatedOrderRecord = await this.prisma.$transaction(
+      async (tx) => {
+        // Re-check status inside transaction for concurrency protection
+        const liveOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          select: { status: true },
         });
 
-        // Idempotent Driver Wallet Credit for assigned FoodHub rider
-        if (updatedJob.driverId) {
-          const driver = await tx.driver.findUnique({
-            where: { id: updatedJob.driverId },
-            select: { userId: true },
+        if (liveOrder?.status === OrderStatus.DELIVERED) {
+          return order;
+        }
+
+        if (liveOrder?.status !== OrderStatus.OUT_FOR_DELIVERY) {
+          throw new ConflictException(
+            `Order status changed to "${liveOrder?.status}" during processing.`,
+          );
+        }
+
+        // Update DeliveryJob if FoodHub rider delivery
+        let updatedJob: any = null;
+        if (order.deliveryJob) {
+          updatedJob = await tx.deliveryJob.update({
+            where: { id: order.deliveryJob.id },
+            data: {
+              status: DeliveryJobStatus.DELIVERED,
+              deliveredAt: now,
+            },
+            select: {
+              id: true,
+              status: true,
+              driverId: true,
+              riderPayout: true,
+              deliveryFee: true,
+            },
           });
 
-          if (driver?.userId) {
-            const payoutAmount = Number(
-              updatedJob.riderPayout ||
-                Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)),
-            );
-
-            let driverWallet = await tx.wallet.findUnique({
-              where: { userId: driver.userId },
+          // Idempotent Driver Wallet Credit for assigned FoodHub rider
+          if (updatedJob.driverId) {
+            const driver = await tx.driver.findUnique({
+              where: { id: updatedJob.driverId },
+              select: { userId: true },
             });
 
-            if (!driverWallet) {
-              driverWallet = await tx.wallet.create({
-                data: { userId: driver.userId, balance: 0 },
-              });
-            }
+            if (driver?.userId) {
+              const payoutAmount = Number(
+                updatedJob.riderPayout ||
+                  Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)),
+              );
 
-            const existingTx = await tx.walletTransaction.findFirst({
-              where: {
-                walletId: driverWallet.id,
-                referenceId: order.id,
-              },
-            });
-
-            if (!existingTx && payoutAmount > 0) {
-              await tx.wallet.update({
-                where: { id: driverWallet.id },
-                data: { balance: { increment: payoutAmount } },
+              let driverWallet = await tx.wallet.findUnique({
+                where: { userId: driver.userId },
               });
 
-              await tx.walletTransaction.create({
-                data: {
+              if (!driverWallet) {
+                driverWallet = await tx.wallet.create({
+                  data: { userId: driver.userId, balance: 0 },
+                });
+              }
+
+              const existingTx = await tx.walletTransaction.findFirst({
+                where: {
                   walletId: driverWallet.id,
-                  type: 'CREDIT',
-                  amount: payoutAmount,
-                  description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
                   referenceId: order.id,
                 },
               });
+
+              if (!existingTx && payoutAmount > 0) {
+                await tx.wallet.update({
+                  where: { id: driverWallet.id },
+                  data: { balance: { increment: payoutAmount } },
+                });
+
+                await tx.walletTransaction.create({
+                  data: {
+                    walletId: driverWallet.id,
+                    type: 'CREDIT',
+                    amount: payoutAmount,
+                    description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
+                    referenceId: order.id,
+                  },
+                });
+              }
             }
           }
         }
-      }
 
-      // If restaurant self-delivery staff, set back to AVAILABLE
-      if (order.assignedRestaurantDriverId) {
-        await tx.restaurantDeliveryStaff.update({
-          where: { id: order.assignedRestaurantDriverId },
-          data: { status: 'AVAILABLE' },
+        // If restaurant self-delivery staff, set back to AVAILABLE
+        if (order.assignedRestaurantDriverId) {
+          await tx.restaurantDeliveryStaff.update({
+            where: { id: order.assignedRestaurantDriverId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+
+        // Transition to DELIVERED
+        const updated = await tx.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.DELIVERED,
+            paymentStatus: 'COMPLETED' as any,
+            version: { increment: 1 },
+          },
+          include: {
+            restaurant: true,
+            deliveryJob: true,
+            orderItems: { include: { foodItem: true } },
+            customer: { include: { user: { include: { profile: true } } } },
+          },
         });
-      }
 
-      // Transition to DELIVERED
-      const updated = await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: OrderStatus.DELIVERED,
-          paymentStatus: 'COMPLETED' as any,
-          version: { increment: 1 },
-        },
-        include: {
-          restaurant: true,
-          deliveryJob: true,
-          orderItems: { include: { foodItem: true } },
-          customer: { include: { user: { include: { profile: true } } } },
-        },
-      });
+        const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: order.id,
+            fromStatus: OrderStatus.OUT_FOR_DELIVERY,
+            toStatus: OrderStatus.DELIVERED,
+            changedBy: validActorUserId,
+          },
+        });
 
-      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          fromStatus: OrderStatus.OUT_FOR_DELIVERY,
-          toStatus: OrderStatus.DELIVERED,
-          changedBy: validActorUserId,
-        },
-      });
+        await tx.orderTimeline.create({
+          data: {
+            orderId: order.id,
+            status: OrderStatus.DELIVERED,
+            message: 'Order delivered successfully to customer.',
+          },
+        });
 
-      await tx.orderTimeline.create({
-        data: {
-          orderId: order.id,
-          status: OrderStatus.DELIVERED,
-          message: 'Order delivered successfully to customer.',
-        },
-      });
+        await this.generateSettlements(tx, updated);
 
-      await this.generateSettlements(tx, updated);
-
-      return updated;
-    }, {
-      maxWait: 15000,
-      timeout: 30000,
-    });
+        return updated;
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000,
+      },
+    );
 
     this.emitRealtimeEvents(
       updatedOrderRecord,
@@ -845,304 +873,328 @@ export class OrderLifecycleService {
 
     // --- 5-HOUR TIMEOUT RACE CONDITION GUARD ---
     const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
-    const isPast5Hours = (Date.now() - new Date(order.createdAt).getTime()) > FIVE_HOURS_MS;
-    if (isPast5Hours && targetStatus !== OrderStatus.CANCELLED && targetStatus !== OrderStatus.REJECTED && targetStatus !== OrderStatus.FAILED) {
-      throw new BadRequestException('Order has exceeded the maximum 5-hour lifecycle limit and is overdue for cancellation.');
+    const isPast5Hours = Date.now() - new Date(order.createdAt).getTime() > FIVE_HOURS_MS;
+    if (
+      isPast5Hours &&
+      targetStatus !== OrderStatus.CANCELLED &&
+      targetStatus !== OrderStatus.REJECTED &&
+      targetStatus !== OrderStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Order has exceeded the maximum 5-hour lifecycle limit and is overdue for cancellation.',
+      );
     }
 
     this.validateActorPermission(order, currentStatus, targetStatus, actor);
 
-    const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      const liveOrder = await tx.order.findUnique({
-        where: { id: order.id },
-        select: { status: true },
-      });
-
-      if (!liveOrder || liveOrder.status !== currentStatus) {
-        throw new ConflictException(
-          `Order status has already been updated to "${liveOrder?.status || 'UNKNOWN'}" by another process.`,
-        );
-      }
-
-      let updatedJob: any = null;
-      const now = new Date();
-
-      if (targetStatus === OrderStatus.PREPARING) {
-        const restLat = Number(order.restaurant.latitude || 0);
-        const restLng = Number(order.restaurant.longitude || 0);
-        const delAddr = order.deliveryAddress as any;
-        const custLat = Number(delAddr?.latitude || 0);
-        const custLng = Number(delAddr?.longitude || 0);
-
-        const distanceKm = delAddr?.distanceKm || delAddr?.distanceKm || 0;
-
-        const rawPickupOtp = generate4DigitOtp();
-        const pickupOtpHash = hashOtp(rawPickupOtp);
-
-        const pickupAddress = {
-          restaurantName: order.restaurant.name,
-          addressLine: order.restaurant.addressLine,
-          latitude: restLat,
-          longitude: restLng,
-          phone: order.restaurant.phone,
-          rawPickupOtp,
-        };
-
-        const dropAddress = {
-          street: delAddr?.street || delAddr?.addressLine1 || 'Delivery Address',
-          addressLine2: delAddr?.addressLine2 || '',
-          city: delAddr?.city || '',
-          state: delAddr?.state || 'Jammu & Kashmir',
-          postalCode: delAddr?.postalCode || '193502',
-          latitude: custLat,
-          longitude: custLng,
-          contactName: order.deliveryAddress ? delAddr?.name || 'Customer' : 'Customer',
-        };
-
-        const snap: any = order.pricingSnapshot || {};
-      const snapRiderPayout = snap.riderPayout;
-      const riderPayout = snapRiderPayout != null 
-        ? Number(snapRiderPayout) 
-        : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
-
-        updatedJob = await tx.deliveryJob.upsert({
-          where: { orderId: order.id },
-          create: {
-            orderId: order.id,
-            status: DeliveryJobStatus.AVAILABLE,
-            pickupAddressJson: pickupAddress,
-            dropAddressJson: dropAddress,
-            distanceKm,
-            deliveryFee: order.deliveryFee,
-            riderPayout,
-            pickupOtpHash,
-            pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
-          },
-          update: {
-            status: DeliveryJobStatus.AVAILABLE,
-            pickupAddressJson: pickupAddress,
-            pickupOtpHash,
-            pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
-          },
-          select: { id: true, status: true },
+    const updatedOrder = await this.prisma.$transaction(
+      async (tx) => {
+        const liveOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          select: { status: true },
         });
-      } else if (targetStatus === OrderStatus.DRIVER_ASSIGNED) {
-        if (!actor.driverId) {
-          throw new ForbiddenException(
-            'Only registered delivery partners can accept delivery jobs.',
+
+        if (!liveOrder || liveOrder.status !== currentStatus) {
+          throw new ConflictException(
+            `Order status has already been updated to "${liveOrder?.status || 'UNKNOWN'}" by another process.`,
           );
         }
 
-        if (extraData?.deliveryJobPayload) {
+        let updatedJob: any = null;
+        const now = new Date();
+
+        if (targetStatus === OrderStatus.PREPARING) {
+          const restLat = Number(order.restaurant.latitude || 0);
+          const restLng = Number(order.restaurant.longitude || 0);
+          const delAddr = order.deliveryAddress as any;
+          const custLat = Number(delAddr?.latitude || 0);
+          const custLng = Number(delAddr?.longitude || 0);
+
+          const distanceKm = delAddr?.distanceKm || delAddr?.distanceKm || 0;
+
+          const rawPickupOtp = generate4DigitOtp();
+          const pickupOtpHash = hashOtp(rawPickupOtp);
+
+          const pickupAddress = {
+            restaurantName: order.restaurant.name,
+            addressLine: order.restaurant.addressLine,
+            latitude: restLat,
+            longitude: restLng,
+            phone: order.restaurant.phone,
+            rawPickupOtp,
+          };
+
+          const dropAddress = {
+            street: delAddr?.street || delAddr?.addressLine1 || 'Delivery Address',
+            addressLine2: delAddr?.addressLine2 || '',
+            city: delAddr?.city || '',
+            state: delAddr?.state || 'Jammu & Kashmir',
+            postalCode: delAddr?.postalCode || '193502',
+            latitude: custLat,
+            longitude: custLng,
+            contactName: order.deliveryAddress ? delAddr?.name || 'Customer' : 'Customer',
+          };
+
+          const snap: any = order.pricingSnapshot || {};
+          const snapRiderPayout = snap.riderPayout;
+          const riderPayout =
+            snapRiderPayout != null
+              ? Number(snapRiderPayout)
+              : Math.max(30, Math.round(Number(order.deliveryFee || 40) * 0.8));
+
           updatedJob = await tx.deliveryJob.upsert({
             where: { orderId: order.id },
-            create: extraData.deliveryJobPayload.create,
-            update: extraData.deliveryJobPayload.update
+            create: {
+              orderId: order.id,
+              status: DeliveryJobStatus.AVAILABLE,
+              pickupAddressJson: pickupAddress,
+              dropAddressJson: dropAddress,
+              distanceKm,
+              deliveryFee: order.deliveryFee,
+              riderPayout,
+              pickupOtpHash,
+              pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            },
+            update: {
+              status: DeliveryJobStatus.AVAILABLE,
+              pickupAddressJson: pickupAddress,
+              pickupOtpHash,
+              pickupOtpExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            },
+            select: { id: true, status: true },
           });
-        } else {
-          const existingJob = await tx.deliveryJob.findUnique({
-            where: { orderId: order.id },
-          });
-
-          if (!existingJob) {
-            throw new BadRequestException('No active delivery job exists for this order.');
-          }
-
-          if (existingJob.status !== DeliveryJobStatus.AVAILABLE || existingJob.driverId) {
-            throw new ConflictException(
-              'This delivery job has already been claimed by another delivery partner.',
+        } else if (targetStatus === OrderStatus.DRIVER_ASSIGNED) {
+          if (!actor.driverId) {
+            throw new ForbiddenException(
+              'Only registered delivery partners can accept delivery jobs.',
             );
           }
 
-          if (existingJob.pendingDriverId) {
-            if (existingJob.pendingDriverId !== actor.driverId) {
-              throw new ConflictException('This delivery job is currently offered to another delivery partner.');
-            }
-            if (existingJob.offerExpiresAt && existingJob.offerExpiresAt < new Date()) {
-              throw new ConflictException('This delivery offer has expired.');
-            }
-          }
-
-          updatedJob = await tx.deliveryJob.update({
-            where: { id: existingJob.id },
-            data: {
-              driverId: actor.driverId,
-              pendingDriverId: null,
-              offerExpiresAt: null,
-              status: DeliveryJobStatus.ASSIGNED,
-              acceptedAt: now,
-            },
-            select: { id: true, status: true },
-          });
-        }
-
-      } else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
-        if (order.deliveryJob) {
-          updatedJob = await tx.deliveryJob.update({
-            where: { id: order.deliveryJob.id },
-            data: {
-              status: DeliveryJobStatus.ARRIVED,
-              arrivedAt: now,
-            },
-            select: { id: true, status: true },
-          });
-        }
-      } else if (targetStatus === OrderStatus.PICKED_UP) {
-        if (order.deliveryJob) {
-          updatedJob = await tx.deliveryJob.update({
-            where: { id: order.deliveryJob.id },
-            data: {
-              status: DeliveryJobStatus.PICKED_UP,
-              pickedAt: now,
-              pickupVerifiedAt: now,
-            },
-            select: { id: true, status: true },
-          });
-        }
-      } else if (targetStatus === OrderStatus.DELIVERED) {
-        if (order.deliveryJob) {
-          updatedJob = await tx.deliveryJob.update({
-            where: { id: order.deliveryJob.id },
-            data: {
-              status: DeliveryJobStatus.DELIVERED,
-              deliveredAt: now,
-            },
-            select: {
-              id: true,
-              status: true,
-              driverId: true,
-              riderPayout: true,
-              deliveryFee: true,
-            },
-          });
-
-          // Idempotent Driver Wallet Credit
-          if (updatedJob.driverId) {
-            const driver = await tx.driver.findUnique({
-              where: { id: updatedJob.driverId },
-              select: { userId: true },
+          if (extraData?.deliveryJobPayload) {
+            updatedJob = await tx.deliveryJob.upsert({
+              where: { orderId: order.id },
+              create: extraData.deliveryJobPayload.create,
+              update: extraData.deliveryJobPayload.update,
+            });
+          } else {
+            const existingJob = await tx.deliveryJob.findUnique({
+              where: { orderId: order.id },
             });
 
-            if (driver?.userId) {
-              const payoutAmount = Number(
-                updatedJob.riderPayout ||
-                  Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)),
+            if (!existingJob) {
+              throw new BadRequestException('No active delivery job exists for this order.');
+            }
+
+            if (existingJob.status !== DeliveryJobStatus.AVAILABLE || existingJob.driverId) {
+              throw new ConflictException(
+                'This delivery job has already been claimed by another delivery partner.',
               );
+            }
 
-              // Check if wallet transaction for this order delivery already exists
-              let driverWallet = await tx.wallet.findUnique({
-                where: { userId: driver.userId },
-              });
-
-              if (!driverWallet) {
-                driverWallet = await tx.wallet.create({
-                  data: { userId: driver.userId, balance: 0 },
-                });
+            if (existingJob.pendingDriverId) {
+              if (existingJob.pendingDriverId !== actor.driverId) {
+                throw new ConflictException(
+                  'This delivery job is currently offered to another delivery partner.',
+                );
               }
+              if (existingJob.offerExpiresAt && existingJob.offerExpiresAt < new Date()) {
+                throw new ConflictException('This delivery offer has expired.');
+              }
+            }
 
-              const existingTx = await tx.walletTransaction.findFirst({
-                where: {
-                  walletId: driverWallet.id,
-                  referenceId: order.id,
-                },
+            updatedJob = await tx.deliveryJob.update({
+              where: { id: existingJob.id },
+              data: {
+                driverId: actor.driverId,
+                pendingDriverId: null,
+                offerExpiresAt: null,
+                status: DeliveryJobStatus.ASSIGNED,
+                acceptedAt: now,
+              },
+              select: { id: true, status: true },
+            });
+          }
+        } else if (targetStatus === OrderStatus.ARRIVED_AT_RESTAURANT) {
+          if (order.deliveryJob) {
+            updatedJob = await tx.deliveryJob.update({
+              where: { id: order.deliveryJob.id },
+              data: {
+                status: DeliveryJobStatus.ARRIVED,
+                arrivedAt: now,
+              },
+              select: { id: true, status: true },
+            });
+          }
+        } else if (targetStatus === OrderStatus.PICKED_UP) {
+          if (order.deliveryJob) {
+            updatedJob = await tx.deliveryJob.update({
+              where: { id: order.deliveryJob.id },
+              data: {
+                status: DeliveryJobStatus.PICKED_UP,
+                pickedAt: now,
+                pickupVerifiedAt: now,
+              },
+              select: { id: true, status: true },
+            });
+          }
+        } else if (targetStatus === OrderStatus.DELIVERED) {
+          if (order.deliveryJob) {
+            updatedJob = await tx.deliveryJob.update({
+              where: { id: order.deliveryJob.id },
+              data: {
+                status: DeliveryJobStatus.DELIVERED,
+                deliveredAt: now,
+              },
+              select: {
+                id: true,
+                status: true,
+                driverId: true,
+                riderPayout: true,
+                deliveryFee: true,
+              },
+            });
+
+            // Idempotent Driver Wallet Credit
+            if (updatedJob.driverId) {
+              const driver = await tx.driver.findUnique({
+                where: { id: updatedJob.driverId },
+                select: { userId: true },
               });
 
-              if (!existingTx && payoutAmount > 0) {
-                await tx.wallet.update({
-                  where: { id: driverWallet.id },
-                  data: { balance: { increment: payoutAmount } },
+              if (driver?.userId) {
+                const payoutAmount = Number(
+                  updatedJob.riderPayout ||
+                    Math.max(30, Math.round(Number(updatedJob.deliveryFee || 40) * 0.8)),
+                );
+
+                // Check if wallet transaction for this order delivery already exists
+                let driverWallet = await tx.wallet.findUnique({
+                  where: { userId: driver.userId },
                 });
 
-                await tx.walletTransaction.create({
-                  data: {
+                if (!driverWallet) {
+                  driverWallet = await tx.wallet.create({
+                    data: { userId: driver.userId, balance: 0 },
+                  });
+                }
+
+                const existingTx = await tx.walletTransaction.findFirst({
+                  where: {
                     walletId: driverWallet.id,
-                    type: 'CREDIT',
-                    amount: payoutAmount,
-                    description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
                     referenceId: order.id,
                   },
                 });
+
+                if (!existingTx && payoutAmount > 0) {
+                  await tx.wallet.update({
+                    where: { id: driverWallet.id },
+                    data: { balance: { increment: payoutAmount } },
+                  });
+
+                  await tx.walletTransaction.create({
+                    data: {
+                      walletId: driverWallet.id,
+                      type: 'CREDIT',
+                      amount: payoutAmount,
+                      description: `Internal settlement ledger credit for delivering Order #${order.orderNumber}`,
+                      referenceId: order.id,
+                    },
+                  });
+                }
               }
             }
           }
+        } else if (
+          targetStatus === OrderStatus.CANCELLED ||
+          targetStatus === OrderStatus.REJECTED
+        ) {
+          if (order.deliveryJob) {
+            await tx.deliveryJob.update({
+              where: { id: order.deliveryJob.id },
+              data: { status: DeliveryJobStatus.CANCELLED },
+              select: { id: true, status: true },
+            });
+          }
         }
-      } else if (targetStatus === OrderStatus.CANCELLED || targetStatus === OrderStatus.REJECTED) {
-        if (order.deliveryJob) {
-          await tx.deliveryJob.update({
-            where: { id: order.deliveryJob.id },
-            data: { status: DeliveryJobStatus.CANCELLED },
-            select: { id: true, status: true },
-          });
-        }
-      }
 
-      // Trigger refund if cancelled and payment was completed
-        if ((targetStatus === OrderStatus.CANCELLED || targetStatus === OrderStatus.REJECTED || targetStatus === OrderStatus.FAILED) && order.paymentStatus === 'COMPLETED') {
+        // Trigger refund if cancelled and payment was completed
+        if (
+          (targetStatus === OrderStatus.CANCELLED ||
+            targetStatus === OrderStatus.REJECTED ||
+            targetStatus === OrderStatus.FAILED) &&
+          order.paymentStatus === 'COMPLETED'
+        ) {
           // Fire refund asynchronously to avoid blocking the transaction
           setTimeout(() => {
-            this.paymentsService.initiateRefund(order.id, extraData?.cancellationReason || 'Order Cancelled').catch(e => {
-              this.logger.error('Auto-refund failed for order ' + order.id, e);
-            });
+            this.paymentsService
+              .initiateRefund(order.id, extraData?.cancellationReason || 'Order Cancelled')
+              .catch((e) => {
+                this.logger.error('Auto-refund failed for order ' + order.id, e);
+              });
           }, 0);
         }
 
         const updatedOrderRecord = await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: targetStatus,
-          version: { increment: 1 },
-          ...(targetStatus === OrderStatus.DELIVERED ? { paymentStatus: 'COMPLETED' as any } : {}),
-        },
-        include: {
-          restaurant: true,
-          deliveryJob: {
-            select: {
-              id: true,
-              status: true,
-              driverId: true,
-              riderPayout: true,
-              driver: {
-                select: {
-                  id: true,
-                  status: true,
-                  isApproved: true,
-                  user: { select: { id: true, profile: true } },
+          where: { id: order.id },
+          data: {
+            status: targetStatus,
+            version: { increment: 1 },
+            ...(targetStatus === OrderStatus.DELIVERED
+              ? { paymentStatus: 'COMPLETED' as any }
+              : {}),
+          },
+          include: {
+            restaurant: true,
+            deliveryJob: {
+              select: {
+                id: true,
+                status: true,
+                driverId: true,
+                riderPayout: true,
+                driver: {
+                  select: {
+                    id: true,
+                    status: true,
+                    isApproved: true,
+                    user: { select: { id: true, profile: true } },
+                  },
                 },
               },
             },
+            orderItems: { include: { foodItem: true } },
+            customer: { select: { id: true, userId: true } },
           },
-          orderItems: { include: { foodItem: true } },
-          customer: { select: { id: true, userId: true } },
-        },
-      });
+        });
 
-      const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          fromStatus: currentStatus,
-          toStatus: targetStatus,
-          changedBy: validActorUserId,
-        },
-      });
+        const validActorUserId = this.isValidUuid(actor.userId) ? actor.userId : null;
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: order.id,
+            fromStatus: currentStatus,
+            toStatus: targetStatus,
+            changedBy: validActorUserId,
+          },
+        });
 
-      await tx.orderTimeline.create({
-        data: {
-          orderId: order.id,
-          status: targetStatus,
-          message: this.getTimelineMessage(targetStatus, extraData?.reason),
-        },
-      });
+        await tx.orderTimeline.create({
+          data: {
+            orderId: order.id,
+            status: targetStatus,
+            message: this.getTimelineMessage(targetStatus, extraData?.reason),
+          },
+        });
 
-      if (targetStatus === OrderStatus.DELIVERED) {
-        await this.generateSettlements(tx, updatedOrderRecord);
-      }
+        if (targetStatus === OrderStatus.DELIVERED) {
+          await this.generateSettlements(tx, updatedOrderRecord);
+        }
 
-      return updatedOrderRecord;
-    }, {
-      maxWait: 15000,
-      timeout: 30000,
-    });
+        return updatedOrderRecord;
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000,
+      },
+    );
 
     this.emitRealtimeEvents(updatedOrder, currentStatus, targetStatus);
 
@@ -1165,9 +1217,23 @@ export class OrderLifecycleService {
 
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: [OrderStatus.ACCEPTED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
-      ACCEPTED: [OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP, OrderStatus.DRIVER_ASSIGNED, OrderStatus.CANCELLED],
-      PREPARING: [OrderStatus.READY_FOR_PICKUP, OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
-      READY_FOR_PICKUP: [OrderStatus.DRIVER_ASSIGNED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+      ACCEPTED: [
+        OrderStatus.PREPARING,
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.DRIVER_ASSIGNED,
+        OrderStatus.CANCELLED,
+      ],
+      PREPARING: [
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.DRIVER_ASSIGNED,
+        OrderStatus.OUT_FOR_DELIVERY,
+        OrderStatus.CANCELLED,
+      ],
+      READY_FOR_PICKUP: [
+        OrderStatus.DRIVER_ASSIGNED,
+        OrderStatus.OUT_FOR_DELIVERY,
+        OrderStatus.CANCELLED,
+      ],
       DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
       ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
@@ -1192,14 +1258,16 @@ export class OrderLifecycleService {
         );
       }
     }
-      if (targetStatus === OrderStatus.ACCEPTED) {
-        const TEN_MINUTES_MS = 10 * 60 * 1000;
-        const now = new Date().getTime();
-        const createdTime = new Date(order.createdAt).getTime();
-        if (now - createdTime > TEN_MINUTES_MS) {
-          throw new BadRequestException('Order has expired and can no longer be accepted. (10-minute timeout)');
-        }
+    if (targetStatus === OrderStatus.ACCEPTED) {
+      const TEN_MINUTES_MS = 10 * 60 * 1000;
+      const now = new Date().getTime();
+      const createdTime = new Date(order.createdAt).getTime();
+      if (now - createdTime > TEN_MINUTES_MS) {
+        throw new BadRequestException(
+          'Order has expired and can no longer be accepted. (10-minute timeout)',
+        );
       }
+    }
 
     if (([OrderStatus.PREPARING, OrderStatus.PREPARING] as OrderStatus[]).includes(targetStatus)) {
       if (!isRestaurantActor && !isAdmin) {
@@ -1283,7 +1351,15 @@ export class OrderLifecycleService {
         this.gateway.emitToDriver(activeDriverId, ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
       this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
-      
+      if (
+        this.gateway.emitToAvailableDrivers &&
+        (targetStatus === 'PREPARING' ||
+          targetStatus === 'READY_FOR_PICKUP' ||
+          targetStatus === 'DRIVER_ASSIGNED' ||
+          targetStatus === 'CANCELLED')
+      ) {
+        this.gateway.emitToAvailableDrivers('job.available' as any, sanitizedPayload);
+      }
     }
   }
 
@@ -1339,12 +1415,11 @@ export class OrderLifecycleService {
         : Math.round((foodSubtotal - commissionAmount - commissionGstAmount + deductions) * 100) /
           100;
 
-    
     const commissionGst = commissionGstAmount;
     const commissionTotal = Math.round((commissionAmount + commissionGst) * 100) / 100;
     const applicableTds = 0; // Configured separately in settlement module later if needed
     const applicableTcs = 0; // Prompt: Do not deduct normal GST TCS from restaurant settlement for 9(5)
-    
+
     await tx.restaurantSettlement.upsert({
       where: { orderId: order.id },
       create: {
@@ -1368,7 +1443,6 @@ export class OrderLifecycleService {
       update: {},
     });
 
-
     // 2. Rider Settlement
     if (order.deliveryJob && order.deliveryJob.driverId) {
       const basePayout = snap.riderBasePayout !== undefined ? Number(snap.riderBasePayout) : 30;
@@ -1382,11 +1456,12 @@ export class OrderLifecycleService {
           Math.max(30, Math.round(Number(order.deliveryJob.deliveryFee || 40) * 0.8)),
       );
 
-      
-      const deliveryDistanceKm = snap.deliveryDistanceKm !== undefined ? Number(snap.deliveryDistanceKm) : 0;
-      const deliveryRate = snap.deliveryFeePerExtraKm !== undefined ? Number(snap.deliveryFeePerExtraKm) : 15;
+      const deliveryDistanceKm =
+        snap.deliveryDistanceKm !== undefined ? Number(snap.deliveryDistanceKm) : 0;
+      const deliveryRate =
+        snap.deliveryFeePerExtraKm !== undefined ? Number(snap.deliveryFeePerExtraKm) : 15;
       const applicableTdsRider = 0; // TDS will be computed when generating the actual payout if applicable
-      
+
       await tx.riderSettlement.upsert({
         where: { orderId: order.id },
         create: {
@@ -1409,7 +1484,7 @@ export class OrderLifecycleService {
       // 3. Generate Ledger Entries
       const ledgerEntries = [];
       const orderTotal = Number(order.totalAmount || 0);
-      
+
       if (orderTotal > 0) {
         ledgerEntries.push({
           orderId: order.id,
@@ -1495,9 +1570,5 @@ export class OrderLifecycleService {
         });
       }
     }
-
+  }
 }
-
-}
-
-
