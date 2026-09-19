@@ -1,47 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-function walk(dir) {
-  let files = fs.readdirSync(dir);
-  for (let f of files) {
-    let p = path.join(dir, f);
-    if (fs.statSync(p).isDirectory()) walk(p);
-    else if (p.endsWith('.tsx') || p.endsWith('.ts')) {
-      let code = fs.readFileSync(p, 'utf8');
-      let o = code;
-      
-      code = code.replace(/\+\?\{([^}]+)\}/g, '+{formatCurrency($1)}');
-      code = code.replace(/-\?\{([^}]+)\}/g, '-{formatCurrency($1)}');
-      code = code.replace(/\?\{([^}]+)\}/g, '{formatCurrency($1)}');
-      
-      code = code.replace(/\+₹\{([^}]+)\}/g, '+{formatCurrency($1)}');
-      code = code.replace(/-₹\{([^}]+)\}/g, '-{formatCurrency($1)}');
-      code = code.replace(/₹\{([^}]+)\}/g, '{formatCurrency($1)}');
-      
-      code = code.replace(/formatCurrency\(([^)]+?)\.toFixed\([0-9]+\)\)/g, 'formatCurrency(Number($1))');
-      code = code.replace(/formatCurrency\(Number\(([^)]+?)\)\.toFixed\([0-9]+\)\)/g, 'formatCurrency(Number($1))');
-      code = code.replace(/formatCurrency\(([^)]+?)\.toLocaleString\([^)]*\)\)/g, 'formatCurrency(Number($1))');
-      code = code.replace(/formatCurrency\(Number\(([^)]+?)\)\.toLocaleString\([^)]*\)\)/g, 'formatCurrency(Number($1))');
+﻿const fs = require('fs');
+let content = fs.readFileSync('apps/backend/src/modules/orders/order-lifecycle.service.ts', 'utf8');
+const search = `this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);`;
+const replace = `this.gateway.emitToAdmin(ORDER_EVENTS.STATUS_UPDATED, sanitizedPayload);
 
-      if (code !== o) {
-        if (!code.includes('import { formatCurrency }')) {
-           if (code.includes('use client')) {
-             code = code.replace(/use client['"];?\n/, "$&\nimport { formatCurrency } from '@foodhub/utils';\n");
-           } else {
-             const importMatch = /^import\s+.*from\s+['"].*['"];?\r?\n/m.exec(code);
-             if (importMatch) {
-               code = code.replace(/^import\s+.*from\s+['"].*['"];?\r?\n/m, "$&\nimport { formatCurrency } from '@foodhub/utils';\n");
-             } else {
-               code = "import { formatCurrency } from '@foodhub/utils';\n" + code;
-             }
-           }
-        }
-        fs.writeFileSync(p, code);
-        console.log('Fixed ' + p);
-      }
-    }
-  }
+      if (this.gateway.emitToAvailableDrivers && (targetStatus === 'PREPARING' || targetStatus === 'READY_FOR_PICKUP' || targetStatus === 'DRIVER_ASSIGNED' || targetStatus === 'CANCELLED')) {
+        this.gateway.emitToAvailableDrivers('job.available' as any, sanitizedPayload);
+      }`;
+// We only want to replace the LAST occurrence, which is in transition()
+const lastIndex = content.lastIndexOf(search);
+if (lastIndex !== -1) {
+  content = content.substring(0, lastIndex) + replace + content.substring(lastIndex + search.length);
+  fs.writeFileSync('apps/backend/src/modules/orders/order-lifecycle.service.ts', content, 'utf8');
+  console.log('Replaced successfully');
+} else {
+  console.log('Not found');
 }
-walk('apps/admin-dashboard/src');
-walk('apps/delivery-dashboard/src');
-walk('apps/hotel-dashboard/src');
-walk('apps/customer-web/src');

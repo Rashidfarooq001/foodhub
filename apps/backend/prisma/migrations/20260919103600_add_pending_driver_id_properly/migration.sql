@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE "delivery_jobs" ADD COLUMN IF NOT EXISTS "pending_driver_id" UUID;
 
 -- AddForeignKey

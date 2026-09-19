@@ -1353,10 +1353,10 @@ export class OrderLifecycleService {
 
       if (
         this.gateway.emitToAvailableDrivers &&
-        (targetStatus === 'PREPARING' ||
-          targetStatus === 'READY_FOR_PICKUP' ||
-          targetStatus === 'DRIVER_ASSIGNED' ||
-          targetStatus === 'CANCELLED')
+        (toStatus === 'PREPARING' ||
+          toStatus === 'READY_FOR_PICKUP' ||
+          toStatus === 'DRIVER_ASSIGNED' ||
+          toStatus === 'CANCELLED')
       ) {
         this.gateway.emitToAvailableDrivers('job.available' as any, sanitizedPayload);
       }
@@ -1572,3 +1572,4 @@ export class OrderLifecycleService {
     }
   }
 }
+
