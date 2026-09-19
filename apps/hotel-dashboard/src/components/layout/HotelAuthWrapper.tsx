@@ -69,7 +69,14 @@ export function HotelAuthWrapper({ children }: { children: React.ReactNode }) {
     fetch(`${API_BASE}/auth/profile`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 401) {
+          logout();
+          router.push('/login');
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
         if (alive && data?.profile) {
           const fullName =

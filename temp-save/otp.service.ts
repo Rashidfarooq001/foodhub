@@ -1,15 +1,13 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { RedisService } from '../redis/redis.service';
-import { normalizeIndianPhone } from '@foodhub/utils';
-
-const TEST_PHONE_DIGITS = '9999999999';
-const TEST_OTP = '1234';
+import { OrderStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_COOLDOWN_SEC = 60;
+  private readonly OTP_EXPIRY_MINS = 10;
   private readonly usedAccessTokens = new Set<string>();
 
   private trackUsedAccessToken(token: string) {
@@ -23,75 +21,79 @@ export class OtpService {
     }
   }
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  // ──────────────────────────────────────────
-  // SEND OTP
-  // ──────────────────────────────────────────
-  async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number }> {
+  async sendOtp(phone: string): Promise<{ message: string; cooldownSec: number; otp?: string }> {
     const cleanDigits = (phone || '').replace(/\D/g, '');
     if (cleanDigits.length < 10) {
       throw new BadRequestException('Please provide a valid 10-digit mobile number');
     }
+    const normalizedDbPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
 
-    const last10 = cleanDigits.slice(-10);
-    const mobileFor91 = `91${last10}`;
+    // Check cooldown on latest request
+    const existingOtp = await this.prisma.otp.findFirst({
+      where: { phone: normalizedDbPhone },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    // ── TEST BYPASS (only for hardcoded test phone) ──
-    if (cleanDigits === TEST_PHONE_DIGITS && process.env.ENABLE_TEST_BYPASS === 'true') {
-      this.logger.log(`[OTP Gateway] TEST BYPASS: Skipping MSG91 for test phone ...${TEST_PHONE_DIGITS.slice(-4)}`);
-      // Store test OTP in Redis so verifyOtp works in test mode too
-      const otpKey = `otp_code:${last10}`;
-      await this.redisService.getClient().setex(otpKey, 600, TEST_OTP);
-      return { message: 'OTP sent successfully', cooldownSec: this.OTP_COOLDOWN_SEC };
+    if (existingOtp) {
+      const secondsPassed = Math.floor((Date.now() - existingOtp.createdAt.getTime()) / 1000);
+      if (secondsPassed < this.OTP_COOLDOWN_SEC) {
+        throw new BadRequestException(
+          `Please wait ${this.OTP_COOLDOWN_SEC - secondsPassed} seconds before requesting a new OTP.`,
+        );
+      }
     }
 
-    // ── COOLDOWN CHECK (Redis) ──
-    const cooldownKey = `otp_cooldown:${last10}`;
-    const ttl = await this.redisService.getClient().ttl(cooldownKey);
-    if (ttl > 0) {
-      throw new BadRequestException(
-        `Please wait ${ttl} seconds before requesting a new OTP.`,
-      );
-    }
+    // OTP ROTATION & INVALIDATION: Immediately mark all previous unused OTPs for this phone as used/invalid
+    await this.prisma.otp.updateMany({
+      where: { phone: normalizedDbPhone, isUsed: false },
+      data: { isUsed: true },
+    });
+
+    // Generate unique 4-digit OTP code cryptographically
+    const crypto = require('crypto');
+    const rawOtp = crypto.randomInt(1000, 10000).toString();
+    const otpHash = await bcrypt.hash(rawOtp, 10);
+    const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINS * 60 * 1000);
+
+    await this.prisma.otp.create({
+      data: {
+        phone: normalizedDbPhone,
+        otpHash,
+        expiresAt,
+      },
+    });
 
     const authKey = process.env.MSG91_AUTH_KEY;
+
     if (!authKey) {
       this.logger.error('[OTP Gateway] MSG91_AUTH_KEY missing');
+      // Cleanup the stored OTP before throwing
+      await this.prisma.otp.deleteMany({ where: { phone: normalizedDbPhone, isUsed: false } });
       throw new BadRequestException('SMS Gateway is not configured correctly.');
     }
 
-    // ── Generate 6-digit OTP and store in Redis (10 min TTL) ──
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpKey = `otp_code:${last10}`;
-    await this.redisService.getClient().setex(otpKey, 600, generatedOtp);
-
-    // ── MSG91 SendOTP — pass our generated OTP so MSG91 delivers it via SMS ──
-    const msg91Url = `https://api.msg91.com/api/v5/otp?authkey=${authKey}&mobile=${mobileFor91}&otp=${generatedOtp}`;
+    const mobileFor91 = `91${cleanDigits.slice(-10)}`;
+    const msg91Url = `https://api.msg91.com/api/v5/otp?authkey=${authKey}&mobile=${mobileFor91}&otp=${rawOtp}`;
 
     try {
-      this.logger.log(`[OTP Gateway] Requesting MSG91 SendOTP for mobile ending ...${last10.slice(-4)}`);
+      this.logger.log(`[OTP Gateway] Requesting MSG91 SendOTP for mobile ending ...${cleanDigits.slice(-4)}...`);
       const response = await fetch(msg91Url, { method: 'GET' });
       const msg91Data = await response.json().catch(() => ({}));
       this.logger.log(`[OTP Gateway] MSG91 HTTP status: ${response.status}, type: ${msg91Data?.type}`);
 
       if (!response.ok || msg91Data?.type === 'error') {
-        // Clear the stored OTP on send failure so it can't be guessed
-        await this.redisService.getClient().del(otpKey);
         throw new Error(msg91Data?.message || 'Provider rejected request');
       }
     } catch (err: any) {
       this.logger.error(`[OTP Gateway] MSG91 SendOTP Failed: ${err.message}`);
+      // Delete the OTP record since it failed to send — do NOT authenticate
+      await this.prisma.otp.deleteMany({ where: { phone: normalizedDbPhone, isUsed: false } });
       throw new BadRequestException('OTP_SEND_FAILED: Unable to deliver SMS. Please try again later.');
     }
 
-    // ── Set cooldown in Redis ──
-    await this.redisService.getClient().setex(cooldownKey, this.OTP_COOLDOWN_SEC, '1');
-
-    this.logger.log(`[OTP Gateway] Successfully dispatched OTP via MSG91 for mobile ending ...${last10.slice(-4)}`);
+    this.logger.log(`[OTP Gateway] Successfully dispatched OTP via MSG91 for mobile ending ...${cleanDigits.slice(-4)}`);
 
     return {
       message: 'OTP sent successfully',
@@ -99,47 +101,52 @@ export class OtpService {
     };
   }
 
-  // ──────────────────────────────────────────
-  // VERIFY OTP  (checks Redis — bypasses MSG91 verify API which rejects our authkey)
-  // ──────────────────────────────────────────
   async verifyOtp(phone: string, rawOtp: string): Promise<boolean> {
     const cleanDigits = (phone || '').replace(/\D/g, '');
-    const last10 = cleanDigits.slice(-10);
+    const normalizedDbPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : `+${cleanDigits}`;
 
-    // ── TEST BYPASS ──
-    if (
-      cleanDigits === TEST_PHONE_DIGITS &&
-      rawOtp === TEST_OTP &&
-      process.env.ENABLE_TEST_BYPASS === 'true'
-    ) {
-      this.logger.log(`[OTP Gateway] TEST BYPASS: Skipping verify for test phone ...${last10.slice(-4)}`);
-      return true;
+    const otpRecord = await this.prisma.otp.findFirst({
+      where: { phone: normalizedDbPhone, isUsed: false },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otpRecord) {
+      throw new BadRequestException('No active OTP request found for this phone number');
     }
 
-    const otpKey = `otp_code:${last10}`;
-    const storedOtp = await this.redisService.getClient().get(otpKey);
-
-    if (!storedOtp) {
-      this.logger.warn(`[OTP Gateway] No OTP found in Redis for mobile ending ...${last10.slice(-4)}. Expired or never sent.`);
-      throw new BadRequestException('OTP has expired or was never requested. Please request a new OTP.');
+    if (new Date() > otpRecord.expiresAt) {
+      throw new BadRequestException('OTP code has expired. Please request a new code.');
     }
 
-    if (storedOtp.trim() !== (rawOtp || '').trim()) {
-      this.logger.warn(`[OTP Gateway] OTP mismatch for mobile ending ...${last10.slice(-4)}`);
-      throw new BadRequestException('Invalid OTP. Please check and try again.');
+    if (otpRecord.attempts >= 5) {
+      // Mark blocked
+      await this.prisma.otp.update({ where: { id: otpRecord.id }, data: { isUsed: true } });
+      throw new BadRequestException('Too many invalid attempts. This OTP has been blocked. Please request a new one.');
     }
 
-    // ── Single-use: delete OTP from Redis after successful verification ──
-    await this.redisService.getClient().del(otpKey);
+    const isMatch = await bcrypt.compare(rawOtp, otpRecord.otpHash);
+    
+    if (!isMatch) {
+      await this.prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestException('Invalid OTP code entered');
+    }
 
-    this.logger.log(`[OTP Gateway] OTP verified successfully via Redis for mobile ending ...${last10.slice(-4)}`);
+    // Immediately mark current OTP record as used (SINGLE-USE ENFORCEMENT - ATOMIC)
+    const updateRes = await this.prisma.otp.updateMany({
+      where: { id: otpRecord.id, isUsed: false },
+      data: { isUsed: true },
+    });
+
+    if (updateRes.count === 0) {
+      throw new BadRequestException('OTP was already used concurrently.');
+    }
+
     return true;
   }
 
-
-  // ──────────────────────────────────────────
-  // VERIFY MSG91 WIDGET ACCESS TOKEN
-  // ──────────────────────────────────────────
   async verifyAccessToken(accessToken: string): Promise<any> {
     if (!accessToken) {
       throw new BadRequestException('Access token is required');
@@ -195,14 +202,14 @@ export class OtpService {
       this.logger.log(
         '[Backend MSG91] Requesting https://control.msg91.com/api/v5/widget/verifyAccessToken...',
       );
-      const response = await fetch('https://api.msg91.com/api/v5/widget/verifyAccessToken', {
+      const response = await fetch('https://control.msg91.com/api/v5/widget/verifyAccessToken', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          authkey: authKey,
         },
         body: JSON.stringify({
+          authkey: authKey,
           'access-token': accessToken,
         }),
       });

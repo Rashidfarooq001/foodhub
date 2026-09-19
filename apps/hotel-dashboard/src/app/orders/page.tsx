@@ -138,7 +138,11 @@ export default function HotelOrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_BASE}/orders`, {
+      const queryParams = new URLSearchParams();
+      if (restaurantId) queryParams.append('restaurantId', restaurantId);
+      const url = `${API_BASE}/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      const res = await fetch(url, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         cache: 'no-store',
       });

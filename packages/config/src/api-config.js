@@ -122,13 +122,13 @@ export function getAdminDashboardUrl() {
 export function getMapplsApiKey() {
     return (process.env.NEXT_PUBLIC_MAPPLS_API_KEY ||
         process.env.MAPPLS_API_KEY ||
-        'gejpjfjmbuahozfsiemzurkcxqcvcrejjkwi');
+        '');
 }
 export function getMapplsClientId() {
     return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
 }
 export function getMapplsClientSecret() {
-    return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_SECRET || process.env.MAPPLS_CLIENT_SECRET || '';
+    return process.env.MAPPLS_CLIENT_SECRET || '';
 }
 export const API_CONFIG = {
     get baseUrl() {
