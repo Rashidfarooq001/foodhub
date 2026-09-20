@@ -218,7 +218,7 @@ export function normalizeRestaurantData(
     );
   }
 
-  let cuisines: string[] = ['North Indian', 'Fast Food'];
+  let cuisines: string[] = [];
   if (Array.isArray(r.cuisines) && r.cuisines.length > 0) {
     cuisines = r.cuisines;
   } else if (typeof r.cuisines === 'string' && r.cuisines.trim()) {
@@ -227,10 +227,9 @@ export function normalizeRestaurantData(
       .map((c: string) => c.trim())
       .filter(Boolean);
   } else if (typeof r.cuisine === 'string' && r.cuisine.trim()) {
-    cuisines = r.cuisine
-      .split(',')
-      .map((c: string) => c.trim())
-      .filter(Boolean);
+    cuisines = r.cuisine.split(',').map((c: string) => c.trim()).filter(Boolean);
+  } else if (Array.isArray(r.categories) && r.categories.length > 0) {
+    cuisines = r.categories.map((c: any) => c.name).filter(Boolean);
   }
 
   const avgRatingVal = r.avgRating ? safeNumber(r.avgRating) : 0;
@@ -244,9 +243,6 @@ export function normalizeRestaurantData(
     priceForTwo = safeNumber(r.priceForTwo);
   } else if (r.costForTwo !== undefined && r.costForTwo !== null && safeNumber(r.costForTwo) > 0) {
     priceForTwo = safeNumber(r.costForTwo);
-  } else if (foodItems.length > 0) {
-    const avgPrice = foodItems.reduce((sum, item) => sum + item.price, 0) / foodItems.length;
-    priceForTwo = Math.max(100, Math.round((avgPrice * 2) / 50) * 50);
   }
 
   // 2. Latitude & Longitude

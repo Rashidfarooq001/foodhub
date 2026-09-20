@@ -85,9 +85,7 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant }) => {
             </span>
           </div>
           <div className="font-bold text-gray-900">
-            {restaurant.priceForTwo && restaurant.priceForTwo > 0
-              ? `₹${restaurant.priceForTwo} for two`
-              : 'Price not available'}
+            {restaurant.priceForTwo && restaurant.priceForTwo > 0 ? `₹${restaurant.priceForTwo} for two` : null}
           </div>
         </div>
       </div>

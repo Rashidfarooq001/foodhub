@@ -65,10 +65,7 @@ export const RecommendedCard: React.FC<Props> = ({ restaurant, isInitiallyFavori
       ? `${restaurant.distanceKm.toFixed(1)} km`
       : null;
 
-  const priceText =
-    restaurant.priceForTwo && restaurant.priceForTwo > 0
-      ? `₹${restaurant.priceForTwo} for two`
-      : null;
+  const priceText = restaurant.priceForTwo && restaurant.priceForTwo > 0 ? `₹${restaurant.priceForTwo} for two` : null;
 
   const cuisineText =
     restaurant.cuisines && restaurant.cuisines.length > 0
