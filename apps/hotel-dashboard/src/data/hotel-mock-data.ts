@@ -9,12 +9,13 @@ export interface KitchenOrderItem {
   customerName: string;
   customerPhone: string;
   items: { name: string; quantity: number; notes?: string }[];
-  status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED' | 'DRIVER_ASSIGNED' | 'ARRIVED_AT_RESTAURANT';
   placedAt: string;
   prepTimeMins: number;
   driverName?: string;
   driverPhone?: string;
   totalAmount: number;
+  orderTimelines?: any[];
 }
 
 export interface RestaurantStats {
