@@ -7,6 +7,7 @@ import {
   BadRequestException,
   ForbiddenException,
   UnauthorizedException,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
@@ -889,7 +890,7 @@ export class OrdersService implements OnApplicationBootstrap {
         orderBy: { createdAt: 'desc' },
       });
 
-      if (!activeOrder) return null;
+      if (!activeOrder) throw new NotFoundException('No active order found');
 
       const deliveryAddress: any = activeOrder.deliveryAddress || {};
       const restaurantLat = activeOrder.restaurant
@@ -961,8 +962,9 @@ export class OrdersService implements OnApplicationBootstrap {
         totalAmount: Number(activeOrder.totalAmount),
       });
     } catch (err) {
+      if (err instanceof NotFoundException) throw err;
       this.logger.error('Error in getActiveCustomerOrder', err);
-      return null;
+      throw new InternalServerErrorException('Failed to fetch active order');
     }
   }
 
