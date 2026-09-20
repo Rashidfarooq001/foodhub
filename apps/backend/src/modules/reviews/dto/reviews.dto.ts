@@ -1,4 +1,4 @@
-import { IsInt, Min, Max, IsUUID } from 'class-validator';
+import { IsInt, Min, Max, IsUUID, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateRestaurantReviewDto {
@@ -11,6 +11,18 @@ export class CreateRestaurantReviewDto {
   @Min(1)
   @Max(5)
   rating!: number;
+
+  @IsOptional()
+  @IsUUID()
+  restaurantId?: string;
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }
 
 export class CreateFoodReviewDto {
@@ -39,4 +51,16 @@ export class CreateDriverReviewDto {
   @Min(1)
   @Max(5)
   rating!: number;
+
+  @IsOptional()
+  @IsUUID()
+  driverId?: string;
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }
