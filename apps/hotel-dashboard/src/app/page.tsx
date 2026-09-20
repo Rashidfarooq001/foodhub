@@ -68,14 +68,14 @@ export default function HotelDashboardPage() {
           fetch(`${API_BASE}/analytics/restaurant`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
-          fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`, {
+          fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP,DRIVER_ASSIGNED,ARRIVED_AT_RESTAURANT`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
           fetch(`${API_BASE}/pricing/config`),
           fetch(`${API_BASE}/analytics/restaurant`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
-          fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`, {
+          fetch(`${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP,DRIVER_ASSIGNED,ARRIVED_AT_RESTAURANT`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
         ]);

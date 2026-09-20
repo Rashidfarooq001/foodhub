@@ -20,16 +20,28 @@ export default function KitchenQueuePage() {
 
   const pending = queue.filter((q) => (q.status as string) === 'PENDING');
   const preparing = queue.filter(
-    (q) => (q.status as string) === 'PREPARING' || (q.status as string) === 'ACCEPTED',
+    (q) => {
+      const s = q.status as string;
+      const isPreparingStatus = s === 'PREPARING' || s === 'ACCEPTED' || s === 'DRIVER_ASSIGNED' || s === 'ARRIVED_AT_RESTAURANT';
+      const hasReadyTimeline = q.orderTimelines?.some((t: any) => t.status === 'READY_FOR_PICKUP');
+      return isPreparingStatus && !hasReadyTimeline;
+    }
   );
-  const ready = queue.filter((q) => (q.status as string) === 'READY_FOR_PICKUP');
+  const ready = queue.filter(
+    (q) => {
+      const s = q.status as string;
+      const isReadyStatus = s === 'READY_FOR_PICKUP';
+      const isAssignedButReady = (s === 'DRIVER_ASSIGNED' || s === 'ARRIVED_AT_RESTAURANT') && q.orderTimelines?.some((t: any) => t.status === 'READY_FOR_PICKUP');
+      return isReadyStatus || isAssignedButReady;
+    }
+  );
 
   const refreshOrders = async () => {
     if (!accessToken) return;
     setIsRefreshing(true);
     try {
       const res = await fetch(
-        `${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP`,
+        `${API_BASE}/orders?status=PENDING,ACCEPTED,PREPARING,READY_FOR_PICKUP,DRIVER_ASSIGNED,ARRIVED_AT_RESTAURANT`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         },

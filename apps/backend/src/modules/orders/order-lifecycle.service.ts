@@ -1134,10 +1134,18 @@ export class OrderLifecycleService {
           }, 0);
         }
 
+        let finalStatus = targetStatus;
+        if (
+          targetStatus === OrderStatus.READY_FOR_PICKUP &&
+          (currentStatus === OrderStatus.DRIVER_ASSIGNED || currentStatus === OrderStatus.ARRIVED_AT_RESTAURANT)
+        ) {
+          finalStatus = currentStatus;
+        }
+
         const updatedOrderRecord = await tx.order.update({
           where: { id: order.id },
           data: {
-            status: targetStatus,
+            status: finalStatus,
             version: { increment: 1 },
             ...(targetStatus === OrderStatus.DELIVERED
               ? { paymentStatus: 'COMPLETED' as any }
@@ -1234,8 +1242,8 @@ export class OrderLifecycleService {
         OrderStatus.OUT_FOR_DELIVERY,
         OrderStatus.CANCELLED,
       ],
-      DRIVER_ASSIGNED: [OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
-      ARRIVED_AT_RESTAURANT: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
+      DRIVER_ASSIGNED: [OrderStatus.READY_FOR_PICKUP, OrderStatus.ARRIVED_AT_RESTAURANT, OrderStatus.CANCELLED],
+      ARRIVED_AT_RESTAURANT: [OrderStatus.READY_FOR_PICKUP, OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
       PICKED_UP: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
       OUT_FOR_DELIVERY: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
       DELIVERED: [],
