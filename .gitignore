@@ -49,3 +49,6 @@ staging.env
 .env.staging
 *.tar.gz
 *.zip
+
+vps.env
+vps copy.env
