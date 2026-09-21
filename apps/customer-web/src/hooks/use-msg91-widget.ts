@@ -24,8 +24,8 @@ export function useMsg91Widget() {
         console.log('MSG91 Env check - NEXT_PUBLIC_MSG91_WIDGET_ID:', envWidgetId);
         console.log('MSG91 Env check - NEXT_PUBLIC_MSG91_WIDGET_TOKEN:', envTokenAuth);
 
-        const widgetId = envWidgetId || '3668626d5043313835303335';
-        const tokenAuth = envTokenAuth || '556022TLShucwZ86a6d8a7bP1';
+        const widgetId = envWidgetId || '';
+        const tokenAuth = envTokenAuth || '';
 
         console.log('MSG91 resolved widgetId:', widgetId);
         console.log('MSG91 resolved tokenAuth:', tokenAuth);
@@ -108,3 +108,4 @@ export function useMsg91Widget() {
 
   return { launchWidget, isWidgetLoading };
 }
+

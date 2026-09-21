@@ -169,7 +169,7 @@ export function getMapplsApiKey(): string {
 }
 
 export function getMapplsClientId(): string {
-  return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
+  return process.env.MAPPLS_CLIENT_ID || '';
 }
 
 export function getMapplsClientSecret(): string {
@@ -202,3 +202,4 @@ export const API_CONFIG = {
     return getMapplsClientSecret();
   },
 };
+

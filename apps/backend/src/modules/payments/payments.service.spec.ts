@@ -80,4 +80,26 @@ describe('PaymentsService', () => {
       expect(result.message).toContain('verified');
     });
   });
+  describe('handleWebhook', () => {
+    it('should throw when missing secret', async () => {
+      const oldSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      delete process.env.RAZORPAY_WEBHOOK_SECRET;
+      await expect(service.handleWebhook({}, 'sig', 'rawBody')).rejects.toThrow('Webhook secret is not configured');
+      process.env.RAZORPAY_WEBHOOK_SECRET = oldSecret;
+    });
+
+    it('should reject invalid webhook signature', async () => {
+      process.env.RAZORPAY_WEBHOOK_SECRET = 'test_secret';
+      await expect(service.handleWebhook({}, 'bad_sig', 'rawBody')).rejects.toThrow('Invalid webhook signature');
+    });
+
+    it('should accept valid webhook', async () => {
+      process.env.RAZORPAY_WEBHOOK_SECRET = 'test_secret';
+      const rawBody = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { order_id: 'test_order', id: 'pay_123', status: 'captured' } } } });
+      const validSig = crypto.createHmac('sha256', 'test_secret').update(rawBody).digest('hex');
+      mockPrisma.payment.findUnique.mockResolvedValueOnce({ id: 'payment-1', razorpayOrderId: 'test_order' });
+      const res = await service.handleWebhook({}, validSig, rawBody);
+      expect(res.received).toBe(true);
+    });
+  });
 });

@@ -244,7 +244,8 @@ export class PaymentsService {
    * Razorpay Webhook
    */
   async handleWebhook(body: Record<string, unknown>, signature: string, rawBody: string) {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? 'webhook_secret';
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) throw new BadRequestException('Webhook secret is not configured');
 
     const generatedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
@@ -650,5 +651,6 @@ export class PaymentsService {
     this.logger.log(`Refund processed: ${refund?.id}`);
   }
 }
+
 
 

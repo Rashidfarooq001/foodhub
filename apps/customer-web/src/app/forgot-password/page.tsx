@@ -46,17 +46,7 @@ export default function ForgotPasswordPage() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Load MSG91 script dynamically
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (document.getElementById('msg91-verify-script')) return;
-
-    const script = document.createElement('script');
-    script.id = 'msg91-verify-script';
-    script.src = 'https://verify.msg91.com/otp-provider.js';
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
+  
 
   const formatIdentifier = (raw: string): string => {
     const cleaned = raw.replace(/\D/g, '');
@@ -90,52 +80,6 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'Failed to request reset OTP.');
       }
 
-      const widgetId = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668626d5043313835303335';
-      const tokenAuth =
-        process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ||
-        process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ||
-        widgetId;
-      const identifier = formatIdentifier(phone);
-
-      const configuration = {
-        widgetId,
-        tokenAuth,
-        identifier,
-        exposeMethods: true,
-        captchaRenderId: '',
-        success: (msgData: any) => {
-          const token =
-            typeof msgData === 'string'
-              ? msgData
-              : msgData?.message || msgData?.jwtToken || msgData?.accessToken || msgData?.token;
-          if (token) {
-            handleVerifyResetWidgetToken(token);
-          } else {
-            setError('Verification succeeded on MSG91, but token was missing.');
-            setIsLoading(false);
-          }
-        },
-        failure: (err: any) => {
-          setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-          setIsLoading(false);
-        },
-      };
-
-      if (typeof window !== 'undefined' && typeof (window as any).initSendOTP === 'function') {
-        try {
-          (window as any).initSendOTP(configuration);
-          if (typeof (window as any).sendOtp === 'function') {
-            (window as any).sendOtp(
-              identifier,
-              () => {},
-              (err: any) => console.error('[MSG91 Reset] sendOtp error:', err),
-            );
-          }
-        } catch (widgetErr: any) {
-          console.warn('[MSG91 Reset] initSendOTP exception:', widgetErr);
-        }
-      }
-
       setForgotStep('VERIFY_OTP');
       setCooldown(30);
     } catch (err: any) {
@@ -145,35 +89,7 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleVerifyResetWidgetToken = async (accessToken: string) => {
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/verify-reset-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accessToken,
-          phone,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || 'Password reset OTP verification failed.');
-      }
-
-      setResetToken(data.resetToken);
-      setSuccessMsg('');
-      setForgotStep('NEW_PASSWORD');
-    } catch (err: any) {
-      setError(err.message || 'OTP verification failed.');
-      setForgotStep('VERIFY_OTP');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
 
   const handleVerifyResetOtpManual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,21 +101,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setIsLoading(true);
 
-    if (typeof window !== 'undefined' && typeof (window as any).verifyOtp === 'function') {
-      try {
-        (window as any).verifyOtp(
-          enteredOtp,
-          () => {},
-          (err: any) => {
-            setError(typeof err === 'string' ? err : err?.message || 'OTP verification failed');
-            setIsLoading(false);
-          },
-        );
-        return;
-      } catch (verifyErr: any) {
-        console.warn('[MSG91 Reset] verifyOtp exception:', verifyErr);
-      }
-    }
+    
 
     try {
       const res = await fetch(`${API_BASE}/auth/verify-reset-token`, {
@@ -515,3 +417,5 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+

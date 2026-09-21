@@ -16,7 +16,8 @@ export class AdminBootstrapService implements OnModuleInit {
   async ensureSingleAdminExists() {
     const adminPhone = process.env.ADMIN_PHONE || '+910000000000';
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@zaykafood.com';
-    const rawPassword = process.env.ADMIN_PASSWORD || 'SuperAdmin123!';
+    const rawPassword = process.env.ADMIN_PASSWORD;
+    if (!rawPassword) throw new Error('ADMIN_PASSWORD must be configured in environment');
 
     try {
       const existingAdmin = await this.prisma?.user?.findFirst({
@@ -88,3 +89,4 @@ export class AdminBootstrapService implements OnModuleInit {
     }
   }
 }
+
