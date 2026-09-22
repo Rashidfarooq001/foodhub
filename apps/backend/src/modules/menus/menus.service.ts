@@ -2,8 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+  BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { serializePrisma } from '../../common/utils/serializer.util';
 
@@ -32,8 +31,7 @@ export class MenusService {
     if (actor.userId) {
       const rest = await this.prisma.restaurant.findUnique({
         where: { id: restaurantId },
-        select: { ownerId: true },
-      });
+        select: { ownerId: true } });
       if (rest && rest.ownerId === actor.userId) {
         return; // Verified restaurant owner
       }
@@ -42,9 +40,7 @@ export class MenusService {
       const staffLink = await this.prisma.restaurantStaff.findFirst({
         where: {
           restaurantId,
-          userId: actor.userId,
-        },
-      });
+          userId: actor.userId } });
       if (staffLink) {
         return; // Verified restaurant staff
       }
@@ -71,9 +67,7 @@ export class MenusService {
         restaurantId,
         name: name.trim(),
         displayOrder,
-        isActive: true,
-      },
-    });
+        isActive: true } });
     return serializePrisma(res);
   }
 
@@ -85,14 +79,9 @@ export class MenusService {
           where: { deletedAt: null },
           include: {
             variants: {
-              orderBy: { displayOrder: 'asc' },
-            },
-            addonGroups: { include: { addons: true } },
-          },
-        },
-      },
-      orderBy: { displayOrder: 'asc' },
-    });
+              orderBy: { displayOrder: 'asc' } },
+            addonGroups: { include: { addons: true } } } } },
+      orderBy: { displayOrder: 'asc' } });
     return serializePrisma(res);
   }
 
@@ -104,11 +93,8 @@ export class MenusService {
         foodItems: {
           where: { deletedAt: null },
           select: { imageUrl: true },
-          take: 1,
-        },
-      },
-      orderBy: { displayOrder: 'asc' },
-    });
+          take: 1 } },
+      orderBy: { displayOrder: 'asc' } });
 
     const categoryMap = new Map<
       string,
@@ -125,8 +111,7 @@ export class MenusService {
           id: cat.id,
           name: normalizedName,
           image: firstImage || '',
-          itemCount: cat._count.foodItems,
-        });
+          itemCount: cat._count.foodItems });
       } else {
         existing.itemCount += cat._count.foodItems;
         if (!existing.image && firstImage) {
@@ -157,9 +142,7 @@ export class MenusService {
       data: {
         ...(name !== undefined && { name: name.trim() }),
         ...(displayOrder !== undefined && { displayOrder }),
-        ...(isActive !== undefined && { isActive }),
-      },
-    });
+        ...(isActive !== undefined && { isActive }) } });
     return serializePrisma(res);
   }
 
@@ -188,8 +171,7 @@ export class MenusService {
     const updates = categoryIds.map((id, index) =>
       this.prisma.category.update({
         where: { id },
-        data: { displayOrder: index },
-      }),
+        data: { displayOrder: index } }),
     );
     const res = await this.prisma.$transaction(updates);
     return serializePrisma(res);
@@ -208,9 +190,7 @@ export class MenusService {
       orderBy: { _sum: { quantity: 'desc' } },
       take: 50,
       where: {
-        foodItemId: { not: null },
-      },
-    });
+        foodItemId: { not: null } } });
 
     let foodItemIds = topItems.map(t => t.foodItemId as string);
 
@@ -220,8 +200,7 @@ export class MenusService {
         where: {
           isAvailable: true,
           deletedAt: null,
-          restaurant: { isOpen: true, status: 'APPROVED' },
-        },
+          restaurant: { isOpen: true, status: 'APPROVED' } },
         select: { id: true },
         take: 50,
         orderBy: { createdAt: 'desc' }
@@ -239,11 +218,10 @@ export class MenusService {
         id: { in: foodItemIds },
         isAvailable: true,
         deletedAt: null,
-        restaurant: { isOpen: true, status: 'APPROVED' },
-      },
+        restaurant: { isOpen: true, status: 'APPROVED' } },
       include: {
         restaurant: {
-          select: { id: true, name: true, rating: true, isOnline: true }
+          select: { id: true, name: true, avgRating: true }
         },
         category: { select: { id: true, name: true } }
       }
@@ -288,8 +266,7 @@ export class MenusService {
       isVeg = true,
       isAvailable = true,
       variants = [],
-      addonGroups = [],
-    } = dto;
+      addonGroups = [] } = dto;
 
     if (!name || !name.trim()) {
       throw new BadRequestException('Food item name is required.');
@@ -317,9 +294,7 @@ export class MenusService {
             restaurantId,
             name: 'Main Course',
             displayOrder: 0,
-            isActive: true,
-          },
-        });
+            isActive: true } });
       }
       targetCatId = firstCat.id;
     }
@@ -339,8 +314,7 @@ export class MenusService {
         price: vPrice,
         priceModifier: vPrice,
         isAvailable: v.isAvailable !== false,
-        displayOrder: v.displayOrder !== undefined ? v.displayOrder : idx,
-      };
+        displayOrder: v.displayOrder !== undefined ? v.displayOrder : idx };
     });
 
     const basePrice =
@@ -359,9 +333,7 @@ export class MenusService {
         isAvailable,
         ...(processedVariants.length > 0 && {
           variants: {
-            create: processedVariants,
-          },
-        }),
+            create: processedVariants } }),
         ...(addonGroups.length > 0 && {
           addonGroups: {
             create: addonGroups.map((g: any) => ({
@@ -371,21 +343,12 @@ export class MenusService {
               addons: {
                 create: (g.addons || []).map((a: any) => ({
                   name: a.name || a.addonName,
-                  price: Number(a.price || 0),
-                })),
-              },
-            })),
-          },
-        }),
-      },
+                  price: Number(a.price || 0) })) } })) } }) },
       include: {
         category: true,
         variants: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        addonGroups: { include: { addons: true } },
-      },
-    });
+          orderBy: { displayOrder: 'asc' } },
+        addonGroups: { include: { addons: true } } } });
 
     return serializePrisma(res);
   }
@@ -393,8 +356,7 @@ export class MenusService {
   async updateFoodItem(id: string, dto: any, actor?: any) {
     const existing = await this.prisma.foodItem.findUnique({
       where: { id },
-      include: { variants: true },
-    });
+      include: { variants: true } });
     if (!existing) throw new NotFoundException(`Food item ${id} not found`);
 
     if (actor) {
@@ -410,8 +372,7 @@ export class MenusService {
       isAvailable,
       categoryId,
       subCategoryId,
-      variants,
-    } = dto;
+      variants } = dto;
 
     // Handle variant replacements if explicitly provided
     if (variants !== undefined && Array.isArray(variants)) {
@@ -428,10 +389,8 @@ export class MenusService {
               price: vPrice,
               priceModifier: vPrice,
               isAvailable: v.isAvailable !== false,
-              displayOrder: v.displayOrder !== undefined ? v.displayOrder : idx,
-            };
-          }),
-        });
+              displayOrder: v.displayOrder !== undefined ? v.displayOrder : idx };
+          }) });
       }
     }
 
@@ -445,16 +404,12 @@ export class MenusService {
         ...(isVeg !== undefined && { isVeg }),
         ...(isAvailable !== undefined && { isAvailable }),
         ...(categoryId !== undefined && { categoryId }),
-        ...(subCategoryId !== undefined && { subCategoryId }),
-      },
+        ...(subCategoryId !== undefined && { subCategoryId }) },
       include: {
         category: true,
         variants: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        addonGroups: { include: { addons: true } },
-      },
-    });
+          orderBy: { displayOrder: 'asc' } },
+        addonGroups: { include: { addons: true } } } });
 
     return serializePrisma(res);
   }
@@ -469,8 +424,7 @@ export class MenusService {
 
     const res = await this.prisma.foodItem.update({
       where: { id },
-      data: { deletedAt: new Date() },
-    });
+      data: { deletedAt: new Date() } });
     return serializePrisma(res);
   }
 
@@ -479,9 +433,7 @@ export class MenusService {
       where: { id },
       include: {
         variants: true,
-        addonGroups: { include: { addons: true } },
-      },
-    });
+        addonGroups: { include: { addons: true } } } });
 
     if (!original) throw new NotFoundException(`Food item ${id} not found`);
 
@@ -507,10 +459,7 @@ export class MenusService {
               price: v.price,
               priceModifier: v.priceModifier,
               isAvailable: v.isAvailable,
-              displayOrder: v.displayOrder,
-            })),
-          },
-        }),
+              displayOrder: v.displayOrder })) } }),
         ...(original.addonGroups.length > 0 && {
           addonGroups: {
             create: original.addonGroups.map((g) => ({
@@ -520,21 +469,12 @@ export class MenusService {
               addons: {
                 create: g.addons.map((a) => ({
                   name: a.name,
-                  price: a.price,
-                })),
-              },
-            })),
-          },
-        }),
-      },
+                  price: a.price })) } })) } }) },
       include: {
         category: true,
         variants: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        addonGroups: { include: { addons: true } },
-      },
-    });
+          orderBy: { displayOrder: 'asc' } },
+        addonGroups: { include: { addons: true } } } });
 
     return serializePrisma(res);
   }
@@ -545,20 +485,16 @@ export class MenusService {
       include: {
         category: true,
         variants: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        addonGroups: { include: { addons: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+          orderBy: { displayOrder: 'asc' } },
+        addonGroups: { include: { addons: true } } },
+      orderBy: { createdAt: 'desc' } });
 
     return serializePrisma(res);
   }
 
   async toggleAvailability(foodItemId: string, isAvailable: boolean, actor?: any) {
     const item = await this.prisma.foodItem.findUnique({
-      where: { id: foodItemId },
-    });
+      where: { id: foodItemId } });
     if (!item) {
       throw new NotFoundException(`Food item ${foodItemId} not found`);
     }
@@ -571,9 +507,7 @@ export class MenusService {
       where: { id: foodItemId },
       data: { isAvailable },
       include: {
-        variants: true,
-      },
-    });
+        variants: true } });
 
     return serializePrisma(res);
   }
@@ -607,9 +541,7 @@ export class MenusService {
         price: vPrice,
         priceModifier: vPrice,
         isAvailable: dto.isAvailable !== false,
-        displayOrder: dto.displayOrder || 0,
-      },
-    });
+        displayOrder: dto.displayOrder || 0 } });
 
     return serializePrisma(variant);
   }
@@ -621,8 +553,7 @@ export class MenusService {
   ) {
     const variant = await this.prisma.foodVariant.findUnique({
       where: { id: variantId },
-      include: { foodItem: true },
-    });
+      include: { foodItem: true } });
     if (!variant) throw new NotFoundException(`Variant ${variantId} not found`);
 
     if (actor) {
@@ -635,12 +566,9 @@ export class MenusService {
         ...(dto.name !== undefined && { variantName: dto.name.trim() }),
         ...(dto.price !== undefined && {
           price: Number(dto.price),
-          priceModifier: Number(dto.price),
-        }),
+          priceModifier: Number(dto.price) }),
         ...(dto.isAvailable !== undefined && { isAvailable: dto.isAvailable }),
-        ...(dto.displayOrder !== undefined && { displayOrder: dto.displayOrder }),
-      },
-    });
+        ...(dto.displayOrder !== undefined && { displayOrder: dto.displayOrder }) } });
 
     return serializePrisma(updated);
   }
@@ -648,8 +576,7 @@ export class MenusService {
   async toggleVariantAvailability(variantId: string, isAvailable: boolean, actor?: any) {
     const variant = await this.prisma.foodVariant.findUnique({
       where: { id: variantId },
-      include: { foodItem: true },
-    });
+      include: { foodItem: true } });
     if (!variant) throw new NotFoundException(`Variant ${variantId} not found`);
 
     if (actor) {
@@ -658,8 +585,7 @@ export class MenusService {
 
     const res = await this.prisma.foodVariant.update({
       where: { id: variantId },
-      data: { isAvailable },
-    });
+      data: { isAvailable } });
 
     return serializePrisma(res);
   }
@@ -667,8 +593,7 @@ export class MenusService {
   async deleteVariant(variantId: string, actor?: any) {
     const variant = await this.prisma.foodVariant.findUnique({
       where: { id: variantId },
-      include: { foodItem: true },
-    });
+      include: { foodItem: true } });
     if (!variant) throw new NotFoundException(`Variant ${variantId} not found`);
 
     if (actor) {
@@ -676,8 +601,7 @@ export class MenusService {
     }
 
     const res = await this.prisma.foodVariant.delete({
-      where: { id: variantId },
-    });
+      where: { id: variantId } });
 
     return serializePrisma(res);
   }

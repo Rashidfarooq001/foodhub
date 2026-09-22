@@ -1,7 +1,12 @@
-﻿const fs = require('fs');
-const content = fs.readFileSync('apps/backend/src/modules/orders/orders.service.ts', 'utf8');
-const newContent = content.replace(
-  /UnauthorizedException,/g,
-  'UnauthorizedException,\n  InternalServerErrorException,'
-);
-fs.writeFileSync('apps/backend/src/modules/orders/orders.service.ts', newContent);
+const fs = require('fs');
+
+const path = 'apps/backend/src/modules/menus/menus.service.ts';
+let code = fs.readFileSync(path, 'utf8');
+
+code = code.replace(/isOnline: true/g, '');
+
+// Clean up trailing commas in select: { ... }
+code = code.replace(/,\s*\}/g, ' }');
+
+fs.writeFileSync(path, code, 'utf8');
+console.log('Removed isOnline');
