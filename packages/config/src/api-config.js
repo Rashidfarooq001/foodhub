@@ -125,7 +125,7 @@ export function getMapplsApiKey() {
         '');
 }
 export function getMapplsClientId() {
-    return process.env.NEXT_PUBLIC_MAPPLS_CLIENT_ID || process.env.MAPPLS_CLIENT_ID || '';
+    return process.env.MAPPLS_CLIENT_ID || '';
 }
 export function getMapplsClientSecret() {
     return process.env.MAPPLS_CLIENT_SECRET || '';

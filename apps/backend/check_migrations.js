@@ -1,7 +1,12 @@
 ﻿const { PrismaClient } = require('@prisma/client');
 const p = new PrismaClient();
+
 async function main() {
-  const result = await p.$queryRaw`SELECT migration_name, started_at, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY started_at DESC LIMIT 10`;
-  console.log(result);
+  try {
+    const res = await p.$queryRaw`SELECT migration_name, started_at, applied_steps_count FROM _prisma_migrations ORDER BY started_at DESC LIMIT 10`;
+    console.table(res);
+  } catch (e) {
+    console.error(e.message);
+  }
 }
-main().catch(console.error).finally(() => p.$disconnect());
+main().finally(() => p.$disconnect());
