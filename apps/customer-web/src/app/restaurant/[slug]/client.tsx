@@ -481,7 +481,24 @@ export default function RestaurantDetailPage() {
                         return (
                           <div 
                             key={food.id} 
-                            onClick={() => { if(isAvail) openCustomization(food); }}
+                            onClick={() => {
+                              if (!isAvail) return;
+                              const isCustomizable = (food.variants && food.variants.length > 0) || (food.addonGroups && food.addonGroups.length > 0);
+                              if (isCustomizable) {
+                                openCustomization(food);
+                              } else {
+                                addItem({
+                                  foodItemId: food.id,
+                                  name: food.name,
+                                  price: food.price,
+                                  imageUrl: food.imageUrl,
+                                  isVeg: food.isVeg,
+                                  restaurantId: restaurant.id,
+                                  restaurantName: restaurant.name,
+                                  addons: [],
+                                });
+                              }
+                            }}
                             className={`flex gap-3 sm:gap-4 items-start group transition-all ${!isAvail ? 'opacity-50 grayscale' : 'cursor-pointer hover:bg-amber-900/5 p-2 -mx-2 rounded-lg'}`}
                           >
                             {food.imageUrl && (
@@ -541,7 +558,7 @@ export default function RestaurantDetailPage() {
 
       {selectedFood && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setSelectedFood(null);
