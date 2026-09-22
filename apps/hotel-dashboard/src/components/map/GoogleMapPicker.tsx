@@ -109,7 +109,7 @@ export const GoogleMapPicker: React.FC<Props> = ({
         </div>
       )}
       <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapToken}`}
+        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?layer=vector&v=3.0`}
         strategy="afterInteractive"
         onLoad={initMap}
         onError={() => setError(true)}

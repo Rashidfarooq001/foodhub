@@ -31,7 +31,7 @@ export function useMapplsSdk() {
     if (!sdkLoadPromise) {
       sdkLoadPromise = new Promise((resolve, reject) => {
         // Check if a script already exists in the DOM
-        const existingScript = document.querySelector('script[src*="sdk.mappls.com/map/sdk/web"]');
+        const existingScript = document.querySelector('script[src*="apis.mappls.com/advancedmaps/api"]');
 
         if (existingScript) {
           if (window.mappls) {
@@ -45,7 +45,7 @@ export function useMapplsSdk() {
 
         // Create the script element
         const script = document.createElement('script');
-        script.src = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`;
+        script.src = `https://apis.mappls.com/advancedmaps/api/${mapKey}/map_sdk?layer=vector&v=3.0`;
         script.async = true;
         script.defer = true;
 

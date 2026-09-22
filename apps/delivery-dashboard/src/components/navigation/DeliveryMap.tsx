@@ -167,13 +167,13 @@ export const DeliveryMap: React.FC<Props> = ({
         </div>
       )}
       <Script
-        src={`https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapToken}`}
+        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk?layer=vector&v=3.0`}
         strategy="afterInteractive"
         onLoad={initMap}
         onError={() => setError(true)}
       />
       <Script
-        src={`https://sdk.mappls.com/map/sdk/plugins?v=3.0&access_token=${mapToken}&libraries=direction`}
+        src={`https://apis.mappls.com/advancedmaps/api/${mapToken}/map_sdk_plugins?v=3.0&libraries=direction`}
         strategy="afterInteractive"
         onLoad={() => setIsPluginLoaded(true)}
       />
