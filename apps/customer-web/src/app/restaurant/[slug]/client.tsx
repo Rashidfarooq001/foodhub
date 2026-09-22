@@ -397,7 +397,7 @@ export default function RestaurantDetailPage() {
 
       
       {/* MENU SHORTCUT FAB */}
-      <div className="fixed bottom-28 sm:bottom-32 right-4 sm:right-6 z-[100]">
+      <div className={`fixed right-4 sm:right-6 z-[100] transition-all duration-300 ${cartItemCount > 0 ? "bottom-[124px] sm:bottom-[76px]" : "bottom-[72px] sm:bottom-8"}`}>
         <button
           onClick={() => setIsMenuModalOpen(true)}
           className="flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-xs font-black text-white shadow-2xl shadow-gray-900/40 hover:bg-black transition active:scale-95 border border-gray-700"
