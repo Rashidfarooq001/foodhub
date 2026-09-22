@@ -64,7 +64,7 @@ export default function LoginPage() {
           ? new URLSearchParams(window.location.search).get('redirect') || '/'
           : '/';
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message || 'Authentication error.');
     } finally {
