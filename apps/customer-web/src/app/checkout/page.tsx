@@ -26,7 +26,7 @@ import { useCartStore } from '../../stores/use-cart-store';
 import { useAddressStore, CustomerAddressItem } from '../../stores/use-address-store';
 import { useAuthStore } from '../../stores/use-auth-store';
 import { CustomerAuthGuard } from '../../components/common/CustomerAuthGuard';
-import { getApiBaseUrl } from '@foodhub/config';
+import { getApiBaseUrl, getImageUrl } from '@foodhub/config';
 import {
   fetchPricingConfig,
   forwardGeocodeAddress,
@@ -872,7 +872,7 @@ export default function CheckoutPage() {
                    <div key={item.id} className="flex-shrink-0 w-32 border border-gray-100 rounded-xl p-2 flex flex-col justify-between">
                       <div>
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.name} className="w-full h-20 object-cover rounded-lg mb-2" />
+                          <img src={getImageUrl(item.imageUrl)} alt={item.name} className="w-full h-20 object-cover rounded-lg mb-2" />
                         ) : (
                           <div className="w-full h-20 bg-orange-50 rounded-lg mb-2 flex items-center justify-center text-orange-300">
                             <Store className="w-6 h-6" />

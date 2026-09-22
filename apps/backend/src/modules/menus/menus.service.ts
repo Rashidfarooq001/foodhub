@@ -220,7 +220,7 @@ export class MenusService {
         where: {
           isAvailable: true,
           deletedAt: null,
-          restaurant: { isOpen: true, isActive: true },
+          restaurant: { isOpen: true, status: 'APPROVED' },
         },
         select: { id: true },
         take: 50,
@@ -239,7 +239,7 @@ export class MenusService {
         id: { in: foodItemIds },
         isAvailable: true,
         deletedAt: null,
-        restaurant: { isOpen: true, isActive: true },
+        restaurant: { isOpen: true, status: 'APPROVED' },
       },
       include: {
         restaurant: {

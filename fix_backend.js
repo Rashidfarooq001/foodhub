@@ -1,7 +1,9 @@
-﻿const fs = require('fs');
-const content = fs.readFileSync('apps/backend/src/modules/orders/orders.service.ts', 'utf8');
-const newContent = content.replace(
-  'if (!activeOrder) return null;',
-  'if (!activeOrder) throw new NotFoundException(\'No active order found\');'
-);
-fs.writeFileSync('apps/backend/src/modules/orders/orders.service.ts', newContent);
+const fs = require('fs');
+
+const path = 'apps/backend/src/modules/menus/menus.service.ts';
+let code = fs.readFileSync(path, 'utf8');
+
+code = code.replace(/restaurant: \{ isOpen: true, isActive: true \}/g, "restaurant: { isOpen: true, status: 'APPROVED' }");
+
+fs.writeFileSync(path, code, 'utf8');
+console.log('Fixed menus.service.ts');
