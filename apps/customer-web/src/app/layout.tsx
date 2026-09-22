@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://zaykafood.online'),
   title: {
-    default: 'ZaykaFood â€” Fast Food Delivery in Kashmir | ORDER â€¢ DELIVER â€¢ ENJOY',
+    default: 'ZaykaFood – Fast Food Delivery in Kashmir | ORDER • DELIVER • ENJOY',
     template: '%s | Zayka Food',
   },
   description:
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: 'https://zaykafood.online',
   },
   openGraph: {
-    title: 'Zayka Food â€“ Online Food Delivery in Kashmir',
+    title: 'ZaykaFood – Fast Food Delivery in Kashmir',
     description:
       'Order delicious food online with Zayka Food. Discover local restaurants, explore menus, order your favorite meals and get food delivered to your doorstep across Kashmir.',
     url: 'https://zaykafood.online',
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Zayka Food â€“ Online Food Delivery in Kashmir',
+    title: 'ZaykaFood – Fast Food Delivery in Kashmir',
     description:
       'Order delicious food online with Zayka Food. Discover local restaurants, explore menus, order your favorite meals and get food delivered to your doorstep across Kashmir.',
     images: ['https://zaykafood.online/icon.png'],
