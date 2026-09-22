@@ -698,48 +698,36 @@ export default function CustomerHomePage({
           </aside>
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
-            {/* ─── ROW 6: RECOMMENDED FOR YOU (DYNAMIC) ────────── */}
+            
+            {/* ROW 6: RECOMMENDED FOR YOU */}
             <section className="space-y-3 pt-2 mt-8 md:mt-10">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-600">
                   RECOMMENDED FOR YOU
                 </h2>
-                {!isLoading && (
+                {!isRecLoading && (
                   <span className="text-[11px] font-bold text-gray-400">
-                    {recommendedList.length} kitchens
+                    {recommendations.length} items
                   </span>
                 )}
               </div>
 
-              {isLoading ? (
-                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
+              {isRecLoading ? (
+                <div className="flex overflow-x-auto gap-3 sm:gap-4 snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="snap-start aspect-[4/3] rounded-2xl bg-gray-100 animate-pulse"
+                      className="snap-start w-[180px] sm:w-[220px] aspect-[4/5] rounded-2xl bg-gray-100 animate-pulse shrink-0"
                     />
                   ))}
                 </div>
-              ) : isError ? (
-                <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-center space-y-2">
-                  <p className="text-xs sm:text-sm font-bold text-rose-800">
-                    Unable to load kitchens at this time.
-                  </p>
-                  <button
-                    onClick={() => fetchRestaurants(userCoords)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Retry
-                  </button>
-                </div>
-              ) : recommendedList.length > 0 ? (
-                <div className="grid grid-rows-2 md:grid-rows-none grid-flow-col md:grid-flow-row md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 md:overflow-x-visible overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] auto-cols-[calc(42vw)] sm:auto-cols-[calc(30vw)] md:auto-cols-auto">
-                  {recommendedList.map((restaurant) => (
-                    <div className="snap-start">
-                      <RecommendedCard
-                        key={restaurant.id}
-                        restaurant={restaurant}
-                        isInitiallyFavorite={favorites.includes(restaurant.id)}
+              ) : recommendations.length > 0 ? (
+                <div className="flex overflow-x-auto gap-3 sm:gap-4 snap-x snap-mandatory pb-4 -mx-4 px-4 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {recommendations.map((food) => (
+                    <div key={food.id} className="snap-start w-[160px] sm:w-[200px] shrink-0">
+                      <RecommendedFoodCard
+                        food={food}
+                        onCustomize={(f) => router.push(`/restaurant/${f.restaurantId}`)}
                       />
                     </div>
                   ))}
@@ -747,21 +735,12 @@ export default function CustomerHomePage({
               ) : (
                 <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 text-center space-y-2">
                   <p className="text-xs sm:text-sm font-bold text-gray-700">
-                    No restaurants match your selected filters.
+                    No recommendations right now.
                   </p>
-                  <p className="text-[11px] text-gray-400">
-                    Try broadening your criteria or reset all filters.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleClearAllFilters}
-                    className="inline-block mt-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm"
-                  >
-                    Clear Filters
-                  </button>
                 </div>
               )}
             </section>
+
 
             {/* ─── ROW 7: POPULAR NEAR YOU (DYNAMIC) ───────────── */}
             <section className="space-y-3 pt-3 mt-8 md:mt-10">
