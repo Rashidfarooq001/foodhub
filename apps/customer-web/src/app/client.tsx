@@ -66,6 +66,29 @@ export default function CustomerHomePage({
 
   // Real Data State with Instant Cache
   const [restaurants, setRestaurants] = useState<RestaurantData[]>(initialRestaurants);
+
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isRecLoading, setIsRecLoading] = useState(true);
+  
+  const fetchRecommendations = useCallback(async () => {
+    try {
+      setIsRecLoading(true);
+      const res = await fetch(`${API_BASE}/menus/recommendations`);
+      if (res.ok) {
+        const data = await res.json();
+        setRecommendations(data.data || data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load recommendations', err);
+    } finally {
+      setIsRecLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(restaurants.length === 0);
