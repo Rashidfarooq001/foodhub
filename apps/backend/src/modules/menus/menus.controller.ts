@@ -98,6 +98,14 @@ export class MenusController {
   // FOOD ITEM ENDPOINTS
   // ==================================================
 
+  @Public()
+  @Get('recommendations')
+  @ApiOperation({ summary: 'Get dynamic food recommendations' })
+  async getRecommendations() {
+    return this.menusService.getRecommendations(12);
+  }
+
+
   @Post('items')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

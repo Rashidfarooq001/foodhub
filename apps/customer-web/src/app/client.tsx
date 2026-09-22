@@ -17,6 +17,8 @@ import { CategoryCarousel } from '../components/home/CategoryCarousel';
 import { HeroBanner } from '../components/home/HeroBanner';
 import { DesktopSidebar } from '../components/home/DesktopSidebar';
 import { RecommendedCard } from '../components/home/RecommendedCard';
+import { RecommendedFoodCard } from '../components/home/RecommendedFoodCard';
+
 import dynamic from 'next/dynamic';
 const LocationSelectorModal = dynamic(() => import('../components/home/LocationSelectorModal').then(mod => mod.LocationSelectorModal), { ssr: false });
 import { FilterModal, FilterState, initialFilterState } from '../components/home/FilterModal';

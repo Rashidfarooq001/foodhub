@@ -1,0 +1,1 @@
+const { Client } = require('pg'); const client = new Client({ connectionString: process.env.DATABASE_URL }); async function rotate() { await client.connect(); const newPass = 'zayka-new-prod-pw-2026-safe'; await client.query(ALTER USER rashid WITH PASSWORD ' + newPass + '); console.log('Rotated successfully to ' + newPass); await client.end(); } rotate().catch(console.error);
