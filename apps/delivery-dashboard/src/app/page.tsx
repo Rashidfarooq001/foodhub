@@ -36,6 +36,7 @@ export default function DeliveryDashboardPage() {
       setIsLoading(false);
       return;
     }
+    setFetchError(null);
 
       try {
         const headers = {
@@ -73,13 +74,13 @@ export default function DeliveryDashboardPage() {
                   const jobsPayload = parsed?.data || parsed || [];
                   setActiveDeliveries(Array.isArray(jobsPayload) ? jobsPayload : []);
                 } catch (e: any) {
-                  setLocationError(`Parse Error: ${e.message}`);
+                  setFetchError(`Parse Error on active jobs: ${e.message}`);
                 }
               } else {
-                setLocationError(`API Error: ${r.status} on active-jobs`);
+                setFetchError(`API Error: ${r.status} on active-jobs`);
               }
             }).catch((e: any) => {
-              setLocationError(`Network Error: ${e.message}`);
+              setFetchError(`Network Error loading active jobs: ${e.message}`);
             });
 
           const fetchAvailableJobs = fetch(`${API_BASE}/delivery/jobs/available?_t=${Date.now()}`, { headers, cache: 'no-store' })
@@ -92,10 +93,14 @@ export default function DeliveryDashboardPage() {
                   const jobsPayload = parsed?.data || parsed || [];
                   setAvailableJobs(Array.isArray(jobsPayload) ? jobsPayload : []);
                 } catch (e: any) {
-                  console.error("Parse Error on available jobs:", e);
+                  setFetchError(`Parse Error on available jobs: ${e.message}`);
                 }
+              } else {
+                setFetchError(`API Error: ${r.status} on available-jobs`);
               }
-            }).catch(console.error);
+            }).catch((e: any) => {
+              setFetchError(`Network Error loading available jobs: ${e.message}`);
+            });
 
           const fetchStatus = fetch(`${API_BASE}/delivery/me/status?_t=${Date.now()}`, { headers, cache: 'no-store' })
             .then(async r => {
@@ -144,6 +149,7 @@ await Promise.all([fetchStats, fetchActiveJobs, fetchAvailableJobs, fetchStatus]
 
   // Live GPS tracking when ON DUTY
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOnDuty || !accessToken || typeof window === 'undefined') return;

@@ -123,7 +123,7 @@ export class OrdersRepository {
     return orders;
   }
 
-  async findAll(status?: any, page = 1, limit = 20) {
+  async findAll(status?: any, search?: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     let statusFilter: any = undefined;
     if (typeof status === 'string' && status.includes(',')) {
@@ -132,8 +132,22 @@ export class OrdersRepository {
       statusFilter = status;
     }
 
+    const whereClause: any = { deletedAt: null };
+    if (statusFilter) {
+      whereClause.status = statusFilter;
+    }
+    
+    if (search) {
+      whereClause.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { restaurant: { name: { contains: search, mode: 'insensitive' } } },
+        { customer: { profile: { firstName: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+
     return this.prisma.order.findMany({
-      where: { ...(statusFilter ? { status: statusFilter } : {}), deletedAt: null },
+      where: whereClause,
       include: {
         orderItems: { include: { foodItem: true } },
         restaurant: { select: { id: true, name: true, addressLine: true, phone: true } },

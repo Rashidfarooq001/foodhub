@@ -694,8 +694,8 @@ export class OrdersService implements OnApplicationBootstrap {
     return serializePrisma(res);
   }
 
-  async getAllOrders(status?: any, page = 1, limit = 20) {
-    const res = await this.repo.findAll(status, page, limit);
+  async getAllOrders(status?: any, search?: string, page = 1, limit = 20) {
+    const res = await this.repo.findAll(status, search, page, limit);
     return serializePrisma(res);
   }
 

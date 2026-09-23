@@ -15,6 +15,7 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -52,7 +53,7 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders(refreshTrigger > 0); // silent if it's from socket
-  }, [statusFilter, refreshTrigger]);
+  }, [statusFilter, refreshTrigger, search, page]);
 
   useEffect(() => {
     try {
@@ -106,30 +107,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const filtered = orders.filter((o) => {
-    let matchesStatus = false;
-
-    if (statusFilter === 'ALL') {
-      matchesStatus = true;
-    } else {
-      const filterValue = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS];
-      if (Array.isArray(filterValue)) {
-        matchesStatus = (filterValue as readonly string[]).includes(o.status);
-      } else {
-        matchesStatus = filterValue === o.status;
-      }
-    }
-
-    const ordNum = o.orderNumber || o.id || '';
-    const cust = o.customer?.profile?.firstName || o.customerName || '';
-    const rest = o.restaurant?.name || '';
-    const matchesSearch =
-      !search ||
-      ordNum.toLowerCase().includes(search.toLowerCase()) ||
-      cust.toLowerCase().includes(search.toLowerCase()) ||
-      rest.toLowerCase().includes(search.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const filtered = orders;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden pb-16">
@@ -305,6 +283,26 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between pt-4 pb-2 border-t border-gray-100">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-xs font-bold text-gray-400">Page {page}</span>
+              <button 
+                onClick={() => setPage(p => p + 1)}
+                disabled={filtered.length < 20}
+                className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            
           </>
         )}
       </div>

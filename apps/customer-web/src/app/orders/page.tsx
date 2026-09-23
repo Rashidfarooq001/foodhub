@@ -54,9 +54,14 @@ export default function OrderHistoryPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED'>('ALL');
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchOrders = async (silent = false) => {
     try {
-      if (!silent) setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
       const { accessToken } = useAuthStore.getState();
       const headers: Record<string, string> = accessToken
         ? { Authorization: `Bearer ${accessToken}` }
@@ -77,9 +82,16 @@ export default function OrderHistoryPage() {
       if (historyRes.ok) {
         const data = await historyRes.json();
         setOrders(Array.isArray(data) ? data : []);
+      } else {
+        if (historyRes.status === 401 || historyRes.status === 403) {
+          setError('Access denied. Please login again.');
+        } else {
+          setError(`Server error (${historyRes.status}) loading orders.`);
+        }
       }
     } catch (err) {
       console.error('[Orders] Failed to fetch orders', err);
+      setError('Network error: Unable to load orders. Please check your connection.');
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -255,7 +267,13 @@ export default function OrderHistoryPage() {
 
         {/* ORDERS LIST */}
         <div className="space-y-4">
-          {isLoading ? (
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 py-8 px-4 text-center space-y-3">
+              <p className="text-sm font-bold text-red-600">Unable to load data</p>
+              <p className="text-xs text-red-500">{error}</p>
+              <button onClick={() => fetchOrders()} className="px-4 py-2 mt-2 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-50">Retry</button>
+            </div>
+          ) : isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-32 animate-pulse rounded-2xl bg-gray-100" />

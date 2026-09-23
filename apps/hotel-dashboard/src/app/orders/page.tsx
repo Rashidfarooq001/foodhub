@@ -92,6 +92,7 @@ export default function HotelOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Modal States
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
@@ -136,8 +137,12 @@ export default function HotelOrdersPage() {
 
   const hasConnectedOnce = useRef(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
+      if (!silent) {
+        setIsLoading(true);
+        setFetchError(null);
+      }
       const queryParams = new URLSearchParams();
       if (restaurantId) queryParams.append('restaurantId', restaurantId);
       const url = `${API_BASE}/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
@@ -218,12 +223,18 @@ export default function HotelOrdersPage() {
         });
 
         setOrders(formatted);
+      } else {
+        if (res.status === 401 || res.status === 403) {
+          setFetchError('Access denied. Please login again.');
+        } else {
+          setFetchError(`Failed to load orders from server. (HTTP ${res.status})`);
+        }
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
-        setErrorMessage('Failed to fetch orders from server.');
+      setFetchError('Network error: Unable to load orders. Please check your connection.');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -622,7 +633,7 @@ export default function HotelOrdersPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-black text-gray-900">Live Restaurant Orders</h1>
             <button
-              onClick={fetchOrders}
+              onClick={() => fetchOrders()}
               className="rounded-full p-1.5 hover:bg-gray-100 text-gray-500 transition"
               title="Refresh Orders"
             >
@@ -686,7 +697,15 @@ export default function HotelOrdersPage() {
         })}
       </div>
 
-      {/* Mobile Card Grid (< 768px) */}
+      {fetchError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 py-8 px-4 text-center space-y-3 mb-6">
+          <p className="text-sm font-bold text-red-600">Unable to load orders</p>
+          <p className="text-xs text-red-500">{fetchError}</p>
+          <button onClick={() => fetchOrders()} className="px-4 py-2 mt-2 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-50">Retry</button>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card Grid (< 768px) */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {isLoading ? (
           <div className="p-8 text-center text-xs text-gray-400 font-bold">Loading orders...</div>
@@ -929,6 +948,8 @@ export default function HotelOrdersPage() {
           </table>
         </div>
       </div>
+      </>
+      )}
 
       {/* RIDER SELECTION MODAL */}
       {assigningOrder && (

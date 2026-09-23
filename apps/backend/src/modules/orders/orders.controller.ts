@@ -49,6 +49,7 @@ export class OrdersController {
     @Request() req: any,
     @Query('restaurantId') restaurantId?: string,
     @Query('status') status?: string,
+    @Query('search') search?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
@@ -62,7 +63,7 @@ export class OrdersController {
         // Admin explicitly filtering by a specific restaurant
         return this.ordersService.getRestaurantOrders(restaurantId, status as any, +page, +limit);
       }
-      return this.ordersService.getAllOrders(status as any, +page, +limit);
+      return this.ordersService.getAllOrders(status as any, search, +page, +limit);
     }
 
     // NON-ADMIN ROUTE: scope to the restaurant the user owns/manages
@@ -105,14 +106,16 @@ export class OrdersController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get customer order history with status filter' })
-  async getOrderHistory(@Request() req: any, @Query('status') status?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
+  async getOrderHistory(@Request() req: any, @Query('status') status?: string,
+    @Query('search') search?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
     const userId = req.user.id || req.user.sub;
     return this.ordersService.getCustomerOrderHistory(userId, status, +page, +limit);
   }
 
   @Get('my')
   @ApiOperation({ summary: 'Get customer order history' })
-  async getMyOrdersAlias(@Request() req: any, @Query('status') status?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
+  async getMyOrdersAlias(@Request() req: any, @Query('status') status?: string,
+    @Query('search') search?: string, @Query('page') page = 1, @Query('limit') limit = 20) {
     const userId = req.user.id || req.user.sub;
     return this.ordersService.getCustomerOrderHistory(userId, status, +page, +limit);
   }
@@ -124,6 +127,7 @@ export class OrdersController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
     const userId = req.user.id || req.user.sub;
     if (status) {
