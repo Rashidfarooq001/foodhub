@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import FcmInitializer from '../components/FcmInitializer';
 import { HotelAuthWrapper } from '../components/layout/HotelAuthWrapper';
 import { ErrorBoundary } from '@foodhub/ui';
 
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 bg-gray-50">
         <ErrorBoundary>
-          <HotelAuthWrapper>{children}</HotelAuthWrapper>
+          <HotelAuthWrapper>{children}
+        <FcmInitializer /></HotelAuthWrapper>
         </ErrorBoundary>
       </body>
     </html>

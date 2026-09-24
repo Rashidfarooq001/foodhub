@@ -15,6 +15,7 @@ import { OrdersRepository } from './orders.repository';
 import { OrdersValidationService } from './orders.validation.service';
 import { OrderLifecycleService } from './order-lifecycle.service';
 import { OrdersGateway } from './orders.gateway';
+import { FcmService } from '../notifications/fcm.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { serializePrisma } from '../../common/utils/serializer.util';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -44,6 +45,7 @@ export class OrdersService implements OnApplicationBootstrap {
     private readonly validation: OrdersValidationService,
     private readonly lifecycle: OrderLifecycleService,
     private readonly gateway: OrdersGateway,
+    private readonly fcm: FcmService,
     private readonly quoteService: OrderQuoteService,
     private readonly geolocationService: GeolocationService,
     private readonly webPushService: WebPushService,
@@ -524,7 +526,20 @@ export class OrdersService implements OnApplicationBootstrap {
         body: `Order #${order.orderNumber} for ₹${order.totalAmount} is waiting for acceptance.`,
         url: '/orders',
       });
-      this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
+      
+    this.fcm.sendToUser((await this.prisma.restaurant.findUnique({ where: { id: dto.restaurantId } })).ownerId, {
+      notification: {
+        title: 'New Order Received',
+        body: `Order #${order.orderNumber}`
+      },
+      data: {
+        type: 'NEW_ORDER',
+        orderId: order.id,
+        url: `/orders/${order.id}`
+      }
+    });
+
+    this.gateway.emitToRestaurant(dto.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
         orderId: order.id,
         orderNumber: order.orderNumber,
         totalAmount: order.totalAmount,

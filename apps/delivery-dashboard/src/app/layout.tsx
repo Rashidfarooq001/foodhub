@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import FcmInitializer from '../components/FcmInitializer';
 import { ErrorBoundary } from '@foodhub/ui';
 import { DeliveryAuthWrapper } from '../components/layout/DeliveryAuthWrapper';
 
@@ -31,7 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${inter.className} flex flex-col min-h-screen w-full font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950`}
       >
         <ErrorBoundary>
-          <DeliveryAuthWrapper>{children}</DeliveryAuthWrapper>
+          <DeliveryAuthWrapper>{children}
+        <FcmInitializer /></DeliveryAuthWrapper>
         </ErrorBoundary>
       </body>
     </html>

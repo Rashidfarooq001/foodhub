@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { WebPushService } from '../notifications/web-push.service';
 import { OrdersGateway } from './orders.gateway';
+import { FcmService } from '../notifications/fcm.service';
 import { ORDER_EVENTS } from './orders.events';
 import { OrderStatus, DeliveryJobStatus, DriverStatus } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -94,6 +95,7 @@ export class OrderLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: OrdersGateway,
+    private readonly fcm: FcmService,
     private readonly webPushService: WebPushService,
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
@@ -276,6 +278,19 @@ export class OrderLifecycleService {
         },
       },
       include: { restaurant: true, customer: true, deliveryJob: true, orderItems: true },
+    });
+
+    
+    this.fcm.sendToUser(driver.user.id, {
+      notification: {
+        title: 'New Delivery Assignment',
+        body: `You have been assigned order #${order.orderNumber}`
+      },
+      data: {
+        type: 'RIDER_ASSIGNMENT',
+        orderId: order.id,
+        url: `/current-delivery/${order.id}`
+      }
     });
 
     this.gateway.emitToUser(driver.user.id, 'rider_offer_received', {

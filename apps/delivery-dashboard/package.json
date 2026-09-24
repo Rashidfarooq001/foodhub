@@ -19,6 +19,7 @@
     "@foodhub/utils": "workspace:*",
     "@tanstack/react-query": "^5.62.7",
     "clsx": "^2.1.1",
+    "firebase": "^12.19.0",
     "framer-motion": "^11.15.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
@@ -45,6 +46,3 @@
     "typescript": "^5.7.2"
   }
 }
-
-
-

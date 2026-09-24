@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Delete, Body, Req, UseGuards } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Delete, Body, Req, UseGuards, BadRequestException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  @Post('fcm-token')
+  @ApiOperation({ summary: 'Register FCM device token' })
+  async registerFcmToken(@Body('token') token: string, @Req() req: any) {
+    if (!token) throw new BadRequestException('FCM token is required');
+    const userId = req.user?.id || req.user?.sub;
+    await this.fcm.registerToken(userId, token);
+    return { success: true };
+  }
+
+  constructor(private readonly notificationsService: NotificationsService, private readonly fcm: import("./fcm.service").FcmService) {}
 
   @Post('subscribe')
   async subscribe(@Req() req, @Body() subscription: any) {
