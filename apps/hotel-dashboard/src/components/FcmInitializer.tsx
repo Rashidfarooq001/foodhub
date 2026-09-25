@@ -14,6 +14,21 @@ const firebaseConfig = {
   appId: '1:38401266283:web:f12a867e3ac4cb21fd572e'
 };
 
+// Global audio context to bypass autoplay restrictions
+let globalAudioCtx: any = null;
+if (typeof window !== 'undefined') {
+  const initAudio = () => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContext && !globalAudioCtx) {
+      globalAudioCtx = new AudioContext();
+    } else if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+      globalAudioCtx.resume();
+    }
+  };
+  window.addEventListener('click', initAudio);
+  window.addEventListener('touchstart', initAudio);
+}
+
 export default function FcmInitializer() {
   const token = useHotelAuthStore((state: any) => state.accessToken);
 
@@ -50,40 +65,42 @@ export default function FcmInitializer() {
             };
             new Notification(title, options);
 
-            // --- Continuous Ringing for 15 seconds (or until click) ---
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (AudioContext) {
+            // --- Continuous Ringing ---
+            if (globalAudioCtx) {
               try {
-                const ctx = new AudioContext();
+                if (globalAudioCtx.state === 'suspended') {
+                  globalAudioCtx.resume();
+                }
+                
                 let isPlaying = true;
                 
                 const playChime = () => {
                   if (!isPlaying) return;
-                  const now = ctx.currentTime;
+                  const now = globalAudioCtx.currentTime;
                   
                   // High note (Ding)
-                  const osc1 = ctx.createOscillator();
-                  const gain1 = ctx.createGain();
+                  const osc1 = globalAudioCtx.createOscillator();
+                  const gain1 = globalAudioCtx.createGain();
                   osc1.type = 'sine';
                   osc1.frequency.setValueAtTime(880, now); // A5
                   gain1.gain.setValueAtTime(0, now);
                   gain1.gain.linearRampToValueAtTime(0.5, now + 0.05);
                   gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                   osc1.connect(gain1);
-                  gain1.connect(ctx.destination);
+                  gain1.connect(globalAudioCtx.destination);
                   osc1.start(now);
                   osc1.stop(now + 0.5);
                   
                   // Low note (Dong)
-                  const osc2 = ctx.createOscillator();
-                  const gain2 = ctx.createGain();
+                  const osc2 = globalAudioCtx.createOscillator();
+                  const gain2 = globalAudioCtx.createGain();
                   osc2.type = 'sine';
                   osc2.frequency.setValueAtTime(659.25, now + 0.3); // E5
                   gain2.gain.setValueAtTime(0, now + 0.3);
                   gain2.gain.linearRampToValueAtTime(0.5, now + 0.35);
                   gain2.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
                   osc2.connect(gain2);
-                  gain2.connect(ctx.destination);
+                  gain2.connect(globalAudioCtx.destination);
                   osc2.start(now + 0.3);
                   osc2.stop(now + 1.0);
                 };
@@ -97,12 +114,13 @@ export default function FcmInitializer() {
                   clearInterval(intervalId);
                   document.removeEventListener('click', stopRinging);
                   document.removeEventListener('keydown', stopRinging);
-                  if (ctx.state !== 'closed') ctx.close().catch(() => {});
+                  document.removeEventListener('touchstart', stopRinging);
                 };
 
                 // Stop ringing on user interaction
                 document.addEventListener('click', stopRinging);
                 document.addEventListener('keydown', stopRinging);
+                document.addEventListener('touchstart', stopRinging);
 
                 // Stop automatically after 40 seconds
                 setTimeout(stopRinging, 40000);
