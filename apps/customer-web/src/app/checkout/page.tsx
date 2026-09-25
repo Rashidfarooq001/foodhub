@@ -678,7 +678,7 @@ export default function CheckoutPage() {
 
         handler: async function (response: any) {
           try {
-            await fetch(`${API_BASE}/payments/verify`, {
+            const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -690,12 +690,21 @@ export default function CheckoutPage() {
                 razorpaySignature: response.razorpay_signature,
               }),
             });
-          } catch {
-            /* ignore */
-          } finally {
+
+            if (!verifyRes.ok) {
+              const errTxt = await verifyRes.text().catch(() => '');
+              throw new Error(`Verification API returned ${verifyRes.status}: ${errTxt}`);
+            }
+
             clearCart();
             setIsPlacing(false);
             router.push(`/orders/${orderId}/track`);
+          } catch (err: any) {
+            console.error('Payment verification failed:', err);
+            setPaymentError(
+              'Payment captured by Razorpay, but verification failed: ' + (err.message || 'Unknown error')
+            );
+            setIsPlacing(false);
           }
         },
         modal: {
