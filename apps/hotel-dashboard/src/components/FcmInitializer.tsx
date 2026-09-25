@@ -15,7 +15,7 @@ const firebaseConfig = {
 };
 
 export default function FcmInitializer() {
-  const token = useHotelAuthStore((state: any) => state.token);
+  const token = useHotelAuthStore((state: any) => state.accessToken);
 
   useEffect(() => {
     if (!token) return;
