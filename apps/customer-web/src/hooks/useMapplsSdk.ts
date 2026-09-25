@@ -45,7 +45,7 @@ export function useMapplsSdk() {
 
         // Create the script element
         const script = document.createElement('script');
-        script.src = `https://apis.mappls.com/advancedmaps/api/${mapKey}/map_sdk?layer=vector&v=3.0`;
+        script.src = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${mapKey}`;
         script.async = true;
         script.defer = true;
 
