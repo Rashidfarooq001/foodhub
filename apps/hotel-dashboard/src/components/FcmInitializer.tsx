@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
 import { hotelFetch } from '../utils/hotel-fetch';
@@ -24,12 +24,13 @@ export default function FcmInitializer() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          const app = initializeApp(firebaseConfig);
+          // Avoid "Firebase: Firebase App named '[DEFAULT]' already exists" error
+          const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
           const messaging = getMessaging(app);
           const fcmToken = await getToken(messaging, {
             vapidKey: 'BJwPPAyGyiSD_npT6ZVPyca9XoNX5_G-zqqrNJr0CyaHnFEzx4q__Jt_jR_hSC6tiAI-20pDpx8m6irapQ74kU0'
           });
-          
+
           if (fcmToken) {
             await hotelFetch('/notifications/fcm-token', {
               method: 'POST',
