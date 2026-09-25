@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
@@ -18,7 +18,6 @@ export default function FcmInitializer() {
   const token = useHotelAuthStore((state: any) => state.accessToken);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [showTestBtn, setShowTestBtn] = useState(false);
 
   const stopRinging = () => {
     if (ringIntervalRef.current) {
@@ -79,11 +78,9 @@ export default function FcmInitializer() {
             method: 'POST',
             body: JSON.stringify({ token: fcmToken })
           });
-          setShowTestBtn(true);
         }
 
         onMessage(messaging, (payload) => {
-          alert('DEBUG: onMessage fired! Order received. Attempting to ring...');
           new Notification(payload.notification?.title || 'New Order!', {
             body: payload.notification?.body,
             icon: '/icon.png',
@@ -100,31 +97,5 @@ export default function FcmInitializer() {
     return () => { stopRinging(); };
   }, [token]);
 
-  if (!showTestBtn) return null;
-
-  return (
-    <button
-      onClick={() => {
-        // This is a direct user gesture - audio will definitely play
-        startRinging();
-        alert('Test ring started! You should hear a beep every 3 seconds. Click anywhere to stop.');
-      }}
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        zIndex: 9999,
-        background: '#f97316',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        padding: '10px 18px',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-      }}
-    >
-      🔔 Test Sound
-    </button>
-  );
+  return null;
 }
