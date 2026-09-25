@@ -20,7 +20,7 @@ export class FcmService implements OnModuleInit {
         const serviceAccount = JSON.parse(serviceAccountJson);
         if (!admin.apps?.length) {
           admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+            credential: admin.cert(serviceAccount),
           });
         }
         this.isConfigured = true;
@@ -35,16 +35,16 @@ export class FcmService implements OnModuleInit {
 
   async registerToken(userId: string, token: string) {
     if (!token) return;
-    await this.prisma.fcmToken.upsert({
-      where: { token },
-      update: { userId },
-      create: { userId, token },
+    await this.prisma.pushSubscription.upsert({
+      where: { endpoint: token },
+      update: { userId, p256dh: 'fcm', auth: 'fcm' },
+      create: { userId, endpoint: token, p256dh: 'fcm', auth: 'fcm' },
     });
   }
 
   async removeToken(token: string) {
     try {
-      await this.prisma.fcmToken.delete({ where: { token } });
+      await this.prisma.pushSubscription.delete({ where: { endpoint: token } });
     } catch (e) {}
   }
 
@@ -52,24 +52,24 @@ export class FcmService implements OnModuleInit {
     if (!this.isConfigured) return;
 
     try {
-      const tokens = await this.prisma.fcmToken.findMany({ where: { userId } });
+      const tokens = await this.prisma.pushSubscription.findMany({ where: { userId } });
       if (tokens.length === 0) return;
 
       const promises = tokens.map(async (t) => {
         try {
-          await admin.messaging().send({
+          await require('firebase-admin/messaging').getMessaging().send({
             notification: payload.notification,
             data: payload.data,
-            token: t.token,
+            token: t.endpoint,
           });
         } catch (error: any) {
           if (
             error.code === 'messaging/invalid-registration-token' ||
             error.code === 'messaging/registration-token-not-registered'
           ) {
-            await this.removeToken(t.token);
+            await this.removeToken(t.endpoint);
           } else {
-            this.logger.error('FCM send error to token ' + t.token + ':', error);
+            this.logger.error('FCM send error to token ' + t.endpoint + ':', error);
           }
         }
       });
