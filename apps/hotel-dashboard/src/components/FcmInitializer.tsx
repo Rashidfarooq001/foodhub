@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
@@ -14,23 +14,113 @@ const firebaseConfig = {
   appId: '1:38401266283:web:f12a867e3ac4cb21fd572e'
 };
 
-// Global audio context to bypass autoplay restrictions
-let globalAudioCtx: any = null;
-if (typeof window !== 'undefined') {
-  const initAudio = () => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioContext && !globalAudioCtx) {
-      globalAudioCtx = new AudioContext();
-    } else if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
-      globalAudioCtx.resume();
-    }
+// A short WAV beep encoded as base64 (no external file needed)
+const BEEP_WAV = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAA' +
+  'EAAQAQDgAAEA4AAAIAAgAZGF0YTtvT18A' +
+  'AAAAAAAA/////wAAAAAAAAD/////AAAAAA' +
+  'AAAP////8AAAAAAAAAAP////8AAAAAAAAAA' +
+  'P////8AAAAAAAAAAP////8AAAAAAAAAA';
+
+// Proper short beep as WAV (440Hz sine wave, 0.3 seconds)
+function generateBeepUrl(): string {
+  const sampleRate = 22050;
+  const duration = 0.35;
+  const freq = 880;
+  const numSamples = Math.floor(sampleRate * duration);
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+
+  const writeStr = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
   };
-  window.addEventListener('click', initAudio);
-  window.addEventListener('touchstart', initAudio);
+
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, numSamples * 2, true);
+
+  for (let i = 0; i < numSamples; i++) {
+    // Sine wave with fade-out envelope
+    const envelope = 1 - (i / numSamples);
+    const sample = Math.sin(2 * Math.PI * freq * i / sampleRate) * envelope * 0.7;
+    view.setInt16(44 + i * 2, Math.round(sample * 32767), true);
+  }
+
+  const blob = new Blob([buffer], { type: 'audio/wav' });
+  return URL.createObjectURL(blob);
 }
 
 export default function FcmInitializer() {
   const token = useHotelAuthStore((state: any) => state.accessToken);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ringTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pre-create and unlock the audio element on first user interaction
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const unlockAudio = () => {
+      if (!audioRef.current) {
+        const beepUrl = generateBeepUrl();
+        const audio = new Audio(beepUrl);
+        audio.volume = 1.0;
+        audioRef.current = audio;
+        // Play silently to unlock autoplay
+        audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {});
+      }
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
+
+  const stopRinging = () => {
+    if (ringIntervalRef.current) { clearInterval(ringIntervalRef.current); ringIntervalRef.current = null; }
+    if (ringTimeoutRef.current) { clearTimeout(ringTimeoutRef.current); ringTimeoutRef.current = null; }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+    document.removeEventListener('click', stopRinging);
+    document.removeEventListener('touchstart', stopRinging);
+    document.removeEventListener('keydown', stopRinging);
+  };
+
+  const startRinging = () => {
+    const playBeep = () => {
+      if (!audioRef.current) return;
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    };
+
+    playBeep();
+    ringIntervalRef.current = setInterval(playBeep, 3000);
+
+    // Stop after 40 seconds
+    ringTimeoutRef.current = setTimeout(stopRinging, 40000);
+
+    // Stop on any interaction
+    document.addEventListener('click', stopRinging);
+    document.addEventListener('touchstart', stopRinging);
+    document.addEventListener('keydown', stopRinging);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -39,7 +129,6 @@ export default function FcmInitializer() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          // Avoid "Firebase: Firebase App named '[DEFAULT]' already exists" error
           const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
           const messaging = getMessaging(app);
           const fcmToken = await getToken(messaging, {
@@ -51,94 +140,27 @@ export default function FcmInitializer() {
               method: 'POST',
               body: JSON.stringify({ token: fcmToken })
             });
-            alert('FCM Token successfully registered! You will now receive notifications.');
-          } else {
-            alert('FCM token was null');
           }
 
           onMessage(messaging, (payload) => {
-            const title = payload.notification?.title || 'Notification';
+            const title = payload.notification?.title || 'New Order!';
             const options = {
               body: payload.notification?.body,
               icon: '/icon.png',
               data: payload.data,
             };
             new Notification(title, options);
-
-            // --- Continuous Ringing ---
-            if (globalAudioCtx) {
-              try {
-                if (globalAudioCtx.state === 'suspended') {
-                  globalAudioCtx.resume();
-                }
-                
-                let isPlaying = true;
-                
-                const playChime = () => {
-                  if (!isPlaying) return;
-                  const now = globalAudioCtx.currentTime;
-                  
-                  // High note (Ding)
-                  const osc1 = globalAudioCtx.createOscillator();
-                  const gain1 = globalAudioCtx.createGain();
-                  osc1.type = 'sine';
-                  osc1.frequency.setValueAtTime(880, now); // A5
-                  gain1.gain.setValueAtTime(0, now);
-                  gain1.gain.linearRampToValueAtTime(0.5, now + 0.05);
-                  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                  osc1.connect(gain1);
-                  gain1.connect(globalAudioCtx.destination);
-                  osc1.start(now);
-                  osc1.stop(now + 0.5);
-                  
-                  // Low note (Dong)
-                  const osc2 = globalAudioCtx.createOscillator();
-                  const gain2 = globalAudioCtx.createGain();
-                  osc2.type = 'sine';
-                  osc2.frequency.setValueAtTime(659.25, now + 0.3); // E5
-                  gain2.gain.setValueAtTime(0, now + 0.3);
-                  gain2.gain.linearRampToValueAtTime(0.5, now + 0.35);
-                  gain2.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-                  osc2.connect(gain2);
-                  gain2.connect(globalAudioCtx.destination);
-                  osc2.start(now + 0.3);
-                  osc2.stop(now + 1.0);
-                };
-
-                const intervalId = setInterval(playChime, 3000);
-                playChime(); // Play first chime immediately
-
-                const stopRinging = () => {
-                  if (!isPlaying) return;
-                  isPlaying = false;
-                  clearInterval(intervalId);
-                  document.removeEventListener('click', stopRinging);
-                  document.removeEventListener('keydown', stopRinging);
-                  document.removeEventListener('touchstart', stopRinging);
-                };
-
-                // Stop ringing on user interaction
-                document.addEventListener('click', stopRinging);
-                document.addEventListener('keydown', stopRinging);
-                document.addEventListener('touchstart', stopRinging);
-
-                // Stop automatically after 40 seconds
-                setTimeout(stopRinging, 40000);
-              } catch (audioErr) {
-                console.error("Audio chime failed:", audioErr);
-              }
-            }
+            startRinging();
           });
-        } else {
-          alert('Notification permission was ' + permission);
         }
       } catch (err: any) {
-        console.error('Failed to request FCM token', err);
-        alert('FCM Error: ' + err?.message);
+        console.error('Failed to setup FCM', err);
       }
     };
 
     requestPermission();
+
+    return () => { stopRinging(); };
   }, [token]);
 
   return null;
