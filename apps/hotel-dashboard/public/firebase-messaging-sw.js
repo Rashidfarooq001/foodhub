@@ -2,7 +2,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyBT5-exOsydIQvUJP50NR9crClm4qw67n8',
+  apiKey: 'AIzaSyBN5-exOsydIQvUJP50NR9crClm4qw67n8',
   authDomain: 'foodtop-98529.firebaseapp.com',
   projectId: 'foodtop-98529',
   storageBucket: 'foodtop-98529.firebasestorage.app',

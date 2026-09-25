@@ -6,7 +6,7 @@ import { useDeliveryAuthStore } from '../stores/use-delivery-auth-store';
 import { deliveryFetch } from '../utils/delivery-fetch';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyBT5-exOsydIQvUJP50NR9crClm4qw67n8',
+  apiKey: 'AIzaSyBN5-exOsydIQvUJP50NR9crClm4qw67n8',
   authDomain: 'foodtop-98529.firebaseapp.com',
   projectId: 'foodtop-98529',
   storageBucket: 'foodtop-98529.firebasestorage.app',
