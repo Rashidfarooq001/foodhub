@@ -25,7 +25,10 @@ export default function AdminOrdersPage() {
       setError(null);
     }
     try {
-      let query = '/orders?page=1&limit=200';
+      let query = `/orders?page=${page}&limit=20`;
+      if (search) {
+        query += `&search=${encodeURIComponent(search)}`;
+      }
       if (statusFilter !== 'ALL') {
         const filterValue = ADMIN_ORDER_FILTERS[statusFilter as keyof typeof ADMIN_ORDER_FILTERS];
         if (Array.isArray(filterValue)) {
