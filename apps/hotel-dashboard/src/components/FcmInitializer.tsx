@@ -49,6 +49,67 @@ export default function FcmInitializer() {
               data: payload.data,
             };
             new Notification(title, options);
+
+            // --- Continuous Ringing for 15 seconds (or until click) ---
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContext) {
+              try {
+                const ctx = new AudioContext();
+                let isPlaying = true;
+                
+                const playChime = () => {
+                  if (!isPlaying) return;
+                  const now = ctx.currentTime;
+                  
+                  // High note (Ding)
+                  const osc1 = ctx.createOscillator();
+                  const gain1 = ctx.createGain();
+                  osc1.type = 'sine';
+                  osc1.frequency.setValueAtTime(880, now); // A5
+                  gain1.gain.setValueAtTime(0, now);
+                  gain1.gain.linearRampToValueAtTime(0.5, now + 0.05);
+                  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                  osc1.connect(gain1);
+                  gain1.connect(ctx.destination);
+                  osc1.start(now);
+                  osc1.stop(now + 0.5);
+                  
+                  // Low note (Dong)
+                  const osc2 = ctx.createOscillator();
+                  const gain2 = ctx.createGain();
+                  osc2.type = 'sine';
+                  osc2.frequency.setValueAtTime(659.25, now + 0.3); // E5
+                  gain2.gain.setValueAtTime(0, now + 0.3);
+                  gain2.gain.linearRampToValueAtTime(0.5, now + 0.35);
+                  gain2.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+                  osc2.connect(gain2);
+                  gain2.connect(ctx.destination);
+                  osc2.start(now + 0.3);
+                  osc2.stop(now + 1.0);
+                };
+
+                const intervalId = setInterval(playChime, 2000);
+                playChime(); // Play first chime immediately
+
+                const stopRinging = () => {
+                  if (!isPlaying) return;
+                  isPlaying = false;
+                  clearInterval(intervalId);
+                  document.removeEventListener('click', stopRinging);
+                  document.removeEventListener('keydown', stopRinging);
+                  if (ctx.state !== 'closed') ctx.close().catch(() => {});
+                };
+
+                // Stop ringing on user interaction
+                document.addEventListener('click', stopRinging);
+                document.addEventListener('keydown', stopRinging);
+
+                // Stop automatically after 15 seconds
+                setTimeout(stopRinging, 15000);
+              } catch (audioErr) {
+                console.error("Audio chime failed:", audioErr);
+              }
+            }
           });
         } else {
           alert('Notification permission was ' + permission);
