@@ -1,12 +1,1 @@
-const fs = require('fs');
-let txt = fs.readFileSync('apps/backend/src/modules/auth/auth.controller.ts', 'utf8');
-const newRoute = \
-  @Public()
-  @Post('admin/verify-identifier')
-  @HttpCode(HttpStatus.OK)
-  async verifyAdminIdentifier(@Body() dto: AdminVerifyIdentifierDto) {
-    return this.authService.verifyAdminIdentifier(dto.identifier);
-  }
-\;
-txt = txt.replace('async verifyAdminSecurityQuestions(', newRoute + '\n  async verifyAdminSecurityQuestions(');
-fs.writeFileSync('apps/backend/src/modules/auth/auth.controller.ts', txt);
+let fs = require('fs'); let code = fs.readFileSync('dist/src/modules/notifications/fcm.service.js', 'utf8'); code = code.replace(/this\.logger\.error\('Failed to parse FIREBASE_SERVICE_ACCOUNT \(err: ' \+ e\.message \+ '\): ' \+ serviceAccountJson, e\)/g, 'this.logger.error(\'Failed to parse FIREBASE_SERVICE_ACCOUNT (err: \' + e.message + \'): \' + process.env.FIREBASE_SERVICE_ACCOUNT, e)'); fs.writeFileSync('dist/src/modules/notifications/fcm.service.js', code);
