@@ -59,6 +59,8 @@ export class FcmService implements OnModuleInit {
         try {
           await require('firebase-admin/messaging').getMessaging().send({
             notification: payload.notification,
+            android: { notification: { sound: 'default' } },
+            apns: { payload: { aps: { sound: 'default' } } },
             data: payload.data,
             token: t.endpoint,
           });
