@@ -88,7 +88,7 @@ export default function FcmInitializer() {
                   osc2.stop(now + 1.0);
                 };
 
-                const intervalId = setInterval(playChime, 2000);
+                const intervalId = setInterval(playChime, 3000);
                 playChime(); // Play first chime immediately
 
                 const stopRinging = () => {
@@ -104,8 +104,8 @@ export default function FcmInitializer() {
                 document.addEventListener('click', stopRinging);
                 document.addEventListener('keydown', stopRinging);
 
-                // Stop automatically after 15 seconds
-                setTimeout(stopRinging, 15000);
+                // Stop automatically after 40 seconds
+                setTimeout(stopRinging, 40000);
               } catch (audioErr) {
                 console.error("Audio chime failed:", audioErr);
               }
