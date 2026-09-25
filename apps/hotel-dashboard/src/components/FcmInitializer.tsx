@@ -36,6 +36,9 @@ export default function FcmInitializer() {
               method: 'POST',
               body: JSON.stringify({ token: fcmToken })
             });
+            alert('FCM Token successfully registered! You will now receive notifications.');
+          } else {
+            alert('FCM token was null');
           }
 
           onMessage(messaging, (payload) => {
@@ -47,9 +50,12 @@ export default function FcmInitializer() {
             };
             new Notification(title, options);
           });
+        } else {
+          alert('Notification permission was ' + permission);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to request FCM token', err);
+        alert('FCM Error: ' + err?.message);
       }
     };
 
