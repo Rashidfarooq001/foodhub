@@ -11,6 +11,7 @@ import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { PaymentStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import { WebPushService } from '../notifications/web-push.service';
+import { FcmService } from '../notifications/fcm.service';
 import { OrdersGateway } from '../orders/orders.gateway';
 import { ORDER_EVENTS } from '../orders/orders.events';
 
@@ -26,6 +27,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly gateway: OrdersGateway,
     private readonly webPushService: WebPushService,
+    private readonly fcm: FcmService,
   ) {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -216,7 +218,8 @@ export class PaymentsService {
         include: { restaurant: true },
       });
       if (verifiedOrder) {
-        this.webPushService.sendPushNotification(verifiedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #$(.orderNumber) for ?$(.totalAmount) has been paid and is waiting for acceptance.`, url: '/orders' });
+        this.webPushService.sendPushNotification(verifiedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #${verifiedOrder.orderNumber} for ₹${verifiedOrder.totalAmount} has been paid and is waiting for acceptance.`, url: '/orders' });
+        this.fcm.sendToUser(verifiedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${verifiedOrder.orderNumber} for ₹${verifiedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
         this.gateway.emitToRestaurant(verifiedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: verifiedOrder.id,
           orderNumber: verifiedOrder.orderNumber,
@@ -592,7 +595,8 @@ export class PaymentsService {
         where: { id: existingPayment.orderId },
       });
       if (capturedOrder) {
-        this.webPushService.sendPushNotification(capturedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #$(.orderNumber) for ?$(.totalAmount) has been paid and is waiting for acceptance.`, url: '/orders' });
+        this.webPushService.sendPushNotification(capturedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #${capturedOrder.orderNumber} for ₹${capturedOrder.totalAmount} has been paid and is waiting for acceptance.`, url: '/orders' });
+        this.fcm.sendToUser(capturedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${capturedOrder.orderNumber} for ₹${capturedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
         this.gateway.emitToRestaurant(capturedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: capturedOrder.id,
           orderNumber: capturedOrder.orderNumber,
