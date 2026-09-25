@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { useHotelAuthStore } from '../stores/use-hotel-auth-store';
@@ -16,9 +16,52 @@ const firebaseConfig = {
 
 export default function FcmInitializer() {
   const token = useHotelAuthStore((state: any) => state.accessToken);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showTestBtn, setShowTestBtn] = useState(false);
+
+  const stopRinging = () => {
+    if (ringIntervalRef.current) {
+      clearInterval(ringIntervalRef.current);
+      ringIntervalRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  const startRinging = () => {
+    stopRinging(); // Stop any previous ringing
+    const audio = audioRef.current;
+    if (!audio) {
+      alert('DEBUG: audioRef is null - audio element not mounted yet');
+      return;
+    }
+
+    const playOnce = () => {
+      audio.currentTime = 0;
+      audio.play().catch((e) => console.error('play() error:', e.name, e.message));
+    };
+
+    playOnce();
+    ringIntervalRef.current = setInterval(playOnce, 3000);
+
+    // Auto-stop after 40 seconds
+    setTimeout(() => stopRinging(), 40000);
+
+    // Stop on user interaction
+    const stop = () => { stopRinging(); document.removeEventListener('click', stop); };
+    document.addEventListener('click', stop);
+  };
 
   useEffect(() => {
     if (!token) return;
+
+    // Mount the audio element
+    const audio = new Audio('/beep.wav');
+    audio.preload = 'auto';
+    audioRef.current = audio;
 
     const requestPermission = async () => {
       try {
@@ -36,50 +79,16 @@ export default function FcmInitializer() {
             method: 'POST',
             body: JSON.stringify({ token: fcmToken })
           });
+          setShowTestBtn(true);
         }
 
         onMessage(messaging, (payload) => {
-          // Show browser notification
-          const title = payload.notification?.title || 'New Order!';
-          new Notification(title, {
+          alert('DEBUG: onMessage fired! Order received. Attempting to ring...');
+          new Notification(payload.notification?.title || 'New Order!', {
             body: payload.notification?.body,
             icon: '/icon.png',
-            data: payload.data,
           });
-
-          // Play the beep every 3 seconds for 40 seconds
-          let stopped = false;
-          let count = 0;
-
-          const playBeep = () => {
-            if (stopped) return;
-            const audio = new Audio('/beep.wav');
-            audio.volume = 1.0;
-            audio.play().catch((e) => console.error('Audio play failed:', e));
-          };
-
-          playBeep();
-          const intervalId = setInterval(() => {
-            count++;
-            if (count >= 13) { // 13 * 3s = 39s ~ 40s
-              stopped = true;
-              clearInterval(intervalId);
-              return;
-            }
-            playBeep();
-          }, 3000);
-
-          // Stop on any user click/key
-          const stopRinging = () => {
-            stopped = true;
-            clearInterval(intervalId);
-            document.removeEventListener('click', stopRinging);
-            document.removeEventListener('keydown', stopRinging);
-            document.removeEventListener('touchstart', stopRinging);
-          };
-          document.addEventListener('click', stopRinging);
-          document.addEventListener('keydown', stopRinging);
-          document.addEventListener('touchstart', stopRinging);
+          startRinging();
         });
       } catch (err: any) {
         console.error('FCM setup failed:', err);
@@ -87,7 +96,35 @@ export default function FcmInitializer() {
     };
 
     requestPermission();
+
+    return () => { stopRinging(); };
   }, [token]);
 
-  return null;
+  if (!showTestBtn) return null;
+
+  return (
+    <button
+      onClick={() => {
+        // This is a direct user gesture - audio will definitely play
+        startRinging();
+        alert('Test ring started! You should hear a beep every 3 seconds. Click anywhere to stop.');
+      }}
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        zIndex: 9999,
+        background: '#f97316',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        padding: '10px 18px',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      }}
+    >
+      🔔 Test Sound
+    </button>
+  );
 }
