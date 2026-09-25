@@ -219,7 +219,7 @@ export class PaymentsService {
       });
       if (verifiedOrder) {
         this.webPushService.sendPushNotification(verifiedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #${verifiedOrder.orderNumber} for ₹${verifiedOrder.totalAmount} has been paid and is waiting for acceptance.`, url: '/orders' });
-        this.fcm.sendToUser(verifiedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${verifiedOrder.orderNumber} for ₹${verifiedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
+        this.fcm.sendToUser(verifiedOrder.restaurant?.ownerId ?? verifiedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${verifiedOrder.orderNumber} for ₹${verifiedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
         this.gateway.emitToRestaurant(verifiedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: verifiedOrder.id,
           orderNumber: verifiedOrder.orderNumber,
@@ -593,10 +593,11 @@ export class PaymentsService {
     try {
       const capturedOrder = await this.prisma.order.findUnique({
         where: { id: existingPayment.orderId },
+        include: { restaurant: true },
       });
       if (capturedOrder) {
         this.webPushService.sendPushNotification(capturedOrder.restaurantId, { title: 'New Order Received (Paid)', body: `Order #${capturedOrder.orderNumber} for ₹${capturedOrder.totalAmount} has been paid and is waiting for acceptance.`, url: '/orders' });
-        this.fcm.sendToUser(capturedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${capturedOrder.orderNumber} for ₹${capturedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
+        this.fcm.sendToUser(capturedOrder.restaurant?.ownerId ?? capturedOrder.restaurantId, { notification: { title: 'New Order Received (Paid)', body: `Order #${capturedOrder.orderNumber} for ₹${capturedOrder.totalAmount} has been paid and is waiting for acceptance.` }, data: { url: '/orders' } });
         this.gateway.emitToRestaurant(capturedOrder.restaurantId, ORDER_EVENTS.ORDER_CREATED, {
           orderId: capturedOrder.id,
           orderNumber: capturedOrder.orderNumber,
